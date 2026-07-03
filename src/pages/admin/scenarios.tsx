@@ -198,7 +198,7 @@ export default withPageAuthRequired(
     if (!isAdmin) {
       return (
         <div className="max-w-4xl mx-auto py-12 px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <Alert variant="error" className="p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
               {"Access Denied"}
@@ -212,7 +212,7 @@ export default withPageAuthRequired(
             >
               {"Return to Portfolios"}
             </Link>
-          </div>
+          </Alert>
         </div>
       )
     }

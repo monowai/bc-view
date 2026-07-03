@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/router"
 import Head from "next/head"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import IndependencePlanStep from "@components/features/onboarding/steps/IndependencePlanStep"
 import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -217,11 +218,7 @@ function IndependenceSetupPage(): React.ReactElement {
               baseCurrency={baseCurrency}
             />
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
+            {error && <Alert variant="error">{error}</Alert>}
 
             <div className="flex gap-3 pt-2">
               <button

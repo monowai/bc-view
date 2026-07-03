@@ -150,11 +150,9 @@ export default function NewsSentimentPopup({
           <span>Fetching news...</span>
         </div>
       )}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-          Sorry, an error occurred: {error}
-        </div>
-      )}
+      <Dialog.ErrorAlert
+        message={error ? `Sorry, an error occurred: ${error}` : null}
+      />
       {response && (
         <div
           className="prose prose-sm sm:prose-base max-w-none

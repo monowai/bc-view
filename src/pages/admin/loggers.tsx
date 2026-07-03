@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import { rootLoader } from "@components/ui/PageLoader"
 import { usePermissions } from "@hooks/usePermissions"
 import useSWR, { mutate } from "swr"
@@ -105,9 +106,9 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <Alert variant="error" className="p-6 text-center">
           <h1 className="text-xl font-semibold text-red-700">Access Denied</h1>
-        </div>
+        </Alert>
       </div>
     )
   }
@@ -156,13 +157,16 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700 text-sm">
+        <Alert variant="error" className="mb-4">
           Failed to load loggers: {error.message}
-        </div>
+        </Alert>
       )}
 
       {saveError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700 text-sm flex justify-between items-center">
+        <Alert
+          variant="error"
+          className="mb-4 flex justify-between items-center"
+        >
           <span>{saveError}</span>
           <button
             onClick={() => setSaveError(null)}
@@ -171,7 +175,7 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
           >
             ×
           </button>
-        </div>
+        </Alert>
       )}
 
       {loadingData && !data && (

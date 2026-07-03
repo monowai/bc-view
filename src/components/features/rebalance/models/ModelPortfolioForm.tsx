@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import useSWR from "swr"
 import Spinner from "@components/ui/Spinner"
@@ -81,11 +82,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       <div>
         <label

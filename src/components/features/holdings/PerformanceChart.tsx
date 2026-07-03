@@ -26,6 +26,7 @@ import {
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import Alert from "@components/ui/Alert"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 type ChartTab = "gain" | "benchmark" | "guide"
@@ -233,14 +234,14 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+      <Alert variant="error" className="p-6 text-center">
         <div className="text-loss font-medium mb-1">
           Failed to load performance data
         </div>
         <p className="text-sm text-gray-500">
           {error?.message || "Please try again later"}
         </p>
-      </div>
+      </Alert>
     )
   }
 

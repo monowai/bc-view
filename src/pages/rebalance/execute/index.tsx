@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { formatCurrency, formatPercent } from "@lib/formatters"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
@@ -73,7 +74,7 @@ function ExecuteRebalancePage(): React.ReactElement {
   if (states.error) {
     return (
       <div className="w-full py-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-4xl mx-auto">
+        <Alert variant="error" className="max-w-4xl mx-auto">
           <p>{states.error}</p>
           <button
             onClick={() => {
@@ -84,7 +85,7 @@ function ExecuteRebalancePage(): React.ReactElement {
           >
             Retry
           </button>
-        </div>
+        </Alert>
       </div>
     )
   }

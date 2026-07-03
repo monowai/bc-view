@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import { useExecutions } from "../hooks/useExecutions"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
@@ -20,11 +21,7 @@ const ExecutionList: React.FC = () => {
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Failed to load executions"}
-      </div>
-    )
+    return <Alert variant="error">{"Failed to load executions"}</Alert>
   }
 
   if (executions.length === 0) {

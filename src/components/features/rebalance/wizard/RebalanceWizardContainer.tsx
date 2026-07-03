@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Spinner from "@components/ui/Spinner"
 import RebalanceWizardProgress from "./RebalanceWizardProgress"
@@ -118,9 +119,9 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       <RebalanceWizardProgress currentStep={currentStep} steps={steps} />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-6">
+        <Alert variant="error" className="mb-6">
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">

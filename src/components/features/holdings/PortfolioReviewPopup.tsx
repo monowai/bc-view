@@ -290,11 +290,9 @@ export default function PortfolioReviewPopup({
           {cancelButton}
         </div>
       )}
-      {error && (
-        <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-          Sorry, an error occurred: {error}
-        </div>
-      )}
+      <Dialog.ErrorAlert
+        message={error ? `Sorry, an error occurred: ${error}` : null}
+      />
     </Dialog>
   )
 }

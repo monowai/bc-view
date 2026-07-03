@@ -17,6 +17,7 @@ import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
@@ -424,9 +425,9 @@ function AssetLookupPage(): React.ReactElement {
             </div>
           </div>
           {deleteError && (
-            <div className="mt-3 px-3 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+            <Alert variant="error" className="mt-3">
               {deleteError}
-            </div>
+            </Alert>
           )}
         </div>
       )}
@@ -440,9 +441,9 @@ function AssetLookupPage(): React.ReactElement {
       )}
       {reviewPopup}
       {resolveError && (
-        <div className="mb-4 px-4 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+        <Alert variant="error" className="mb-4">
           {resolveError}
-        </div>
+        </Alert>
       )}
       {chartAsset && (
         <PriceChartPopup

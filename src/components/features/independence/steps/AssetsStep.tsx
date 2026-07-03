@@ -14,6 +14,7 @@ import CompositeAssetEditor from "@components/features/assets/CompositeAssetEdit
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
 import ExistingRetirementAccounts from "@components/features/independence/steps/ExistingRetirementAccounts"
+import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
@@ -1088,10 +1089,10 @@ export default function AssetsStep({
 
               {/* Error message */}
               {createError && (
-                <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
+                <Alert variant="error">
                   <i className="fas fa-exclamation-circle mr-2"></i>
                   {createError}
-                </div>
+                </Alert>
               )}
 
               {/* Account Code */}

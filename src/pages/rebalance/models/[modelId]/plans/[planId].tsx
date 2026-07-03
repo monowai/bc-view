@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useModelPlan } from "@components/features/rebalance/hooks/useModelPlan"
@@ -547,9 +548,9 @@ function PlanDetailPage(): React.ReactElement {
   if (error || !plan) {
     return (
       <div className="w-full py-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-5xl mx-auto">
+        <Alert variant="error" className="max-w-5xl mx-auto">
           {"Failed to load plan"}
-        </div>
+        </Alert>
       </div>
     )
   }
@@ -578,7 +579,10 @@ function PlanDetailPage(): React.ReactElement {
 
       {/* Action error banner */}
       {actionError && (
-        <div className="mb-4 max-w-5xl mx-auto bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between text-sm text-red-700">
+        <Alert
+          variant="error"
+          className="mb-4 max-w-5xl mx-auto flex items-center justify-between"
+        >
           <span>
             <i className="fas fa-exclamation-circle mr-2"></i>
             {actionError}
@@ -589,7 +593,7 @@ function PlanDetailPage(): React.ReactElement {
           >
             <i className="fas fa-times"></i>
           </button>
-        </div>
+        </Alert>
       )}
 
       {/* Header */}
