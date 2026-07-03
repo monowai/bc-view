@@ -20,6 +20,7 @@ export default function StressTestTab(): React.ReactElement {
   const { result, isRunning, error, runSimulation } =
     useCompositeMonteCarloSimulation()
   const [iterations, setIterations] = useState(1000)
+  const [neverSellIlliquid, setNeverSellIlliquid] = useState(false)
   const [isStale, setIsStale] = useState(false)
 
   // Mark result stale when user changes phases/currency after a run.
@@ -44,6 +45,7 @@ export default function StressTestTab(): React.ReactElement {
       iterations,
       phases,
       displayCurrency,
+      ...(neverSellIlliquid ? { neverSellIlliquid: true } : {}),
     })
   }
 
@@ -95,6 +97,29 @@ export default function StressTestTab(): React.ReactElement {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Stress-run modelling assumption */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={neverSellIlliquid}
+              onChange={(e) => setNeverSellIlliquid(e.target.checked)}
+              disabled={isRunning}
+              aria-label="Never force-sell illiquid"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-500 focus:ring-independence-500"
+            />
+            <span>
+              <span className="text-sm font-medium text-gray-800">
+                Never force-sell illiquid assets
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">
+                Keeps your property &amp; real-estate in place — models spending
+                from liquid savings only (CPF is already excluded)
+              </span>
+            </span>
+          </label>
         </div>
 
         {isStale && result && (

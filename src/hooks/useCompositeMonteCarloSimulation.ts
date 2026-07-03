@@ -12,6 +12,7 @@ export interface CompositeMonteCarloRunArgs {
   phases: CompositePhase[]
   displayCurrency: string
   seed?: number
+  neverSellIlliquid?: boolean
 }
 
 export interface UseCompositeMonteCarloSimulationResult {
@@ -39,6 +40,7 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
       phases,
       displayCurrency,
       seed,
+      neverSellIlliquid,
     }: CompositeMonteCarloRunArgs): Promise<void> => {
       if (phases.length === 0) return
 
@@ -53,6 +55,9 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
         }
         if (seed !== undefined) {
           requestBody.seed = seed
+        }
+        if (neverSellIlliquid) {
+          requestBody.neverSellIlliquid = true
         }
 
         const response = await fetch(COMPOSITE_MONTE_CARLO_URL, {

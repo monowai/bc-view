@@ -64,6 +64,31 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
           </button>
         </div>
       </div>
+      <div
+        class="mt-4 pt-4 border-t border-gray-100"
+      >
+        <label
+          class="flex items-start gap-3 cursor-pointer select-none"
+        >
+          <input
+            aria-label="Never force-sell illiquid"
+            class="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-500 focus:ring-independence-500"
+            type="checkbox"
+          />
+          <span>
+            <span
+              class="text-sm font-medium text-gray-800"
+            >
+              Never force-sell illiquid assets
+            </span>
+            <span
+              class="block text-xs text-gray-500 mt-0.5"
+            >
+              Keeps your property & real-estate in place — models spending from liquid savings only (CPF is already excluded)
+            </span>
+          </span>
+        </label>
+      </div>
     </div>
     <div
       class="rounded-xl shadow-md p-6 border bg-amber-50 border-amber-200"

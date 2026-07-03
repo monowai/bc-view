@@ -84,6 +84,68 @@ describe("useCompositeMonteCarloSimulation", () => {
     expect(body).not.toHaveProperty("seed")
   })
 
+  it("includes neverSellIlliquid: true in body when set to true", async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: fixtureMonteCarloResult }),
+    })
+
+    const { result } = renderHook(() => useCompositeMonteCarloSimulation())
+
+    await act(async () => {
+      await result.current.runSimulation({
+        iterations: 1000,
+        phases,
+        displayCurrency: "USD",
+        neverSellIlliquid: true,
+      })
+    })
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(body.neverSellIlliquid).toBe(true)
+  })
+
+  it("omits neverSellIlliquid from body when not provided", async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: fixtureMonteCarloResult }),
+    })
+
+    const { result } = renderHook(() => useCompositeMonteCarloSimulation())
+
+    await act(async () => {
+      await result.current.runSimulation({
+        iterations: 1000,
+        phases,
+        displayCurrency: "USD",
+      })
+    })
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(body).not.toHaveProperty("neverSellIlliquid")
+  })
+
+  it("omits neverSellIlliquid from body when explicitly false", async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: fixtureMonteCarloResult }),
+    })
+
+    const { result } = renderHook(() => useCompositeMonteCarloSimulation())
+
+    await act(async () => {
+      await result.current.runSimulation({
+        iterations: 1000,
+        phases,
+        displayCurrency: "USD",
+        neverSellIlliquid: false,
+      })
+    })
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(body).not.toHaveProperty("neverSellIlliquid")
+  })
+
   it("toggles isRunning around the call", async () => {
     let resolveFetch: (value: unknown) => void = () => undefined
     ;(global.fetch as jest.Mock).mockReturnValueOnce(
