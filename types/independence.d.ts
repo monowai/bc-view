@@ -1130,6 +1130,19 @@ export interface UserIndependenceSettings {
    */
   compositeNarrative?: string
   compositeWorkScenarioId?: string
+  /**
+   * JSON-serialised string[] of portfolio IDs to exclude from wealth
+   * and FI calculations. e.g. '["pf-id-1","pf-id-2"]'.
+   * Parse with JSON.parse; guard against null/blank.
+   */
+  excludedPortfolioIds?: string | null
+  /**
+   * JSON-serialised Record<string,number> of manual asset estimates
+   * (category → value) used when the user has no portfolio balances.
+   * e.g. '{"CASH":1000,"EQUITY":5000,"RE":200000}'.
+   * Parse with JSON.parse; guard against null/blank.
+   */
+  manualAssets?: string | null
   createdDate: string
   updatedDate: string
 }
@@ -1145,6 +1158,16 @@ export interface UpdateSettingsRequest {
   /** Free-form composite-level narrative. Empty string clears it. */
   compositeNarrative?: string
   compositeWorkScenarioId?: string
+  /**
+   * JSON-serialised string[] of portfolio IDs to exclude from wealth
+   * and FI calculations. e.g. '["pf-id-1","pf-id-2"]'.
+   */
+  excludedPortfolioIds?: string | null
+  /**
+   * JSON-serialised Record<string,number> of manual asset estimates
+   * (category → value). e.g. '{"CASH":1000,"EQUITY":5000,"RE":200000}'.
+   */
+  manualAssets?: string | null
 }
 
 // ============ Phased Plans Types ============
