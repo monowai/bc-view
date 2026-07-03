@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react"
+import { formatCurrency } from "@lib/formatters"
 import useSWR from "swr"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
@@ -317,13 +318,6 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     setExecution(null)
     setItemEdits({})
     setError(null)
-  }
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value)
   }
 
   if (!modalOpen) return null

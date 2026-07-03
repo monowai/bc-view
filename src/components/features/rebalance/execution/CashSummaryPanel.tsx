@@ -1,5 +1,5 @@
 import React from "react"
-import { gainLossClass } from "@lib/formatters"
+import { formatCurrency, gainLossClass } from "@lib/formatters"
 interface CashSummaryPanelProps {
   currentMarketValue: number
   currentCash: number
@@ -17,14 +17,6 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
   cashForPurchases,
   currency,
 }) => {
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat(undefined, {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value)
-  }
-
   // Net impact: sales generate cash, purchases consume cash, cash position change provides/absorbs cash
   // When reducing cash target, freed cash funds purchases (cash neutral)
   // When increasing cash target, sales fund the cash increase (cash neutral)
