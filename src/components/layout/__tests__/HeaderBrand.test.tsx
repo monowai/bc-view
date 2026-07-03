@@ -81,6 +81,34 @@ describe("HeaderBrand", () => {
     expect(document.body.style.overflow).toBe("")
   })
 
+  it("opens the mobile drawer and closes it via the backdrop", () => {
+    window.scrollTo = jest.fn()
+    render(<HeaderBrand />)
+    expect(
+      screen.queryByRole("dialog", { name: "Navigation" }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /Navigation menu/i }))
+    expect(
+      screen.getByRole("dialog", { name: "Navigation" }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId("mobile-nav-backdrop"))
+    expect(
+      screen.queryByRole("dialog", { name: "Navigation" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("closes the mobile drawer on Escape", () => {
+    window.scrollTo = jest.fn()
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /Navigation menu/i }))
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(
+      screen.queryByRole("dialog", { name: "Navigation" }),
+    ).not.toBeInTheDocument()
+  })
+
   it("hides nav dropdowns when unauthenticated", () => {
     mockUseUser.mockReturnValueOnce({
       user: undefined,

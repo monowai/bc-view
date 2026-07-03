@@ -59,15 +59,17 @@ const ValueInOption: React.FC<ValueInOptionProps> = ({
   return (
     <ul className="menu-list">
       {options.map((option) => (
-        <li
-          key={option.value}
-          className="menu-item"
-          onClick={() => handleSelectChange(option)}
-        >
-          {option.label}
-          {holdingState.valueIn.value === option.value && (
-            <span className="check-mark">&#10003;</span>
-          )}
+        <li key={option.value}>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => handleSelectChange(option)}
+          >
+            {option.label}
+            {holdingState.valueIn.value === option.value && (
+              <span className="check-mark">&#10003;</span>
+            )}
+          </button>
         </li>
       ))}
     </ul>

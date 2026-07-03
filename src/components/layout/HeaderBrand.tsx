@@ -167,6 +167,76 @@ const defaultSectionColor = {
   text: "text-gray-700",
 }
 
+function filterNavItems(
+  items: NavItem[],
+  isAdmin: boolean,
+  canRunAi: boolean,
+  zenMode: boolean,
+): NavItem[] {
+  return items.filter(
+    (item) =>
+      (!item.adminOnly || isAdmin) &&
+      (!item.aiOnly || canRunAi) &&
+      (!item.zenHidden || !zenMode),
+  )
+}
+
+// One nav entry — shared by the desktop dropdowns and the mobile drawer so
+// both surfaces keep the same vocabulary. `dense` is the desktop dropdown
+// sizing; the drawer gets roomier tap targets.
+function NavItemRow({
+  item,
+  active,
+  colors,
+  dense = false,
+  onNavigate,
+  onAction,
+}: {
+  item: NavItem
+  active: boolean
+  colors: { bg: string; text: string }
+  dense?: boolean
+  onNavigate: () => void
+  onAction: (action: NavAction) => void
+}): React.ReactElement {
+  const rowClass = `flex items-center ${
+    dense ? "gap-2.5 px-3 py-2" : "gap-3 px-4 py-2.5"
+  } text-sm transition-colors ${
+    active
+      ? `${colors.bg} ${colors.text} font-medium`
+      : "text-gray-700 hover:bg-gray-50"
+  }`
+  const icon = (
+    <i
+      className={`fas ${item.icon} ${dense ? "w-4 text-xs" : "w-5 text-sm"} text-center ${
+        active ? colors.text : "text-gray-400"
+      }`}
+    ></i>
+  )
+  if (item.action) {
+    const action = item.action
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate()
+          onAction(action)
+        }}
+        className={`${rowClass} w-full text-left`}
+      >
+        {icon}
+        {item.label}
+      </button>
+    )
+  }
+  return (
+    <Link href={item.href} onClick={onNavigate} className={rowClass}>
+      {icon}
+      {item.label}
+    </Link>
+  )
+}
+
 // Desktop dropdown — opens on hover with a close delay, click also toggles
 function DesktopDropdown({
   section,
@@ -218,11 +288,11 @@ function DesktopDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isOpen])
 
-  const filteredItems = section.items.filter(
-    (item) =>
-      (!item.adminOnly || isAdmin) &&
-      (!item.aiOnly || canRunAi) &&
-      (!item.zenHidden || !zenMode),
+  const filteredItems = filterNavItems(
+    section.items,
+    isAdmin,
+    canRunAi,
+    zenMode,
   )
   const isActive = filteredItems.some((item) =>
     isActiveRoute(router.pathname, item.href),
@@ -257,9 +327,9 @@ function DesktopDropdown({
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+        className={`relative flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
           isActive
-            ? "text-white bg-gray-700"
+            ? "text-white bg-gray-700 after:absolute after:inset-x-3 after:bottom-0.5 after:h-0.5 after:rounded-full after:bg-blue-400 after:content-['']"
             : "text-gray-300 hover:text-white hover:bg-gray-700"
         }`}
       >
@@ -270,51 +340,18 @@ function DesktopDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden py-1 text-gray-800">
-          {filteredItems.map((item) => {
-            const active = isActiveRoute(router.pathname, item.href)
-            const colors = sectionColors[section.title] || defaultSectionColor
-            const itemClass = `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-              active
-                ? `${colors.bg} ${colors.text} font-medium`
-                : "text-gray-700 hover:bg-gray-50"
-            }`
-            const itemIcon = (
-              <i
-                className={`fas ${item.icon} w-4 text-center text-xs ${
-                  active ? colors.text : "text-gray-400"
-                }`}
-              ></i>
-            )
-            if (item.action) {
-              const action = item.action
-              return (
-                <button
-                  key={item.href}
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false)
-                    onAction(action)
-                  }}
-                  className={`${itemClass} w-full text-left`}
-                >
-                  {itemIcon}
-                  {item.label}
-                </button>
-              )
-            }
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={itemClass}
-              >
-                {itemIcon}
-                {item.label}
-              </Link>
-            )
-          })}
+        <div className="absolute left-0 mt-1 w-52 bg-white rounded-lg shadow-[0_2px_10px_rgb(0_0_0/0.1)] border border-gray-200 z-50 overflow-hidden py-1 text-gray-800 animate-menu-in">
+          {filteredItems.map((item) => (
+            <NavItemRow
+              key={item.href}
+              item={item}
+              active={isActiveRoute(router.pathname, item.href)}
+              colors={sectionColors[section.title] || defaultSectionColor}
+              dense
+              onNavigate={() => setIsOpen(false)}
+              onAction={onAction}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -332,26 +369,28 @@ function HeaderBrand(): React.ReactElement {
   const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [payslipOpen, setPayslipOpen] = useState(false)
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
   const isAuthed = !!user
 
-  const openAction = useCallback((action: NavAction): void => {
-    if (action === "payslip") setPayslipOpen(true)
-  }, [])
+  const openAction = useCallback(
+    (action: NavAction): void => {
+      if (action === "payslip") setPayslipOpen(true)
+    },
+    [setPayslipOpen],
+  )
 
-  // Close mobile menu when clicking outside
+  const closeMobileMenu = useCallback((): void => {
+    setMobileMenuOpen(false)
+  }, [setMobileMenuOpen])
+
+  // Close mobile menu on Escape — document-level so it works regardless of
+  // which element inside the drawer holds focus.
   useEffect(() => {
     if (!mobileMenuOpen) return () => {}
-    function handleClickOutside(event: MouseEvent): void {
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target as Node)
-      ) {
-        setMobileMenuOpen(false)
-      }
+    function onKey(event: KeyboardEvent): void {
+      if (event.key === "Escape") setMobileMenuOpen(false)
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
   }, [mobileMenuOpen])
 
   // Close mobile menu on route change. Subscribe to the router event rather
@@ -391,23 +430,16 @@ function HeaderBrand(): React.ReactElement {
     }
   }, [mobileMenuOpen])
 
-  const handleKeyDown = (e: React.KeyboardEvent): void => {
-    if (e.key === "Escape") {
-      setMobileMenuOpen(false)
-    }
-  }
-
   return (
-    <div className="flex items-center" ref={mobileMenuRef}>
+    <div className="flex items-center">
       {/* Mobile Menu Button — hidden when unauthenticated */}
       {isAuthed && (
-        <div className="relative lg:hidden mr-3">
+        <div className="lg:hidden mr-3">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            onKeyDown={handleKeyDown}
             className="p-2 rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
             aria-expanded={mobileMenuOpen}
-            aria-haspopup="true"
+            aria-haspopup="dialog"
             aria-label="Navigation menu"
           >
             {mobileMenuOpen ? (
@@ -417,85 +449,65 @@ function HeaderBrand(): React.ReactElement {
             )}
           </button>
 
-          {/* Mobile Dropdown */}
+          {/* Backdrop — tap anywhere outside the drawer to dismiss */}
           {mobileMenuOpen && (
-            <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-gray-800">
-              <div className="py-2 max-h-[75vh] overflow-y-auto overscroll-contain">
-                {navSections.map((section, sectionIdx) => {
-                  const filteredItems = section.items.filter(
-                    (item) =>
-                      (!item.adminOnly || isAdmin) &&
-                      (!item.aiOnly || canRunAi) &&
-                      (!item.zenHidden || !zenMode),
+            <div
+              data-testid="mobile-nav-backdrop"
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              onClick={closeMobileMenu}
+            />
+          )}
+
+          {/* Mobile drawer — slides in from the left edge on open; unmounted
+              while closed so its links stay out of the tab order. */}
+          {mobileMenuOpen && (
+            <div
+              role="dialog"
+              aria-label="Navigation"
+              className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-[0_2px_10px_rgb(0_0_0/0.1)] lg:hidden animate-drawer-in"
+            >
+              <div className="flex items-center justify-between bg-gray-800 px-4 py-3 text-white">
+                <span className="text-lg font-bold">
+                  Holds<i>worth</i>
+                </span>
+                <button
+                  onClick={closeMobileMenu}
+                  aria-label="Close menu"
+                  className="rounded p-1 text-gray-300 transition-colors hover:bg-gray-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <i className="fas fa-times w-5 text-center text-lg"></i>
+                </button>
+              </div>
+              <nav className="flex-1 overflow-y-auto overscroll-contain py-2">
+                {navSections.map((section) => {
+                  const filteredItems = filterNavItems(
+                    section.items,
+                    isAdmin,
+                    canRunAi,
+                    zenMode,
                   )
                   if (filteredItems.length === 0) return null
                   return (
                     <div key={section.title}>
-                      {sectionIdx > 0 && (
-                        <hr className="my-1.5 border-gray-100" />
-                      )}
-                      <div className="px-3 py-1">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                          {section.title}
-                        </p>
-                      </div>
-                      {filteredItems.map((item) => {
-                        const active = isActiveRoute(router.pathname, item.href)
-                        const colors =
-                          sectionColors[section.title] || defaultSectionColor
-                        const itemClass = `flex items-center gap-2.5 px-3 py-2 transition-colors ${
-                          active
-                            ? `${colors.bg} ${colors.text} font-medium`
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`
-                        const itemIcon = (
-                          <i
-                            className={`fas ${item.icon} w-4 text-center text-xs ${
-                              active ? colors.text : "text-gray-400"
-                            }`}
-                          ></i>
-                        )
-                        if (item.action) {
-                          const action = item.action
-                          return (
-                            <button
-                              key={item.href}
-                              type="button"
-                              onClick={() => {
-                                setMobileMenuOpen(false)
-                                openAction(action)
-                              }}
-                              className={`${itemClass} w-full text-left`}
-                            >
-                              {itemIcon}
-                              <span className="text-sm">{item.label}</span>
-                            </button>
-                          )
-                        }
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className={itemClass}
-                          >
-                            {itemIcon}
-                            <span className="text-sm">{item.label}</span>
-                          </Link>
-                        )
-                      })}
+                      <p className="px-4 pb-1 pt-4 text-xs font-semibold tracking-wide text-gray-500">
+                        {section.title}
+                      </p>
+                      {filteredItems.map((item) => (
+                        <NavItemRow
+                          key={item.href}
+                          item={item}
+                          active={isActiveRoute(router.pathname, item.href)}
+                          colors={
+                            sectionColors[section.title] || defaultSectionColor
+                          }
+                          onNavigate={closeMobileMenu}
+                          onAction={openAction}
+                        />
+                      ))}
                     </div>
                   )
                 })}
-              </div>
-              <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-100">
-                <p className="text-[10px] text-gray-400">
-                  Press{" "}
-                  <kbd className="px-1 bg-gray-200 rounded text-[10px]">
-                    Esc
-                  </kbd>{" "}
-                  to close
-                </p>
-              </div>
+              </nav>
             </div>
           )}
         </div>

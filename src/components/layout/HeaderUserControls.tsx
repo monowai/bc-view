@@ -24,6 +24,13 @@ function Avatar({
   )
 }
 
+const userMenuLinks: { href: string; label: string; icon: string }[] = [
+  { href: "/settings", label: "Settings", icon: "fa-cog" },
+  { href: "/milestones", label: "Milestones", icon: "fa-trophy" },
+  { href: "/brokers", label: "Brokers", icon: "fa-building" },
+  { href: "/shares", label: "Shares", icon: "fa-share-alt" },
+]
+
 export default function HeaderUserControls(): React.ReactElement {
   // Auth0 v4 surfaces 401 from /auth/profile as `error` rather than a clean
   // `user: undefined` — for header UX, treat error the same as unauthenticated
@@ -70,7 +77,7 @@ export default function HeaderUserControls(): React.ReactElement {
       <div className="flex items-center">
         <button
           onClick={toggleHideValues}
-          className="p-2 mr-2 hover:bg-gray-700 rounded transition-colors"
+          className="p-2 mr-2 hover:bg-gray-700 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           title={hideValues ? "Show values" : "Hide values"}
           aria-label={hideValues ? "Show values" : "Hide values"}
         >
@@ -78,7 +85,9 @@ export default function HeaderUserControls(): React.ReactElement {
         </button>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-2 hover:bg-gray-700 rounded-md px-2 py-1 transition-colors"
+          aria-expanded={dropdownOpen}
+          aria-haspopup="true"
+          className="flex items-center gap-2 hover:bg-gray-700 rounded-md px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         >
           <Avatar user={user} size={28} />
           <span className="hidden sm:inline text-sm">{displayName}</span>
@@ -88,39 +97,20 @@ export default function HeaderUserControls(): React.ReactElement {
         </button>
       </div>
       {dropdownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 text-gray-800 overflow-hidden py-1">
-          <Link
-            href="/settings"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            onClick={() => setDropdownOpen(false)}
-          >
-            <i className="fas fa-cog w-4 text-center text-xs text-gray-400"></i>
-            {"Settings"}
-          </Link>
-          <Link
-            href="/milestones"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            onClick={() => setDropdownOpen(false)}
-          >
-            <i className="fas fa-trophy w-4 text-center text-xs text-gray-400"></i>
-            {"Milestones"}
-          </Link>
-          <Link
-            href="/brokers"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            onClick={() => setDropdownOpen(false)}
-          >
-            <i className="fas fa-building w-4 text-center text-xs text-gray-400"></i>
-            {"Brokers"}
-          </Link>
-          <Link
-            href="/shares"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            onClick={() => setDropdownOpen(false)}
-          >
-            <i className="fas fa-share-alt w-4 text-center text-xs text-gray-400"></i>
-            {"Shares"}
-          </Link>
+        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-[0_2px_10px_rgb(0_0_0/0.1)] z-50 text-gray-800 overflow-hidden py-1 animate-menu-in">
+          {userMenuLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              onClick={() => setDropdownOpen(false)}
+            >
+              <i
+                className={`fas ${link.icon} w-4 text-center text-xs text-gray-400`}
+              ></i>
+              {link.label}
+            </Link>
+          ))}
           <hr className="my-1 border-gray-100" />
           <a
             href="/auth/logout"

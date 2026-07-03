@@ -84,15 +84,17 @@ const GroupByOptions: React.FC<GroupByOptionsProps> = ({
   return (
     <ul className="menu-list">
       {groupOptions.values.map((option) => (
-        <li
-          key={option.value}
-          className="menu-item"
-          onClick={() => handleSelectChange(option)}
-        >
-          {option.label}
-          {holdingState.groupBy.value === option.value && (
-            <span className="check-mark">&#10003;</span>
-          )}
+        <li key={option.value}>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => handleSelectChange(option)}
+          >
+            {option.label}
+            {holdingState.groupBy.value === option.value && (
+              <span className="check-mark">&#10003;</span>
+            )}
+          </button>
         </li>
       ))}
     </ul>
