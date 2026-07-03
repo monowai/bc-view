@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
+import Link from "next/link"
 import {
   assetKey,
   simpleFetcher,
@@ -21,6 +22,7 @@ import SubAccountTrnEditModal from "@components/features/transactions/SubAccount
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { unsettleTrn } from "@utils/trns/apiHelper"
 import { computeTradeGroupTotals } from "@utils/trns/tradeUtils"
+import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
@@ -165,6 +167,34 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       return a.sortName.localeCompare(b.sortName)
     })
   }, [trnResults, isMulti])
+
+  // Group header label. In the aggregated (multi-portfolio) view the label is a
+  // portfolio code, so make it a link to that portfolio's holdings page with the
+  // drilled-down asset highlighted. sortName is only set for named portfolios,
+  // so the "Unknown Portfolio" fallback stays plain text.
+  const renderGroupLabel = (group: {
+    label: string
+    sortName: string
+  }): React.ReactElement => {
+    const content = (
+      <>
+        <i className="fas fa-building mr-2 text-indigo-400"></i>
+        {group.label}
+      </>
+    )
+    if (isMulti && assetId && group.sortName) {
+      return (
+        <Link
+          href={holdingsHighlightHref(group.label, assetId as string)}
+          className="font-medium text-indigo-900 hover:text-indigo-700 hover:underline"
+          title={`View ${group.label} holdings`}
+        >
+          {content}
+        </Link>
+      )
+    }
+    return <span className="font-medium text-indigo-900">{content}</span>
+  }
 
   // Copy row data to clipboard as tab-separated values
   const copyRowToClipboard = useCallback(
@@ -440,12 +470,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         <div className="md:hidden space-y-4">
           {groups.map((group) => (
             <div key={group.id}>
-              {/* Broker Header */}
+              {/* Group Header (broker, or portfolio in the aggregated view) */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-t-lg px-4 py-2 flex justify-between items-center">
-                <span className="font-medium text-indigo-900">
-                  <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.label}
-                </span>
+                {renderGroupLabel(group)}
                 <span className="text-sm text-indigo-600">
                   {group.transactions.length}{" "}
                   {group.transactions.length === 1 ? "Trade" : "Trades"}
@@ -631,12 +658,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               key={group.id}
               className="bg-white rounded-lg shadow overflow-hidden"
             >
-              {/* Broker Header */}
+              {/* Group Header (broker, or portfolio in the aggregated view) */}
               <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
-                <span className="font-medium text-indigo-900">
-                  <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.label}
-                </span>
+                {renderGroupLabel(group)}
                 <span className="text-sm text-indigo-600">
                   {group.transactions.length}{" "}
                   {group.transactions.length === 1 ? "Trade" : "Trades"}
