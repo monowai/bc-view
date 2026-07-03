@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { usePlan } from "@components/features/rebalance/hooks/usePlan"
@@ -56,9 +57,7 @@ function PlanDetailPage(): React.ReactElement {
   if (error || !plan) {
     return (
       <div className="w-full py-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {"Failed to load plan"}
-        </div>
+        <Alert variant="error">{"Failed to load plan"}</Alert>
       </div>
     )
   }

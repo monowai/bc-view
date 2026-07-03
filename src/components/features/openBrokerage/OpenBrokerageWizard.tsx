@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react"
+import Alert from "@components/ui/Alert"
 import useSwr from "swr"
 import {
   openBrokerage,
@@ -291,12 +292,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <StepHeader step={step} />
       {error && (
-        <div
-          role="alert"
-          className="mb-4 px-4 py-3 rounded bg-red-50 border border-red-200 text-sm text-red-700"
-        >
+        <Alert variant="error" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
 
       {step === "broker" && (

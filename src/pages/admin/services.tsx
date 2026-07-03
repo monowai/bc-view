@@ -1,5 +1,6 @@
 import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import { rootLoader } from "@components/ui/PageLoader"
 import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
@@ -194,10 +195,10 @@ function ServiceCard({
 
         {/* Error message if any */}
         {service.error && (
-          <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700">
+          <Alert variant="error" className="mt-2">
             <i className="fas fa-exclamation-triangle mr-2"></i>
             {service.error}
-          </div>
+          </Alert>
         )}
 
         {/* Component health details */}
@@ -262,7 +263,7 @@ export default withPageAuthRequired(
     if (!isAdmin) {
       return (
         <div className="max-w-4xl mx-auto py-12 px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <Alert variant="error" className="p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
               {"Access Denied"}
@@ -276,7 +277,7 @@ export default withPageAuthRequired(
             >
               {"Return to Portfolios"}
             </Link>
-          </div>
+          </Alert>
         </div>
       )
     }
@@ -335,12 +336,12 @@ export default withPageAuthRequired(
 
         {/* Error state */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <Alert variant="error" className="mb-6">
             <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
             <span className="text-red-700">
               {"Failed to fetch service status"}
             </span>
-          </div>
+          </Alert>
         )}
 
         {/* Loading state */}

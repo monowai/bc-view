@@ -25,6 +25,7 @@ import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { buildMePatchBody } from "./buildMePatchBody"
 import { buildPensionTrn } from "./buildPensionTrn"
@@ -1022,9 +1023,9 @@ const OnboardingWizard: React.FC = () => {
       <OnboardingProgress currentStep={currentStep} steps={steps} />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-6">
+        <Alert variant="error" className="mb-6">
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">

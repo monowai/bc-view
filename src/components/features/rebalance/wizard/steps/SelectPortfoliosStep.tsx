@@ -1,4 +1,5 @@
 import React, { useEffect } from "react"
+import Alert from "@components/ui/Alert"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { PortfolioResponses } from "types/beancounter"
@@ -55,11 +56,7 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Error retrieving portfolios"}
-      </div>
-    )
+    return <Alert variant="error">{"Error retrieving portfolios"}</Alert>
   }
 
   const portfolios = data?.data || []

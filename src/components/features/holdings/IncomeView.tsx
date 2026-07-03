@@ -11,6 +11,7 @@ import MonthlyIncomeChart, {
   getColorForIndex,
 } from "./MonthlyIncomeChart"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import Alert from "@components/ui/Alert"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Dialog from "@components/ui/Dialog"
@@ -225,9 +226,9 @@ const IncomeView: React.FC<IncomeViewProps> = ({
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+      <Alert variant="error">
         Failed to load income data. Please try again later.
-      </div>
+      </Alert>
     )
   }
 

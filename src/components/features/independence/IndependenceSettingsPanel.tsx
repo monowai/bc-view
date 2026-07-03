@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 import { INPUT_CLS } from "@lib/ui/formClasses"
+import Alert from "@components/ui/Alert"
 
 const MONTHS = [
   "January",
@@ -148,9 +149,9 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
       </p>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <Alert variant="error" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
 
       {saveSuccess && (

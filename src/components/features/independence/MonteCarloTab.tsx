@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { RetirementPlan, RetirementProjection } from "types/independence"
 import type { ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
@@ -116,10 +117,10 @@ export default function MonteCarloTab({
         </div>
 
         {error && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <Alert variant="error" className="mt-3">
             <i className="fas fa-exclamation-circle mr-2"></i>
             {error.message}
-          </div>
+          </Alert>
         )}
       </div>
 

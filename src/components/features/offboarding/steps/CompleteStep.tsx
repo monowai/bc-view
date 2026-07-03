@@ -1,4 +1,5 @@
 import React from "react"
+import Alert from "@components/ui/Alert"
 import { OffboardingResult } from "types/beancounter"
 import Link from "next/link"
 import { forceLogout } from "@utils/offboarding"
@@ -45,7 +46,7 @@ export default function CompleteStep({
       </div>
 
       {hasFailures && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <Alert variant="error" className="mb-6">
           <div className="flex items-start">
             <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
             <p className="text-red-700 text-sm">
@@ -54,7 +55,7 @@ export default function CompleteStep({
               }
             </p>
           </div>
-        </div>
+        </Alert>
       )}
 
       <div className="space-y-4 mb-8">

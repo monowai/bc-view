@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import Alert from "@components/ui/Alert"
 import Head from "next/head"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -121,12 +122,9 @@ function SharesPage(): React.ReactElement {
         </div>
 
         {error && (
-          <div
-            role="alert"
-            className="mb-4 px-4 py-2 rounded bg-red-50 border border-red-200 text-sm text-red-700"
-          >
+          <Alert variant="error" className="mb-4">
             {error}
-          </div>
+          </Alert>
         )}
 
         <Section

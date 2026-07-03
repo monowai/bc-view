@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import { ModelDto } from "types/rebalance"
 import { useModels } from "../hooks/useModels"
@@ -64,11 +65,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Failed to load models"}
-      </div>
-    )
+    return <Alert variant="error">{"Failed to load models"}</Alert>
   }
 
   if (models.length === 0) {

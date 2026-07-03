@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import useCompositeMonteCarloSimulation from "@hooks/useCompositeMonteCarloSimulation"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -133,13 +134,10 @@ export default function StressTestTab(): React.ReactElement {
         )}
 
         {error && (
-          <div
-            role="alert"
-            className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
-          >
+          <Alert variant="error" className="mt-3">
             <i className="fas fa-exclamation-circle mr-2"></i>
             {error.message}
-          </div>
+          </Alert>
         )}
       </div>
 

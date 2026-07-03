@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Spinner from "@components/ui/Spinner"
 import { useModelPlans } from "../hooks/useModelPlans"
@@ -67,11 +68,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Failed to load plan"}
-      </div>
-    )
+    return <Alert variant="error">{"Failed to load plan"}</Alert>
   }
 
   return (

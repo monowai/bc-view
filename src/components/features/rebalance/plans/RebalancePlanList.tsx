@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import { usePlans } from "../hooks/usePlans"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
@@ -31,11 +32,7 @@ const RebalancePlanList: React.FC = () => {
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Failed to load plan"}
-      </div>
-    )
+    return <Alert variant="error">{"Failed to load plan"}</Alert>
   }
 
   if (plans.length === 0) {

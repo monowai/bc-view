@@ -22,6 +22,8 @@ export default function Alert({
 }: AlertProps): React.ReactElement {
   return (
     <div
+      // error/warning interrupt screen readers; info/success announce politely
+      role={variant === "error" || variant === "warning" ? "alert" : "status"}
       className={`border rounded-lg p-3 text-sm ${variantStyles[variant]} ${className}`}
     >
       {children}

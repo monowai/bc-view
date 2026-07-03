@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import Alert from "@components/ui/Alert"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { PortfolioResponses, Portfolio } from "types/beancounter"
@@ -62,11 +63,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {"Failed to load portfolios"}
-      </div>
-    )
+    return <Alert variant="error">{"Failed to load portfolios"}</Alert>
   }
 
   if (portfolios.length === 0) {

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import Alert from "@components/ui/Alert"
 import { Portfolio, Currency } from "types/beancounter"
 import {
   AreaChart,
@@ -123,12 +124,12 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+            <Alert variant="error" className="p-6 text-center">
               <div className="text-loss font-medium mb-1">
                 Failed to load performance data
               </div>
               <p className="text-sm text-gray-500">Please try again later</p>
-            </div>
+            </Alert>
           )}
 
           {isLoading && (
