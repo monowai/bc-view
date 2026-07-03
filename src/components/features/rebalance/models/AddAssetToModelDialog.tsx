@@ -5,6 +5,7 @@ import { AssetOption, Market } from "types/beancounter"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface AddAssetToModelDialogProps {
   modalOpen: boolean
@@ -22,8 +23,14 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
   const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
   const [weight, setWeight] = useState<number>(10)
-  const [isAdding, setIsAdding] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting: isAdding,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    fallbackError: "Could not resolve asset. Please try again.",
+  })
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -45,10 +52,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
 
   const handleAdd = async (): Promise<void> => {
     if (!selectedAsset || weight <= 0) return
-
-    setIsAdding(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       // Resolve the asset to get a real UUID from svc-data
       // This also creates the asset if it doesn't exist and fetches its price.
       // Pass the selected market so a non-US listing (e.g. LON-listed UCITS
@@ -62,8 +66,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       )
 
       if (!resolvedAsset?.id) {
-        setError("Could not resolve asset. Please try again.")
-        return
+        throw new Error("Could not resolve asset. Please try again.")
       }
 
       // Format asset code: omit "US:" prefix for US market (default)
@@ -88,9 +91,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       setSelectedAsset(null)
       setWeight(10)
       onClose()
-    } finally {
-      setIsAdding(false)
-    }
+    })
   }
 
   /**

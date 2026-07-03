@@ -4,6 +4,7 @@ import { Portfolio, MovePositionData } from "types/beancounter"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface MovePositionDialogProps {
   modalOpen: boolean
@@ -20,9 +21,12 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
 }) => {
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string>("")
   const [maintainCash, setMaintainCash] = useState<boolean>(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
+    useDialogSubmit({
+      onSuccess: onClose,
+      autoCloseDelay: 1000,
+      fallbackError: "Failed to move position",
+    })
 
   // Filter out the current portfolio from the target list
   const targetPortfolios = portfolios.filter(
@@ -40,19 +44,13 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
         targetPortfolios.length > 0 ? targetPortfolios[0].id : "",
       )
       setMaintainCash(false)
-      setIsSubmitting(false)
-      setSubmitError(null)
-      setSubmitSuccess(false)
+      reset()
     }
   }
 
   const handleMove = async (): Promise<void> => {
     if (!selectedPortfolioId) return
-
-    setIsSubmitting(true)
-    setSubmitError(null)
-
-    try {
+    await handleSubmit(async () => {
       const response = await fetch("/api/trns/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,17 +61,12 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
           maintainCashBalances: maintainCash,
         }),
       })
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setSubmitError(
+        throw new Error(
           errorData.message || errorData.detail || "Failed to move position",
         )
-        return
       }
-
-      setSubmitSuccess(true)
-      // Invalidate cache immediately
       mutate(holdingKey(sourceData.portfolioCode, "today"))
       mutate("/api/holdings/aggregated?asAt=today")
       const targetPortfolio = portfolios.find(
@@ -82,17 +75,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
       if (targetPortfolio) {
         mutate(holdingKey(targetPortfolio.code, "today"))
       }
-      // Close dialog after brief delay to show success state
-      setTimeout(() => {
-        onClose()
-      }, 1000)
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to move position",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   if (!modalOpen) {

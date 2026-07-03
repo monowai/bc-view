@@ -3,6 +3,7 @@ import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, AssetCategory } from "types/beancounter"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface SectorInfo {
   name: string
@@ -27,8 +28,12 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
   const [name, setName] = useState(asset.name || "")
   const [category, setCategory] = useState(asset.assetCategory?.id || "")
   const [sector, setSector] = useState(asset.sector || "")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({ fallbackError: "Update failed" })
 
   const { data: categoriesData } = useSwr<{ data: AssetCategory[] }>(
     "/api/categories",
@@ -55,9 +60,7 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
       setError("Category is required")
       return
     }
-    setIsSubmitting(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       const res = await fetch(`/api/assets/admin/${asset.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -83,11 +86,7 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
         }
       }
       onSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const categories = categoriesData?.data ?? []

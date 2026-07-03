@@ -8,6 +8,7 @@ import {
 } from "@lib/trns/tradeUtils"
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface SetCashBalanceDialogProps {
   modalOpen: boolean
@@ -31,9 +32,12 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
   assetName,
 }) => {
   const [targetBalance, setTargetBalance] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
+    useDialogSubmit({
+      onSuccess: onClose,
+      autoCloseDelay: 1000,
+      fallbackError: "Failed to submit transaction",
+    })
 
   // Reset state when modal opens. Render-phase reset on prop change (React's
   // "store previous value" pattern) instead of an effect, to avoid cascading
@@ -43,9 +47,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
     setPrevModalOpen(modalOpen)
     if (modalOpen) {
       setTargetBalance("")
-      setIsSubmitting(false)
-      setSubmitError(null)
-      setSubmitSuccess(false)
+      reset()
     }
   }
 
@@ -60,11 +62,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
 
   const handleProceed = async (): Promise<void> => {
     if (calculation.amount === 0) return
-
-    setIsSubmitting(true)
-    setSubmitError(null)
-
-    try {
+    await handleSubmit(async () => {
       const displayName = assetName || assetCode || currency
       const row = buildCashRow({
         type: calculation.type,
@@ -74,21 +72,8 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
         market,
         assetCode,
       })
-
       await postData(portfolio, false, row)
-      setSubmitSuccess(true)
-
-      // Close after a brief delay to show success
-      setTimeout(() => {
-        onClose()
-      }, 1000)
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to submit transaction",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   if (!modalOpen) {
