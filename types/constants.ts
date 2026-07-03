@@ -57,3 +57,9 @@ export function propertyPathToApiValue(
 export const GROUP_BY_OPTIONS = GROUP_BY_PROPERTY_PATHS
 
 export type GroupByOption = GroupByPropertyPath
+
+// Transaction status values — mirrors TrnStatus in types/beancounter.d.ts
+export const TRN_STATUS = {
+  PROPOSED: "PROPOSED",
+  SETTLED: "SETTLED",
+} as const

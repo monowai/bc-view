@@ -1,6 +1,7 @@
 import { TradeFormData, Transaction } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
+import { TRN_STATUS } from "types/constants"
 
 // Cash transaction types
 export type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
@@ -215,7 +216,7 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
       : (data.quantity ?? 0)
 
   // Default to SETTLED if status not provided
-  const status = data.status?.value ?? "SETTLED"
+  const status = data.status?.value ?? TRN_STATUS.SETTLED
 
   // Broker ID for the trade
   const brokerId = data.brokerId ?? ""

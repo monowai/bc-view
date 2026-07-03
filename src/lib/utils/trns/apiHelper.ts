@@ -1,3 +1,5 @@
+import { TRN_STATUS } from "types/constants"
+
 export function deleteTrn(trnId: string): Promise<Response> {
   return fetch(`/api/trns/trades/${trnId}`, {
     method: "DELETE",
@@ -14,7 +16,7 @@ export function unsettleTrn(trnId: string): Promise<Response> {
   return fetch(`/api/trns/status/${trnId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status: "PROPOSED" }),
+    body: JSON.stringify({ status: TRN_STATUS.PROPOSED }),
   })
 }
 

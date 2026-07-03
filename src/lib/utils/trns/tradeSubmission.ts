@@ -1,5 +1,6 @@
 import { TrnUpdatePayload } from "./apiHelper"
 import { TradeFormValues } from "./tradeFormHelpers"
+import { TRN_STATUS } from "types/constants"
 
 /**
  * Derive the settlement currency from form data.
@@ -44,7 +45,7 @@ export const buildEditPayload = (
     tax: formData.tax,
     comments: formData.comment || "",
     brokerId: formData.brokerId || undefined,
-    status: formData.status?.value || "SETTLED",
+    status: formData.status?.value || TRN_STATUS.SETTLED,
     modelId: selectedModelId,
   }
 }
@@ -97,7 +98,7 @@ export const buildExpensePayload = (
         fees: formData.fees || 0,
         tax: formData.tax || 0,
         comments: formData.comment || "",
-        status: formData.status?.value || "SETTLED",
+        status: formData.status?.value || TRN_STATUS.SETTLED,
       },
     ],
   }
@@ -151,7 +152,7 @@ export const buildIncomePayload = (
         fees: formData.fees || 0,
         tax: formData.tax || 0,
         comments: formData.comment || "",
-        status: formData.status?.value || "SETTLED",
+        status: formData.status?.value || TRN_STATUS.SETTLED,
       },
     ],
   }
