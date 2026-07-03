@@ -55,12 +55,12 @@ function parseJsonStringRecord(
  * manualAssets settings are persisted to UserIndependenceSettings and
  * re-derived by svc-retire for every phase's gauge.
  *
- * Note on holdingsData filtering: the aggregated holdings endpoint aggregates
- * positions by asset across all portfolios — per-portfolio filtering of
- * holdingsData positions is not feasible. The portfolios array IS filtered
- * (accurate headline total), while holdingsData is passed as-is (the
- * classification chart will include excluded portfolios' positions, which is
- * an acceptable approximation for this view).
+ * Holdings scoping: excluded portfolio ids are passed to useNetWorthData so
+ * the aggregated-holdings fetch is sent with ids=<included ids> — svc-position
+ * aggregates only those portfolios. This keeps the classification breakdown
+ * (AssetAllocationCharts) consistent with the filtered headline total.
+ * While portfolios are loading the holdings fetch is suppressed (null SWR key)
+ * to prevent svc-position's "no ids = all portfolios" fallback.
  */
 export default function NetWorthTab(): React.ReactElement {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -74,6 +74,14 @@ export default function NetWorthTab(): React.ReactElement {
 
   const { settings, updateSettings, mutateSettings } = useIndependenceSettings()
 
+  // Parse account-wide exclusion list early — passed to useNetWorthData so
+  // the holdings fetch is scoped to only the included portfolio ids.
+  const excludedIds: string[] = useMemo(
+    () => parseJsonStringArray(settings?.excludedPortfolioIds),
+    [settings?.excludedPortfolioIds],
+  )
+  const excludedSet = useMemo(() => new Set(excludedIds), [excludedIds])
+
   const {
     portfolios,
     holdingsData,
@@ -84,14 +92,7 @@ export default function NetWorthTab(): React.ReactElement {
     customAssetTotals,
     healthcareReserveTotals,
     isLoading,
-  } = useNetWorthData()
-
-  // Parse account-wide exclusion list from JSON string field
-  const excludedIds: string[] = useMemo(
-    () => parseJsonStringArray(settings?.excludedPortfolioIds),
-    [settings?.excludedPortfolioIds],
-  )
-  const excludedSet = useMemo(() => new Set(excludedIds), [excludedIds])
+  } = useNetWorthData(excludedIds)
 
   // Filter portfolios to include only non-excluded ones for the summary
   const includedPortfolios: Portfolio[] = useMemo(

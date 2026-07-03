@@ -37,9 +37,9 @@ interface CompositeSubTabConfig {
 
 const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
   { id: "phases", label: "Phases", icon: "fa-clipboard-list" },
+  { id: "networth", label: "Net Worth", icon: "fa-wallet" },
   { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
   { id: "wealth", label: "Wealth Journey", icon: "fa-chart-line" },
-  { id: "networth", label: "Net Worth", icon: "fa-wallet" },
   { id: "stress", label: "Stress Test", icon: "fa-dice" },
   { id: "timeline", label: "Year-by-Year", icon: "fa-table" },
 ]

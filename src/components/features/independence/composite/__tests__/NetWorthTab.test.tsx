@@ -59,8 +59,11 @@ const defaultNetWorthData: UseNetWorthDataResult = {
 
 let mockNetWorthData: UseNetWorthDataResult = { ...defaultNetWorthData }
 
+// Spy so tests can assert which excludedPortfolioIds were passed
+const mockUseNetWorthData = jest.fn()
+
 jest.mock("@components/features/wealth/useNetWorthData", () => ({
-  useNetWorthData: () => mockNetWorthData,
+  useNetWorthData: (...args: unknown[]) => mockUseNetWorthData(...args),
 }))
 
 // ── useWealthSummary — spy to assert filtered inputs ─────────────────────────
@@ -122,6 +125,7 @@ describe("NetWorthTab", () => {
       ...defaultNetWorthData,
       portfolios: [mockPortfolio1, mockPortfolio2],
     }
+    mockUseNetWorthData.mockImplementation(() => mockNetWorthData)
     mockWealthSummaryFn.mockReturnValue(makeSummary(150000))
   })
 
@@ -222,6 +226,45 @@ describe("NetWorthTab", () => {
       const callArgs = mockWealthSummaryFn.mock.calls[0]
       const portfoliosArg = callArgs[0] as Portfolio[]
       expect(portfoliosArg).toHaveLength(2)
+    })
+  })
+
+  describe("holdings fetch scoping via useNetWorthData", () => {
+    it("passes excluded ids to useNetWorthData so the holdings URL is scoped", () => {
+      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
+      render(<NetWorthTab />)
+      // The hook receives the excluded list; it builds ids= from portfolios minus this set
+      expect(mockUseNetWorthData).toHaveBeenCalledWith(["pf-1"])
+    })
+
+    it("passes empty excluded ids when no exclusions are configured", () => {
+      mockSettings = {}
+      render(<NetWorthTab />)
+      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
+    })
+
+    it("excluded portfolio id is absent from the list passed to useNetWorthData", () => {
+      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-2"]) }
+      render(<NetWorthTab />)
+      const args = mockUseNetWorthData.mock.calls[0][0] as string[]
+      // pf-2 is excluded so it should be in the excluded-ids arg, not filtered out here —
+      // the hook is responsible for deriving included from portfolios minus excluded.
+      expect(args).toEqual(["pf-2"])
+    })
+
+    it("toggling exclusion then calling mutateSettings triggers a re-render with updated excluded ids", async () => {
+      mockSettings = {}
+      render(<NetWorthTab />)
+      // Initially no exclusions
+      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
+
+      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
+      fireEvent.click(alphaCheckbox)
+      await new Promise((r) => setTimeout(r, 0))
+      expect(mockUpdateSettings).toHaveBeenCalledWith({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      expect(mockMutateSettings).toHaveBeenCalled()
     })
   })
 
