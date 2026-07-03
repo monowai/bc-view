@@ -12,6 +12,7 @@ import { wizardMessages } from "@lib/independence/messages"
 import { normalizeAllocation } from "@lib/independence/planHelpers"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
+import { INPUT_CLS_BASE } from "@lib/ui/formClasses"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -255,7 +256,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={100}
                       step={5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -284,7 +285,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={100}
                       step={5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -313,7 +314,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={100}
                       step={5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -416,7 +417,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={30}
                       step={0.5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -445,7 +446,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={20}
                       step={0.5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -474,7 +475,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={20}
                       step={0.5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -508,7 +509,7 @@ export default function AssumptionsStep({
                       min={0}
                       max={10}
                       step={0.5}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.inflationRate ? "border-red-500" : "border-gray-300"}`}
+                      className={`${INPUT_CLS_BASE} ${errors.inflationRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />

@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 import MathInput from "@components/ui/MathInput"
+import { INPUT_CLS } from "@lib/ui/formClasses"
 
 const MONTHS = [
   "January",
@@ -181,7 +182,7 @@ export default function IndependenceSettingsModal({
                     e.target.value ? Number(e.target.value) : undefined,
                   )
                 }
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               >
                 <option value="">--</option>
                 {MONTHS.map((name, i) => (
@@ -204,7 +205,7 @@ export default function IndependenceSettingsModal({
                 onChange={(v) => setYearOfBirth(Math.round(v))}
                 min={1920}
                 max={currentYear - 18}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               />
             </div>
           </div>
@@ -223,7 +224,7 @@ export default function IndependenceSettingsModal({
               onChange={(v) => setTargetIndependenceAge(Math.round(v))}
               min={18}
               max={100}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              className={INPUT_CLS}
             />
             <p className="mt-1 text-sm text-gray-500">
               Your baseline age for projections. You can explore different ages
@@ -244,7 +245,7 @@ export default function IndependenceSettingsModal({
               onChange={(v) => setLifeExpectancy(Math.round(v))}
               min={50}
               max={120}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              className={INPUT_CLS}
             />
           </div>
 

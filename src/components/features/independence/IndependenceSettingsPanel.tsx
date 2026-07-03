@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
+import { INPUT_CLS } from "@lib/ui/formClasses"
 
 const MONTHS = [
   "January",
@@ -176,7 +177,7 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
                   e.target.value ? Number(e.target.value) : undefined,
                 )
               }
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              className={INPUT_CLS}
             >
               <option value="">--</option>
               {MONTHS.map((name, i) => (
@@ -205,7 +206,7 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
               min={1920}
               max={currentYear - 18}
               placeholder="YYYY"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              className={INPUT_CLS}
             />
           </div>
         </div>
@@ -230,7 +231,7 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
             min={18}
             max={100}
             placeholder="e.g. 65"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+            className={INPUT_CLS}
           />
           <p className="mt-1 text-sm text-gray-500">
             Your baseline age for projections. You can explore different ages
@@ -257,7 +258,7 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
             min={50}
             max={120}
             placeholder="e.g. 90"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+            className={INPUT_CLS}
           />
         </div>
 
