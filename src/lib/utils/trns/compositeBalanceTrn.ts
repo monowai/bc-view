@@ -1,3 +1,5 @@
+import { TRN_STATUS } from "types/constants"
+
 /**
  * Build the `/api/trns` transaction-data row that links a composite-policy
  * (CPF today) or plain pension asset to a portfolio.
@@ -60,7 +62,7 @@ export function buildCompositeBalanceTrn(
       tradeDate: input.tradeDate,
       tradeCurrency: input.currency,
       cashCurrency: input.currency,
-      status: "SETTLED",
+      status: TRN_STATUS.SETTLED,
       comments: `Link ${input.assetName} balance to portfolio`,
       subAccounts: subAccountsMap,
     }
@@ -74,7 +76,7 @@ export function buildCompositeBalanceTrn(
       price: 1,
       tradeCurrency: input.currency,
       tradeDate: input.tradeDate,
-      status: "SETTLED",
+      status: TRN_STATUS.SETTLED,
     }
   }
 

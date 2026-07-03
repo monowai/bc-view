@@ -1,4 +1,5 @@
 import { DefinedContributionBucket } from "@components/features/independence/useDefinedContribution"
+import { TRN_STATUS } from "types/constants"
 
 /**
  * One transaction leg of a payslip submission, matching the loose REST shape
@@ -130,7 +131,7 @@ export function buildPayslipPayload(
     fees: 0,
     tax: 0,
     comments: "Salary",
-    status: "SETTLED",
+    status: TRN_STATUS.SETTLED,
   })
 
   const hasCpf = !!cpfAssetId && !!buckets && buckets.length > 0
@@ -152,7 +153,7 @@ export function buildPayslipPayload(
       fees: 0,
       tax: 0,
       comments: "Employee CPF contribution",
-      status: "SETTLED",
+      status: TRN_STATUS.SETTLED,
     })
   }
 
@@ -173,7 +174,7 @@ export function buildPayslipPayload(
       fees: 0,
       tax: taxAmount,
       comments: "Tax",
-      status: "SETTLED",
+      status: TRN_STATUS.SETTLED,
     })
   }
 
@@ -195,7 +196,7 @@ export function buildPayslipPayload(
       fees: 0,
       tax: 0,
       comments: "CPF contribution",
-      status: "SETTLED",
+      status: TRN_STATUS.SETTLED,
       subAccounts,
     })
   }

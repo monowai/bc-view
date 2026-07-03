@@ -7,7 +7,8 @@ import {
   ExecutionItemDto,
   ExecutionItemUpdate,
 } from "types/rebalance"
-import { Broker } from "types/beancounter"
+import { Broker, TrnStatus } from "types/beancounter"
+import { TRN_STATUS } from "types/constants"
 
 // --- Public types ---
 
@@ -57,7 +58,7 @@ export interface UseRebalanceExecutionResult {
     commit: () => Promise<
       | {
           portfolioId: string
-          transactionStatus: "PROPOSED" | "SETTLED"
+          transactionStatus: TrnStatus
         }
       | undefined
     >
@@ -417,7 +418,7 @@ export function useRebalanceExecution(
 
     try {
       const portfolioId = execution.portfolioIds[0]
-      const transactionStatus: "PROPOSED" | "SETTLED" = "PROPOSED"
+      const transactionStatus: TrnStatus = TRN_STATUS.PROPOSED
 
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}/commit`,
