@@ -129,11 +129,13 @@ describe("HoldingMenu Visual Cues and Mobile Support (TDD)", () => {
     fireEvent.click(backdrop)
 
     // Menu should be closed
-    const menu = document.querySelector(".fixed.w-64")
+    const menu = screen.getByRole("dialog", { name: "View settings" })
     expect(menu).toHaveClass("-translate-x-full")
   })
 
-  it("should close menu when mouse leaves the menu panel", () => {
+  it("should keep the menu open when the mouse leaves the panel", () => {
+    // Leaving the panel must not dismiss it — the old hover-close fired
+    // while users reached for controls inside the drawer.
     render(<HoldingMenu portfolio={mockPortfolio} />)
 
     // Open menu
@@ -141,15 +143,34 @@ describe("HoldingMenu Visual Cues and Mobile Support (TDD)", () => {
     fireEvent.click(trigger)
 
     // Verify menu is open
-    const menu = document.querySelector(".fixed.w-64")
+    const menu = screen.getByRole("dialog", { name: "View settings" })
     expect(menu).not.toHaveClass("-translate-x-full")
 
     // Mouse leave from menu panel
-    if (menu) {
-      fireEvent.mouseLeave(menu)
-    }
+    fireEvent.mouseLeave(menu)
 
-    // Menu should be closed
+    // Menu stays open; only backdrop, Escape, or the close button dismiss it
+    expect(menu).not.toHaveClass("-translate-x-full")
+  })
+
+  it("should show a drawer title so the panel is self-describing", () => {
+    render(<HoldingMenu portfolio={mockPortfolio} />)
+
+    const trigger = screen.getByLabelText("Open menu")
+    fireEvent.click(trigger)
+
+    expect(screen.getByText("View Settings")).toBeInTheDocument()
+  })
+
+  it("should close menu when Escape is pressed", () => {
+    render(<HoldingMenu portfolio={mockPortfolio} />)
+
+    const trigger = screen.getByLabelText("Open menu")
+    fireEvent.click(trigger)
+
+    fireEvent.keyDown(document, { key: "Escape" })
+
+    const menu = screen.getByRole("dialog", { name: "View settings" })
     expect(menu).toHaveClass("-translate-x-full")
   })
 })

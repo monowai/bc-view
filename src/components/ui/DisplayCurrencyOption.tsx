@@ -50,9 +50,15 @@ const DisplayCurrencyOption: React.FC<DisplayCurrencyOptionProps> = ({
     <div className="space-y-2">
       <ul className="menu-list max-h-48 overflow-y-auto">
         {/* None option - clears custom display currency */}
-        <li className="menu-item" onClick={handleClearDisplayCurrency}>
-          {"None"}
-          {!isCustomSelected && <span className="check-mark">&#10003;</span>}
+        <li>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={handleClearDisplayCurrency}
+          >
+            {"None"}
+            {!isCustomSelected && <span className="check-mark">&#10003;</span>}
+          </button>
         </li>
         {/* Separator */}
         <li className="border-t border-gray-200 my-1" />
@@ -61,16 +67,18 @@ const DisplayCurrencyOption: React.FC<DisplayCurrencyOptionProps> = ({
           {"Cost/Gains will be approximate"} ⚠
         </li>
         {availableCurrencies.map((currency) => (
-          <li
-            key={currency.code}
-            className="menu-item"
-            onClick={() => handleCurrencySelect(currency.code)}
-          >
-            {currency.code} ({currency.symbol})
-            {isCustomSelected &&
-              displayCurrency.customCode === currency.code && (
-                <span className="check-mark">&#10003;</span>
-              )}
+          <li key={currency.code}>
+            <button
+              type="button"
+              className="menu-item"
+              onClick={() => handleCurrencySelect(currency.code)}
+            >
+              {currency.code} ({currency.symbol})
+              {isCustomSelected &&
+                displayCurrency.customCode === currency.code && (
+                  <span className="check-mark">&#10003;</span>
+                )}
+            </button>
           </li>
         ))}
       </ul>
