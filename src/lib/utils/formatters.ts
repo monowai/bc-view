@@ -88,3 +88,29 @@ export const formatSignedNumber = (
   const formatted = formatCurrency(Math.abs(value), fractionDigits)
   return value >= 0 ? `+${formatted}` : `-${formatted}`
 }
+
+/**
+ * Returns today's date as a YYYY-MM-DD string (ISO 8601 date part).
+ */
+export const todayIso = (): string => new Date().toISOString().split("T")[0]
+
+/**
+ * Extracts a readable message from an unknown error value.
+ * @param err - The caught error (any type)
+ * @param fallback - Fallback string when err is not an Error instance
+ */
+export function toErrorMessage(
+  err: unknown,
+  fallback = "Unknown error",
+): string {
+  return err instanceof Error ? err.message : fallback
+}
+
+/**
+ * Returns a Tailwind text-colour class for a gain/loss value.
+ * Zero is treated as a gain (green).
+ * @param value - Numeric gain/loss value
+ */
+export function gainLossClass(value: number): string {
+  return value >= 0 ? "text-green-600" : "text-red-600"
+}

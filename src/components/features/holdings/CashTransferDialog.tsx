@@ -9,6 +9,7 @@ import {
   resolveAssetId,
   getAssetCurrency,
 } from "@lib/assets/assetUtils"
+import { todayIso } from "@lib/formatters"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -142,7 +143,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     setIsSubmitting(true)
     setSubmitError(null)
 
-    const tradeDate = new Date().toISOString().split("T")[0]
+    const tradeDate = todayIso()
 
     let resolvedTargetAssetId: string
     try {

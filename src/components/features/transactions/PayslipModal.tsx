@@ -24,13 +24,12 @@ import {
 } from "@components/features/independence/useDefinedContribution"
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
 import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
+import { todayIso } from "@lib/formatters"
 
 interface PayslipModalProps {
   modalOpen: boolean
   onClose: () => void
 }
-
-const todayIso = (): string => new Date().toISOString().slice(0, 10)
 
 const formatAmount = (n: number): string =>
   n.toLocaleString(undefined, {

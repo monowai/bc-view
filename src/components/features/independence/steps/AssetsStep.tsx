@@ -16,6 +16,7 @@ import { postData } from "@components/ui/DropZone"
 import ExistingRetirementAccounts from "@components/features/independence/steps/ExistingRetirementAccounts"
 import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
+import { todayIso } from "@lib/formatters"
 
 const msg = wizardMessages.steps.assets
 
@@ -243,7 +244,7 @@ export default function AssetsStep({
                   currentBalance: 0,
                   targetBalance: "",
                   selectedPortfolioId: "",
-                  transactionDate: new Date().toISOString().split("T")[0],
+                  transactionDate: todayIso(),
                   cashAccountId: "",
                 })
                 return
@@ -266,7 +267,7 @@ export default function AssetsStep({
                   currentBalance: totalBalance,
                   targetBalance: "",
                   selectedPortfolioId: "",
-                  transactionDate: new Date().toISOString().split("T")[0],
+                  transactionDate: todayIso(),
                   cashAccountId: "",
                 })
               }

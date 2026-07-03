@@ -5,6 +5,7 @@ import { Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { WealthSummary, COLORS } from "@lib/wealth/liquidityGroups"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
+import { gainLossClass } from "@lib/formatters"
 
 interface PortfolioDetailsTableProps {
   summary: WealthSummary
@@ -156,7 +157,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span
-                          className={`font-medium ${portfolio.irr >= 0 ? "text-green-600" : "text-red-600"}`}
+                          className={`font-medium ${gainLossClass(portfolio.irr)}`}
                         >
                           {(portfolio.irr * 100).toFixed(2)}%
                         </span>

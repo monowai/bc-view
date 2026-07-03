@@ -1,4 +1,5 @@
 import React from "react"
+import { gainLossClass } from "@lib/formatters"
 interface CashSummaryPanelProps {
   currentMarketValue: number
   currentCash: number
@@ -32,7 +33,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
   // Projected cash = target cash (after rebalancing, cash will be at target)
   const projectedCash = targetCash
 
-  const netImpactColor = netImpact >= 0 ? "text-green-600" : "text-red-600"
+  const netImpactColor = gainLossClass(netImpact)
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">

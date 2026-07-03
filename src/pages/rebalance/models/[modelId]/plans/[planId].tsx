@@ -15,6 +15,7 @@ import { Asset, Market } from "types/beancounter"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
+import { todayIso } from "@lib/formatters"
 
 function PlanDetailPage(): React.ReactElement {
   const router = useRouter()
@@ -402,7 +403,7 @@ function PlanDetailPage(): React.ReactElement {
   const handleExportCSV = (): void => {
     if (!weights.length) return
     const csv = buildCSV()
-    const filename = `plan-${model?.name || "model"}-v${plan?.version || "1"}-${new Date().toISOString().split("T")[0]}.csv`
+    const filename = `plan-${model?.name || "model"}-v${plan?.version || "1"}-${todayIso()}.csv`
     downloadCsv(filename, csv)
   }
 

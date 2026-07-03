@@ -5,6 +5,7 @@ import { getPositionsUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 import { VALUE_IN_OPTIONS } from "types/constants"
 import { getReportCategory, REPORT_CATEGORIES } from "@utils/categoryMapping"
+import { todayIso } from "@lib/formatters"
 
 interface HoldingWeight {
   assetId: string
@@ -99,7 +100,7 @@ export default async function holdingsWeights(
       }
 
       // Get today's holdings for this portfolio
-      const today = new Date().toISOString().split("T")[0]
+      const today = todayIso()
       const holdingsUrl = getPositionsUrl(`/${portfolioCode}/${today}`)
 
       // deepcode ignore Ssrf: portfolioCode is validated against
