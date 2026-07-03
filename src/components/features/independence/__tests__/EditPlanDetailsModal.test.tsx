@@ -243,6 +243,29 @@ describe("EditPlanDetailsModal", () => {
     expect(inputs[0]).toHaveValue(2000)
   })
 
+  it("shows read-only note for portfolio selection pointing to Net Worth tab", () => {
+    render(<EditPlanDetailsModal {...defaultProps} />)
+
+    expect(screen.getByText(/net worth tab/i)).toBeInTheDocument()
+  })
+
+  it("does not render interactive portfolio checkboxes", () => {
+    // Provide portfolios so the section would previously have shown checkboxes
+    mockedUseSWR.mockReturnValue({
+      data: {
+        data: [{ id: "p1", code: "MY", name: "My Portfolio", active: true }],
+      },
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    } as any)
+
+    render(<EditPlanDetailsModal {...defaultProps} />)
+
+    // No checkboxes — the portfolio section is now a read-only note
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+  })
+
   it("Use Actual button normalizes CPF-polluted allocation to 100%", async () => {
     // Provide an active portfolio so the button renders
     mockedUseSWR.mockReturnValue({
