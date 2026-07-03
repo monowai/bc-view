@@ -1,6 +1,7 @@
 import React from "react"
 import { Control, Controller, FieldErrors } from "react-hook-form"
 import { WizardFormData } from "types/independence"
+import { INPUT_CLS, INPUT_CLS_BASE } from "@lib/ui/formClasses"
 
 interface PersonalInfoStepProps {
   control: Control<WizardFormData>
@@ -50,10 +51,7 @@ export default function PersonalInfoStep({
                 id="planName"
                 type="text"
                 placeholder="e.g., My Independence Plan"
-                className={`
-                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                  ${errors.planName ? "border-red-500" : "border-gray-300"}
-                `}
+                className={`${INPUT_CLS_BASE} ${errors.planName ? "border-red-500" : "border-gray-300"}`}
               />
             )}
           />
@@ -82,10 +80,7 @@ export default function PersonalInfoStep({
               <select
                 {...field}
                 id="expensesCurrency"
-                className={`
-                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                  ${errors.expensesCurrency ? "border-red-500" : "border-gray-300"}
-                `}
+                className={`${INPUT_CLS_BASE} ${errors.expensesCurrency ? "border-red-500" : "border-gray-300"}`}
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -125,7 +120,7 @@ export default function PersonalInfoStep({
                 id="country"
                 type="text"
                 placeholder="e.g. Philippines"
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               />
             )}
           />
@@ -155,7 +150,7 @@ export default function PersonalInfoStep({
                 id="narrative"
                 rows={4}
                 placeholder="Tell us a bit about this plan — your life situation, assumptions, or anything else we should know. For example: 'I'm working in Singapore until 50, then moving to Thailand for semi-retirement.'"
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               />
             )}
           />
@@ -183,7 +178,7 @@ export default function PersonalInfoStep({
                 {...field}
                 value={field.value ?? ""}
                 id="primaryStrategy"
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               >
                 <option value="">Auto-detect from plan</option>
                 <option value="FIRE">FIRE — live off liquid investments</option>
@@ -221,7 +216,7 @@ export default function PersonalInfoStep({
                 {...field}
                 value={field.value ?? ""}
                 id="headlineMetric"
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+                className={INPUT_CLS}
               >
                 <option value="">Default (match strategy)</option>
                 <option value="EARLY_RETIREMENT_PROGRESS">
