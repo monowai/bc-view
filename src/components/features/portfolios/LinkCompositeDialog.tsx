@@ -3,6 +3,8 @@ import { usePortfolios } from "@hooks/usePortfolios"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
 import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAssets"
+import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface Props {
   config: StandaloneCompositeConfig
@@ -23,8 +25,11 @@ export default function LinkCompositeDialog({
   const { portfolios } = usePortfolios()
   const { preferences } = useUserPreferences()
   const [portfolioId, setPortfolioId] = useState<string>("")
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const { isSubmitting, submitError: error, handleSubmit } = useDialogSubmit({
+    onSuccess: onClose,
+    autoCloseDelay: 0,
+    fallbackError: "Link failed",
+  })
 
   // Zen-mode users (sole portfolio) skip the picker entirely — the link
   // auto-targets that portfolio. Master-mode users keep the dropdown.
@@ -48,25 +53,23 @@ export default function LinkCompositeDialog({
 
   async function submit(): Promise<void> {
     if (!portfolioId) return
-    setSubmitting(true)
-    setError(null)
-    const today = new Date().toISOString().slice(0, 10)
-    const subAccountsMap = Object.fromEntries(
-      config.subAccounts.map((sa) => [sa.code, sa.balance]),
-    )
-    const trnData: Record<string, unknown> = {
-      assetId: config.assetId,
-      trnType: "BALANCE",
-      quantity: config.total,
-      tradeAmount: config.total,
-      tradeDate: today,
-      tradeCurrency: config.currency,
-      cashCurrency: config.currency,
-      status: "SETTLED",
-      comments: `Link ${config.assetName} balance to portfolio`,
-      subAccounts: subAccountsMap,
-    }
-    try {
+    await handleSubmit(async () => {
+      const today = new Date().toISOString().slice(0, 10)
+      const subAccountsMap = Object.fromEntries(
+        config.subAccounts.map((sa) => [sa.code, sa.balance]),
+      )
+      const trnData: Record<string, unknown> = {
+        assetId: config.assetId,
+        trnType: "BALANCE",
+        quantity: config.total,
+        tradeAmount: config.total,
+        tradeDate: today,
+        tradeCurrency: config.currency,
+        cashCurrency: config.currency,
+        status: "SETTLED",
+        comments: `Link ${config.assetName} balance to portfolio`,
+        subAccounts: subAccountsMap,
+      }
       const r = await fetch("/api/trns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,106 +77,92 @@ export default function LinkCompositeDialog({
       })
       if (!r.ok) {
         const body = await r.json().catch(() => ({}))
-        setError(body.message || body.detail || "Link failed")
-        return
+        throw new Error(body.message || body.detail || "Link failed")
       }
-      onClose()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Link failed")
-    } finally {
-      setSubmitting(false)
-    }
+    })
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-md bg-white p-4 shadow-lg">
-        <h2 className="mb-2 text-lg font-semibold">Link {config.assetName}</h2>
-        <p className="mb-3 text-sm text-gray-600">
-          Records a BALANCE snapshot of{" "}
-          <span className="font-medium">
-            {config.currency} {Math.round(config.total).toLocaleString()}
-          </span>{" "}
-          on today&apos;s date. Cash is not affected — re-running on a new date
-          replaces the snapshot.
-        </p>
-        <table className="mb-3 w-full text-sm">
-          <thead>
-            <tr className="text-left text-gray-500">
-              <th>Sub-account</th>
-              <th className="text-right">Balance</th>
+    <Dialog
+      title={`Link ${config.assetName}`}
+      onClose={onClose}
+      maxWidth="md"
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} />
+          <Dialog.SubmitButton
+            onClick={submit}
+            label="Link"
+            loadingLabel="Linking…"
+            isSubmitting={isSubmitting}
+            disabled={!portfolioId}
+            variant="amber"
+          />
+        </>
+      }
+    >
+      <p className="text-sm text-gray-600">
+        Records a BALANCE snapshot of{" "}
+        <span className="font-medium">
+          {config.currency} {Math.round(config.total).toLocaleString()}
+        </span>{" "}
+        on today&apos;s date. Cash is not affected — re-running on a new date
+        replaces the snapshot.
+      </p>
+      <table className="mb-3 w-full text-sm">
+        <thead>
+          <tr className="text-left text-gray-500">
+            <th>Sub-account</th>
+            <th className="text-right">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {config.subAccounts.map((sa) => (
+            <tr key={sa.code}>
+              <td>
+                {sa.code}
+                {sa.displayName ? ` — ${sa.displayName}` : ""}
+                {!sa.liquid && (
+                  <span className="ml-1 text-xs text-gray-500">(locked)</span>
+                )}
+              </td>
+              <td className="text-right tabular-nums">
+                {Math.round(sa.balance).toLocaleString()}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {config.subAccounts.map((sa) => (
-              <tr key={sa.code}>
-                <td>
-                  {sa.code}
-                  {sa.displayName ? ` — ${sa.displayName}` : ""}
-                  {!sa.liquid && (
-                    <span className="ml-1 text-xs text-gray-500">(locked)</span>
-                  )}
-                </td>
-                <td className="text-right tabular-nums">
-                  {Math.round(sa.balance).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mb-3">
-          <label
-            htmlFor="link-composite-portfolio"
-            className="mb-1 block text-sm font-medium"
+          ))}
+        </tbody>
+      </table>
+      <div className="mb-3">
+        <label
+          htmlFor="link-composite-portfolio"
+          className="mb-1 block text-sm font-medium"
+        >
+          Portfolio
+        </label>
+        {needsPick ? (
+          <select
+            id="link-composite-portfolio"
+            value={portfolioId}
+            onChange={(e) => setPortfolioId(e.target.value)}
+            className="w-full rounded-md border border-gray-300 p-2 text-sm"
           >
-            Portfolio
-          </label>
-          {needsPick ? (
-            <select
-              id="link-composite-portfolio"
-              value={portfolioId}
-              onChange={(e) => setPortfolioId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 p-2 text-sm"
-            >
-              {portfolios.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code} — {p.name} ({p.currency.code})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p
-              id="link-composite-portfolio"
-              className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700"
-            >
-              {sole ? `${sole.code} — ${sole.name}` : "—"}
-            </p>
-          )}
-        </div>
-        {error && (
-          <p className="mb-2 text-sm text-red-600" role="alert">
-            {error}
+            {portfolios.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name} ({p.currency.code})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p
+            id="link-composite-portfolio"
+            className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700"
+          >
+            {sole ? `${sole.code} — ${sole.name}` : "—"}
           </p>
         )}
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            className="rounded-md border border-gray-300 px-3 py-1 text-sm"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="rounded-md bg-amber-600 px-3 py-1 text-sm text-white disabled:opacity-60"
-            onClick={submit}
-            disabled={submitting || !portfolioId}
-          >
-            {submitting ? "Linking…" : "Link"}
-          </button>
-        </div>
       </div>
-    </div>
+      <Dialog.ErrorAlert message={error} />
+    </Dialog>
   )
 }
