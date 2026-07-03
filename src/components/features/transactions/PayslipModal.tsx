@@ -25,6 +25,7 @@ import {
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
 import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
 import { todayIso } from "@lib/formatters"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface PayslipModalProps {
   modalOpen: boolean
@@ -187,9 +188,12 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   const [bucketOverrides, setBucketOverrides] = useState<
     Record<string, string>
   >({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
+    useDialogSubmit({
+      onSuccess: onClose,
+      autoCloseDelay: 1000,
+      fallbackError: "Failed to save payslip",
+    })
 
   // Reset + prefill on open (render-phase reset; React "store previous value").
   const [prevOpen, setPrevOpen] = useState(modalOpen)
@@ -200,9 +204,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       setGrossTouched(false)
       setTax("")
       setBucketOverrides({})
-      setIsSubmitting(false)
-      setSubmitError(null)
-      setSubmitSuccess(false)
+      reset()
       setPortfolioId("")
       setCashAssetId(preferences?.defaultPayslipCashAssetId ?? "")
     }
@@ -309,9 +311,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
   const handleSave = async (): Promise<void> => {
     if (!canSubmit) return
-    setIsSubmitting(true)
-    setSubmitError(null)
-    try {
+    await handleSubmit(async () => {
       const payload = buildPayload()
       const response = await fetch("/api/trns", {
         method: "POST",
@@ -320,10 +320,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       })
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        setSubmitError(
+        throw new Error(
           err.message || err.error || `Failed: ${response.statusText}`,
         )
-        return
       }
 
       // Remember the selection for next time (best-effort).
@@ -346,16 +345,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       // Wealth screen sums portfolio.marketValue from this list; without
       // invalidating it the top-line total stays stale after a payslip posts.
       globalMutate(portfoliosKey)
-
-      setSubmitSuccess(true)
-      setTimeout(() => onClose(), 1000)
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to save payslip",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   if (!modalOpen) return null

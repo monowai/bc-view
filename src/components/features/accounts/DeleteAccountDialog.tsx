@@ -1,8 +1,8 @@
-import React, { useState } from "react"
+import React from "react"
 import { Asset } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import Dialog from "@components/ui/Dialog"
-import Alert from "@components/ui/Alert"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface DeleteAccountDialogProps {
   asset: Asset
@@ -15,19 +15,16 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting: isDeleting,
+    submitError: error,
+    handleSubmit,
+  } = useDialogSubmit({ fallbackError: "Failed to delete" })
 
   const handleConfirm = async (): Promise<void> => {
-    setIsDeleting(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       await onConfirm(asset.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete")
-    } finally {
-      setIsDeleting(false)
-    }
+    })
   }
 
   return (
@@ -64,7 +61,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
         }
       </p>
 
-      {error && <Alert>{error}</Alert>}
+      <Dialog.ErrorAlert message={error} />
     </Dialog>
   )
 }
