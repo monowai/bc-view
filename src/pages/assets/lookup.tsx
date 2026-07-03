@@ -3,6 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import {
   Asset,
@@ -559,7 +560,7 @@ function AssetLookupPage(): React.ReactElement {
                             const assetId =
                               selectedAsset.assetId || selectedAsset.value
                             router.push(
-                              `/holdings/${portfolio.code}#asset-${encodeURIComponent(assetId)}`,
+                              holdingsHighlightHref(portfolio.code, assetId),
                             )
                           }}
                           className="font-medium text-invest-600 hover:text-invest-700 hover:underline focus:outline-none focus:ring-2 focus:ring-invest-500 rounded"
