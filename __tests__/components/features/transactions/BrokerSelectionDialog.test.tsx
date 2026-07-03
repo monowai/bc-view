@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import BrokerSelectionDialog from "@components/features/transactions/BrokerSelectionDialog"
 
-const brokers = [{ id: "b1", name: "Broker A", accounts: [] }]
+const brokers = [
+  { id: "b1", name: "Broker A", accounts: [], settlementAccounts: [] },
+]
 const held = { "Broker A": 100 }
 
 describe("BrokerSelectionDialog", () => {

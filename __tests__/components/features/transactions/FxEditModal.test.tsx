@@ -13,16 +13,14 @@ jest.mock("react-hook-form", () => ({
   useForm: () => ({
     control: {},
     handleSubmit:
-      (fn: Function) =>
+      () =>
       (e?: Event): Promise<void> => {
         e?.preventDefault?.()
         return Promise.resolve()
       },
     getValues: jest.fn(() => ({})),
     setValue: jest.fn(),
-    watch: jest.fn((name: string) =>
-      name === "sellAmount" ? 100 : 100,
-    ),
+    watch: jest.fn((name: string) => (name === "sellAmount" ? 100 : 100)),
     formState: { errors: {}, isDirty: true },
   }),
   Controller: ({ render: renderFn }: any) =>
@@ -35,7 +33,15 @@ jest.mock("@hookform/resolvers/yup", () => ({
 
 jest.mock("yup", () => {
   const chain: any = {}
-  const methods = ["required", "positive", "min", "max", "default", "shape", "nullable"]
+  const methods = [
+    "required",
+    "positive",
+    "min",
+    "max",
+    "default",
+    "shape",
+    "nullable",
+  ]
   methods.forEach((m) => {
     chain[m] = () => chain
   })
@@ -126,11 +132,7 @@ const trn = {
 describe("FxEditModal", () => {
   it("renders the FX Trade title", () => {
     render(
-      <FxEditModal
-        trn={trn as any}
-        onClose={jest.fn()}
-        onDelete={jest.fn()}
-      />,
+      <FxEditModal trn={trn as any} onClose={jest.fn()} onDelete={jest.fn()} />,
     )
     expect(screen.getByText("FX Trade")).toBeInTheDocument()
   })

@@ -3,11 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import EditPlanDetailsModal from "@components/features/independence/EditPlanDetailsModal"
 
-jest.mock("swr", () => {
-  const mockUseSwr = jest.fn(() => ({ data: { data: [] } }))
-  mockUseSwr.default = mockUseSwr
-  return mockUseSwr
-})
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ data: { data: [] } })),
+}))
 jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
 }))
