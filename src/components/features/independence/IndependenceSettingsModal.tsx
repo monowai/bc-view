@@ -3,6 +3,8 @@ import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 import MathInput from "@components/ui/MathInput"
 import { INPUT_CLS } from "@lib/ui/formClasses"
+import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 const MONTHS = [
   "January",
@@ -47,8 +49,16 @@ export default function IndependenceSettingsModal({
   onClose,
 }: IndependenceSettingsModalProps): React.ReactElement | null {
   const { settings, updateSettings } = useIndependenceSettings()
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess: onClose,
+    autoCloseDelay: 0,
+    fallbackError: "Failed to save settings. Please try again.",
+  })
 
   const currentYear = new Date().getFullYear()
   // Empty when unset — never seed a plausible default the user might save
@@ -130,10 +140,7 @@ export default function IndependenceSettingsModal({
       setError(validationError)
       return
     }
-
-    setIsSaving(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       const request: UpdateSettingsRequest = {
         yearOfBirth,
         monthOfBirth,
@@ -141,158 +148,133 @@ export default function IndependenceSettingsModal({
         lifeExpectancy,
       }
       await updateSettings(request)
-      onClose()
-    } catch {
-      setError("Failed to save settings. Please try again.")
-    } finally {
-      setIsSaving(false)
-    }
+    })
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Independence Settings
-        </h2>
-        <p className="text-sm text-gray-600 mb-4">
-          These settings apply across all your independence plans.
-        </p>
+    <Dialog
+      title="Independence Settings"
+      onClose={onClose}
+      maxWidth="md"
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} />
+          <Dialog.SubmitButton
+            onClick={handleSave}
+            label="Save Settings"
+            loadingLabel="Saving..."
+            isSubmitting={isSubmitting}
+            variant="blue"
+          />
+        </>
+      }
+    >
+      <p className="text-sm text-gray-600">
+        These settings apply across all your independence plans.
+      </p>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      <Dialog.ErrorAlert message={error} />
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor="settings-monthOfBirth"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Month of Birth
-              </label>
-              <select
-                id="settings-monthOfBirth"
-                value={monthOfBirth ?? ""}
-                onChange={(e) =>
-                  setMonthOfBirth(
-                    e.target.value ? Number(e.target.value) : undefined,
-                  )
-                }
-                className={INPUT_CLS}
-              >
-                <option value="">--</option>
-                {MONTHS.map((name, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="settings-yearOfBirth"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Year of Birth
-              </label>
-              <MathInput
-                id="settings-yearOfBirth"
-                value={yearOfBirth}
-                onChange={(v) => setYearOfBirth(Math.round(v))}
-                min={1920}
-                max={currentYear - 18}
-                className={INPUT_CLS}
-              />
-            </div>
-          </div>
-          <p className="text-sm text-gray-500">Currently {ageDisplay}</p>
-
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label
-              htmlFor="settings-targetIndependenceAge"
+              htmlFor="settings-monthOfBirth"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Target Independence Age
+              Month of Birth
             </label>
-            <MathInput
-              id="settings-targetIndependenceAge"
-              value={targetIndependenceAge}
-              onChange={(v) => setTargetIndependenceAge(Math.round(v))}
-              min={18}
-              max={100}
+            <select
+              id="settings-monthOfBirth"
+              value={monthOfBirth ?? ""}
+              onChange={(e) =>
+                setMonthOfBirth(
+                  e.target.value ? Number(e.target.value) : undefined,
+                )
+              }
               className={INPUT_CLS}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Your baseline age for projections. You can explore different ages
-              using scenarios later.
-            </p>
+            >
+              <option value="">--</option>
+              {MONTHS.map((name, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
-
           <div>
             <label
-              htmlFor="settings-lifeExpectancy"
+              htmlFor="settings-yearOfBirth"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Life Expectancy
+              Year of Birth
             </label>
             <MathInput
-              id="settings-lifeExpectancy"
-              value={lifeExpectancy}
-              onChange={(v) => setLifeExpectancy(Math.round(v))}
-              min={50}
-              max={120}
+              id="settings-yearOfBirth"
+              value={yearOfBirth}
+              onChange={(v) => setYearOfBirth(Math.round(v))}
+              min={1920}
+              max={currentYear - 18}
               className={INPUT_CLS}
             />
           </div>
+        </div>
+        <p className="text-sm text-gray-500">Currently {ageDisplay}</p>
 
-          {targetIndependenceAge != null && lifeExpectancy != null && (
-            <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-              <div className="flex">
-                <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
-                <div className="text-sm text-independence-700">
-                  <p className="font-medium">Planning horizon</p>
-                  <p className="mt-1">
-                    Your planning horizon will be{" "}
-                    {lifeExpectancy - targetIndependenceAge} years (from age{" "}
-                    {targetIndependenceAge} to {lifeExpectancy}).
-                  </p>
-                </div>
+        <div>
+          <label
+            htmlFor="settings-targetIndependenceAge"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Target Independence Age
+          </label>
+          <MathInput
+            id="settings-targetIndependenceAge"
+            value={targetIndependenceAge}
+            onChange={(v) => setTargetIndependenceAge(Math.round(v))}
+            min={18}
+            max={100}
+            className={INPUT_CLS}
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Your baseline age for projections. You can explore different ages
+            using scenarios later.
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="settings-lifeExpectancy"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Life Expectancy
+          </label>
+          <MathInput
+            id="settings-lifeExpectancy"
+            value={lifeExpectancy}
+            onChange={(v) => setLifeExpectancy(Math.round(v))}
+            min={50}
+            max={120}
+            className={INPUT_CLS}
+          />
+        </div>
+
+        {targetIndependenceAge != null && lifeExpectancy != null && (
+          <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
+            <div className="flex">
+              <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+              <div className="text-sm text-independence-700">
+                <p className="font-medium">Planning horizon</p>
+                <p className="mt-1">
+                  Your planning horizon will be{" "}
+                  {lifeExpectancy - targetIndependenceAge} years (from age{" "}
+                  {targetIndependenceAge} to {lifeExpectancy}).
+                </p>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 py-2 px-4 bg-independence-500 text-white rounded-lg font-medium hover:bg-independence-600 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? (
-              <>
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-                Saving...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-check mr-2"></i>
-                Save Settings
-              </>
-            )}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </Dialog>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import Link from "next/link"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import Dialog from "@components/ui/Dialog"
 import { Currency, Transaction } from "types/beancounter"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
@@ -331,143 +332,119 @@ export default function IndependenceMetrics({
 
       {/* Monthly Investment Transactions Modal */}
       {showInvestmentModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div
-            className="fixed inset-0 bg-black/50 transition-opacity"
-            onClick={() => setShowInvestmentModal(false)}
-          />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Monthly Investment Transactions
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {monthlyInvestmentData?.startDate &&
-                    monthlyInvestmentData?.endDate
-                      ? `${monthlyInvestmentData.startDate} – ${monthlyInvestmentData.endDate}`
-                      : "Last 30 days"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowInvestmentModal(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2"
-                >
-                  <i className="fas fa-times text-xl"></i>
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
-                {!investmentTrnsData ? (
-                  <div className="flex justify-center py-8">
-                    <Spinner size="lg" />
-                  </div>
-                ) : investmentTrnsData.data.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    No investment transactions in the last 30 days
-                  </p>
-                ) : (
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Date
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Type
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Asset
-                        </th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {investmentTrnsData.data.map((trn) => (
-                        <tr key={trn.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-sm text-gray-600">
-                            {trn.tradeDate}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span
-                              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-                                trn.trnType === "BUY"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {trn.trnType}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900">
-                            {trn.asset?.code || trn.asset?.name || "Unknown"}
-                          </td>
-                          <td
-                            className={`px-3 py-2 text-sm text-right font-medium ${
-                              trn.trnType === "BUY"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {trn.trnType === "SELL" ? "-" : ""}
-                            {trn.tradeCurrency?.symbol}
-                            {Math.abs(trn.tradeAmount).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              },
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                      <tr>
-                        <td
-                          colSpan={3}
-                          className="px-3 py-2 text-sm font-semibold text-gray-900"
-                        >
-                          Net Total ({displayCurrency?.code})
-                        </td>
-                        <td
-                          className={`px-3 py-2 text-sm text-right font-bold ${
-                            (monthlyInvestmentData?.totalInvested ?? 0) >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {(monthlyInvestmentData?.totalInvested ?? 0) < 0
-                            ? "-"
-                            : ""}
-                          {displayCurrency?.symbol}
-                          {Math.abs(
-                            monthlyInvestmentData?.totalInvested ?? 0,
-                          ).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                Shows BUY and SELL transactions only. ADD/transfers are
-                excluded.
-              </div>
+        <Dialog
+          title={
+            <div>
+              <div>Monthly Investment Transactions</div>
+              <p className="text-sm font-normal text-gray-500 mt-0.5">
+                {monthlyInvestmentData?.startDate &&
+                monthlyInvestmentData?.endDate
+                  ? `${monthlyInvestmentData.startDate} – ${monthlyInvestmentData.endDate}`
+                  : "Last 30 days"}
+              </p>
             </div>
-          </div>
-        </div>
+          }
+          onClose={() => setShowInvestmentModal(false)}
+          maxWidth="2xl"
+          scrollable
+          footer={
+            <p className="text-xs text-gray-500 w-full">
+              Shows BUY and SELL transactions only. ADD/transfers are excluded.
+            </p>
+          }
+        >
+          {!investmentTrnsData ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="lg" />
+            </div>
+          ) : investmentTrnsData.data.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              No investment transactions in the last 30 days
+            </p>
+          ) : (
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Type
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Asset
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {investmentTrnsData.data.map((trn) => (
+                  <tr key={trn.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 text-sm text-gray-600">
+                      {trn.tradeDate}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+                          trn.trnType === "BUY"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {trn.trnType}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-900">
+                      {trn.asset?.code || trn.asset?.name || "Unknown"}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-sm text-right font-medium ${
+                        trn.trnType === "BUY"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {trn.trnType === "SELL" ? "-" : ""}
+                      {trn.tradeCurrency?.symbol}
+                      {Math.abs(trn.tradeAmount).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-3 py-2 text-sm font-semibold text-gray-900"
+                  >
+                    Net Total ({displayCurrency?.code})
+                  </td>
+                  <td
+                    className={`px-3 py-2 text-sm text-right font-bold ${
+                      (monthlyInvestmentData?.totalInvested ?? 0) >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {(monthlyInvestmentData?.totalInvested ?? 0) < 0 ? "-" : ""}
+                    {displayCurrency?.symbol}
+                    {Math.abs(
+                      monthlyInvestmentData?.totalInvested ?? 0,
+                    ).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </Dialog>
       )}
     </>
   )
