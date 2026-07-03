@@ -3,7 +3,6 @@ import { Portfolio } from "types/beancounter"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { useNetWorthData } from "@components/features/wealth/useNetWorthData"
 import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
-import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
 import Spinner from "@components/ui/Spinner"
@@ -171,51 +170,9 @@ export default function NetWorthTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* Headline wealth summary */}
-      <WealthHeroSection
-        summary={summary}
-        displayCurrency={displayCurrency}
-        currencies={currencies}
-        portfolios={includedPortfolios}
-        onCurrencyChange={setDisplayCurrency}
-        onShareClick={() => {}}
-      />
-
-      {/* Classification breakdown */}
-      <AssetAllocationCharts
-        summary={summary}
-        holdings={holdingsData}
-        fxRates={fxRates}
-        displayCurrency={displayCurrency}
-        collapsed={collapsedSections.charts}
-        onToggle={() =>
-          setCollapsedSections((prev) => ({
-            ...prev,
-            charts: !prev.charts,
-          }))
-        }
-      />
-
-      {/* Per-portfolio breakdown */}
-      {includedPortfolios.length > 1 && (
-        <PortfolioDetailsTable
-          summary={summary}
-          sortConfig={sortConfig}
-          onSort={handleSort}
-          displayCurrency={displayCurrency}
-          collapsed={collapsedSections.portfolioDetails}
-          onToggle={() =>
-            setCollapsedSections((prev) => ({
-              ...prev,
-              portfolioDetails: !prev.portfolioDetails,
-            }))
-          }
-        />
-      )}
-
-      {/* Portfolio inclusion editor */}
+      {/* Portfolio inclusion editor — primary content */}
       {portfolios.length > 0 && (
-        <div className="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="mb-6 bg-white rounded-xl shadow-md overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <h3 className="text-base font-semibold text-gray-900">
               Which portfolios count toward your wealth
@@ -250,6 +207,62 @@ export default function NetWorthTab(): React.ReactElement {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Breakdown section header with compact currency selector */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+          Wealth Breakdown
+        </h3>
+        {currencies.length > 1 && displayCurrency && (
+          <select
+            value={displayCurrency.code}
+            onChange={(e) => {
+              const found = currencies.find((c) => c.code === e.target.value)
+              if (found) setDisplayCurrency(found)
+            }}
+            className="text-sm border border-gray-300 rounded px-2 py-1 text-gray-700 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+            aria-label="Display currency"
+          >
+            {currencies.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {/* Classification breakdown */}
+      <AssetAllocationCharts
+        summary={summary}
+        holdings={holdingsData}
+        fxRates={fxRates}
+        displayCurrency={displayCurrency}
+        collapsed={collapsedSections.charts}
+        onToggle={() =>
+          setCollapsedSections((prev) => ({
+            ...prev,
+            charts: !prev.charts,
+          }))
+        }
+      />
+
+      {/* Per-portfolio breakdown */}
+      {includedPortfolios.length > 1 && (
+        <PortfolioDetailsTable
+          summary={summary}
+          sortConfig={sortConfig}
+          onSort={handleSort}
+          displayCurrency={displayCurrency}
+          collapsed={collapsedSections.portfolioDetails}
+          onToggle={() =>
+            setCollapsedSections((prev) => ({
+              ...prev,
+              portfolioDetails: !prev.portfolioDetails,
+            }))
+          }
+        />
       )}
 
       {/* Manual asset estimates — only when no portfolio balances exist */}

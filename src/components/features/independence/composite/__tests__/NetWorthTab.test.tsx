@@ -130,17 +130,20 @@ describe("NetWorthTab", () => {
   })
 
   describe("rendering", () => {
-    it("shows the wealth hero with the summary total", () => {
+    it("renders the portfolio inclusion editor as the primary content", () => {
       render(<NetWorthTab />)
-      expect(screen.getByTestId("wealth-hero")).toBeInTheDocument()
-      expect(screen.getByTestId("total-value")).toHaveTextContent("150000")
+      expect(
+        screen.getByText(/Which portfolios count toward your wealth/),
+      ).toBeInTheDocument()
     })
 
-    it("renders a spinner while data is loading", () => {
+    it("renders a spinner while data is loading and hides the inclusion editor", () => {
       mockNetWorthData = { ...defaultNetWorthData, isLoading: true }
       render(<NetWorthTab />)
       expect(screen.getByTestId("spinner")).toBeInTheDocument()
-      expect(screen.queryByTestId("wealth-hero")).not.toBeInTheDocument()
+      expect(
+        screen.queryByText(/Which portfolios count toward your wealth/),
+      ).not.toBeInTheDocument()
     })
 
     it("renders checkboxes for each portfolio", () => {
