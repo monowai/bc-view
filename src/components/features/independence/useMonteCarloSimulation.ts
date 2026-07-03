@@ -12,7 +12,7 @@ import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
 
-interface UseMonteCarloSimulationProps {
+export interface UseMonteCarloSimulationProps {
   plan: RetirementPlan | undefined
   assets: AssetBreakdown
   monthlyInvestment?: number
@@ -20,6 +20,12 @@ interface UseMonteCarloSimulationProps {
   scenario?: ScenarioState
   rentalIncome?: RentalIncomeData
   displayCurrency?: string
+  /**
+   * When true the simulation keeps illiquid assets (property, real-estate)
+   * in place and models spending from liquid savings only. Sent to the
+   * backend as-is; omitted from the request body when false/undefined.
+   */
+  neverSellIlliquid?: boolean
 }
 
 interface UseMonteCarloSimulationResult {
@@ -44,6 +50,7 @@ export function useMonteCarloSimulation({
   scenario = DEFAULT_SCENARIO_STATE,
   rentalIncome,
   displayCurrency,
+  neverSellIlliquid,
 }: UseMonteCarloSimulationProps): UseMonteCarloSimulationResult {
   const [result, setResult] = useState<MonteCarloResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
@@ -66,9 +73,12 @@ export function useMonteCarloSimulation({
           derivedLiquidAssets: assets.liquidAssets,
           derivedNonSpendableAssets: assets.nonSpendableAssets,
         }
-        const requestBody = {
+        const requestBody: Record<string, unknown> = {
           ...scenarioToPayload(scenario, ctx),
           iterations,
+        }
+        if (neverSellIlliquid) {
+          requestBody.neverSellIlliquid = true
         }
 
         const response = await fetch(
@@ -96,7 +106,15 @@ export function useMonteCarloSimulation({
         setIsRunning(false)
       }
     },
-    [plan, assets, monthlyInvestment, rentalIncome, scenario, displayCurrency],
+    [
+      plan,
+      assets,
+      monthlyInvestment,
+      rentalIncome,
+      scenario,
+      displayCurrency,
+      neverSellIlliquid,
+    ],
   )
 
   return { result, isRunning, error, runSimulation }

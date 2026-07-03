@@ -261,4 +261,53 @@ describe("StressTestTab", () => {
     renderWithCtx()
     expect(screen.getByRole("button", { name: /Running/i })).toBeDisabled()
   })
+
+  describe("Never force-sell illiquid toggle", () => {
+    it("renders the toggle unchecked by default", () => {
+      renderWithCtx()
+      const toggle = screen.getByRole("checkbox", {
+        name: /Never force-sell illiquid/i,
+      })
+      expect(toggle).toBeInTheDocument()
+      expect(toggle).not.toBeChecked()
+    })
+
+    it("does not include neverSellIlliquid in runSimulation args when toggle is OFF", async () => {
+      const user = userEvent.setup()
+      renderWithCtx()
+
+      await user.click(screen.getByRole("button", { name: /Run Stress Test/i }))
+
+      expect(mockRunSimulation).toHaveBeenCalledWith({
+        iterations: 1000,
+        phases: defaultPhases,
+        displayCurrency: "USD",
+      })
+      expect(mockRunSimulation).toHaveBeenCalledWith(
+        expect.not.objectContaining({ neverSellIlliquid: true }),
+      )
+    })
+
+    it("sends neverSellIlliquid: true in runSimulation args when toggle is ON", async () => {
+      const user = userEvent.setup()
+      renderWithCtx()
+
+      await user.click(
+        screen.getByRole("checkbox", { name: /Never force-sell illiquid/i }),
+      )
+      await user.click(screen.getByRole("button", { name: /Run Stress Test/i }))
+
+      expect(mockRunSimulation).toHaveBeenCalledWith(
+        expect.objectContaining({ neverSellIlliquid: true }),
+      )
+    })
+
+    it("disables the toggle while the simulation is running", () => {
+      mockHookState = { result: null, isRunning: true, error: null }
+      renderWithCtx()
+      expect(
+        screen.getByRole("checkbox", { name: /Never force-sell illiquid/i }),
+      ).toBeDisabled()
+    })
+  })
 })

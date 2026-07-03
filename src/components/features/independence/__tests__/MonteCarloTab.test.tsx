@@ -1,20 +1,31 @@
 import React from "react"
-import { render } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import "@testing-library/jest-dom"
-import type { RetirementPlan, RetirementProjection } from "types/independence"
+import type {
+  MonteCarloResult,
+  RetirementPlan,
+  RetirementProjection,
+} from "types/independence"
 import type { AssetBreakdown } from "../useAssetBreakdown"
+import type { UseMonteCarloSimulationProps } from "../useMonteCarloSimulation"
 
-// Mock the Monte Carlo hook so the component renders with our deterministic
-// fixture instead of issuing a real API call. The shape MUST match what
-// MonteCarloTab destructures from the hook.
+// Capture the last props passed to the hook so we can assert on them.
+const mockRunSimulation = jest.fn()
+let capturedHookProps: UseMonteCarloSimulationProps | undefined = undefined
+let mockHookResult: MonteCarloResult | null = null
+let mockIsRunning = false
+
 jest.mock("../useMonteCarloSimulation", () => ({
-  useMonteCarloSimulation: jest.fn(() => ({
-    result: jest.requireActual("../__fixtures__/monteCarloResult")
-      .fixtureMonteCarloResult,
-    isRunning: false,
-    error: null,
-    runSimulation: jest.fn(),
-  })),
+  useMonteCarloSimulation: (props: UseMonteCarloSimulationProps) => {
+    capturedHookProps = props
+    return {
+      result: mockHookResult,
+      isRunning: mockIsRunning,
+      error: null,
+      runSimulation: mockRunSimulation,
+    }
+  },
 }))
 
 // Stabilise Recharts: ResponsiveContainer relies on element measurements that
@@ -35,6 +46,7 @@ jest.mock("recharts", () => {
 })
 
 import MonteCarloTab from "../MonteCarloTab"
+import { fixtureMonteCarloResult } from "../__fixtures__/monteCarloResult"
 
 function makePlan(): RetirementPlan {
   return {
@@ -198,8 +210,58 @@ const mockProps = {
 }
 
 describe("MonteCarloTab snapshot baseline", () => {
+  beforeEach(() => {
+    capturedHookProps = undefined
+    mockRunSimulation.mockClear()
+    mockHookResult = fixtureMonteCarloResult
+    mockIsRunning = false
+  })
+
   it("matches snapshot with fixture result", () => {
     const { container } = render(<MonteCarloTab {...mockProps} />)
     expect(container).toMatchSnapshot()
+  })
+})
+
+describe("MonteCarloTab — never-force-sell illiquid toggle", () => {
+  beforeEach(() => {
+    capturedHookProps = undefined
+    mockRunSimulation.mockClear()
+    mockHookResult = null
+    mockIsRunning = false
+  })
+
+  it("renders the toggle unchecked by default", () => {
+    render(<MonteCarloTab {...mockProps} />)
+    const toggle = screen.getByRole("checkbox", {
+      name: /Never force-sell illiquid/i,
+    })
+    expect(toggle).toBeInTheDocument()
+    expect(toggle).not.toBeChecked()
+  })
+
+  it("passes neverSellIlliquid as falsy to the hook when toggle is OFF", () => {
+    render(<MonteCarloTab {...mockProps} />)
+    expect(capturedHookProps?.neverSellIlliquid).toBeFalsy()
+  })
+
+  it("passes neverSellIlliquid: true to the hook after toggling ON", async () => {
+    const user = userEvent.setup()
+    render(<MonteCarloTab {...mockProps} />)
+
+    await user.click(
+      screen.getByRole("checkbox", { name: /Never force-sell illiquid/i }),
+    )
+
+    // React re-renders after toggle → hook called with updated props
+    expect(capturedHookProps?.neverSellIlliquid).toBe(true)
+  })
+
+  it("disables the toggle while the simulation is running", () => {
+    mockIsRunning = true
+    render(<MonteCarloTab {...mockProps} />)
+    expect(
+      screen.getByRole("checkbox", { name: /Never force-sell illiquid/i }),
+    ).toBeDisabled()
   })
 })
