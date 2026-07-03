@@ -1,16 +1,5 @@
 import { useState, useEffect } from "react"
-
-export interface PensionProjection {
-  assetId: string
-  assetName: string
-  currentValue: number
-  projectedValue: number
-  payoutAge: number
-  currency: string
-  category: string
-  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
-  monthlyPayout?: number
-}
+import type { PensionProjection } from "@lib/independence/planHelpers"
 
 export interface LumpSumAssetConfig {
   assetId: string
