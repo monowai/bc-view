@@ -18,7 +18,6 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import useCompositeMonteCarloSimulation from "@hooks/useCompositeMonteCarloSimulation"
-import { calculateFiNumberFromMonthly } from "@utils/independence/fiCalculations"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
@@ -137,20 +136,20 @@ export default function FiOverviewTab(): React.ReactElement | null {
     return yob ? CURRENT_YEAR - yob : undefined
   }, [settings, primaryPlan])
 
-  // Net monthly retirement expenses (total spend minus guaranteed income sources)
-  const netMonthlyExpenses = useMemo(() => {
-    if (!primaryPlan) return 0
-    const guaranteedIncome =
-      (primaryPlan.pensionMonthly ?? 0) +
-      (primaryPlan.socialSecurityMonthly ?? 0) +
-      (primaryPlan.otherIncomeMonthly ?? 0)
-    return Math.max(0, primaryPlan.monthlyExpenses - guaranteedIncome)
-  }, [primaryPlan])
+  // Net monthly retirement expenses — for the income breakdown display only
+  const netMonthlyExpenses = primaryPlan
+    ? Math.max(
+        0,
+        primaryPlan.monthlyExpenses -
+          (primaryPlan.pensionMonthly ?? 0) -
+          (primaryPlan.socialSecurityMonthly ?? 0) -
+          (primaryPlan.otherIncomeMonthly ?? 0),
+      )
+    : 0
 
-  const fiNumber = useMemo(
-    () => calculateFiNumberFromMonthly(netMonthlyExpenses),
-    [netMonthlyExpenses],
-  )
+  // Backend-authoritative FI number: phase-weighted 25× duration-weighted net spend,
+  // rental-offset included. Falls back to 0 when old backend omits the field.
+  const fiNumber = projection?.fiNumber ?? 0
 
   // Build chart rows — merge MC percentile bands when available
   const chartData = useMemo((): ChartRow[] => {
@@ -206,10 +205,9 @@ export default function FiOverviewTab(): React.ReactElement | null {
 
   const currentLiquid = projection?.liquidAssets ?? 0
   const isAchieved = fiNumber > 0 && currentLiquid >= fiNumber
-  const fiProgress =
-    fiNumber > 0
-      ? Math.min(100, Math.round((currentLiquid / fiNumber) * 100))
-      : 100
+  // Backend-authoritative progress (unclamped — can exceed 100 when FI is surpassed).
+  // Visual bar width is capped at 100% via Math.min in the style below.
+  const fiProgress = Math.round(projection?.fiProgress ?? 0)
   const gap = fiNumber - currentLiquid
 
   const yrsToFi =

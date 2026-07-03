@@ -1261,6 +1261,10 @@ export interface CompositeProjectionResult {
   warnings: string[]
   /** Pre-retirement accumulation rows (currentAge → firstPhaseAge-1). Empty when already retired. */
   accumulationProjections?: CompositeYearlyProjection[]
+  /** Phase-weighted FI number (25× duration-weighted annual net spend), display currency. */
+  fiNumber?: number
+  /** Progress toward fiNumber as %; unclamped (can exceed 100). */
+  fiProgress?: number
 }
 
 export interface CompositeScenarioResult {
