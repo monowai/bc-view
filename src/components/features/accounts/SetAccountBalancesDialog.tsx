@@ -344,82 +344,72 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
         </div>
       )}
 
-      {/* Balance Table */}
+      {/* Balance List */}
       {!isLoading && !error && positions.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  {"Portfolio"}
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {"Current"}
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {"Target"}
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {"Change"}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {balanceEntries.map((entry) => (
-                <tr key={entry.portfolio.id}>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">
-                      {entry.portfolio.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {entry.portfolio.code}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-600">
+        <div className="space-y-3">
+          {balanceEntries.map((entry) => (
+            <div
+              key={entry.portfolio.id}
+              className="bg-white border border-gray-200 rounded-lg p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {entry.portfolio.name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {entry.portfolio.code}
+                  </div>
+                </div>
+                {entry.adjustment.amount > 0 && (
+                  <span
+                    className={`font-medium text-sm ${
+                      entry.adjustment.type === "DEPOSIT"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {entry.adjustment.type === "DEPOSIT" ? "+" : "-"}
                     {currency}{" "}
-                    {entry.currentBalance.toLocaleString(undefined, {
+                    {entry.adjustment.amount.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <MathInput
-                      value={
-                        entry.targetBalance === ""
-                          ? ""
-                          : parseFloat(entry.targetBalance)
-                      }
-                      onChange={(value) =>
-                        handleBalanceChange(entry.portfolio.id, String(value))
-                      }
-                      className="w-full text-right border-gray-300 rounded-md shadow-sm px-2 py-1 border focus:ring-blue-500 focus:border-blue-500"
-                      disabled={isSubmitting || submitSuccess}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {entry.adjustment.amount > 0 ? (
-                      <span
-                        className={`font-medium ${
-                          entry.adjustment.type === "DEPOSIT"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {entry.adjustment.type === "DEPOSIT" ? "+" : "-"}
-                        {currency}{" "}
-                        {entry.adjustment.amount.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                )}
+              </div>
+              <label
+                htmlFor={`target-balance-${entry.portfolio.id}`}
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Target"} ({currency})
+              </label>
+              <MathInput
+                id={`target-balance-${entry.portfolio.id}`}
+                aria-label={`Target balance for ${entry.portfolio.name}`}
+                value={
+                  entry.targetBalance === ""
+                    ? ""
+                    : parseFloat(entry.targetBalance)
+                }
+                onChange={(value) =>
+                  handleBalanceChange(entry.portfolio.id, String(value))
+                }
+                className="w-full text-right border-gray-300 rounded-md shadow-sm px-4 py-3 text-lg border focus:ring-blue-500 focus:border-blue-500"
+                disabled={isSubmitting || submitSuccess}
+              />
+              <div className="mt-2 text-sm">
+                <span className="text-gray-500">{"Current Balance"}:</span>{" "}
+                <span className="font-medium text-gray-900">
+                  {currency}{" "}
+                  {entry.currentBalance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
