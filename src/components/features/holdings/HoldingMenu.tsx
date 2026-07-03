@@ -56,13 +56,13 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
         aria-label="Open menu"
         aria-expanded={menuOpen}
         aria-haspopup="dialog"
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-40 flex h-24 w-6 cursor-pointer items-center justify-center rounded-r-lg bg-gray-800 text-white shadow-md transition-colors hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="fixed left-0 top-24 z-40 flex h-24 w-3 cursor-pointer items-center justify-center rounded-r-lg bg-gray-800 text-white shadow-md transition-colors hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         onClick={toggleMenu}
         title="View settings"
       >
         {/* Chevron icon */}
         <svg
-          className="w-3.5 h-3.5"
+          className="w-2 h-2"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

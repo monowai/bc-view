@@ -30,6 +30,17 @@ const mockedUsePrivacyMode = usePrivacyMode as jest.MockedFunction<
   typeof usePrivacyMode
 >
 
+// Groups now default to collapsed. These suites assert card *content*, so
+// pre-expand the fixture groups via the same localStorage key CardView reads
+// (groupBy is undefined here → empty suffix).
+beforeEach(() => {
+  window.localStorage.setItem(
+    "bc:holdings:expandedGroups:",
+    JSON.stringify(["Equity", "Policy", "Cash"]),
+  )
+})
+afterEach(() => window.localStorage.clear())
+
 const renderWithFooter = (): void => {
   const portfolio = makePortfolio()
   const position = makePosition({

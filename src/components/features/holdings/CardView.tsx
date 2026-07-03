@@ -585,45 +585,64 @@ const CardView: React.FC<CardViewProps> = ({
     )
   }, [groupedPositions])
 
-  // Track collapsed groups. Expand groups from the top until cumulative
-  // position count crosses ~20, then collapse the rest. First group is
-  // always expanded so the page is never blank, and the target asset's
-  // group is force-expanded so deep-links can scroll to it.
-  // Parent passes `key={groupBy}` so this component remounts (and the
-  // initial state below re-runs) whenever groupBy changes — no manual
-  // reset effect needed.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
-    const POSITION_THRESHOLD = 20
-    const targetGroupKey = targetAssetId
-      ? groupedPositions.find((g) =>
-          g.positions.some((p) => p.asset.id === targetAssetId),
-        )?.groupKey
-      : undefined
-    const collapsed = new Set<string>()
-    let count = 0
-    groupedPositions.forEach((g, i) => {
-      const keepOpen =
-        i === 0 || g.groupKey === targetGroupKey || count < POSITION_THRESHOLD
-      if (keepOpen) {
-        count += g.positions.length
-      } else {
-        collapsed.add(g.groupKey)
+  // Track which groups the user has expanded. Default: everything collapsed.
+  // The expanded set is persisted to localStorage (keyed by groupBy) so the
+  // choice survives navigation between portfolios and page reloads. Groups the
+  // user has never opened stay collapsed. The deep-link target group is
+  // force-expanded so anchored scrolls land on a visible card.
+  // Parent passes `key={groupBy}` so this component remounts (and the lazy
+  // initializer below re-runs) whenever groupBy changes — the stored set is
+  // keyed by groupBy to match. CardView renders client-side after the holdings
+  // fetch, so reading localStorage in the initializer is hydration-safe.
+  const expandedStorageKey = `bc:holdings:expandedGroups:${groupBy ?? ""}`
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    const next = new Set<string>()
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(expandedStorageKey)
+        if (raw) {
+          for (const key of JSON.parse(raw) as string[]) next.add(key)
+        }
+      } catch {
+        // Corrupt/blocked storage — fall back to all-collapsed.
       }
-    })
-    return collapsed
+    }
+    // Force-expand the deep-link target group so anchored scrolls land on a
+    // visible card.
+    if (targetAssetId) {
+      const targetGroupKey = groupedPositions.find((g) =>
+        g.positions.some((p) => p.asset.id === targetAssetId),
+      )?.groupKey
+      if (targetGroupKey) next.add(targetGroupKey)
+    }
+    return next
   })
 
-  const toggleGroup = useCallback((groupKey: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev)
-      if (next.has(groupKey)) {
-        next.delete(groupKey)
-      } else {
-        next.add(groupKey)
-      }
-      return next
-    })
-  }, [])
+  const toggleGroup = useCallback(
+    (groupKey: string) => {
+      setExpandedGroups((prev) => {
+        const next = new Set(prev)
+        if (next.has(groupKey)) {
+          next.delete(groupKey)
+        } else {
+          next.add(groupKey)
+        }
+        if (typeof window !== "undefined") {
+          try {
+            window.localStorage.setItem(
+              expandedStorageKey,
+              JSON.stringify([...next]),
+            )
+          } catch {
+            // Ignore storage write failures (private mode / quota).
+          }
+        }
+        return next
+      })
+    },
+    [expandedStorageKey],
+  )
 
   // Source currency based on valueIn selection
   // For TRADE with mixed currencies, use BASE for header totals
@@ -733,7 +752,7 @@ const CardView: React.FC<CardViewProps> = ({
 
       {/* Grouped Position Cards */}
       {groupedPositions.map((group) => {
-        const isCollapsed = collapsedGroups.has(group.groupKey)
+        const isCollapsed = !expandedGroups.has(group.groupKey)
         const groupSubTotals = holdings.holdingGroups[group.groupKey]?.subTotals
         const groupMarketValue = groupSubTotals
           ? convert(groupSubTotals[valueIn]?.marketValue || 0)
