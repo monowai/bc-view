@@ -10,6 +10,7 @@ import {
   deriveBrokerCode,
   brokerCashAssetCode,
 } from "@lib/openBrokerage/brokerCode"
+import { postJson } from "@utils/api/fetchHelper"
 
 // Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
 // not UTC's. `new Date().toISOString()` would mis-report the day for any
@@ -77,21 +78,6 @@ export interface OpenBrokerageResult {
   accountIds: string[]
   // Trn ids for opening deposits — only currencies funded with amount > 0.
   trnIds: string[]
-}
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(
-      data?.error || `${url} failed (${res.status} ${res.statusText})`,
-    )
-  }
-  return (await res.json()) as T
 }
 
 // Register the just-opened cash accounts as the broker's default settlement
