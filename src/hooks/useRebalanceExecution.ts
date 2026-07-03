@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { toErrorMessage } from "@lib/formatters"
 import {
   ExecutionDto,
   ExecutionItemDto,
@@ -163,9 +164,7 @@ export function useRebalanceExecution(
         setLocalExclusions(exclusions)
       } catch (err) {
         console.error("Failed to load execution:", err)
-        setError(
-          err instanceof Error ? err.message : "Failed to load execution",
-        )
+        setError(toErrorMessage(err, "Failed to load execution"))
       } finally {
         setLoading(false)
       }
@@ -205,9 +204,7 @@ export function useRebalanceExecution(
         setCreatedExecutionId(data.data.id)
       } catch (err) {
         console.error("Failed to create execution:", err)
-        setError(
-          err instanceof Error ? err.message : "Failed to create execution",
-        )
+        setError(toErrorMessage(err, "Failed to create execution"))
       } finally {
         setLoading(false)
       }
@@ -274,7 +271,7 @@ export function useRebalanceExecution(
       return true
     } catch (err) {
       console.error("Failed to save execution:", err)
-      setError(err instanceof Error ? err.message : "Failed to save")
+      setError(toErrorMessage(err, "Failed to save"))
       return false
     } finally {
       setSaving(false)
@@ -320,7 +317,7 @@ export function useRebalanceExecution(
       setHasChanges(false)
     } catch (err) {
       console.error("Failed to refresh:", err)
-      setError(err instanceof Error ? err.message : "Failed to refresh")
+      setError(toErrorMessage(err, "Failed to refresh"))
     } finally {
       setRefreshing(false)
     }
@@ -446,7 +443,7 @@ export function useRebalanceExecution(
       return { portfolioId, transactionStatus }
     } catch (err) {
       console.error("Failed to commit execution:", err)
-      setError(err instanceof Error ? err.message : "Failed to commit")
+      setError(toErrorMessage(err, "Failed to commit"))
       return undefined
     } finally {
       setCommitting(false)

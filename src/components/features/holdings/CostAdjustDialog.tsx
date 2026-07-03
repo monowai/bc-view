@@ -14,6 +14,7 @@ import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { todayIso } from "@lib/formatters"
 
 interface CostAdjustDialogProps {
   asset: Asset
@@ -37,7 +38,7 @@ export default function CostAdjustDialog({
   onClose,
   onSave,
 }: CostAdjustDialogProps): React.ReactElement {
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [date, setDate] = useState(todayIso())
   const [newCostBasis, setNewCostBasis] = useState<string>("")
   const {
     isSubmitting,

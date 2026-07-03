@@ -19,6 +19,7 @@ import {
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
+import { todayIso } from "@lib/formatters"
 
 interface CorporateActionsPopupProps {
   asset: Asset
@@ -39,7 +40,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   modalOpen,
   onClose,
 }) => {
-  const today = new Date().toISOString().split("T")[0]
+  const today = todayIso()
 
   // Helper to validate date string
   const isValidDate = (dateStr: string | undefined): boolean => {

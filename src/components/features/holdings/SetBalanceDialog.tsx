@@ -21,6 +21,7 @@ import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import SubAccountBalanceInputs from "@components/features/holdings/SubAccountBalanceInputs"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { todayIso } from "@lib/formatters"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -42,7 +43,7 @@ export default function SetBalanceDialog({
   onClose,
   onComplete,
 }: SetBalanceDialogProps): React.ReactElement {
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [date, setDate] = useState(todayIso())
   const [targetBalance, setTargetBalance] = useState<number>(0)
   const [currentBalance, setCurrentBalance] = useState<number>(0)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState("")

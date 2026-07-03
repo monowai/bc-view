@@ -28,6 +28,7 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
 import { buildMePatchBody } from "./buildMePatchBody"
 import { buildPensionTrn } from "./buildPensionTrn"
+import { todayIso } from "@lib/formatters"
 
 export interface BankAccount {
   name: string
@@ -422,7 +423,7 @@ const OnboardingWizard: React.FC = () => {
           account.balance,
           1,
           account.currency,
-          new Date().toISOString().split("T")[0],
+          todayIso(),
           account.currency,
           asset.id,
         )
@@ -433,8 +434,7 @@ const OnboardingWizard: React.FC = () => {
     for (const property of properties) {
       const assetCode = generateAssetCode(property.name)
       const currentValue = property.value || property.price
-      const tradeDate =
-        property.purchaseDate || new Date().toISOString().split("T")[0]
+      const tradeDate = property.purchaseDate || todayIso()
 
       const asset = await findOrCreateAsset(assetCode, existingAssets, {
         market: "PRIVATE",
@@ -462,7 +462,7 @@ const OnboardingWizard: React.FC = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               assetId: asset.id,
-              date: new Date().toISOString().split("T")[0],
+              date: todayIso(),
               closePrice: currentValue,
             }),
           })
@@ -510,11 +510,7 @@ const OnboardingWizard: React.FC = () => {
         // map exactly as LinkCompositeDialog does; plain pensions keep
         // the cash-neutral ADD. Both are skipped when there's nothing
         // to link. See buildPensionTrn for the shape.
-        const trnRow = buildPensionTrn(
-          pension,
-          asset.id,
-          new Date().toISOString().split("T")[0],
-        )
+        const trnRow = buildPensionTrn(pension, asset.id, todayIso())
         if (trnRow) {
           const response = await fetch("/api/trns", {
             method: "POST",
@@ -572,7 +568,7 @@ const OnboardingWizard: React.FC = () => {
           quantity,
           1,
           insurance.currency,
-          new Date().toISOString().split("T")[0],
+          todayIso(),
         )
 
         // Set constant price of 1 for insurance assets
@@ -581,7 +577,7 @@ const OnboardingWizard: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             assetId: asset.id,
-            date: new Date().toISOString().split("T")[0],
+            date: todayIso(),
             closePrice: 1,
           }),
         })
@@ -670,7 +666,7 @@ const OnboardingWizard: React.FC = () => {
       }
 
       // Trigger portfolio valuation by fetching holdings
-      const today = new Date().toISOString().split("T")[0]
+      const today = todayIso()
       const holdingsResponse = await fetch(
         `/api/holdings/${portfolioCode}?asAt=${today}`,
         { credentials: "include" },

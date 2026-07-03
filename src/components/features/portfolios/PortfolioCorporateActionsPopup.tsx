@@ -24,6 +24,7 @@ import {
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
+import { todayIso } from "@lib/formatters"
 
 interface PortfolioCorporateActionsPopupProps {
   portfolio: Portfolio
@@ -40,7 +41,7 @@ interface AssetEvent {
 const PortfolioCorporateActionsPopup: React.FC<
   PortfolioCorporateActionsPopupProps
 > = ({ portfolio, modalOpen, onClose }) => {
-  const today = new Date().toISOString().split("T")[0]
+  const today = todayIso()
 
   const [isScanning, setIsScanning] = useState(false)
   const [scanComplete, setScanComplete] = useState(false)

@@ -1,5 +1,6 @@
 import * as yup from "yup"
 import { Transaction } from "types/beancounter"
+import { todayIso } from "@lib/formatters"
 
 export const TradeTypeValues = [
   "BUY",
@@ -17,7 +18,7 @@ export const defaultValues = {
   status: { value: "PROPOSED", label: "PROPOSED" },
   asset: "",
   market: "US",
-  tradeDate: new Date().toISOString().split("T")[0],
+  tradeDate: todayIso(),
   quantity: 0,
   price: 0,
   tradeCurrency: { value: "USD", label: "USD" },

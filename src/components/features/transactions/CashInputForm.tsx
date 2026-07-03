@@ -31,6 +31,7 @@ import {
   buildCashCopyData,
   resolveFxDisplayInfo,
 } from "@lib/trns/cashFormHelpers"
+import { todayIso } from "@lib/formatters"
 
 // Fetcher for FX rates
 const fxFetcher = async (
@@ -60,7 +61,7 @@ const defaultValues = {
   status: { value: "SETTLED", label: "SETTLED" },
   asset: "USD",
   market: "CASH",
-  tradeDate: new Date().toISOString().split("T")[0],
+  tradeDate: todayIso(),
   tradeCurrency: { value: "USD", label: "USD" },
   cashCurrency: { value: "USD", label: "USD", market: "CASH" },
   quantity: 0,

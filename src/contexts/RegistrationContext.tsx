@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { useUser } from "@auth0/nextjs-auth0/client"
+import { todayIso } from "@lib/formatters"
 
 const ONBOARDING_COMPLETE_KEY = "bc_onboarding_complete"
 const REGISTERED_KEY_PREFIX = "bc_registered:"
@@ -190,6 +191,6 @@ export function useRegistration(): RegistrationContextValue {
 // Check if user was created today (new registration)
 function isNewUser(sinceDate?: string): boolean {
   if (!sinceDate) return false
-  const today = new Date().toISOString().split("T")[0]
+  const today = todayIso()
   return sinceDate === today
 }

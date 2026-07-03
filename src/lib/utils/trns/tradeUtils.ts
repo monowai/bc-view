@@ -1,5 +1,6 @@
 import { TradeFormData, Transaction } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { todayIso } from "@lib/formatters"
 
 // Cash transaction types
 export type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
@@ -22,7 +23,7 @@ export const buildCashRow = (params: CashRowParams): string[] => {
     type,
     currency,
     amount,
-    tradeDate = new Date().toISOString().split("T")[0],
+    tradeDate = todayIso(),
     comments = "",
     batchId = generateBatchId(),
     market = "CASH",

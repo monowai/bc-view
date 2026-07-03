@@ -13,6 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
+import { todayIso } from "@lib/formatters"
 
 interface SetPriceDialogProps {
   asset: Asset
@@ -25,7 +26,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
   onClose,
   onSave,
 }) => {
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [date, setDate] = useState(todayIso())
   const [price, setPrice] = useState("")
   const {
     isSubmitting,

@@ -5,6 +5,7 @@ import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { todayIso } from "@lib/formatters"
 
 const CATEGORY_LABELS: Record<string, string> = {
   PENSION: "Policies",
@@ -26,7 +27,7 @@ export default function SetPriceDialog({
   onClose,
   onSave,
 }: SetPriceDialogProps): React.ReactElement {
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [date, setDate] = useState(todayIso())
   const [price, setPrice] = useState("")
   const {
     isSubmitting,

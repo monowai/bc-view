@@ -8,6 +8,7 @@ import type {
   CompositeScenarioComparison,
 } from "types/independence"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { toErrorMessage } from "@lib/formatters"
 
 const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
 const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
@@ -280,8 +281,7 @@ export function useCompositeProjection(
         // Only genuinely unexpected errors reach here — fetch rejection
         // (network down, DNS failure, CORS), response.json() parse errors
         // on a body that claimed to be JSON but wasn't, etc.
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch projection"
+        const message = toErrorMessage(err, "Failed to fetch projection")
         reportError(message)
       } finally {
         setIsLoading(false)

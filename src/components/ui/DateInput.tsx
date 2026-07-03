@@ -1,4 +1,5 @@
 import React, { useCallback, forwardRef } from "react"
+import { todayIso } from "@lib/formatters"
 
 interface DateInputProps {
   value: string
@@ -44,7 +45,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     )
 
     const setToday = useCallback((): void => {
-      const today = new Date().toISOString().split("T")[0]
+      const today = todayIso()
       onChange(today)
     }, [onChange])
 
