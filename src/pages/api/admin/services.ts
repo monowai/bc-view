@@ -1,4 +1,3 @@
-import { auth0 } from "@lib/auth0"
 import { fetchError } from "@utils/api/responseWriter"
 import {
   getDataActuatorUrl,
@@ -7,6 +6,7 @@ import {
   getRetireActuatorUrl,
   getRebalanceActuatorUrl,
 } from "@utils/api/bcConfig"
+import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
 
 interface ServiceHealth {
@@ -108,25 +108,16 @@ export default async function servicesHandler(
   res: NextApiResponse<ServicesResponse | { error: string }>,
 ): Promise<void> {
   try {
-    const session = await auth0.getSession(req)
-    if (!session) {
-      res.status(401).json({ error: "Not authenticated" })
-      return
-    }
-
     const { method } = req
-
     if (method?.toUpperCase() !== "GET") {
       res.setHeader("Allow", ["GET"])
       res.status(405).end(`Method ${method} Not Allowed`)
       return
     }
 
-    const { token: accessToken } = await auth0.getAccessToken(req, res)
-    if (!accessToken) {
-      res.status(401).json({ error: "Unauthorized" })
-      return
-    }
+    const guard = await requireAdmin(req, res)
+    if (!guard.ok) return
+    const accessToken = guard.token!
 
     // Define services to check (using actuator URLs)
     const services = [

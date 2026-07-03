@@ -8,15 +8,15 @@ export default async function writeRows(
   req: NextApiRequest,
   res: NextApiResponse,
 ): Promise<void> {
-  const session = await auth0.getSession(req)
-  if (!session) {
-    res.status(401).json({ error: "Not authenticated" })
-    return
-  }
-
-  const { token: accessToken } = await auth0.getAccessToken(req, res)
-
   try {
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
+
     const result = await writeTrn({
       portfolio: req.body.portfolio,
       row: req.body.row,
