@@ -49,12 +49,16 @@ export default function IndependenceSettingsModal({
   onClose,
 }: IndependenceSettingsModalProps): React.ReactElement | null {
   const { settings, updateSettings } = useIndependenceSettings()
-  const { isSubmitting, submitError: error, handleSubmit, setError } =
-    useDialogSubmit({
-      onSuccess: onClose,
-      autoCloseDelay: 0,
-      fallbackError: "Failed to save settings. Please try again.",
-    })
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess: onClose,
+    autoCloseDelay: 0,
+    fallbackError: "Failed to save settings. Please try again.",
+  })
 
   const currentYear = new Date().getFullYear()
   // Empty when unset — never seed a plausible default the user might save

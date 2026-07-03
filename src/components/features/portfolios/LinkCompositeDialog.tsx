@@ -25,7 +25,11 @@ export default function LinkCompositeDialog({
   const { portfolios } = usePortfolios()
   const { preferences } = useUserPreferences()
   const [portfolioId, setPortfolioId] = useState<string>("")
-  const { isSubmitting, submitError: error, handleSubmit } = useDialogSubmit({
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+  } = useDialogSubmit({
     onSuccess: onClose,
     autoCloseDelay: 0,
     fallbackError: "Link failed",

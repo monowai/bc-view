@@ -22,7 +22,12 @@ const config = {
   currency: "SGD",
   total: 10000,
   subAccounts: [
-    { code: "OA", displayName: "Ordinary Account", balance: 5000, liquid: true },
+    {
+      code: "OA",
+      displayName: "Ordinary Account",
+      balance: 5000,
+      liquid: true,
+    },
   ],
 }
 

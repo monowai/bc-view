@@ -69,10 +69,13 @@ export default function FxEditModal({
   onClose,
   onDelete,
 }: FxEditModalProps): React.ReactElement {
-  const { isSubmitting, submitError, handleSubmit: dialogHandleSubmit } =
-    useDialogSubmit({
-      fallbackError: "Failed to update transaction",
-    })
+  const {
+    isSubmitting,
+    submitError,
+    handleSubmit: dialogHandleSubmit,
+  } = useDialogSubmit({
+    fallbackError: "Failed to update transaction",
+  })
   const [fxRate, setFxRate] = useState<number | null>(null)
   const [fxRateLoading, setFxRateLoading] = useState(false)
   const [manualBuyAmount, setManualBuyAmount] = useState(false)

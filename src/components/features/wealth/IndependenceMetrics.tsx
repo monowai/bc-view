@@ -337,7 +337,8 @@ export default function IndependenceMetrics({
             <div>
               <div>Monthly Investment Transactions</div>
               <p className="text-sm font-normal text-gray-500 mt-0.5">
-                {monthlyInvestmentData?.startDate && monthlyInvestmentData?.endDate
+                {monthlyInvestmentData?.startDate &&
+                monthlyInvestmentData?.endDate
                   ? `${monthlyInvestmentData.startDate} – ${monthlyInvestmentData.endDate}`
                   : "Last 30 days"}
               </p>
