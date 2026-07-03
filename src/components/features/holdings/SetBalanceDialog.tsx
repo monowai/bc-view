@@ -243,14 +243,6 @@ export default function SetBalanceDialog({
           {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name}
         </div>
-        {!isLoadingBalance && (
-          <div className="mt-2 text-sm">
-            <span className="text-gray-500">{"Current Balance"}:</span>{" "}
-            <span className="font-medium">
-              {getAssetCurrency(asset)} {currentBalance.toLocaleString()}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Date */}
@@ -267,15 +259,25 @@ export default function SetBalanceDialog({
 
       {/* Sub-account balances (for POLICY assets with sub-accounts) */}
       {hasSubAccounts ? (
-        <SubAccountBalanceInputs
-          subAccounts={configSubAccounts}
-          values={subAccountBalances}
-          onChange={(code, value) =>
-            setSubAccountBalances((prev) => ({ ...prev, [code]: value }))
-          }
-          currency={getAssetCurrency(asset)}
-          total={targetBalance}
-        />
+        <div>
+          <SubAccountBalanceInputs
+            subAccounts={configSubAccounts}
+            values={subAccountBalances}
+            onChange={(code, value) =>
+              setSubAccountBalances((prev) => ({ ...prev, [code]: value }))
+            }
+            currency={getAssetCurrency(asset)}
+            total={targetBalance}
+          />
+          {!isLoadingBalance && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-500">{"Current Balance"}:</span>{" "}
+              <span className="font-medium">
+                {getAssetCurrency(asset)} {currentBalance.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
       ) : (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -285,8 +287,16 @@ export default function SetBalanceDialog({
             value={targetBalance}
             onChange={(value) => setTargetBalance(value)}
             placeholder={"Enter the balance you want to set"}
-            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
+            className="w-full border-gray-300 rounded-md shadow-sm px-4 py-3 text-lg border focus:ring-amber-500 focus:border-amber-500"
           />
+          {!isLoadingBalance && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-500">{"Current Balance"}:</span>{" "}
+              <span className="font-medium">
+                {getAssetCurrency(asset)} {currentBalance.toLocaleString()}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
