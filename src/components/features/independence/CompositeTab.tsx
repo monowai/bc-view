@@ -90,18 +90,32 @@ function CompositeSubTabNavigation({
           ))}
         </div>
         {sustainabilityText && (
-          <span
-            className={`ml-4 shrink-0 text-sm font-medium px-3 py-1 rounded-full ${
-              projection?.isSustainable
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            }`}
-          >
-            <i
-              className={`fas ${projection?.isSustainable ? "fa-check-circle" : "fa-exclamation-triangle"} mr-1`}
-            ></i>
-            {sustainabilityText}
-          </span>
+          <>
+            {/* Mobile: color-only status dot — the full text pill crowds the
+                scrollable tab row on narrow screens. Colour carries the
+                status; aria-label/title keep it accessible. */}
+            <span
+              role="img"
+              aria-label={sustainabilityText}
+              title={sustainabilityText}
+              className={`ml-3 shrink-0 inline-block h-2.5 w-2.5 rounded-full sm:hidden ${
+                projection?.isSustainable ? "bg-green-500" : "bg-red-500"
+              }`}
+            ></span>
+            {/* sm+: full text pill */}
+            <span
+              className={`ml-4 hidden shrink-0 items-center rounded-full px-3 py-1 text-sm font-medium sm:inline-flex ${
+                projection?.isSustainable
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              <i
+                className={`fas ${projection?.isSustainable ? "fa-check-circle" : "fa-exclamation-triangle"} mr-1`}
+              ></i>
+              {sustainabilityText}
+            </span>
+          </>
         )}
       </nav>
     </div>
