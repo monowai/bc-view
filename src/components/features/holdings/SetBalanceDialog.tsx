@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect } from "react"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import {
   Asset,
   Portfolio,
@@ -47,9 +48,14 @@ export default function SetBalanceDialog({
   const [targetBalance, setTargetBalance] = useState<number>(0)
   const [currentBalance, setCurrentBalance] = useState<number>(0)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+  } = useDialogSubmit({
+    fallbackError: "Failed to set balance",
+  })
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   // Sub-account state
   const [configSubAccounts, setConfigSubAccounts] = useState<SubAccount[]>([])
@@ -145,13 +151,9 @@ export default function SetBalanceDialog({
 
   const balanceChanged = targetBalance !== currentBalance
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async (): Promise<void> => {
     if (!balanceChanged || !selectedPortfolioId) return
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
+    await handleSubmit(async () => {
       const assetCurrency = getAssetCurrency(asset) || "USD"
 
       // Composite policies (CPF / ILP) ship a per-sub-account map; the
@@ -194,28 +196,14 @@ export default function SetBalanceDialog({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(
+        throw new Error(
           errorData.message || errorData.detail || "Failed to set balance",
         )
-        return
       }
 
       await onComplete()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set balance")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [
-    balanceChanged,
-    selectedPortfolioId,
-    asset,
-    date,
-    targetBalance,
-    onComplete,
-    hasSubAccounts,
-    subAccountBalances,
-  ])
+    })
+  }
 
   return (
     <Dialog

@@ -10,6 +10,7 @@ import {
   getAssetCurrency,
 } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -38,9 +39,12 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const [receivedAmount, setReceivedAmount] = useState<string>("")
   const [targetPortfolioId, setTargetPortfolioId] = useState<string>("")
   const [targetAssetId, setTargetAssetId] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
+    useDialogSubmit({
+      onSuccess: onClose,
+      autoCloseDelay: 1000,
+      fallbackError: "Failed to transfer cash",
+    })
   const [description, setDescription] = useState<string>("")
 
   // Fetch available account assets (ACCOUNT category - bank accounts)
@@ -114,9 +118,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       setReceivedAmount(defaultAmount)
       setTargetPortfolioId(sourceData.portfolioId)
       setTargetAssetId("")
-      setIsSubmitting(false)
-      setSubmitError(null)
-      setSubmitSuccess(false)
+      reset()
       setDescription("")
     }
   }
@@ -140,72 +142,64 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const handleTransfer = async (): Promise<void> => {
     if (parsedSentAmount <= 0 || !targetPortfolioId || !targetAssetId) return
 
-    setIsSubmitting(true)
-    setSubmitError(null)
-
     const tradeDate = todayIso()
 
-    let resolvedTargetAssetId: string
-    try {
-      resolvedTargetAssetId = await resolveAssetId(targetAssetId)
-    } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to resolve target asset",
-      )
-      // Reset the submitting flag — this early return skips the finally below,
-      // and leaving it true would keep the Transfer button disabled for the
-      // rest of the dialog session.
-      setIsSubmitting(false)
-      return
-    }
+    await handleSubmit(async () => {
+      let resolvedTargetAssetId: string
+      try {
+        resolvedTargetAssetId = await resolveAssetId(targetAssetId)
+      } catch (err) {
+        throw new Error(
+          err instanceof Error ? err.message : "Failed to resolve target asset",
+        )
+      }
 
-    // Resolve display codes for comments
-    const sourceDisplayCode = stripOwnerPrefix(sourceData.assetCode)
-    const targetAsset = allTargetAssets.find((a) => a.id === targetAssetId)
-    const targetDisplayCode =
-      targetAssetId === sourceData.assetId
-        ? sourceDisplayCode
-        : targetAsset
-          ? stripOwnerPrefix(targetAsset.code)
-          : ""
-    const targetPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
+      // Resolve display codes for comments
+      const sourceDisplayCode = stripOwnerPrefix(sourceData.assetCode)
+      const targetAsset = allTargetAssets.find((a) => a.id === targetAssetId)
+      const targetDisplayCode =
+        targetAssetId === sourceData.assetId
+          ? sourceDisplayCode
+          : targetAsset
+            ? stripOwnerPrefix(targetAsset.code)
+            : ""
+      const targetPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
 
-    const withdrawalComment =
-      description ||
-      `Transfer to ${targetDisplayCode}${targetPortfolio ? ` (${targetPortfolio.code})` : ""}`
-    const depositComment =
-      description ||
-      `Transfer from ${sourceDisplayCode} (${sourceData.portfolioCode})`
+      const withdrawalComment =
+        description ||
+        `Transfer to ${targetDisplayCode}${targetPortfolio ? ` (${targetPortfolio.code})` : ""}`
+      const depositComment =
+        description ||
+        `Transfer from ${sourceDisplayCode} (${sourceData.portfolioCode})`
 
-    const withdrawal = {
-      trnType: "WITHDRAWAL",
-      assetId: sourceData.assetId,
-      cashAssetId: sourceData.assetId,
-      tradeDate,
-      tradeAmount: parsedSentAmount,
-      tradeCurrency: sourceData.currency,
-      cashCurrency: sourceData.currency,
-      price: 1,
-      quantity: 0,
-      status: "SETTLED",
-      comments: withdrawalComment,
-    }
+      const withdrawal = {
+        trnType: "WITHDRAWAL",
+        assetId: sourceData.assetId,
+        cashAssetId: sourceData.assetId,
+        tradeDate,
+        tradeAmount: parsedSentAmount,
+        tradeCurrency: sourceData.currency,
+        cashCurrency: sourceData.currency,
+        price: 1,
+        quantity: 0,
+        status: "SETTLED",
+        comments: withdrawalComment,
+      }
 
-    const deposit = {
-      trnType: "DEPOSIT",
-      assetId: resolvedTargetAssetId,
-      cashAssetId: resolvedTargetAssetId,
-      tradeDate,
-      tradeAmount: parsedReceivedAmount,
-      tradeCurrency: sourceData.currency,
-      cashCurrency: sourceData.currency,
-      price: 1,
-      quantity: 0,
-      status: "SETTLED",
-      comments: depositComment,
-    }
+      const deposit = {
+        trnType: "DEPOSIT",
+        assetId: resolvedTargetAssetId,
+        cashAssetId: resolvedTargetAssetId,
+        tradeDate,
+        tradeAmount: parsedReceivedAmount,
+        tradeCurrency: sourceData.currency,
+        cashCurrency: sourceData.currency,
+        price: 1,
+        quantity: 0,
+        status: "SETTLED",
+        comments: depositComment,
+      }
 
-    try {
       const isSamePortfolio = sourceData.portfolioId === targetPortfolioId
 
       if (isSamePortfolio) {
@@ -220,10 +214,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         })
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          setSubmitError(
+          throw new Error(
             errorData.message || errorData.detail || "Failed to transfer cash",
           )
-          return
         }
       } else {
         // Different portfolios: two sequential requests
@@ -237,12 +230,11 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         })
         if (!withdrawalResponse.ok) {
           const errorData = await withdrawalResponse.json().catch(() => ({}))
-          setSubmitError(
+          throw new Error(
             errorData.message ||
               errorData.detail ||
               "Failed to create withdrawal",
           )
-          return
         }
 
         const depositResponse = await fetch("/api/trns", {
@@ -255,36 +247,24 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         })
         if (!depositResponse.ok) {
           const errorData = await depositResponse.json().catch(() => ({}))
-          setSubmitError(
+          throw new Error(
             errorData.message ||
               errorData.detail ||
               "Withdrawal succeeded but deposit failed",
           )
-          return
         }
       }
 
-      setSubmitSuccess(true)
-      setTimeout(() => {
-        mutate(holdingKey(sourceData.portfolioCode, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
-        if (sourceData.portfolioId !== targetPortfolioId) {
-          const tp = portfolios.find((p) => p.id === targetPortfolioId)
-          if (tp) {
-            mutate(holdingKey(tp.code, "today"))
-          }
+      // Invalidate caches
+      mutate(holdingKey(sourceData.portfolioCode, "today"))
+      mutate("/api/holdings/aggregated?asAt=today")
+      if (sourceData.portfolioId !== targetPortfolioId) {
+        const tp = portfolios.find((p) => p.id === targetPortfolioId)
+        if (tp) {
+          mutate(holdingKey(tp.code, "today"))
         }
-      }, 1500)
-      setTimeout(() => {
-        onClose()
-      }, 1000)
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to transfer cash",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+      }
+    })
   }
 
   if (!modalOpen) {
