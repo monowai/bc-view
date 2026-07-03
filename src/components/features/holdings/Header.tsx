@@ -1,5 +1,4 @@
-import React, { ReactElement } from "react"
-import { GroupKey } from "types/beancounter"
+import React, { forwardRef } from "react"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { getSortIcon } from "@lib/sortIcon"
 
@@ -25,11 +24,9 @@ type SortConfig = {
   direction: "asc" | "desc"
 }
 
-interface HeaderProps extends GroupKey {
+interface ColumnHeaderProps {
   sortConfig?: SortConfig
   onSort?: (key: string) => void
-  cumulativePositionCount?: number // Cumulative positions displayed before this group
-  isFirstGroup?: boolean // Always show headers for first group
 }
 
 export const headers = [
@@ -144,9 +141,6 @@ export const headers = [
   },
 ]
 
-// Show column headers every N positions
-const HEADER_INTERVAL = 6
-
 const HEADER_LABELS: Record<string, string> = {
   "asset.price": "Price",
   "asset.change": "Change",
@@ -163,51 +157,46 @@ const HEADER_LABELS: Record<string, string> = {
   gain: "Gain",
 }
 
-export default function Header({
-  groupKey,
-  sortConfig,
-  onSort,
-  cumulativePositionCount = 0,
-  isFirstGroup = false,
-}: HeaderProps): ReactElement {
-  const holdingState = useHoldingState()
-  const isCostApproximate = holdingState.isCostApproximate
+/**
+ * Shared, sticky column-header row for the holdings table.
+ *
+ * One instance is rendered per table (not per group), so the column labels
+ * stay pinned to the top of the scroll container while the user scrolls
+ * through every section. The per-group name + collapse toggle live in
+ * {@link GroupBar}, which sticks just beneath this header. Forwarding the ref
+ * lets the page measure this header's height to offset the group bars.
+ */
+const ColumnHeader = forwardRef<HTMLTableSectionElement, ColumnHeaderProps>(
+  function ColumnHeader({ sortConfig, onSort }, ref) {
+    const holdingState = useHoldingState()
+    const isCostApproximate = holdingState.isCostApproximate
 
-  // Show headers for first group, or every HEADER_INTERVAL positions
-  const showColumnHeaders =
-    isFirstGroup || cumulativePositionCount % HEADER_INTERVAL === 0
+    const renderSortIcon = (headerKey: string): React.ReactElement =>
+      getSortIcon(headerKey, sortConfig, "holdings")
 
-  const renderSortIcon = (headerKey: string): React.ReactElement =>
-    getSortIcon(headerKey, sortConfig, "holdings")
+    // Header padding matches data-cell padding for mobile space efficiency
+    const headerPadding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3"
 
-  // Get optimized header padding to match data cell padding for mobile space efficiency
-  const getHeaderPadding = (): string => {
-    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
-  }
-
-  return (
-    <thead className="bg-blue-50 text-blue-600">
-      <tr className="border-b border-blue-100">
-        <th
-          className={`px-1 py-1 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium bg-blue-100/80 ${
-            showColumnHeaders && onSort
-              ? "cursor-pointer hover:bg-blue-100/60 transition-colors select-none"
-              : ""
-          }`}
-          colSpan={showColumnHeaders ? 1 : headers.length + 1}
-          onClick={
-            onSort && showColumnHeaders ? () => onSort("assetName") : undefined
-          }
-        >
-          <div className="flex items-center justify-start">
-            <span className="font-semibold text-sm normal-case tracking-normal text-blue-900">
-              {groupKey}
-            </span>
-            {onSort && showColumnHeaders && renderSortIcon("assetName")}
-          </div>
-        </th>
-        {showColumnHeaders &&
-          headers.map((header) => {
+    return (
+      <thead
+        ref={ref}
+        className="sticky top-0 z-30 bg-blue-100 text-blue-700 shadow-sm"
+      >
+        <tr className="border-b border-blue-200">
+          <th
+            className={`px-1 py-1.5 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium ${
+              onSort
+                ? "cursor-pointer hover:bg-blue-200/50 transition-colors select-none"
+                : ""
+            }`}
+            onClick={onSort ? () => onSort("assetName") : undefined}
+          >
+            <div className="flex items-center justify-start gap-1">
+              Asset
+              {onSort && renderSortIcon("assetName")}
+            </div>
+          </th>
+          {headers.map((header) => {
             let visibility
             if ("hidden" in header && header.hidden) {
               visibility = "hidden" // Hidden on all screens
@@ -222,7 +211,7 @@ export default function Header({
             return (
               <th
                 key={header.key}
-                className={`${getHeaderPadding()} bg-blue-100/60 text-xs uppercase tracking-wider font-medium ${
+                className={`${headerPadding} text-xs uppercase tracking-wider font-medium ${
                   header.align === "right"
                     ? "text-right"
                     : header.align === "center"
@@ -230,7 +219,7 @@ export default function Header({
                       : "text-left"
                 } ${visibility} ${
                   header.sortable && onSort
-                    ? "cursor-pointer hover:bg-blue-100 transition-colors select-none"
+                    ? "cursor-pointer hover:bg-blue-200/50 transition-colors select-none"
                     : ""
                 }`}
                 onClick={
@@ -266,7 +255,10 @@ export default function Header({
               </th>
             )
           })}
-      </tr>
-    </thead>
-  )
-}
+        </tr>
+      </thead>
+    )
+  },
+)
+
+export default ColumnHeader

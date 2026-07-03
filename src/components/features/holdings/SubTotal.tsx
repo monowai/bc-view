@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react"
+import React from "react"
 import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
 import { getSubTotalCellClasses as getCellClasses } from "@lib/holdings/cellClasses"
@@ -7,17 +7,17 @@ interface SubTotalProps extends GroupedSubtotals {
   positionCount: number
 }
 
-export default function SubTotal({
+/**
+ * Builds the 13 data cells (header indices 0-12) for a group's subtotals.
+ * Shared by the group's SubTotal footer row and the collapsed GroupBar so the
+ * two always show identical figures. The leading asset/label cell is rendered
+ * separately by each caller.
+ */
+export function buildSubTotalCells({
   groupBy,
   subTotals,
   valueIn,
-  positionCount,
-}: SubTotalProps): ReactElement | null {
-  // Skip subtotal when there's only 1 position - it would duplicate the row values
-  if (positionCount <= 1) {
-    return null
-  }
-  // Define data array that matches the header structure
+}: GroupedSubtotals): React.ReactNode[] {
   const gainOnDay = subTotals[valueIn].gainOnDay
   const isCashGroup = groupBy.toLowerCase() === "cash"
 
@@ -33,7 +33,7 @@ export default function SubTotal({
     </span>
   )
 
-  const data = [
+  return [
     "-", // asset.price column
     gainOnDayElement, // asset.change - shows gainOnDay sum on mobile (hidden for Cash)
     gainOnDayElement, // gain.onday (hidden)
@@ -89,6 +89,20 @@ export default function SubTotal({
       value={subTotals[valueIn].totalGain}
     />, // gain
   ]
+}
+
+export default function SubTotal({
+  groupBy,
+  subTotals,
+  valueIn,
+  positionCount,
+}: SubTotalProps): React.ReactElement | null {
+  // Skip subtotal when there's only 1 position - it would duplicate the row values
+  if (positionCount <= 1) {
+    return null
+  }
+
+  const cells = buildSubTotalCells({ groupBy, subTotals, valueIn })
 
   return (
     <tbody className="font-medium">
@@ -102,7 +116,7 @@ export default function SubTotal({
         <td className="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-left font-semibold text-wealth-700">
           Sub Total - {subTotals[valueIn].currency.code}
         </td>
-        {data.map((item, index) => (
+        {cells.map((item, index) => (
           <td key={index} className={getCellClasses(index)}>
             {item}
           </td>
