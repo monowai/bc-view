@@ -506,62 +506,21 @@ export default function EditPlanDetailsModal({
             </p>
           </div>
 
-          {/* Portfolios */}
-          {portfolios.length > 0 && (
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Portfolios
-              </h3>
-              <p className="text-xs text-gray-500 mb-2">
-                Uncheck to exclude a portfolio from this plan
+          {/* Portfolios — selection is account-wide; editing moved to Net Worth tab */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Portfolios
+            </h3>
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <i className="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0 text-sm"></i>
+              <p className="text-xs text-blue-800">
+                Portfolio selection is set account-wide on the{" "}
+                <span className="font-medium">Net Worth tab</span> on the
+                Independence page. Open Independence &#8594; Net Worth to change
+                which portfolios count.
               </p>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {portfolios
-                  .filter((p) => p.active !== false)
-                  .map((portfolio) => {
-                    const isExcluded = formData.excludedPortfolioIds.includes(
-                      portfolio.id,
-                    )
-                    return (
-                      <label
-                        key={portfolio.id}
-                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                          isExcluded
-                            ? "bg-gray-50 text-gray-400"
-                            : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!isExcluded}
-                          onChange={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              excludedPortfolioIds: isExcluded
-                                ? prev.excludedPortfolioIds.filter(
-                                    (id) => id !== portfolio.id,
-                                  )
-                                : [...prev.excludedPortfolioIds, portfolio.id],
-                            }))
-                          }}
-                          className="w-4 h-4 text-independence-500 rounded border-gray-300 focus:ring-independence-500"
-                        />
-                        <span
-                          className={`text-sm ${isExcluded ? "line-through" : "font-medium text-gray-900"}`}
-                        >
-                          {portfolio.code}
-                        </span>
-                        <span
-                          className={`text-xs ${isExcluded ? "" : "text-gray-500"}`}
-                        >
-                          {portfolio.name}
-                        </span>
-                      </label>
-                    )
-                  })}
-              </div>
             </div>
-          )}
+          </div>
 
           {/* Per-property Rental Income */}
           {rentalProperties.length > 0 && (

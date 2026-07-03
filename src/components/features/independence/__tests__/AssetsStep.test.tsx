@@ -27,6 +27,11 @@ const mockPortfolios = {
   ],
 }
 
+// Mutable reference used inside the SWR mock so individual tests can override
+// the portfolio data without rebuilding the whole mock factory. Starts with
+// "mock" so Jest's Babel hoisting picks it up alongside jest.mock().
+let mockSwrPortfolioData: { data: unknown[] } = mockPortfolios
+
 // AssetsStep calls multiple SWR hooks plus direct fetch() calls. Both
 // produce async state updates that fall outside React Testing Library's
 // implicit act() window and trigger "An update to AssetsStep was not
@@ -35,7 +40,9 @@ const mockPortfolios = {
 jest.mock("swr", () => ({
   __esModule: true,
   default: (key: string) => ({
-    data: key.includes("portfolios") ? mockPortfolios : { data: [] },
+    data: (key as string).includes("portfolios")
+      ? mockSwrPortfolioData
+      : { data: [] },
     error: undefined,
     isLoading: false,
     mutate: jest.fn(),
@@ -50,6 +57,11 @@ beforeAll(() => {
     json: () => Promise.resolve({ data: [] }),
     text: () => Promise.resolve(""),
   }) as unknown as typeof fetch
+})
+
+beforeEach(() => {
+  // Reset to the default (portfolios present) before each test
+  mockSwrPortfolioData = mockPortfolios
 })
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
@@ -102,5 +114,43 @@ describe("AssetsStep", () => {
     expect(
       await screen.findByText(/we've selected your portfolios automatically/i),
     ).toBeInTheDocument()
+  })
+
+  it("shows read-only info banner pointing to Net Worth tab", async () => {
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
+    )
+
+    expect(await screen.findByText(/net worth tab/i)).toBeInTheDocument()
+  })
+
+  it("renders portfolio checkboxes as disabled", async () => {
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
+    )
+
+    // Wait for portfolio rows to appear, then verify all checkboxes are disabled
+    await screen.findByText("TEST")
+    const checkboxes = screen.getAllByRole("checkbox")
+    checkboxes.forEach((cb) => expect(cb).toBeDisabled())
+  })
+
+  it("renders manual asset inputs as disabled when no portfolios", async () => {
+    // Override: no portfolios so the manual-asset fallback branch renders
+    mockSwrPortfolioData = { data: [] }
+
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
+    )
+
+    // The manual-asset inputs are type="number" (spinbutton role)
+    const inputs = await screen.findAllByRole("spinbutton")
+    inputs.forEach((input) => expect(input).toBeDisabled())
   })
 })

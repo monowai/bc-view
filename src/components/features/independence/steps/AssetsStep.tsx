@@ -673,6 +673,16 @@ export default function AssetsStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
+      {/* Wealth definition is account-level — direct the user to Net Worth tab */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+        <i className="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0 text-sm"></i>
+        <p className="text-sm text-blue-800">
+          Wealth portfolios are set account-wide on the{" "}
+          <span className="font-medium">Net Worth tab</span> on the Independence
+          page. This step is read-only.
+        </p>
+      </div>
+
       {portfoliosWithBalance.length > 0 && !isEditMode && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
           <i className="fas fa-check-circle text-green-600 mt-0.5 mr-3"></i>
@@ -735,10 +745,9 @@ export default function AssetsStep({
                           min={0}
                           step={1000}
                           value={field.value || 0}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value) || 0)
-                          }
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+                          onChange={() => undefined}
+                          disabled
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg opacity-60 cursor-not-allowed bg-gray-50"
                         />
                       )}
                     />
@@ -792,32 +801,13 @@ export default function AssetsStep({
                 name="selectedPortfolioIds"
                 control={control}
                 render={({ field }) => (
-                  <label className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                  <label className="flex items-center p-3 bg-gray-50 rounded-lg cursor-not-allowed">
                     <input
                       type="checkbox"
                       checked={field.value?.includes(portfolio.id) || false}
-                      onChange={(e) => {
-                        const current = field.value || []
-                        const currentExcluded = watchedExcludedIds || []
-                        if (e.target.checked) {
-                          field.onChange([...current, portfolio.id])
-                          setValue(
-                            "excludedPortfolioIds",
-                            currentExcluded.filter(
-                              (id: string) => id !== portfolio.id,
-                            ),
-                          )
-                        } else {
-                          field.onChange(
-                            current.filter((id: string) => id !== portfolio.id),
-                          )
-                          setValue("excludedPortfolioIds", [
-                            ...currentExcluded,
-                            portfolio.id,
-                          ])
-                        }
-                      }}
-                      className="h-4 w-4 text-independence-600 focus:ring-independence-500 border-gray-300 rounded"
+                      onChange={() => undefined}
+                      disabled
+                      className="h-4 w-4 text-independence-600 border-gray-300 rounded opacity-60 cursor-not-allowed"
                     />
                     <div className="ml-3 flex-1">
                       <span className="font-medium text-gray-900">
