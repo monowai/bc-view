@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react"
+import { formatCurrency, formatPercent } from "@lib/formatters"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import Link from "next/link"
@@ -60,18 +61,6 @@ function ExecuteRebalancePage(): React.ReactElement {
       )
     }
   }, [createdExecutionId, source, router])
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat(undefined, {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value)
-  }
-
-  const formatPercent = (value: number): string => {
-    return `${(value * 100).toFixed(2)}%`
-  }
 
   if (states.loading) {
     return (

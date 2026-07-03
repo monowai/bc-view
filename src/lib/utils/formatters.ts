@@ -76,6 +76,16 @@ export const formatDateTime = (dateString: string): string => {
 }
 
 /**
+ * Format a number as currency with a symbol prefix using locale-aware formatting.
+ * Identical contract to the former independence/formatters formatCurrency.
+ * @param value - Numeric value to format
+ * @param symbol - Currency symbol prefix (default: '$')
+ * @returns Formatted currency string (e.g., "$1,234.5")
+ */
+export const formatCurrencySymbol = (value: number, symbol = "$"): string =>
+  `${symbol}${value.toLocaleString()}`
+
+/**
  * Format a number with sign prefix for display.
  * @param value - Numeric value
  * @param fractionDigits - Number of decimal places (default: 2)
