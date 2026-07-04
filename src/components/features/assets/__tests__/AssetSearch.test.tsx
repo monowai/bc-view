@@ -384,4 +384,84 @@ describe("AssetSearch", () => {
       })
     })
   })
+
+  describe("market grouping", () => {
+    it("groups results under a market heading when no market filter is set", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                symbol: "SMOT",
+                name: "VanEck SMOT US",
+                market: "US",
+                assetId: "smot-us",
+                currency: "USD",
+              },
+              {
+                symbol: "SMOT",
+                name: "VanEck SMOT LON",
+                market: "LON",
+                assetId: "smot-lon",
+                currency: "GBP",
+              },
+            ],
+          }),
+      })
+
+      render(<AssetSearch onSelect={mockOnSelect} />)
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "SMOT")
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(screen.getByText("US")).toBeInTheDocument()
+        expect(screen.getByText("LON")).toBeInTheDocument()
+        expect(
+          screen.getByText("SMOT - VanEck SMOT US (US)"),
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText("SMOT - VanEck SMOT LON (LON)"),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it("does not group results when a specific market filter is set", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                symbol: "SMOT",
+                name: "VanEck SMOT LON",
+                market: "LON",
+                assetId: "smot-lon",
+                currency: "GBP",
+              },
+            ],
+          }),
+      })
+
+      render(<AssetSearch onSelect={mockOnSelect} market="LON" />)
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "SMOT")
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("SMOT - VanEck SMOT LON (LON)"),
+        ).toBeInTheDocument()
+      })
+      // Single-market results render flat — no separate group heading element.
+      expect(screen.queryAllByText("LON")).toHaveLength(0)
+    })
+  })
 })
