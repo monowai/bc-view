@@ -430,4 +430,29 @@ describe("Monte Carlo slim panel", () => {
       screen.queryByRole("button", { name: "Full stress test →" }),
     ).not.toBeInTheDocument()
   })
+
+  describe("stacked FI progress (portfolio + guaranteed income)", () => {
+    it("renders the Social Security segment and combined 'incl. income' total", () => {
+      renderTab({
+        projection: {
+          ...baseProjection,
+          fiMetrics: {
+            ...baseProjection.fiMetrics!,
+            fiProgress: 82,
+            retirementAgeFiProgress: 106,
+          },
+        },
+      })
+      expect(screen.getByText("+ Social Security")).toBeInTheDocument()
+      expect(screen.getByText("incl. income")).toBeInTheDocument()
+      // Combined total shown with overflow (unclamped, rounded).
+      expect(screen.getByText(/106%/)).toBeInTheDocument()
+    })
+
+    it("omits the Social Security segment when there is no guaranteed income", () => {
+      renderTab()
+      expect(screen.queryByText("+ Social Security")).not.toBeInTheDocument()
+      expect(screen.queryByText("incl. income")).not.toBeInTheDocument()
+    })
+  })
 })
