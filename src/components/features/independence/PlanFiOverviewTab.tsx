@@ -12,6 +12,7 @@ import {
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
+import { deriveFiStack } from "@lib/independence/fiStack"
 import Spinner from "@components/ui/Spinner"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import type { ScenarioState } from "./scenario/types"
@@ -207,6 +208,13 @@ export default function PlanFiOverviewTab({
       ? Math.min(100, Math.round((currentLiquid / fiNumber) * 100))
       : 100)
 
+  // Stacked FI: portfolio (fiProgress) + guaranteed income (Social Security) as
+  // its present value, over the same portfolio-only fiNumber. Overflow shown.
+  const fiStack = deriveFiStack({
+    fiProgress,
+    retirementAgeFiProgress: fiMetrics?.retirementAgeFiProgress ?? null,
+  })
+
   const yrsToFi =
     fiCrossingAge != null && currentAge != null && fiCrossingAge > currentAge
       ? fiCrossingAge - currentAge
@@ -365,14 +373,54 @@ export default function PlanFiOverviewTab({
               {hideValues ? "—" : `${Math.round(fiProgress)}%`}
             </span>
           </div>
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
             <div
-              className={`h-full rounded-full transition-all duration-700 ${
+              className={`h-full transition-all duration-700 ${
                 isAchieved ? "bg-green-500" : "bg-independence-500"
               }`}
-              style={{ width: `${Math.min(100, Math.round(fiProgress))}%` }}
+              style={{
+                width: hideValues
+                  ? "0%"
+                  : `${Math.min(100, Math.round(fiProgress))}%`,
+              }}
             />
+            {fiStack.hasIncome && (
+              <div
+                className="h-full bg-amber-400 transition-all duration-700"
+                style={{ width: hideValues ? "0%" : `${fiStack.incomePct}%` }}
+                title="Guaranteed income (Social Security / CPF LIFE), credited as the present value of the future stream"
+              />
+            )}
           </div>
+          {fiStack.hasIncome && (
+            <div className="mt-1.5 flex items-center justify-between gap-3 flex-wrap text-xs">
+              <span className="flex items-center gap-3 text-gray-500">
+                <span className="flex items-center gap-1">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-sm ${
+                      isAchieved ? "bg-green-500" : "bg-independence-500"
+                    }`}
+                  />
+                  Portfolio
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />
+                  + Social Security
+                </span>
+              </span>
+              <span
+                className={`font-semibold ${
+                  fiStack.achieved ? "text-green-600" : "text-gray-700"
+                }`}
+              >
+                {fiStack.achieved ? "✓ " : ""}
+                {hideValues ? "—" : `${Math.round(fiStack.totalProgress)}%`}
+                <span className="ml-1 font-normal text-gray-500">
+                  incl. income
+                </span>
+              </span>
+            </div>
+          )}
           {isAchieved && (
             <p className="text-xs text-green-600 mt-1.5 font-medium">
               <i className="fas fa-check-circle mr-1" />
