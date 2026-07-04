@@ -719,7 +719,9 @@ describe("FiMetrics", () => {
       render(<FiMetrics {...offTrackProps} />)
       // The value stays clean ("125.0%"); the 4%-rule explanation now lives in
       // the gauge tooltip so a green % can't read as success on its own.
-      expect(screen.getByText("125.0%")).toBeInTheDocument()
+      // Appears twice — the stacked headline "incl. income" label and the
+      // Retirement-Age gauge — both clean.
+      expect(screen.getAllByText("125.0%").length).toBeGreaterThan(0)
       expect(
         screen.queryByText(/125\.0% — based on the 4% rule/),
       ).not.toBeInTheDocument()
@@ -756,6 +758,37 @@ describe("FiMetrics", () => {
       expect(
         screen.getByText("Funded — liquid covers the gap to your pension"),
       ).toBeInTheDocument()
+    })
+  })
+
+  describe("Stacked FI progress (portfolio + guaranteed income)", () => {
+    it("renders the guaranteed-income segment and the combined 'incl. income' total", () => {
+      // NZD Live In: portfolio 82.45%, with Social Security 105.63%.
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            fiProgress: 82.45,
+            retirementAgeFiProgress: 105.63,
+          })}
+        />,
+      )
+      expect(screen.getByText("+ Social Security")).toBeInTheDocument()
+      expect(screen.getByText("incl. income")).toBeInTheDocument()
+      // Combined total shown with overflow (unclamped) — one decimal. Appears in
+      // both the headline label and the Retirement-Age gauge below.
+      expect(screen.getAllByText("105.6%").length).toBeGreaterThan(0)
+    })
+
+    it("omits the income segment when there is no guaranteed income", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({ fiProgress: 60 })}
+        />,
+      )
+      expect(screen.queryByText("+ Social Security")).not.toBeInTheDocument()
+      expect(screen.queryByText("incl. income")).not.toBeInTheDocument()
     })
   })
 })

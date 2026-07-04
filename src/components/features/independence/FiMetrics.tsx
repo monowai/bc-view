@@ -16,7 +16,6 @@ import {
   calculateGapToFi,
   calculateFiNumberFromMonthly,
   isFinanciallyIndependent,
-  clampFiProgress,
   calculateCoastFiNumber,
   calculateCoastFiProgress,
   isCoastFireAchieved,
@@ -35,6 +34,7 @@ import {
   RETIREMENT_PROGRESS_TOOLTIP,
   RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP,
 } from "@utils/independence/gaugeTooltips"
+import { deriveFiStack } from "@utils/independence/fiStack"
 import FiAgeExplorer from "./FiAgeExplorer"
 
 interface FiMetricsProps {
@@ -147,8 +147,15 @@ export default function FiMetrics({
   // Using || fallback to local calculation when backend returns 0
   const localFiProgress = calculateFiProgress(liquidAssets, fiNumber)
   const fiProgress = backendFiProgress || localFiProgress
-  const fiProgressClamped = clampFiProgress(fiProgress)
   const isFi = isFinanciallyIndependent(fiProgress)
+
+  // Stacked FI progress: the portfolio's own progress plus the extra bought by
+  // guaranteed income (SS / CPF LIFE) as its present value. Same denominator, so
+  // the segments are additive. Overflow above 100% is shown honestly.
+  const fiStack = deriveFiStack({
+    fiProgress,
+    retirementAgeFiProgress: backendRetirementAgeFiProgress,
+  })
 
   // Always calculate Gap locally to ensure What-If changes are reflected
   const gapToFi = calculateGapToFi(fiNumber, liquidAssets)
@@ -304,12 +311,52 @@ export default function FiMetrics({
                   className={`font-semibold ${getProgressTextColor(fiProgress)}`}
                 />
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
                 <div
                   className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
-                  style={{ width: hideValues ? "0%" : `${fiProgressClamped}%` }}
+                  style={{ width: hideValues ? "0%" : `${fiStack.liquidPct}%` }}
                 />
+                {fiStack.hasIncome && (
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-500"
+                    style={{
+                      width: hideValues ? "0%" : `${fiStack.incomePct}%`,
+                    }}
+                    title="Guaranteed income (Social Security / CPF LIFE), credited as the present value of the future stream"
+                  />
+                )}
               </div>
+              {fiStack.hasIncome && (
+                <div className="mt-1 flex items-center justify-between gap-3 flex-wrap text-xs">
+                  <span className="flex items-center gap-3 text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <span
+                        className={`inline-block w-2 h-2 rounded-sm ${getProgressBgColor(fiProgress)}`}
+                      />
+                      Portfolio
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />
+                      + Social Security
+                    </span>
+                  </span>
+                  <InfoTooltip text="Financial Independence including the present value of your guaranteed income (Social Security / CPF LIFE). Above 100% is surplus.">
+                    <span
+                      className={`font-semibold ${fiStack.achieved ? "text-green-600" : "text-gray-700"}`}
+                    >
+                      {fiStack.achieved ? "✓ " : ""}
+                      <PrivatePercentage
+                        value={fiStack.totalProgress}
+                        hideValues={hideValues}
+                        className="inline"
+                      />
+                      <span className="ml-1 font-normal text-gray-500">
+                        incl. income
+                      </span>
+                    </span>
+                  </InfoTooltip>
+                </div>
+              )}
               {/* Gap/Surplus to FI */}
               <div
                 className={`flex justify-between items-center mt-3 p-2 rounded-lg ${gapColors.bg}`}
