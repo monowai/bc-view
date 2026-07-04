@@ -1271,10 +1271,17 @@ export interface CompositeProjectionResult {
   warnings: string[]
   /** Pre-retirement accumulation rows (currentAge → firstPhaseAge-1). Empty when already retired. */
   accumulationProjections?: CompositeYearlyProjection[]
-  /** Phase-weighted FI number (25× duration-weighted annual net spend), display currency. */
+  /** Phase-weighted FI number (25× duration-weighted annual net spend), display currency. Portfolio-only (SS excluded). */
   fiNumber?: number
   /** Progress toward fiNumber as %; unclamped (can exceed 100). */
   fiProgress?: number
+  /**
+   * Combined FI including guaranteed income: (liquid + pvGuaranteedIncomeToday) / fiNumber × 100,
+   * unclamped. Lets the FI bar stack portfolio + Social Security. Null when no phase carries SS.
+   */
+  retirementAgeFiProgress?: number
+  /** Present value today of the Social Security stream (first non-zero-SS phase). Null when no SS. */
+  pvGuaranteedIncomeToday?: number
 }
 
 export interface CompositeScenarioResult {
