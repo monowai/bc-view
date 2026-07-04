@@ -320,4 +320,91 @@ describe("useChat", () => {
       }),
     )
   })
+
+  it("sends no history on the first message", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "ok" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.history).toBeUndefined()
+  })
+
+  it("threads prior turns as history on a follow-up message", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "which portfolio?" }]),
+    )
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "got it" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("what's my NZD exposure?")
+    })
+    await act(async () => {
+      await result.current.sendMessage("Kiwi")
+    })
+
+    const secondBody = JSON.parse(mockFetch.mock.calls[1][1].body as string)
+    expect(secondBody.history).toEqual([
+      { role: "user", content: "what's my NZD exposure?" },
+      { role: "assistant", content: "which portfolio?" },
+    ])
+  })
+
+  it("excludes an errored assistant turn from history — the model never actually said that text", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: null })
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "ok" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("first question")
+    })
+    await act(async () => {
+      await result.current.sendMessage("second question")
+    })
+
+    const secondBody = JSON.parse(mockFetch.mock.calls[1][1].body as string)
+    // The user's real question survives; the fabricated error text the
+    // assistant never actually said does not.
+    expect(secondBody.history).toEqual([
+      { role: "user", content: "first question" },
+    ])
+  })
+
+  it("caps history to the trailing 6 turns", async () => {
+    const { result } = renderHook(() => useChat())
+
+    for (let i = 0; i < 4; i++) {
+      mockFetch.mockResolvedValueOnce(
+        sseResponse([{ event: "token", data: `answer ${i}` }]),
+      )
+      await act(async () => {
+        await result.current.sendMessage(`question ${i}`)
+      })
+    }
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "final answer" }]),
+    )
+    await act(async () => {
+      await result.current.sendMessage("final question")
+    })
+
+    const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1]
+    const body = JSON.parse(lastCall[1].body as string)
+    expect(body.history).toHaveLength(6)
+    expect(body.history[0]).toEqual({ role: "user", content: "question 1" })
+    expect(body.history[5]).toEqual({
+      role: "assistant",
+      content: "answer 3",
+    })
+  })
 })

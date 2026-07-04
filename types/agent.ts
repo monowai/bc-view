@@ -1,8 +1,20 @@
+export interface ChatTurn {
+  role: "user" | "assistant"
+  content: string
+}
+
 export interface AgentQuery {
   query: string
   context?: Record<string, unknown>
   /** Caller-driven escalation to svc-agent's DEEP tier. Default false. */
   deepThink?: boolean
+  /**
+   * Prior conversation turns, oldest first, so the model can see its own
+   * previous question when the user replies to it. Caller-supplied and
+   * scoped to this request only — no server-side persistence. svc-agent
+   * truncates to the trailing 6 turns regardless of length.
+   */
+  history?: ChatTurn[]
 }
 
 export interface AgentResponse {
