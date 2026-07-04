@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from "react"
 import { Controller, Control } from "react-hook-form"
 import AsyncSelect from "react-select/async"
+import { GroupBase } from "react-select"
 import { AssetOption, AssetSearchResult } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { parseSearchInput } from "./parseSearchInput"
@@ -42,6 +43,27 @@ interface AssetSearchProps {
    * never feels empty.
    */
   fallbackOptions?: AssetOption[]
+}
+
+/**
+ * Group flat results under a market heading, preserving each market's
+ * first-appearance order (backend already sorts US-first for null-market
+ * fan-out searches).
+ */
+function groupByMarket(options: AssetOption[]): GroupBase<AssetOption>[] {
+  const groups: GroupBase<AssetOption>[] = []
+  const indexByMarket = new Map<string, number>()
+  for (const option of options) {
+    const label = option.market || "Other"
+    let index = indexByMarket.get(label)
+    if (index === undefined) {
+      index = groups.length
+      indexByMarket.set(label, index)
+      groups.push({ label, options: [] })
+    }
+    ;(groups[index].options as AssetOption[]).push(option)
+  }
+  return groups
 }
 
 function toOption(result: AssetSearchResult): AssetOption {
@@ -122,7 +144,10 @@ export default function AssetSearch({
   )
 
   const loadOptions = useCallback(
-    (inputValue: string, callback: (options: AssetOption[]) => void): void => {
+    (
+      inputValue: string,
+      callback: (options: AssetOption[] | GroupBase<AssetOption>[]) => void,
+    ): void => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
       }
@@ -149,7 +174,10 @@ export default function AssetSearch({
           if (filterResults) {
             options = filterResults(options)
           }
-          callback(options)
+          // Header search (no market prop) fans out across markets — group
+          // results under a market heading. A market-scoped search (Asset
+          // Lookup page) is already single-market, so keep it flat.
+          callback(isSpecificMarket ? options : groupByMarket(options))
         } catch {
           callback([])
         } finally {
@@ -217,6 +245,11 @@ export default function AssetSearch({
     placeholder: placeholder || "Search for asset...",
     noOptionsMessage,
     loadingMessage: () => "Searching...",
+    formatGroupLabel: (group: GroupBase<AssetOption>) => (
+      <div className="px-4 pb-1 pt-4 text-xs font-semibold tracking-wide text-gray-500">
+        {group.label}
+      </div>
+    ),
     // Drive the spinner from our own flag so it shows from the first keystroke
     // through the debounce window, not just while the fetch promise is alive.
     isLoading: isSearching,
