@@ -545,12 +545,22 @@ export interface FiMetrics {
   retirementAgeFiProgress?: number
   /** Present value today of the guaranteed income stream used by retirementAgeFiProgress. */
   pvGuaranteedIncomeToday?: number
-  /** Years of full pre-retirement expenses the current liquid pot covers. */
+  /**
+   * Years the liquid pot covers the self-funded window before guaranteed income
+   * begins — the deferred-benefits bridge (retirementAge -> bridgeToAge), with a
+   * pre-retirement runway fallback. Null when there is no gap.
+   */
   bridgeYears?: number
-  /** Years of bridge cover needed (= yearsToRetirement). */
+  /** Years of bridge cover needed (bridgeToAge - drawdown start age). */
   bridgeYearsNeeded?: number
   /** bridgeYears / bridgeYearsNeeded x 100, capped at 100. */
   bridgeProgress?: number
+  /**
+   * Age at which the bridged guaranteed income (Social Security / CPF LIFE)
+   * begins — the end of the self-funded bridge window. Used by the timeline to
+   * shade the bridge and mark where SS/CPF income kicks in.
+   */
+  bridgeToAge?: number
   /** Income coverage at retirement age = totalMonthlyIncome / monthlyExpenses x 100. */
   incomeCoverageAtRetirement?: number
 }

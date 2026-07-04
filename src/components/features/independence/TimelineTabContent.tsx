@@ -18,6 +18,7 @@ import { RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import { netHousingValue } from "@lib/independence/wealthJourneyChartData"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
+import { deriveBridgeWindow } from "@lib/independence/bridgeWindow"
 import {
   deriveJourneyRibbon,
   fromSinglePlan,
@@ -108,6 +109,18 @@ export default function TimelineTabContent({
   // end-of-year balances, so the transition lands on the start-of-year row
   // (age 54) and the marker would read "CPF LIFE (54)".
   const cpfLockAge = projection?.cpfLifeAge ?? null
+
+  // Age at which deferred guaranteed income (Social Security / CPF LIFE) starts
+  // paying — the end of the self-funded "bridge" window. When it lands after the
+  // independence age, the years between are covered from liquid alone; we shade
+  // that gap and mark where the income kicks in. Null when income already flows
+  // from independence (no gap to show).
+  const bridgeWindow = deriveBridgeWindow({
+    bridgeToAge: projection?.fiMetrics?.bridgeToAge,
+    retirementAge,
+  })
+  const showBridgeWindow = bridgeWindow.show
+  const bridgeToAge = bridgeWindow.toAge
 
   // Active scenario = backend captured a baseline overlay alongside the
   // adjusted projection. Used to gate the "compared to baseline" UI.
@@ -429,6 +442,40 @@ export default function TimelineTabContent({
                     value: `🔒 CPF LIFE (${cpfLockAge})`,
                     position: "insideTopLeft",
                     fill: "#64748b",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
+              )}
+            {/* Bridge window — the years from independence until deferred
+                  guaranteed income (Social Security / CPF LIFE) starts, funded
+                  from liquid alone. Amber shade for the self-funded gap, solid
+                  line + label where the income kicks in. Traditional view only
+                  (ages are the independence journey, hidden in FIRE view). */}
+            {timelineViewMode === "traditional" &&
+              showBridgeWindow &&
+              bridgeToAge != null && (
+                <ReferenceArea
+                  x1={retirementAge}
+                  x2={bridgeToAge}
+                  fill="#f59e0b"
+                  fillOpacity={0.12}
+                  stroke="#f59e0b"
+                  strokeOpacity={0.25}
+                />
+              )}
+            {timelineViewMode === "traditional" &&
+              showBridgeWindow &&
+              bridgeToAge != null && (
+                <ReferenceLine
+                  x={bridgeToAge}
+                  stroke="#f59e0b"
+                  strokeDasharray="4 4"
+                  strokeWidth={2}
+                  label={{
+                    value: `💰 Income starts (${bridgeToAge})`,
+                    position: "insideTopRight",
+                    fill: "#b45309",
                     fontSize: 11,
                     fontWeight: 500,
                   }}
