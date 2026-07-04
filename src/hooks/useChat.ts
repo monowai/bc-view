@@ -1,5 +1,8 @@
-import { useState, useCallback, useRef } from "react"
-import { ChatMessage } from "types/agent"
+import { useState, useCallback, useRef, useEffect } from "react"
+import { ChatMessage, ChatTurn } from "types/agent"
+
+/** Trailing turns sent as history — mirrors svc-agent's server-side cap. */
+const MAX_HISTORY_TURNS = 6
 
 /**
  * Human-readable rendering of svc-agent's opaque SSE error codes. Codes are
@@ -57,6 +60,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  // sendMessage is memoized on [context] only, so it can't read `messages`
+  // directly without going stale after the first render — mirror it into a
+  // ref instead so each call sees the latest transcript.
+  const messagesRef = useRef<ChatMessage[]>(messages)
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
@@ -68,6 +78,17 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
       deepThink: boolean = false,
       think: boolean = false,
     ) => {
+      // Snapshot the transcript so far as history — before appending this
+      // turn's placeholders — so the model sees its own prior question when
+      // the user replies to it instead of retyping the whole context. Error
+      // turns (failed / cancelled requests) are excluded: the model never
+      // actually said that text, so replaying it back as an assistant turn
+      // would be misleading context, not a real prior answer.
+      const history: ChatTurn[] = messagesRef.current
+        .filter((m) => m.content.length > 0 && !m.error)
+        .slice(-MAX_HISTORY_TURNS)
+        .map((m) => ({ role: m.role, content: m.content }))
+
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
@@ -110,7 +131,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
             "Content-Type": "application/json",
             Accept: "text/event-stream",
           },
-          body: JSON.stringify({ query, context, deepThink, think }),
+          body: JSON.stringify({
+            query,
+            context,
+            deepThink,
+            think,
+            history: history.length > 0 ? history : undefined,
+          }),
           signal: controller.signal,
         })
         if (!res.ok || !res.body) {
