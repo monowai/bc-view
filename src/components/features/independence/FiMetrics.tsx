@@ -764,7 +764,7 @@ function BridgeStrategySection({
     <div className="pt-4 border-t border-gray-100 space-y-3">
       <StrategyHeader
         title="Self-funded Years"
-        tooltip="For savers whose pension covers retirement but who want to stop working before pensions start. Measures how many years of expenses your liquid pot can self-fund until the pension kicks in."
+        tooltip="When your guaranteed income (Social Security / CPF LIFE) starts after you stop working, your liquid pot must bridge the gap. Measures how many years of expenses it can self-fund until that income kicks in."
         iconClass="fas fa-bridge text-blue-500"
         active={active}
       />
@@ -772,7 +772,7 @@ function BridgeStrategySection({
       {hasData ? (
         <PensionGauge
           label="Self-funded years"
-          tooltip={`Years of full expenses your liquid pot covers, capped at the ${bridgeYearsNeeded}-year gap to your pension payout age. 100% means you could stop working today and self-fund every year until your pension starts.`}
+          tooltip={`Years of expenses your liquid pot covers, capped at the ${bridgeYearsNeeded}-year gap until your guaranteed income (Social Security / CPF LIFE) starts. 100% means you can self-fund every year until it kicks in.`}
           value={bridgeProgress}
           hideValues={hideValues}
           format={() =>
@@ -781,8 +781,9 @@ function BridgeStrategySection({
         />
       ) : (
         <p className="text-sm text-gray-500 italic">
-          No pension payout configured, or no working-years gap. Configure
-          pension income on the plan to enable this view.
+          No gap to bridge — your guaranteed income starts when you stop
+          working, or none is configured. Add Social Security / CPF LIFE income
+          with a later start age to enable this view.
         </p>
       )}
     </div>
