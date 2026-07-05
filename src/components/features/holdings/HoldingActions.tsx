@@ -49,14 +49,13 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className={`w-auto ${colorClass} text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 sm:gap-1.5 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`w-auto ${colorClass} text-white px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         aria-label={label}
         title={label}
       >
-        <i className={`fas ${icon} text-[10px]`}></i>
-        <span className="hidden sm:inline">{label}</span>
+        <i className={`fas ${icon} text-xs`}></i>
         <i
           className={`fas fa-chevron-down text-[8px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         ></i>
@@ -104,7 +103,7 @@ interface HoldingActionsProps {
 }
 
 /** View mode icon component */
-const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
+export const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
   mode,
   className = "w-3.5 h-3.5",
 }) => {
@@ -211,7 +210,7 @@ const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
 }
 
 /** GroupBy icon component */
-const GroupByIcon: React.FC<{ groupBy: string; className?: string }> = ({
+export const GroupByIcon: React.FC<{ groupBy: string; className?: string }> = ({
   groupBy,
   className = "w-3.5 h-3.5",
 }) => {
@@ -410,21 +409,18 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
   return (
     <>
-      {/* Refined toolbar - cohesive bar with subtle depth */}
-      <div className="flex items-center justify-between py-2 mb-2 gap-3 flex-wrap">
+      {/* Single-row icon ribbon - no wrap, minimal vertical footprint */}
+      <div className="flex items-center justify-between py-1 mb-1 gap-1.5 overflow-x-auto">
         {/* Left side: View mode and GroupBy controls */}
         {onViewModeChange && !emptyHoldings && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* View Mode section */}
             <div className="flex items-center gap-0.5 bg-slate-100/80 backdrop-blur-sm rounded-lg p-0.5 border border-slate-200/60 shadow-sm">
-              <span className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                View
-              </span>
               {viewModes.map((mode) => (
                 <button
                   key={mode.value}
                   onClick={() => onViewModeChange(mode.value)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
+                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200 ${
                     viewMode === mode.value
                       ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
                       : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
@@ -436,22 +432,18 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
                     mode={mode.value}
                     className={`w-3.5 h-3.5 ${viewMode === mode.value ? "text-blue-500" : ""}`}
                   />
-                  <span className="hidden lg:inline">{mode.label}</span>
                 </button>
               ))}
             </div>
 
-            {/* GroupBy section - more compact on mobile */}
+            {/* GroupBy section */}
             {!hideGroupBy && (
               <div className="flex items-center gap-0.5 bg-amber-50/80 backdrop-blur-sm rounded-lg p-0.5 border border-amber-200/60 shadow-sm">
-                <span className="hidden sm:inline px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
-                  Group
-                </span>
                 {groupOptions.values.map((option) => (
                   <button
                     key={option.value}
                     onClick={() => holdingState.setGroupBy(option)}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
+                    className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200 ${
                       holdingState.groupBy.value === option.value
                         ? "bg-white text-slate-900 shadow-sm ring-1 ring-amber-200/50"
                         : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
@@ -461,9 +453,8 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
                   >
                     <GroupByIcon
                       groupBy={option.value}
-                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-500" : ""}`}
+                      className={`w-3.5 h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-500" : ""}`}
                     />
-                    <span className="hidden xl:inline">{option.label}</span>
                   </button>
                 ))}
               </div>
@@ -471,54 +462,44 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         )}
 
-        {/* AI Summary stays visible on mobile portrait — Share / Copy / Trade
-            do not, since they need wider tap targets and clutter the small
-            viewport. */}
-        {!permsLoading && canRunAi && !emptyHoldings && (
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
-            onClick={() =>
-              showReview({
-                kind: "portfolio",
-                id: holdingResults.portfolio.id,
-                code: holdingResults.portfolio.code,
-                name: holdingResults.portfolio.name,
-              })
-            }
-            aria-label="AI summary of this portfolio"
-            title="AI summary: headwinds, tailwinds, key news on winners and losers"
-          >
-            <i className="fas fa-robot text-[10px] text-blue-500"></i>
-            <span className="hidden sm:inline">AI Summary</span>
-            <span className="sm:hidden">AI</span>
-          </button>
-        )}
-
-        {/* Right side: secondary action buttons. Labels collapse to icons on
-            mobile portrait so the row stays inside the viewport. */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 flex-wrap justify-end">
+        {/* Right side: icon-only action buttons */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!permsLoading && canRunAi && !emptyHoldings && (
+            <button
+              type="button"
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              onClick={() =>
+                showReview({
+                  kind: "portfolio",
+                  id: holdingResults.portfolio.id,
+                  code: holdingResults.portfolio.code,
+                  name: holdingResults.portfolio.name,
+                })
+              }
+              aria-label="AI summary of this portfolio"
+              title="AI summary: headwinds, tailwinds, key news on winners and losers"
+            >
+              <i className="fas fa-robot text-xs text-blue-500"></i>
+            </button>
+          )}
           {onShare && (
             <button
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
               onClick={onShare}
               aria-label="Share"
               title="Share"
             >
-              <i className="fas fa-share-alt text-[10px] text-blue-500"></i>
-              <span className="hidden sm:inline">Share</span>
+              <i className="fas fa-share-alt text-xs text-blue-500"></i>
             </button>
           )}
           {!emptyHoldings && (
             <button
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
               onClick={handleCopyClick}
               aria-label="Copy Holdings"
               title="Copy Holdings"
             >
-              <i className="fas fa-copy text-[10px] text-blue-500"></i>
-              <span className="hidden sm:inline">Copy Holdings</span>
-              <span className="sm:hidden">Copy</span>
+              <i className="fas fa-copy text-xs text-blue-500"></i>
             </button>
           )}
           {/* Trade Dropdown */}

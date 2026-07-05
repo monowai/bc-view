@@ -695,59 +695,52 @@ const CardView: React.FC<CardViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Portfolio Summary Card - always at top */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 text-white">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <div className="text-sm opacity-90">
-              Total Value ({currencyCode})
-            </div>
-            <div className="text-3xl font-bold">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl px-4 py-2.5 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <div className="text-xl font-bold whitespace-nowrap">
               {currencySymbol}
               <FormatValue value={totals.marketValue} />
             </div>
+            <div className="text-xs opacity-75 whitespace-nowrap">
+              {currencyCode} · {totalPositionCount} holding
+              {totalPositionCount !== 1 ? "s" : ""}
+            </div>
           </div>
-          <div
-            className={`text-right px-3 py-1 rounded-full text-sm font-medium ${
-              isDayPositive
-                ? "bg-green-500/20 text-green-100"
-                : "bg-red-500/20 text-red-100"
-            }`}
-          >
-            {isDayPositive ? "+" : ""}
-            {currencySymbol}
-            <FormatValue value={totals.gainOnDay} /> today
-          </div>
-        </div>
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <span
-              className={`text-lg font-semibold ${
+              className={`text-sm font-semibold whitespace-nowrap ${
                 isPositive ? "text-green-200" : "text-red-200"
               }`}
+              title="Total profit"
             >
               {isPositive && totals.totalGain > 0 ? "+" : ""}
               {currencySymbol}
               <FormatValue value={totals.totalGain} />
             </span>
-            <span className="text-sm opacity-75">total profit</span>
-          </div>
-          <div className="text-right">
             <span
-              className={`text-lg font-semibold ${
+              className={`text-sm font-semibold whitespace-nowrap ${
                 isIrrPositive ? "text-green-200" : "text-red-200"
               }`}
+              title="Growth"
             >
               {isIrrPositive ? "+" : ""}
               {(overallIrr * 100).toFixed(1)}%
             </span>
-            <span className="text-sm opacity-75 ml-1">growth</span>
+            <span
+              className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
+                isDayPositive
+                  ? "bg-green-500/20 text-green-100"
+                  : "bg-red-500/20 text-red-100"
+              }`}
+              title="Today's change"
+            >
+              {isDayPositive ? "+" : ""}
+              {currencySymbol}
+              <FormatValue value={totals.gainOnDay} />
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Position count */}
-      <div className="text-sm text-gray-500 px-1">
-        {totalPositionCount} holding{totalPositionCount !== 1 ? "s" : ""}
       </div>
 
       {/* Grouped Position Cards */}

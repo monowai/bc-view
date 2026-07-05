@@ -110,8 +110,8 @@ export function SummaryHeaderMobile({
   return (
     <>
       {/* Mobile header - Refined styling */}
-      <div className="md:hidden mx-2 mt-2">
-        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-3 py-2.5">
+      <div className="md:hidden mx-2 mt-1">
+        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-3 py-2.5 [@media(max-height:500px)_and_(orientation:landscape)]:py-1">
           <div className="flex items-center justify-between gap-2">
             {/* Portfolio name */}
             <h3 className="font-semibold text-sm text-slate-800 truncate flex-shrink min-w-0">
@@ -160,8 +160,8 @@ export function SummaryHeaderMobile({
       </div>
 
       {/* Tablet header */}
-      <div className="hidden md:block xl:hidden mx-2 mt-2">
-        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-4 py-3">
+      <div className="hidden md:block xl:hidden mx-2 mt-1">
+        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-4 py-3 [@media(max-height:500px)_and_(orientation:landscape)]:py-1">
           <div className="flex items-center justify-between gap-4">
             <h3 className="font-semibold text-base text-slate-800">
               {displayName}
@@ -452,7 +452,7 @@ export function SummaryRowMobile({
         : "text-slate-700"
 
   return (
-    <div className="xl:hidden mx-2 my-3 relative">
+    <div className="xl:hidden [@media(max-height:500px)_and_(orientation:landscape)]:hidden mx-2 my-3 relative">
       {/* Refined summary card with subtle gradient and shadow */}
       <div className="bg-gradient-to-br from-slate-50 via-white to-wealth-50/30 rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         {/* Top accent line */}

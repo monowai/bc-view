@@ -654,7 +654,7 @@ function HoldingsPage(): React.ReactElement {
   }
 
   return (
-    <div className="w-full py-4">
+    <div className="w-full py-2">
       <HoldingMenu portfolio={holdingResults.portfolio} />
 
       <HoldingActions
@@ -693,7 +693,7 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] [@media(max-height:500px)_and_(orientation:landscape)]:max-h-[calc(100vh-140px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
             <table className="min-w-full bg-white">
               <ColumnHeader
                 ref={columnHeaderRef}
