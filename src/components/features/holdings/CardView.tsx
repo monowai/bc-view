@@ -789,22 +789,24 @@ const CardView: React.FC<CardViewProps> = ({
                 ({group.positions.length})
               </span>
               <span className="ml-auto flex items-center gap-3 shrink-0">
-                {groupWeight !== undefined && (
-                  <span className="text-xs font-medium text-gray-500 tabular-nums">
-                    <FormatValue
-                      value={groupWeight}
-                      multiplier={100}
-                      isPublic
-                    />
-                    %
-                  </span>
-                )}
-                <span className="text-sm font-medium text-gray-900">
+                <span className="w-14 text-right text-xs font-medium text-gray-500 tabular-nums">
+                  {groupWeight !== undefined && (
+                    <>
+                      <FormatValue
+                        value={groupWeight}
+                        multiplier={100}
+                        isPublic
+                      />
+                      %
+                    </>
+                  )}
+                </span>
+                <span className="w-24 text-right text-sm font-medium text-gray-900 tabular-nums">
                   {currencySymbol}
                   <FormatValue value={groupMarketValue} />
                 </span>
                 <span
-                  className={`text-xs font-medium ${
+                  className={`w-24 text-right text-xs font-medium tabular-nums ${
                     isGroupDayPositive ? "text-green-600" : "text-red-600"
                   }`}
                 >
