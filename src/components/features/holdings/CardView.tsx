@@ -696,18 +696,23 @@ const CardView: React.FC<CardViewProps> = ({
     <div className="space-y-4">
       {/* Portfolio Summary Card - always at top */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl px-4 py-2.5 text-white">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap gap-y-1">
           <div className="flex items-baseline gap-2 min-w-0">
             <div className="text-xl font-bold whitespace-nowrap">
               {currencySymbol}
-              <FormatValue value={totals.marketValue} />
+              <span className="sm:hidden">
+                <FormatValue value={totals.marketValue} scale={0} />
+              </span>
+              <span className="hidden sm:inline">
+                <FormatValue value={totals.marketValue} />
+              </span>
             </div>
             <div className="text-xs opacity-75 whitespace-nowrap">
               {currencyCode} · {totalPositionCount} holding
               {totalPositionCount !== 1 ? "s" : ""}
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
             <span
               className={`text-sm font-semibold whitespace-nowrap ${
                 isPositive ? "text-green-200" : "text-red-200"
@@ -753,6 +758,7 @@ const CardView: React.FC<CardViewProps> = ({
         const groupGainOnDay = groupSubTotals
           ? convert(groupSubTotals[valueIn]?.gainOnDay || 0)
           : 0
+        const groupWeight = groupSubTotals?.[valueIn]?.weight
         const isGroupDayPositive = groupGainOnDay >= 0
         return (
           <div key={group.groupKey} className="space-y-3">
@@ -762,7 +768,7 @@ const CardView: React.FC<CardViewProps> = ({
               className="flex items-center gap-2 px-2 w-full text-left hover:bg-gray-50 rounded-lg py-2 -my-1 transition-colors"
             >
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform ${
+                className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${
                   isCollapsed ? "" : "rotate-90"
                 }`}
                 fill="none"
@@ -776,13 +782,23 @@ const CardView: React.FC<CardViewProps> = ({
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-gray-700 truncate min-w-0">
                 {group.groupKey}
               </h3>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 shrink-0">
                 ({group.positions.length})
               </span>
-              <span className="ml-auto flex items-center gap-3">
+              <span className="ml-auto flex items-center gap-3 shrink-0">
+                {groupWeight !== undefined && (
+                  <span className="text-xs font-medium text-gray-500 tabular-nums">
+                    <FormatValue
+                      value={groupWeight}
+                      multiplier={100}
+                      isPublic
+                    />
+                    %
+                  </span>
+                )}
                 <span className="text-sm font-medium text-gray-900">
                   {currencySymbol}
                   <FormatValue value={groupMarketValue} />
