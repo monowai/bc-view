@@ -9,6 +9,7 @@ import SubAccountBalanceInputs, {
 import { getAssetCurrency, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { updateTrn } from "@utils/trns/apiHelper"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface SubAccountTrnEditModalProps {
   trn: Transaction
@@ -38,8 +39,14 @@ export default function SubAccountTrnEditModal({
   // Canonical sub-account rows (code + displayName + order) come from the asset
   // config; fall back to the codes carried on the transaction itself.
   const [configRows, setConfigRows] = useState<SubAccountRow[] | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+  } = useDialogSubmit({
+    onSuccess: onClose,
+    fallbackError: "Failed to update",
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -75,9 +82,7 @@ export default function SubAccountTrnEditModal({
   )
 
   const handleSave = async (): Promise<void> => {
-    setIsSubmitting(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       const subAccounts = Object.fromEntries(
         Object.entries(values).filter(([, v]) => v > 0),
       )
@@ -101,19 +106,15 @@ export default function SubAccountTrnEditModal({
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        setError(body.message || body.detail || "Failed to update transaction")
-        return
+        throw new Error(
+          body.message || body.detail || "Failed to update transaction",
+        )
       }
       setTimeout(() => {
         mutate(holdingKey(trn.portfolio.code, "today"))
         mutate("/api/holdings/aggregated?asAt=today")
       }, 1500)
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (

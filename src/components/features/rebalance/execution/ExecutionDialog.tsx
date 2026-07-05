@@ -7,6 +7,7 @@ import {
   TransactionStatus,
   ExecutionResultDto,
 } from "types/rebalance"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface ExecutionDialogProps {
   modalOpen: boolean
@@ -23,8 +24,12 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
 }) => {
   const [transactionStatus, setTransactionStatus] =
     useState<TransactionStatus>("UNSETTLED")
-  const [isExecuting, setIsExecuting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting: isExecuting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({ fallbackError: "Execution failed" })
   const [results, setResults] = useState<ExecutionResultDto | null>(null)
 
   // Get eligible items (not locked, not excluded)
@@ -33,33 +38,23 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
   )
 
   const handleExecute = async (): Promise<void> => {
-    setIsExecuting(true)
-    setError(null)
-
-    try {
+    await handleSubmit(async () => {
       const response = await fetch(`/api/rebalance/plans/${plan.id}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transactionStatus,
-        }),
+        body: JSON.stringify({ transactionStatus }),
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(
+        throw new Error(
           errorData.detail || errorData.message || "Failed to execute plan",
         )
-        return
       }
 
       const result = await response.json()
       setResults(result.data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Execution failed")
-    } finally {
-      setIsExecuting(false)
-    }
+    })
   }
 
   const handleClose = (): void => {

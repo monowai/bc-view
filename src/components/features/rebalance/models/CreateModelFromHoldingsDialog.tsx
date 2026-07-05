@@ -5,6 +5,7 @@ import WeightsSummary from "../common/WeightsSummary"
 import ClientSelector from "@components/features/shares/ClientSelector"
 import { AssetWeightWithDetails, ModelDto } from "types/rebalance"
 import { Holdings, Position } from "types/beancounter"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface CreateModelFromHoldingsDialogProps {
   modalOpen: boolean
@@ -62,8 +63,13 @@ const CreateModelFromHoldingsDialog: React.FC<
   const [weights, setWeights] =
     useState<AssetWeightWithDetails[]>(initialWeights)
   const [clientId, setClientId] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+  } = useDialogSubmit({
+    fallbackError: "Failed to create model",
+  })
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
   const isValid = name.trim() !== "" && Math.abs(totalWeight - 100) < 0.01
@@ -78,13 +84,9 @@ const CreateModelFromHoldingsDialog: React.FC<
     setWeights(normalized)
   }
 
-  const handleSubmit = async (): Promise<void> => {
+  const handleCreate = async (): Promise<void> => {
     if (!isValid) return
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
+    await handleSubmit(async () => {
       // Step 1: Create the Model (metadata only)
       const modelPayload = {
         name: name.trim(),
@@ -102,8 +104,7 @@ const CreateModelFromHoldingsDialog: React.FC<
 
       if (!modelResponse.ok) {
         const errorData = await modelResponse.json().catch(() => ({}))
-        setError(errorData.message || "Failed to create model")
-        return
+        throw new Error(errorData.message || "Failed to create model")
       }
 
       const modelResult = await modelResponse.json()
@@ -140,11 +141,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         router.push(`/rebalance/models/${model.id}`)
       }
       onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create model")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   if (!modalOpen) return null
@@ -159,7 +156,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         <>
           <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
-            onClick={handleSubmit}
+            onClick={handleCreate}
             label={"Create Model"}
             loadingLabel={"Creating..."}
             isSubmitting={isSubmitting}

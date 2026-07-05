@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface ImportDialogProps {
   onClose: () => void
@@ -9,8 +10,12 @@ interface ImportDialogProps {
 
 const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [isImporting, setIsImporting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting: isImporting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({ fallbackError: "Import failed" })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [importResult, setImportResult] = useState<{ count: number } | null>(
     null,
@@ -30,11 +35,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
       setError("Please select a file")
       return
     }
-
-    setIsImporting(true)
-    setError(null)
-
-    try {
+    await handleSubmit(async () => {
       const csvContent = await selectedFile.text()
       const response = await fetch("/api/assets/import", {
         method: "POST",
@@ -44,18 +45,13 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(errorData.error || "Import failed")
-        return
+        throw new Error(errorData.error || "Import failed")
       }
 
       const result = await response.json()
       const count = result.data ? Object.keys(result.data).length : 0
       setImportResult({ count })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed")
-    } finally {
-      setIsImporting(false)
-    }
+    })
   }
 
   const handleDone = async (): Promise<void> => {
@@ -129,7 +125,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
             )}
           </div>
 
-          {error && <Alert>{error}</Alert>}
+          <Dialog.ErrorAlert message={error} />
         </>
       ) : (
         <Alert variant="success" className="p-4 text-center">
