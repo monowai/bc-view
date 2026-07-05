@@ -442,10 +442,9 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleConfirmCopy = async (fields: CopyFields): Promise<void> => {
+    await navigator.clipboard.writeText(buildCSV(fields))
     setCopyFields(fields)
     setLocalValue(COPY_FIELDS_STORAGE_KEY, fields)
-    setShowCopyFieldsDialog(false)
-    await navigator.clipboard.writeText(buildCSV(fields))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -956,7 +955,7 @@ function PlanDetailPage(): React.ReactElement {
       {showCopyFieldsDialog && (
         <CopyFieldsDialog
           initialFields={copyFields}
-          onConfirm={handleConfirmCopy}
+          onCopy={handleConfirmCopy}
           onCancel={() => setShowCopyFieldsDialog(false)}
         />
       )}

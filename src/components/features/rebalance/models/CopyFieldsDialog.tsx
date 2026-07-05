@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 export interface CopyFields {
   weight: boolean
@@ -17,7 +18,7 @@ export const DEFAULT_COPY_FIELDS: CopyFields = {
 
 interface CopyFieldsDialogProps {
   initialFields: CopyFields
-  onConfirm: (fields: CopyFields) => void
+  onCopy: (fields: CopyFields) => Promise<void>
   onCancel: () => void
 }
 
@@ -30,13 +31,23 @@ const FIELD_LABELS: { key: keyof CopyFields; label: string }[] = [
 
 const CopyFieldsDialog: React.FC<CopyFieldsDialogProps> = ({
   initialFields,
-  onConfirm,
+  onCopy,
   onCancel,
 }) => {
   const [fields, setFields] = useState<CopyFields>(initialFields)
+  const { isSubmitting, submitError, handleSubmit } = useDialogSubmit({
+    fallbackError: "Could not copy to clipboard. Please try again.",
+  })
 
   const toggle = (key: keyof CopyFields): void => {
     setFields((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const handleCopyClick = async (): Promise<void> => {
+    await handleSubmit(async () => {
+      await onCopy(fields)
+      onCancel()
+    })
   }
 
   return (
@@ -48,13 +59,16 @@ const CopyFieldsDialog: React.FC<CopyFieldsDialogProps> = ({
         <>
           <Dialog.CancelButton onClick={onCancel} />
           <Dialog.SubmitButton
-            onClick={() => onConfirm(fields)}
+            onClick={handleCopyClick}
             label="Copy"
+            loadingLabel="Copying..."
+            isSubmitting={isSubmitting}
             variant="blue"
           />
         </>
       }
     >
+      <Dialog.ErrorAlert message={submitError} />
       <p className="text-sm text-gray-600">
         {"Asset is always included. Choose which other fields to copy:"}
       </p>
