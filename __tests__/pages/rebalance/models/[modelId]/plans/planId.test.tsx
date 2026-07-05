@@ -1,5 +1,6 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 
 // Controllable router mock — mimics Next.js Pages Router behaviour where, on
 // client-side navigation, router.query is empty until router.isReady flips true.
@@ -123,5 +124,100 @@ describe("/rebalance/models/[modelId]/plans/[planId] — Target Allocations", ()
     expect(await screen.findByText("Target Allocations")).toBeInTheDocument()
     expect(screen.getByText("Vanguard S&P 500 ETF")).toBeInTheDocument()
     expect(screen.getByText("Invesco QQQ Trust")).toBeInTheDocument()
+  })
+
+  test("renders allocations on mount when SWR already has warm cache (revisit nav)", async () => {
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+
+    // Router is ready and SWR resolves data on the very first render — mirrors
+    // a client-side revisit where the plan key is already cached, so `plan`
+    // is non-undefined from the first render pass.
+    routerState.isReady = true
+    routerState.query = { modelId: "model-1", planId: "plan-1" }
+    render(<PlanDetailPage />)
+
+    expect(await screen.findByText("Target Allocations")).toBeInTheDocument()
+    expect(screen.getByText("Vanguard S&P 500 ETF")).toBeInTheDocument()
+    expect(screen.getByText("Invesco QQQ Trust")).toBeInTheDocument()
+    expect(screen.queryByText(/No assets added yet/i)).not.toBeInTheDocument()
+  })
+})
+
+describe("/rebalance/models/[modelId]/plans/[planId] — Copy allocations", () => {
+  beforeEach(() => {
+    mockUseSwr.mockReset()
+    mockUseSwr.mockImplementation((key: unknown) => swrByKey(key))
+    routerState.isReady = true
+    routerState.query = { modelId: "model-1", planId: "plan-1" }
+    window.localStorage.clear()
+  })
+
+  const openCopyDialog = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<void> => {
+    await user.click(
+      screen.getByRole("button", { name: "Copy target allocations" }),
+    )
+  }
+  const submitCopyDialog = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<void> => {
+    await user.click(screen.getByRole("button", { name: "Copy" }))
+  }
+
+  // userEvent.setup() installs its own navigator.clipboard stub, clobbering
+  // any mock assigned beforehand — spy on the stub's writeText afterwards.
+  const setupWithClipboardSpy = (): {
+    user: ReturnType<typeof userEvent.setup>
+    writeText: jest.SpyInstance
+  } => {
+    const user = userEvent.setup()
+    const writeText = jest
+      .spyOn(navigator.clipboard, "writeText")
+      .mockResolvedValue(undefined)
+    return { user, writeText }
+  }
+
+  test("prompts for fields, defaults narrative off, and remembers the choice", async () => {
+    const { user, writeText } = setupWithClipboardSpy()
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+
+    render(<PlanDetailPage />)
+    await screen.findByText("Target Allocations")
+
+    await openCopyDialog(user)
+
+    expect(screen.getByLabelText("Weight %")).toBeChecked()
+    expect(screen.getByLabelText("Price")).toBeChecked()
+    expect(screen.getByLabelText("Currency")).toBeChecked()
+    expect(screen.getByLabelText("Narrative")).not.toBeChecked()
+
+    // Opt in to Narrative for this copy
+    await user.click(screen.getByLabelText("Narrative"))
+    await submitCopyDialog(user)
+
+    expect(writeText).toHaveBeenCalledTimes(1)
+    expect(writeText.mock.calls[0][0]).toContain("Description")
+
+    // Re-opening remembers the Narrative opt-in from the previous copy
+    await openCopyDialog(user)
+    expect(screen.getByLabelText("Narrative")).toBeChecked()
+  })
+
+  test("cancelling the dialog does not copy anything", async () => {
+    const { user, writeText } = setupWithClipboardSpy()
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+
+    render(<PlanDetailPage />)
+    await screen.findByText("Target Allocations")
+
+    await openCopyDialog(user)
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+    expect(writeText).not.toHaveBeenCalled()
+    expect(screen.queryByLabelText("Narrative")).not.toBeInTheDocument()
   })
 })

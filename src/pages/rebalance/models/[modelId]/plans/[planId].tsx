@@ -10,6 +10,10 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ModelWeightsEditor from "@components/features/rebalance/models/ModelWeightsEditor"
 import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHoldingsDialog"
 import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
+import CopyFieldsDialog, {
+  CopyFields,
+  DEFAULT_COPY_FIELDS,
+} from "@components/features/rebalance/models/CopyFieldsDialog"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"
@@ -17,6 +21,9 @@ import { escapeCSV, downloadCsv } from "@lib/csvExport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@lib/formatters"
+import { getLocalValue, setLocalValue } from "@lib/storage/localState"
+
+const COPY_FIELDS_STORAGE_KEY = "rebalance-plan-copy-fields"
 
 function PlanDetailPage(): React.ReactElement {
   const router = useRouter()
@@ -35,6 +42,10 @@ function PlanDetailPage(): React.ReactElement {
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showCopyFieldsDialog, setShowCopyFieldsDialog] = useState(false)
+  const [copyFields, setCopyFields] = useState<CopyFields>(() =>
+    getLocalValue(COPY_FIELDS_STORAGE_KEY, DEFAULT_COPY_FIELDS),
+  )
   const [actionError, setActionError] = useState<string | null>(null)
   const [fetchingPrices, setFetchingPrices] = useState(false)
   const [creatingVersion, setCreatingVersion] = useState(false)
@@ -78,7 +89,10 @@ function PlanDetailPage(): React.ReactElement {
   // moment any background revalidation fires — the asset vanishes before Save.
   // Only re-seed from the server when there are no pending local edits (initial
   // load and after a successful save, which resets hasChanges).
-  const [prevPlan, setPrevPlan] = useState(plan)
+  // Init to undefined (not `plan`) so the seed still fires when SWR already
+  // has warm cache on mount (revisit nav) — else plan === prevPlan on the
+  // very first render and weights never get seeded from cached data.
+  const [prevPlan, setPrevPlan] = useState<typeof plan | undefined>(undefined)
   if (plan !== prevPlan) {
     setPrevPlan(plan)
     if (plan?.assets && !hasChanges) {
@@ -388,14 +402,27 @@ function PlanDetailPage(): React.ReactElement {
     return `${(weight * 100).toFixed(2)}%`
   }
 
-  const buildCSV = (): string => {
-    const headers = ["Asset", "Weight %", "Price", "Currency", "Description"]
+  const ALL_FIELDS: CopyFields = {
+    weight: true,
+    price: true,
+    currency: true,
+    narrative: true,
+  }
+
+  const buildCSV = (fields: CopyFields = ALL_FIELDS): string => {
+    const headers = [
+      "Asset",
+      ...(fields.weight ? ["Weight %"] : []),
+      ...(fields.price ? ["Price"] : []),
+      ...(fields.currency ? ["Currency"] : []),
+      ...(fields.narrative ? ["Description"] : []),
+    ]
     const rows = weights.map((w) => [
       escapeCSV(w.assetCode || w.assetId),
-      w.weight.toFixed(2),
-      w.capturedPrice?.toString() || "",
-      w.priceCurrency || "",
-      escapeCSV(w.rationale || ""),
+      ...(fields.weight ? [w.weight.toFixed(2)] : []),
+      ...(fields.price ? [w.capturedPrice?.toString() || ""] : []),
+      ...(fields.currency ? [w.priceCurrency || ""] : []),
+      ...(fields.narrative ? [escapeCSV(w.rationale || "")] : []),
     ])
     return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
   }
@@ -408,10 +435,17 @@ function PlanDetailPage(): React.ReactElement {
     downloadCsv(filename, csv)
   }
 
-  // Copy allocations as CSV to clipboard
-  const handleCopyCSV = async (): Promise<void> => {
+  // Copy allocations as CSV to clipboard — ask which fields to include first
+  const handleCopyCSV = (): void => {
     if (!weights.length) return
-    await navigator.clipboard.writeText(buildCSV())
+    setShowCopyFieldsDialog(true)
+  }
+
+  const handleConfirmCopy = async (fields: CopyFields): Promise<void> => {
+    setCopyFields(fields)
+    setLocalValue(COPY_FIELDS_STORAGE_KEY, fields)
+    setShowCopyFieldsDialog(false)
+    await navigator.clipboard.writeText(buildCSV(fields))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -706,6 +740,7 @@ function PlanDetailPage(): React.ReactElement {
               <>
                 <button
                   onClick={handleCopyCSV}
+                  aria-label="Copy target allocations"
                   className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                 >
                   <i
@@ -918,6 +953,13 @@ function PlanDetailPage(): React.ReactElement {
         onClose={() => setShowImportHoldingsDialog(false)}
         onImport={handleImportHoldings}
       />
+      {showCopyFieldsDialog && (
+        <CopyFieldsDialog
+          initialFields={copyFields}
+          onConfirm={handleConfirmCopy}
+          onCancel={() => setShowCopyFieldsDialog(false)}
+        />
+      )}
       {showApproveConfirm && (
         <ConfirmDialog
           title={"Approve Plan"}
