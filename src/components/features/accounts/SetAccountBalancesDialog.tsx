@@ -12,6 +12,7 @@ import {
 import MathInput from "@components/ui/MathInput"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -38,14 +39,23 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   onComplete,
 }) => {
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [positions, setPositions] = useState<AssetPosition[]>([])
   const [balances, setBalances] = useState<Map<string, string>>(new Map())
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState("")
   const [targetBalance, setTargetBalance] = useState<string>("")
+
+  const {
+    isSubmitting,
+    submitError: error,
+    submitSuccess,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess: onComplete,
+    autoCloseDelay: 1500,
+    fallbackError: "Failed to update balances",
+  })
 
   const currency = getAssetCurrency(asset) || "USD"
 
@@ -143,10 +153,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
     const portfolio = portfolios.find((p) => p.id === selectedPortfolioId)
     if (!portfolio || !canSubmitAddForm) return
 
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
+    await handleSubmit(async () => {
       const target = parseFloat(targetBalance)
       const adjustment = calculateCashAdjustment(0, target)
       const displayName = asset.name || stripOwnerPrefix(asset.code)
@@ -160,28 +167,15 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       })
 
       await postData(portfolio, false, row)
-
       setSuccessCount(1)
-      setSubmitSuccess(true)
-      setTimeout(() => {
-        onComplete()
-      }, 1500)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update balances")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const handleApply = async (): Promise<void> => {
     if (changesCount === 0) return
 
-    setIsSubmitting(true)
-    setError(null)
-
     let appliedCount = 0
-
-    try {
+    await handleSubmit(async () => {
       for (const entry of balanceEntries) {
         if (entry.adjustment.amount === 0) continue
 
@@ -200,17 +194,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       }
 
       setSuccessCount(appliedCount)
-      setSubmitSuccess(true)
-
-      // Close after showing success
-      setTimeout(() => {
-        onComplete()
-      }, 1500)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update balances")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (
