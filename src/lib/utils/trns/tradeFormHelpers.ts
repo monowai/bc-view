@@ -456,11 +456,26 @@ export const resolveBrokerCashAssetId = (params: {
 // --- Sellable quantity resolution ---
 
 /**
+ * Split-adjusted quantity a specific broker holds of the position, or undefined
+ * when no broker is selected or that broker holds none of the tracked map.
+ * `held` (svc-position) is keyed by broker NAME, so the selected brokerId is
+ * resolved to its name first.
+ */
+export const heldQuantityForBroker = (
+  held: Record<string, number> | undefined,
+  brokerId: string | undefined,
+  brokers: BrokerWithAccounts[],
+): number | undefined => {
+  if (!held || !brokerId) return undefined
+  const name = brokers.find((b) => b.id === brokerId)?.name
+  return name ? held[name] : undefined
+}
+
+/**
  * Quantity available to trade for the current form state. When a specific
  * broker is selected and per-broker holdings are known, this is the quantity
- * held BY THAT BROKER (svc-position `held`, split-adjusted, keyed by broker
- * name) rather than the whole-holding total. Falls back to the position total
- * when no broker is selected or the broker holds none of the tracked map.
+ * held BY THAT BROKER rather than the whole-holding total. Falls back to the
+ * position total when no broker is selected or the broker holds none.
  */
 export const resolveSellableQuantity = (params: {
   held?: Record<string, number>
@@ -470,9 +485,6 @@ export const resolveSellableQuantity = (params: {
   quantity?: number
 }): number => {
   const { held, brokerId, brokers, currentPositionQuantity, quantity } = params
-  const brokerName = brokerId
-    ? brokers.find((b) => b.id === brokerId)?.name
-    : undefined
-  const perBroker = held && brokerName ? held[brokerName] : undefined
+  const perBroker = heldQuantityForBroker(held, brokerId, brokers)
   return perBroker ?? currentPositionQuantity ?? quantity ?? 0
 }

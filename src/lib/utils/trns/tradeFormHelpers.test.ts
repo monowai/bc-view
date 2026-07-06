@@ -15,6 +15,7 @@ import {
   brokerHasSettlementForCurrency,
   resolveBrokerCashAssetId,
   resolveSellableQuantity,
+  heldQuantityForBroker,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -794,6 +795,36 @@ describe("tradeFormHelpers", () => {
           brokers: brokers as any,
         }),
       ).toBe(false)
+    })
+  })
+
+  describe("heldQuantityForBroker", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+    const held = { DBS: 367, IB: 47 }
+
+    test("returns the broker's held quantity", () => {
+      expect(heldQuantityForBroker(held, "dbs", brokers as any)).toBe(367)
+    })
+
+    test("returns undefined when no broker is selected", () => {
+      expect(heldQuantityForBroker(held, undefined, brokers as any)).toBe(
+        undefined,
+      )
+    })
+
+    test("returns undefined when held is missing", () => {
+      expect(heldQuantityForBroker(undefined, "dbs", brokers as any)).toBe(
+        undefined,
+      )
+    })
+
+    test("returns undefined when the broker holds none", () => {
+      expect(heldQuantityForBroker({ DBS: 367 }, "ib", brokers as any)).toBe(
+        undefined,
+      )
     })
   })
 
