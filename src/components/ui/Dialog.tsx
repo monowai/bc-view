@@ -8,6 +8,9 @@ interface DialogProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl"
   scrollable?: boolean
   footer?: React.ReactNode
+  // Stacking layer for the overlay. Default sits at z-50; raise it (e.g.
+  // "z-[60]") when this Dialog opens on top of another z-50 modal.
+  zClass?: string
 }
 
 const maxWidthClasses: Record<string, string> = {
@@ -28,6 +31,7 @@ export default function Dialog({
   maxWidth = "md",
   scrollable = false,
   footer,
+  zClass = "z-50",
 }: DialogProps): React.ReactElement {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -40,7 +44,7 @@ export default function Dialog({
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className={`fixed inset-0 ${zClass} flex items-center justify-center`}>
       <div
         className="fixed inset-0 bg-black opacity-50"
         onClick={onClose}
