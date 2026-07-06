@@ -53,6 +53,7 @@ import {
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
   resolveSellableQuantity,
+  heldQuantityForBroker,
 } from "@lib/trns/tradeFormHelpers"
 import {
   submitEditMode,
@@ -643,6 +644,19 @@ const TradeInputForm: React.FC<{
       setValue("brokerId", brokers[0].id)
     }
   }, [isEditMode, type?.value, brokers, setValue, watch])
+
+  // Quick Sell: choosing a broker sets the quantity to that broker's holding
+  // (the intent is to sell out one custodian's split-adjusted position). Only
+  // fires when per-broker holdings are known (`held`); leaves the field alone
+  // for brokers that hold none, and is inert in edit mode (no `held`).
+  useEffect(() => {
+    const brokerQty = heldQuantityForBroker(
+      initialValues?.held,
+      brokerId,
+      brokers,
+    )
+    if (brokerQty !== undefined) setValue("quantity", brokerQty)
+  }, [brokerId, brokers, initialValues?.held, setValue])
 
   const cashAmountField = watch("cashAmount")
   const market = watch("market")

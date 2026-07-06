@@ -296,8 +296,14 @@ const PositionCard: React.FC<PositionCardProps> = ({
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
-  const { asset, moneyValues, quantityValues, dateValues, portfolioBreakdown } =
-    position
+  const {
+    asset,
+    moneyValues,
+    quantityValues,
+    dateValues,
+    portfolioBreakdown,
+    held,
+  } = position
   const values = moneyValues[valueIn]
 
   const positionCurrency =
@@ -370,6 +376,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             fromDate={dateValues?.opened}
             closedDate={dateValues?.closed}
             quantity={quantityValues.total}
+            held={held}
             price={values.priceData?.close || 0}
             costBasis={tradeMoney?.costBasis || 0}
             tradeCurrency={tradeCurrency}
