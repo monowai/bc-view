@@ -14,6 +14,7 @@ import {
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
   resolveBrokerCashAssetId,
+  resolveSellableQuantity,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -793,6 +794,68 @@ describe("tradeFormHelpers", () => {
           brokers: brokers as any,
         }),
       ).toBe(false)
+    })
+  })
+
+  describe("resolveSellableQuantity", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+    const held = { DBS: 40, IB: 10 }
+
+    test("returns the selected broker's held quantity", () => {
+      expect(
+        resolveSellableQuantity({
+          held,
+          brokerId: "dbs",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(40)
+    })
+
+    test("falls back to the whole-holding total when no broker is selected", () => {
+      expect(
+        resolveSellableQuantity({
+          held,
+          brokerId: undefined,
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(50)
+    })
+
+    test("returns 0 when the selected broker holds none", () => {
+      expect(
+        resolveSellableQuantity({
+          held: { DBS: 0 },
+          brokerId: "dbs",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(0)
+    })
+
+    test("falls back to the total when held has no entry for the broker", () => {
+      expect(
+        resolveSellableQuantity({
+          held: { DBS: 40 },
+          brokerId: "ib",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(50)
+    })
+
+    test("prefers currentPositionQuantity over quantity when no held match", () => {
+      expect(
+        resolveSellableQuantity({
+          brokers: brokers as any,
+          currentPositionQuantity: 25,
+          quantity: 50,
+        }),
+      ).toBe(25)
     })
   })
 })

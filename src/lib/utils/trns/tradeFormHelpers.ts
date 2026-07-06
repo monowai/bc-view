@@ -452,3 +452,27 @@ export const resolveBrokerCashAssetId = (params: {
   const conv = accountAssets.find((a) => stripOwnerPrefix(a.code) === target)
   return conv?.id ?? null
 }
+
+// --- Sellable quantity resolution ---
+
+/**
+ * Quantity available to trade for the current form state. When a specific
+ * broker is selected and per-broker holdings are known, this is the quantity
+ * held BY THAT BROKER (svc-position `held`, split-adjusted, keyed by broker
+ * name) rather than the whole-holding total. Falls back to the position total
+ * when no broker is selected or the broker holds none of the tracked map.
+ */
+export const resolveSellableQuantity = (params: {
+  held?: Record<string, number>
+  brokerId?: string
+  brokers: BrokerWithAccounts[]
+  currentPositionQuantity?: number
+  quantity?: number
+}): number => {
+  const { held, brokerId, brokers, currentPositionQuantity, quantity } = params
+  const brokerName = brokerId
+    ? brokers.find((b) => b.id === brokerId)?.name
+    : undefined
+  const perBroker = held && brokerName ? held[brokerName] : undefined
+  return perBroker ?? currentPositionQuantity ?? quantity ?? 0
+}

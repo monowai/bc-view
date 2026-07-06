@@ -52,6 +52,7 @@ import {
   buildDefaultCashAsset,
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
+  resolveSellableQuantity,
 } from "@lib/trns/tradeFormHelpers"
 import {
   submitEditMode,
@@ -337,13 +338,31 @@ const TradeInputForm: React.FC<{
   const type = watch("type")
   const tradeCurrency = watch("tradeCurrency")
   const asset = watch("asset")
+  const brokerId = watch("brokerId")
 
   // Weight basis: aggregate market value when supplied (aggregated view),
   // otherwise the single portfolio's own market value.
   const weightBasis = weightBasisMarketValue ?? portfolio.marketValue
-  // Calculate current weight from position data
-  const positionQty =
-    initialValues?.currentPositionQuantity ?? initialValues?.quantity ?? 0
+  // Available quantity to trade. When a broker is selected and per-broker
+  // holdings are known, this is what THAT broker holds (split-adjusted), not
+  // the whole-holding total.
+  const positionQty = useMemo(
+    () =>
+      resolveSellableQuantity({
+        held: initialValues?.held,
+        brokerId,
+        brokers,
+        currentPositionQuantity: initialValues?.currentPositionQuantity,
+        quantity: initialValues?.quantity,
+      }),
+    [
+      initialValues?.held,
+      initialValues?.currentPositionQuantity,
+      initialValues?.quantity,
+      brokerId,
+      brokers,
+    ],
+  )
   const currentPositionWeight = useMemo(
     () =>
       currentWeightOverride ??
