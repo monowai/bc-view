@@ -722,7 +722,13 @@ const TradeInputForm: React.FC<{
             setValue("quantity", maxQty)
             setShowBrokerSelectionDialog(false)
           }}
-          onSkip={() => setShowBrokerSelectionDialog(false)}
+          onSkip={() => {
+            // Skip = sell the entire position with no specific broker, so
+            // clear any prior broker pick and restore the whole-holding qty.
+            setValue("brokerId", "")
+            setValue("quantity", initialValues.quantity ?? 0)
+            setShowBrokerSelectionDialog(false)
+          }}
         />
       )}
 
