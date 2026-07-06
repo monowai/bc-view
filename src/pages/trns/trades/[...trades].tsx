@@ -11,7 +11,7 @@ import {
   trnKey,
   holdingKey,
 } from "@utils/api/fetchHelper"
-import { Transaction } from "types/beancounter"
+import { Transaction, TrnTradeSummary } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -118,6 +118,16 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     (): Transaction[] => trades.data?.data || [],
     [trades.data?.data],
   )
+  // Backend-authoritative, split-adjusted quantity per group. A SPLIT row holds
+  // the ratio (not shares), so the server folds it correctly (see
+  // TrnTradeSummaryBuilder) and we key it by broker id (single) / portfolio id
+  // (aggregated). "" is the server's "No Broker" key.
+  const summaryQty = useMemo(() => {
+    const summary = trades.data?.summary as TrnTradeSummary | undefined
+    const map = new Map<string, number>()
+    summary?.groups.forEach((g) => map.set(g.groupId, g.quantity))
+    return map
+  }, [trades.data?.summary])
   // Single-portfolio view groups by broker; the aggregated drill-down groups by
   // portfolio (one asset held across several portfolios).
   const groups = useMemo(() => {
@@ -155,10 +165,24 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     // A BALANCE transaction states the absolute position as at its trade date,
     // so the running quantity must reset to it — computeTradeGroupTotals folds
     // the trades chronologically rather than naively summing every quantity.
-    const withTotals = Object.values(acc).map((group) => ({
-      ...group,
-      totals: computeTradeGroupTotals(group.transactions),
-    }))
+    const withTotals = Object.values(acc).map((group) => {
+      const totals = computeTradeGroupTotals(group.transactions)
+      // Prefer the server's split-adjusted quantity; the client fold sums raw
+      // trn.quantity and would corrupt the total on a SPLIT. Map the local
+      // "no broker/portfolio" sentinel onto the server's "" key.
+      const summaryId =
+        group.id === "__no_broker__" || group.id === "__no_portfolio__"
+          ? ""
+          : group.id
+      const authQuantity = summaryQty.get(summaryId)
+      return {
+        ...group,
+        totals:
+          authQuantity !== undefined
+            ? { ...totals, quantity: authQuantity }
+            : totals,
+      }
+    })
 
     // Named groups first (alphabetically), unnamed ("No Broker") last
     return withTotals.sort((a, b) => {
@@ -166,7 +190,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       if (a.sortName && !b.sortName) return -1
       return a.sortName.localeCompare(b.sortName)
     })
-  }, [trnResults, isMulti])
+  }, [trnResults, isMulti, summaryQty])
 
   // Group header label. In the aggregated (multi-portfolio) view the label is a
   // portfolio code, so make it a link to that portfolio's holdings page with the
