@@ -472,6 +472,19 @@ export const heldQuantityForBroker = (
 }
 
 /**
+ * The broker id when a position is held at exactly one brokerage (so the form
+ * can default to it), otherwise undefined. `held` is keyed by broker name.
+ */
+export const singleHeldBrokerId = (
+  held: Record<string, number> | undefined,
+  brokers: BrokerWithAccounts[],
+): string | undefined => {
+  const names = Object.keys(held ?? {})
+  if (names.length !== 1) return undefined
+  return brokers.find((b) => b.name === names[0])?.id
+}
+
+/**
  * Quantity available to trade for the current form state. When a specific
  * broker is selected and per-broker holdings are known, this is the quantity
  * held BY THAT BROKER rather than the whole-holding total. Falls back to the
