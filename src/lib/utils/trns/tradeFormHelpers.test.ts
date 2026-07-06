@@ -16,6 +16,7 @@ import {
   resolveBrokerCashAssetId,
   resolveSellableQuantity,
   heldQuantityForBroker,
+  singleHeldBrokerId,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -825,6 +826,32 @@ describe("tradeFormHelpers", () => {
       expect(heldQuantityForBroker({ DBS: 367 }, "ib", brokers as any)).toBe(
         undefined,
       )
+    })
+  })
+
+  describe("singleHeldBrokerId", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+
+    test("returns the broker id when held at exactly one brokerage", () => {
+      expect(singleHeldBrokerId({ DBS: 367 }, brokers as any)).toBe("dbs")
+    })
+
+    test("returns undefined when held at multiple brokerages", () => {
+      expect(
+        singleHeldBrokerId({ DBS: 367, IB: 47 }, brokers as any),
+      ).toBeUndefined()
+    })
+
+    test("returns undefined when held is empty or missing", () => {
+      expect(singleHeldBrokerId({}, brokers as any)).toBeUndefined()
+      expect(singleHeldBrokerId(undefined, brokers as any)).toBeUndefined()
+    })
+
+    test("returns undefined when the single broker name is unknown", () => {
+      expect(singleHeldBrokerId({ Unknown: 5 }, brokers as any)).toBeUndefined()
     })
   })
 
