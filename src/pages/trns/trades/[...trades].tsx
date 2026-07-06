@@ -620,6 +620,18 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               <div className="bg-indigo-50 border border-indigo-200 rounded-b-lg px-4 py-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
+                    <span className="text-indigo-600">{"Qty"}:</span>
+                    <span className="ml-1 font-semibold text-indigo-900">
+                      <NumericFormat
+                        value={group.totals.quantity}
+                        displayType={"text"}
+                        decimalScale={2}
+                        fixedDecimalScale={true}
+                        thousandSeparator={true}
+                      />
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-indigo-600">{"Amount"}:</span>
                     <span className="ml-1 font-semibold text-indigo-900">
                       <NumericFormat
