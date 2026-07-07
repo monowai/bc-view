@@ -32,7 +32,13 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
             onClick={() => onSelect(broker?.id || "", Math.min(quantity, qty))}
             className="w-full p-3 text-left border rounded hover:bg-gray-50 flex justify-between items-center"
           >
-            <span className="font-medium">{brokerName}</span>
+            <span className="font-medium">
+              <i
+                className="fas fa-university mr-2 text-indigo-400"
+                title="Broker"
+              ></i>
+              {brokerName}
+            </span>
             <span className="text-gray-500">
               {qty.toLocaleString()} {"shares"}
             </span>

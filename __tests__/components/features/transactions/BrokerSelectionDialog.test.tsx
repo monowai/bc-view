@@ -22,6 +22,19 @@ describe("BrokerSelectionDialog", () => {
     expect(screen.getByText("Select Broker")).toBeInTheDocument()
   })
 
+  it("badges each broker with the drilldown-consistent broker icon", () => {
+    const { container } = render(
+      <BrokerSelectionDialog
+        held={{ "Broker A": 100, "Broker B": 50 }}
+        brokers={brokers}
+        quantity={50}
+        onSelect={jest.fn()}
+        onSkip={jest.fn()}
+      />,
+    )
+    expect(container.querySelectorAll("i.fa-university")).toHaveLength(2)
+  })
+
   it("calls onSkip on Escape", () => {
     const onSkip = jest.fn()
     render(

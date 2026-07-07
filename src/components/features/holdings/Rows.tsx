@@ -399,6 +399,7 @@ export default function Rows({
                       <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                         {Object.entries(held).map(([broker, qty]) => (
                           <div key={broker}>
+                            <i className="fas fa-university mr-1"></i>
                             {broker}: {qty.toLocaleString()}
                           </div>
                         ))}

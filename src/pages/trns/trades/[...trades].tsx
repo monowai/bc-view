@@ -177,7 +177,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     }
     return (
       <span className="font-medium text-indigo-900">
-        <i className="fas fa-building mr-2 text-indigo-400"></i>
+        {/* Single-portfolio groups are brokers, so carry the broker icon. */}
+        <i
+          className="fas fa-university mr-2 text-indigo-400"
+          title="Broker"
+        ></i>
         {group.label}
       </span>
     )
