@@ -1,4 +1,4 @@
-import { TradeFormData, Transaction } from "types/beancounter"
+import { TradeFormData, Transaction, TrnTradeSummary } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
 import { TRN_STATUS } from "types/constants"
@@ -463,6 +463,111 @@ export interface TradeGroupTotals {
  */
 const sameDateRank = (trnType: string): number =>
   trnType === "BALANCE" ? 1 : isPositionAdjustment(trnType) ? 2 : 0
+
+/**
+ * A rendered group of an asset's trades in the drill-down: a broker (single
+ * portfolio) or a portfolio+broker pair (aggregated multi-portfolio view).
+ */
+export interface TradeGroup {
+  id: string
+  label: string // broker name, or "No Broker"
+  sortName: string
+  summaryId: string // key into the server summary's split-adjusted quantity
+  portfolioCode?: string // set only in the aggregated view
+  transactions: Transaction[]
+  totals: TradeGroupTotals
+}
+
+/**
+ * Build the drill-down groups for an asset's trades.
+ *
+ * Single-portfolio view groups by broker. The aggregated (multi-portfolio)
+ * view groups by portfolio AND broker, so a broker's slice of an asset is
+ * never hidden inside a portfolio that happens to share a broker's name.
+ *
+ * The split-adjusted quantity is authoritative from the server summary (a
+ * SPLIT row carries the ratio, not shares): keyed by broker id for the single
+ * view, or by "portfolioId|brokerId" (the portfolio group's broker sub-total)
+ * for the aggregated view. "" is the server's "No Broker" key.
+ */
+export const buildTradeGroups = (
+  transactions: Transaction[],
+  isMulti: boolean,
+  summary?: TrnTradeSummary,
+): TradeGroup[] => {
+  if (!transactions || transactions.length === 0) return []
+
+  const summaryQty = new Map<string, number>()
+  summary?.groups.forEach((g) => {
+    if (isMulti) {
+      g.subTotals?.forEach((s) =>
+        summaryQty.set(`${g.groupId}|${s.groupId}`, s.quantity),
+      )
+    } else {
+      summaryQty.set(g.groupId, g.quantity)
+    }
+  })
+
+  const acc: Record<string, Omit<TradeGroup, "totals">> = {}
+  transactions.forEach((trn) => {
+    const brokerId = trn.broker?.id || ""
+    const brokerName = trn.broker?.name || "No Broker"
+    if (isMulti) {
+      const pid = trn.portfolio?.id || "__no_portfolio__"
+      const pCode = trn.portfolio?.code || "Unknown Portfolio"
+      const key = `${pid}|${brokerId}`
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          label: brokerName,
+          // Cluster by portfolio, then broker; "No Broker" (~) sorts last
+          // within its portfolio.
+          sortName: `${pCode} ${trn.broker ? brokerName : "~"}`,
+          summaryId: `${pid}|${brokerId}`,
+          portfolioCode: pCode,
+          transactions: [],
+        }
+      }
+      acc[key].transactions.push(trn)
+    } else {
+      const key = trn.broker?.id || "__no_broker__"
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          label: brokerName,
+          sortName: trn.broker ? brokerName : "",
+          summaryId: brokerId,
+          transactions: [],
+        }
+      }
+      acc[key].transactions.push(trn)
+    }
+  })
+
+  return Object.values(acc)
+    .map((group) => {
+      const totals = computeTradeGroupTotals(group.transactions)
+      const authQuantity = summaryQty.get(group.summaryId)
+      return {
+        ...group,
+        totals:
+          authQuantity !== undefined
+            ? { ...totals, quantity: authQuantity }
+            : totals,
+      }
+    })
+    .sort((a, b) => {
+      // Named groups first (alphabetically), unnamed ("No Broker") last.
+      if (!a.sortName && b.sortName) return 1
+      if (a.sortName && !b.sortName) return -1
+      // Code-unit order, not localeCompare: the aggregated view's "~" sentinel
+      // (No Broker last within a portfolio) is punctuation that localeCompare
+      // ignores, which would re-order the groups.
+      if (a.sortName < b.sortName) return -1
+      if (a.sortName > b.sortName) return 1
+      return 0
+    })
+}
 
 export const computeTradeGroupTotals = (
   transactions: Transaction[],

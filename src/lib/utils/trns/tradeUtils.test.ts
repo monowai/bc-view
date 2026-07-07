@@ -18,8 +18,9 @@ import {
   getAssetCurrency,
   deriveDefaultMarket,
   computeTradeGroupTotals,
+  buildTradeGroups,
 } from "./tradeUtils"
-import { TradeFormData, Transaction } from "types/beancounter"
+import { TradeFormData, Transaction, TrnTradeSummary } from "types/beancounter"
 
 describe("TradeUtils", () => {
   test("calculateTradeAmount for BUY type", () => {
@@ -1144,5 +1145,110 @@ describe("computeTradeGroupTotals", () => {
       expect(totals.quantity).toBe(100)
       expect(totals.tradeAmount).toBe(100)
     }
+  })
+})
+
+describe("buildTradeGroups", () => {
+  const dbsPf = { id: "p1", code: "DBS" }
+  const dbs = { id: "b-dbs", name: "DBS" }
+  const scb = { id: "b-scb", name: "SCB" }
+
+  const trn = (over: Partial<Transaction>): Transaction =>
+    ({
+      trnType: "BUY",
+      tradeDate: "2025-01-01",
+      quantity: 0,
+      tradeAmount: 0,
+      cashAmount: 0,
+      fees: 0,
+      tax: 0,
+      portfolio: dbsPf,
+      ...over,
+    }) as Transaction
+
+  // The reported bug: SCHD bought 175 via DBS and 80 via SCB, both in the
+  // "DBS"-coded portfolio. The aggregate drill-down must split the two brokers
+  // out instead of collapsing the 80 under the portfolio named "DBS".
+  test("aggregated view splits one portfolio into its brokers", () => {
+    const summary: TrnTradeSummary = {
+      groupBy: "PORTFOLIO",
+      groups: [
+        {
+          groupId: "p1",
+          quantity: 255,
+          subTotals: [
+            { groupId: "b-dbs", quantity: 175 },
+            { groupId: "b-scb", quantity: 80 },
+          ],
+        },
+      ],
+    }
+    const groups = buildTradeGroups(
+      [
+        trn({ id: "t1", quantity: 175, broker: dbs }),
+        trn({ id: "t2", quantity: 80, broker: scb, tradeDate: "2025-12-03" }),
+      ],
+      true,
+      summary,
+    )
+
+    expect(groups).toHaveLength(2)
+    const dbsGroup = groups.find((g) => g.label === "DBS")!
+    const scbGroup = groups.find((g) => g.label === "SCB")!
+    expect(dbsGroup.portfolioCode).toBe("DBS")
+    expect(scbGroup.portfolioCode).toBe("DBS")
+    // Server-authoritative split-adjusted quantity per broker, not the naive sum.
+    expect(dbsGroup.totals.quantity).toBe(175)
+    expect(scbGroup.totals.quantity).toBe(80)
+    // Both brokers, and the 80 is no longer hidden under the portfolio total.
+    expect(scbGroup.transactions.map((t) => t.id)).toEqual(["t2"])
+  })
+
+  test("single-portfolio view still groups by broker only", () => {
+    const summary: TrnTradeSummary = {
+      groupBy: "BROKER",
+      groups: [
+        { groupId: "b-dbs", quantity: 175 },
+        { groupId: "b-scb", quantity: 80 },
+      ],
+    }
+    const groups = buildTradeGroups(
+      [
+        trn({ id: "t1", quantity: 175, broker: dbs }),
+        trn({ id: "t2", quantity: 80, broker: scb }),
+      ],
+      false,
+      summary,
+    )
+
+    expect(groups.map((g) => g.label).sort()).toEqual(["DBS", "SCB"])
+    expect(groups.every((g) => g.portfolioCode === undefined)).toBe(true)
+    expect(groups.find((g) => g.label === "SCB")!.totals.quantity).toBe(80)
+  })
+
+  test("no-broker trns fall into a 'No Broker' group sorted last", () => {
+    const summary: TrnTradeSummary = {
+      groupBy: "PORTFOLIO",
+      groups: [
+        {
+          groupId: "p1",
+          quantity: 175,
+          subTotals: [
+            { groupId: "b-dbs", quantity: 175 },
+            { groupId: "", quantity: 0 },
+          ],
+        },
+      ],
+    }
+    const groups = buildTradeGroups(
+      [
+        trn({ id: "t1", quantity: 175, broker: dbs }),
+        trn({ id: "d1", trnType: "DIVI", quantity: 175 }),
+      ],
+      true,
+      summary,
+    )
+
+    expect(groups.map((g) => g.label)).toEqual(["DBS", "No Broker"])
   })
 })
