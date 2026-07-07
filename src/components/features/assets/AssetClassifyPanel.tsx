@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
+import { dedupeSectorsByName } from "@utils/assets/dedupeSectors"
 
 interface SectorInfo {
   code: string
@@ -9,10 +10,12 @@ interface SectorInfo {
   standard: string
 }
 
-interface ClassificationResult {
-  assetId: string
-  sector?: string
-  industry?: string
+// GET /classifications/{assetId} returns the asset's classification rows.
+interface AssetClassificationRow {
+  level: string
+  source?: string
+  standard: { key: string }
+  item: { code: string; name: string }
 }
 
 interface ExposureItem {
@@ -39,6 +42,8 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
   const [currentAssetSector, setCurrentAssetSector] = useState<string | null>(
     null,
   )
+  // The chosen sector name, "custom", or "". Sectors are de-duplicated by name
+  // (see sectorsByStandard), so a name uniquely identifies one chip.
   const [selectedSector, setSelectedSector] = useState("")
   const [customSector, setCustomSector] = useState("")
   const [isSaving, setIsSaving] = useState(false)
@@ -93,12 +98,13 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
 
         let sector: string | undefined
 
-        // Check direct classification first (equities)
+        // Direct classification (equities) — GET returns a list of rows.
         if (classResponse.ok) {
-          const classData: { data: ClassificationResult } =
+          const classData: { data: AssetClassificationRow[] } =
             await classResponse.json()
-          if (classData.data?.sector) {
-            sector = classData.data.sector
+          const sectorRow = classData.data?.find((c) => c.level === "SECTOR")
+          if (sectorRow) {
+            sector = sectorRow.item.name
           }
         }
 
@@ -116,13 +122,11 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
 
         if (sector) {
           setCurrentAssetSector(sector)
-          const existingInDb = dbSectors.find((s) => s.name === sector)
-          if (existingInDb) {
-            setSelectedSector(sector)
-          } else {
-            setSelectedSector("custom")
-            setCustomSector(sector)
-          }
+          // Every classification maps to a picker chip of the same name (names
+          // are unique after de-duplication), so pre-select by name. The chip
+          // highlights on render, regardless of whether the sector list has
+          // finished loading yet.
+          setSelectedSector(sector)
         }
       } catch (error) {
         console.error("Failed to fetch classification:", error)
@@ -130,14 +134,12 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
     }
 
     fetchCurrentSector()
-    // dbSectors intentionally omitted: we only want to re-fetch when assetId changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetId])
 
-  // Group sectors by standard
+  // De-duplicate by name, then group by standard for display.
   const sectorsByStandard = React.useMemo(() => {
     const grouped: Record<string, SectorInfo[]> = {}
-    dbSectors.forEach((sector) => {
+    dedupeSectorsByName(dbSectors).forEach((sector) => {
       if (!grouped[sector.standard]) {
         grouped[sector.standard] = []
       }
@@ -264,35 +266,42 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
                     {standardLabels[standard] || standard}
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {sectors.map((sector) => (
-                      <div key={sector.code} className="relative group">
-                        <button
-                          onClick={() => {
-                            setSelectedSector(sector.name)
-                            setCustomSector("")
-                          }}
-                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
-                            selectedSector === sector.name
-                              ? "border-blue-500 bg-blue-50 text-blue-700"
-                              : "border-gray-200 hover:border-gray-300 text-gray-700"
-                          } ${standard === "USER" ? "pr-8" : ""}`}
+                    {sectors.map((sector) => {
+                      const isSelected = selectedSector === sector.name
+                      return (
+                        <div
+                          key={`${standard}:${sector.code}`}
+                          className="relative group"
                         >
-                          {sector.name}
-                        </button>
-                        {standard === "USER" && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSectorToDelete(sector)
+                            aria-pressed={isSelected}
+                            onClick={() => {
+                              setSelectedSector(sector.name)
+                              setCustomSector("")
                             }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title={"Delete sector"}
+                            className={`w-full px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                : "border-gray-200 hover:border-gray-300 text-gray-700"
+                            } ${standard === "USER" ? "pr-8" : ""}`}
                           >
-                            <i className="fas fa-times text-xs"></i>
+                            {sector.name}
                           </button>
-                        )}
-                      </div>
-                    ))}
+                          {standard === "USER" && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSectorToDelete(sector)
+                              }}
+                              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title={"Delete sector"}
+                            >
+                              <i className="fas fa-times text-xs"></i>
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
@@ -311,7 +320,10 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
                 </h4>
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setSelectedSector("custom")}
+                    aria-pressed={selectedSector === "custom"}
+                    onClick={() => {
+                      setSelectedSector("custom")
+                    }}
                     className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                       selectedSector === "custom"
                         ? "border-blue-500 bg-blue-50 text-blue-700"
