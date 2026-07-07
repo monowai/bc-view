@@ -29,6 +29,9 @@ interface PriceChartPopupProps {
   asset: Asset
   currencySymbol?: string
   portfolioId?: string
+  // Aggregated holdings drill-down: an asset held across several portfolios.
+  // Takes precedence over portfolioId; trades are fetched for the union.
+  portfolios?: string[]
   onClose: () => void
 }
 
@@ -230,6 +233,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   asset,
   currencySymbol = "",
   portfolioId,
+  portfolios,
   onClose,
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
@@ -296,9 +300,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     }
   }, [asset.id, priceUrl])
 
-  const tradesUrl = portfolioId
-    ? `/api/trns/trades/${portfolioId}/${asset.id}`
-    : null
+  const tradesUrl =
+    portfolios && portfolios.length > 0
+      ? `/api/trns/trades/${asset.id}?portfolios=${encodeURIComponent(
+          portfolios.join(","),
+        )}`
+      : portfolioId
+        ? `/api/trns/trades/${portfolioId}/${asset.id}`
+        : null
   const { data: tradesData } = useSwr<{ data: Transaction[] }>(
     tradesUrl,
     tradesUrl ? simpleFetcher(tradesUrl) : null,

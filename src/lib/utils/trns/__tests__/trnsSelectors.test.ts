@@ -110,5 +110,16 @@ describe("trnsSelectors", () => {
       const deleteResponse = { data: ["t1"] }
       expect(transformTrnEnvelopeJson(deleteResponse)).toBe(deleteResponse)
     })
+
+    it("forwards the split-adjusted trade summary", () => {
+      const summary = {
+        groupBy: "BROKER" as const,
+        groups: [{ groupId: "b1", quantity: 8 }],
+      }
+      const out = transformTrnEnvelopeJson({ data: envelope, summary }) as {
+        summary?: typeof summary
+      }
+      expect(out.summary).toEqual(summary)
+    })
   })
 })
