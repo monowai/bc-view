@@ -2,8 +2,10 @@ import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
   resolveTarget,
+  tradeSeedForRow,
 } from "../aggregatedActions"
 import { makePortfolioBreakdown } from "@test-fixtures/beancounter"
+import { QuickSellData } from "types/beancounter"
 
 describe("indexBreakdownByAssetId", () => {
   it("maps each position's asset id to its portfolio breakdown", () => {
@@ -101,5 +103,46 @@ describe("resolveTarget", () => {
   it("returns none when there is no breakdown", () => {
     expect(resolveTarget(undefined)).toEqual({ kind: "none" })
     expect(resolveTarget([])).toEqual({ kind: "none" })
+  })
+})
+
+describe("tradeSeedForRow", () => {
+  const data: QuickSellData = {
+    asset: "SCHD",
+    assetId: "asset-a",
+    market: "US",
+    quantity: 255, // aggregate total across portfolios
+    price: 25,
+    held: { DBS: 200, SCB: 80 }, // aggregate-wide broker map
+  }
+
+  it("seeds a SELL from the chosen portfolio's quantity and broker map", () => {
+    const row = makePortfolioBreakdown({
+      portfolioId: "p1",
+      quantity: 255,
+      held: { DBS: 175, SCB: 80 },
+    })
+    const seed = tradeSeedForRow(data, row, "SELL")
+    expect(seed.type).toBe("SELL")
+    expect(seed.quantity).toBe(255)
+    expect(seed.held).toEqual({ DBS: 175, SCB: 80 })
+  })
+
+  it("keeps the aggregate quantity for non-SELL types but scopes held to the row", () => {
+    const row = makePortfolioBreakdown({
+      portfolioId: "p1",
+      quantity: 100,
+      held: { DBS: 100 },
+    })
+    const seed = tradeSeedForRow(data, row, "BUY")
+    expect(seed.type).toBe("BUY")
+    expect(seed.quantity).toBe(255)
+    expect(seed.held).toEqual({ DBS: 100 })
+  })
+
+  it("falls back to the aggregate held map when the row has none", () => {
+    const row = makePortfolioBreakdown({ portfolioId: "p1", quantity: 255 })
+    const seed = tradeSeedForRow(data, row, "SELL")
+    expect(seed.held).toEqual({ DBS: 200, SCB: 80 })
   })
 })

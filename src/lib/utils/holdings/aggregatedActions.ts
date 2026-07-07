@@ -1,4 +1,4 @@
-import { PortfolioBreakdown } from "types/beancounter"
+import { PortfolioBreakdown, QuickSellData } from "types/beancounter"
 
 /**
  * Minimal shape of the aggregated holdings groups needed to find, per asset,
@@ -59,6 +59,26 @@ export function buildAggregateWeightByAssetId(
     }
   }
   return index
+}
+
+/**
+ * Seed the trade form for an action resolved to one portfolio of an
+ * aggregated holding. A SELL acts on the chosen portfolio's quantity, not the
+ * aggregate; all types scope the broker map (`held`) to that portfolio so the
+ * broker picker offers what THAT portfolio holds per broker, falling back to
+ * the aggregate-wide map when the row carries none (older backend).
+ */
+export function tradeSeedForRow(
+  data: QuickSellData,
+  row: PortfolioBreakdown,
+  type: NonNullable<QuickSellData["type"]>,
+): QuickSellData {
+  return {
+    ...data,
+    type,
+    quantity: type === "SELL" ? row.quantity : data.quantity,
+    held: row.held ?? data.held,
+  }
 }
 
 export type TargetResolution =

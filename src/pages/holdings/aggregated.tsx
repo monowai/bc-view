@@ -35,6 +35,7 @@ import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
   resolveTarget,
+  tradeSeedForRow,
 } from "@lib/holdings/aggregatedActions"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
@@ -370,8 +371,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
         (portfolio, row) => {
           setTradePortfolio(portfolio)
           // Selling acts on the chosen portfolio's holding, not the aggregate.
-          const quantity = type === "SELL" ? row.quantity : data.quantity
-          setQuickSellData({ ...data, type, quantity })
+          setQuickSellData(tradeSeedForRow(data, row, type))
           // Weight is expressed against the aggregate, not the source portfolio.
           setTradeWeight({
             currentWeight: data.assetId

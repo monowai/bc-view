@@ -172,6 +172,7 @@ export interface PortfolioBreakdown {
   portfolioCode: string
   portfolioName: string
   quantity: number
+  held?: Record<string, number> // Broker name -> quantity within THIS portfolio
 }
 
 export interface PortfolioBreakdownData {
@@ -492,21 +493,14 @@ interface Registration {
 }
 
 export type HoldingsView =
-  | "SUMMARY"
-  | "TABLE"
-  | "CARDS"
-  | "HEATMAP"
-  | "ALLOCATION"
+  "SUMMARY" | "TABLE" | "CARDS" | "HEATMAP" | "ALLOCATION"
 
 // Type aliases for UserPreferences - runtime values defined in types/constants.ts
 export type ValueInOption = "PORTFOLIO" | "BASE" | "TRADE"
 
 // Backend GroupBy API values (enum names as persisted in the database)
 export type GroupByApiValue =
-  | "ASSET_CLASS"
-  | "SECTOR"
-  | "MARKET_CURRENCY"
-  | "MARKET"
+  "ASSET_CLASS" | "SECTOR" | "MARKET_CURRENCY" | "MARKET"
 
 // Frontend GroupBy property paths (used for client-side grouping)
 export type GroupByOption =
@@ -1106,10 +1100,7 @@ export interface MonthlyIncomeResponse {
 
 export type ShareAccessLevel = "VIEW" | "FULL"
 export type ShareStatus =
-  | "PENDING_CLIENT_INVITE"
-  | "PENDING_ADVISER_REQUEST"
-  | "ACTIVE"
-  | "REVOKED"
+  "PENDING_CLIENT_INVITE" | "PENDING_ADVISER_REQUEST" | "ACTIVE" | "REVOKED"
 
 export interface PortfolioShare {
   id: string
