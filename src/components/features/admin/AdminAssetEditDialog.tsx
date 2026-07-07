@@ -4,9 +4,11 @@ import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, AssetCategory } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { dedupeSectorsByName } from "@utils/assets/dedupeSectors"
 
 interface SectorInfo {
   name: string
+  standard: string
 }
 
 interface AdminAssetEditDialogProps {
@@ -90,7 +92,7 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
   }
 
   const categories = categoriesData?.data ?? []
-  const sectors = sectorsData?.data ?? []
+  const sectors = dedupeSectorsByName(sectorsData?.data ?? [])
 
   return (
     <Dialog
