@@ -14,7 +14,6 @@ const renderGroupBar = (
         groupBy="Equity"
         subTotals={group.subTotals}
         valueIn={ValueIn.PORTFOLIO}
-        positionCount={6}
         isCollapsed={false}
         onToggleCollapse={jest.fn()}
         stickyTop={30}
@@ -25,15 +24,10 @@ const renderGroupBar = (
 }
 
 describe("GroupBar", () => {
-  it("shows the group name and holding count", () => {
+  it("shows the group name without a holding count", () => {
     renderGroupBar()
     expect(screen.getByText("Equity")).toBeInTheDocument()
-    expect(screen.getByText("6 holdings")).toBeInTheDocument()
-  })
-
-  it("singularises the holding count for one position", () => {
-    renderGroupBar({ positionCount: 1 })
-    expect(screen.getByText("1 holding")).toBeInTheDocument()
+    expect(screen.queryByText(/holdings?$/)).not.toBeInTheDocument()
   })
 
   it("hides subtotal figures when expanded (SubTotal footer shows them instead)", () => {

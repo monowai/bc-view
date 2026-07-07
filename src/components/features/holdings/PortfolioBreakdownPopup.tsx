@@ -58,11 +58,36 @@ const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
             >
               <span className="min-w-0">
                 <span className="block font-semibold text-gray-900">
+                  <i
+                    className="fas fa-building mr-2 text-indigo-400"
+                    title="Portfolio"
+                  ></i>
                   {row.portfolioCode}
                 </span>
                 <span className="block text-sm text-gray-500 truncate">
                   {row.portfolioName}
                 </span>
+                {row.held && Object.keys(row.held).length > 0 && (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {Object.entries(row.held)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([broker, qty]) => (
+                        <span
+                          key={broker}
+                          className="inline-flex items-center rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                        >
+                          <i
+                            className="fas fa-university mr-1"
+                            title="Broker"
+                          ></i>
+                          {broker}
+                          <span className="ml-1 tabular-nums">
+                            <PrivateQuantity value={qty} />
+                          </span>
+                        </span>
+                      ))}
+                  </span>
+                )}
               </span>
               <span className="font-medium text-gray-900 tabular-nums shrink-0">
                 <PrivateQuantity value={row.quantity} />

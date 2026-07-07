@@ -615,9 +615,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
                           groupBy={groupKey}
                           subTotals={holdings.holdingGroups[groupKey].subTotals}
                           valueIn={holdingState.valueIn.value}
-                          positionCount={
-                            holdings.holdingGroups[groupKey].positions.length
-                          }
                           isCollapsed={isCollapsed}
                           onToggleCollapse={() => toggleGroup(groupKey)}
                           stickyTop={headerOffset}
