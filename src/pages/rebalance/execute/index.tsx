@@ -49,9 +49,12 @@ function ExecuteRebalancePage(): React.ReactElement {
     filterByModel: filterByModelParam === "true",
   })
 
-  // Handle URL update after new execution creation
+  // Handle URL update after new execution creation. The executionId guard is
+  // load-bearing: Pages Router rebuilds the router object every render, so an
+  // unguarded shallow replace re-fires this effect on its own navigation —
+  // Safari kills the tab after 100 replaceState calls in 10s (BC-VIEW-60).
   useEffect(() => {
-    if (createdExecutionId) {
+    if (createdExecutionId && executionId !== createdExecutionId) {
       const sourceParam = source
         ? `&source=${encodeURIComponent(source as string)}`
         : ""
@@ -61,7 +64,7 @@ function ExecuteRebalancePage(): React.ReactElement {
         { shallow: true },
       )
     }
-  }, [createdExecutionId, source, router])
+  }, [createdExecutionId, executionId, source, router])
 
   if (states.loading) {
     return (
