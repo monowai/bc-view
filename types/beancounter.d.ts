@@ -422,6 +422,26 @@ export interface TrnPayload {
 }
 
 /**
+ * Split-adjusted quantity held for one group (a broker or a portfolio) of an
+ * asset's trades. `groupId` is the broker id ("" for "No Broker") or the
+ * portfolio id, matching {@link TrnTradeSummary.groupBy}.
+ */
+export interface TrnGroupTotal {
+  groupId: string
+  quantity: number
+}
+
+/**
+ * Server-computed, split-adjusted quantity per group for a trade drill-down.
+ * The UI reads the authoritative quantity from here instead of summing raw
+ * `trn.quantity` — a SPLIT row carries the ratio, not shares.
+ */
+export interface TrnTradeSummary {
+  groupBy: "BROKER" | "PORTFOLIO"
+  groups: TrnGroupTotal[]
+}
+
+/**
  * Top-level response envelope from backend trn endpoints.
  */
 export interface TrnResponse {
@@ -430,6 +450,8 @@ export interface TrnResponse {
   // skipped because the master funding portfolio has no balance in the
   // trade's settlement currency). Surfaced to the UI as toasts.
   warnings?: string[]
+  // Split-adjusted quantity per group, present only on asset trade lists.
+  summary?: TrnTradeSummary
 }
 
 /**

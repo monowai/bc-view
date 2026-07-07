@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from "react"
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+} from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/router"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import CashInputForm from "@components/features/transactions/CashInputForm"
@@ -30,14 +37,45 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState<{ top: number; right: number }>({
+    top: 0,
+    right: 0,
+  })
 
-  // Close dropdown when clicking outside
+  // The panel is rendered in a portal (fixed position) rather than as an
+  // `absolute` child, because the enclosing single-row icon ribbon is
+  // `overflow-x-auto` (#1021). A scroll container with a non-visible overflow-x
+  // also clips overflow-y, which clipped the panel out of view on narrow/mobile
+  // widths. Position it against the trigger's viewport rect instead.
+  const positionPanel = (): void => {
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) {
+      setCoords({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
+    }
+  }
+
+  useLayoutEffect(() => {
+    const onReflow = (): void => positionPanel()
+    if (isOpen) {
+      positionPanel()
+      window.addEventListener("resize", onReflow)
+      window.addEventListener("scroll", onReflow, true)
+    }
+    return () => {
+      window.removeEventListener("resize", onReflow)
+      window.removeEventListener("scroll", onReflow, true)
+    }
+  }, [isOpen])
+
+  // Close when clicking outside the trigger or the portalled panel.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
+      const target = event.target as Node
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !buttonRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
       ) {
         setIsOpen(false)
       }
@@ -47,8 +85,9 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   }, [])
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={buttonRef}
         className={`w-auto ${colorClass} text-white px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -60,26 +99,32 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
           className={`fas fa-chevron-down text-[8px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         ></i>
       </button>
-      {isOpen && (
-        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-lg shadow-lg shadow-slate-200/50 border border-slate-200/80 z-50 overflow-hidden">
-          {items.map((item, index) => (
-            <button
-              key={index}
-              className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors duration-150"
-              onClick={() => {
-                setIsOpen(false)
-                item.onClick()
-              }}
-            >
-              <i
-                className={`fas ${item.icon} w-3.5 text-center text-slate-400`}
-              ></i>
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {isOpen &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={{ top: coords.top, right: coords.right }}
+            className="fixed w-44 bg-white rounded-lg shadow-lg shadow-slate-200/50 border border-slate-200/80 z-50 overflow-hidden"
+          >
+            {items.map((item, index) => (
+              <button
+                key={index}
+                className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors duration-150"
+                onClick={() => {
+                  setIsOpen(false)
+                  item.onClick()
+                }}
+              >
+                <i
+                  className={`fas ${item.icon} w-3.5 text-center text-slate-400`}
+                ></i>
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 

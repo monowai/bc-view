@@ -226,6 +226,41 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
     })
   })
 
+  // Regression: the Trade/Invest dropdowns live inside a single-row icon
+  // ribbon styled `overflow-x-auto` (#1021). A scroll container with a
+  // non-visible overflow-x also clips overflow-y, so the absolutely-positioned
+  // dropdown panel (which opens below the one-row ribbon) was clipped away on
+  // narrow/mobile widths — the button toggled but its items were unreachable.
+  // The panel must render OUTSIDE any `overflow-x-auto` ancestor (portal).
+  describe("Dropdown panel escapes the overflow-x-auto ribbon", () => {
+    it.each([
+      ["Trade", "Asset Trade"],
+      ["Invest", "Invest Cash"],
+    ])(
+      "opens %s menu items outside any overflow-clipping ancestor",
+      (trigger, item) => {
+        render(
+          <HoldingActions
+            holdingResults={mockHoldingResults}
+            columns={mockColumns}
+            valueIn={mockValueIn}
+            onInvestCash={() => {}}
+          />,
+        )
+
+        fireEvent.click(screen.getByLabelText(trigger))
+        const menuItem = screen.getByText(item)
+        expect(menuItem).toBeInTheDocument()
+
+        let node: HTMLElement | null = menuItem
+        while (node) {
+          expect(node).not.toHaveClass("overflow-x-auto")
+          node = node.parentElement
+        }
+      },
+    )
+  })
+
   describe("Desktop/Tablet Mode (width >= 640px)", () => {
     beforeEach(() => {
       Object.defineProperty(window, "innerWidth", {

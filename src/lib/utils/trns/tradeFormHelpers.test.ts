@@ -14,6 +14,9 @@ import {
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
   resolveBrokerCashAssetId,
+  resolveSellableQuantity,
+  heldQuantityForBroker,
+  singleHeldBrokerId,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -793,6 +796,124 @@ describe("tradeFormHelpers", () => {
           brokers: brokers as any,
         }),
       ).toBe(false)
+    })
+  })
+
+  describe("heldQuantityForBroker", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+    const held = { DBS: 367, IB: 47 }
+
+    test("returns the broker's held quantity", () => {
+      expect(heldQuantityForBroker(held, "dbs", brokers as any)).toBe(367)
+    })
+
+    test("returns undefined when no broker is selected", () => {
+      expect(heldQuantityForBroker(held, undefined, brokers as any)).toBe(
+        undefined,
+      )
+    })
+
+    test("returns undefined when held is missing", () => {
+      expect(heldQuantityForBroker(undefined, "dbs", brokers as any)).toBe(
+        undefined,
+      )
+    })
+
+    test("returns undefined when the broker holds none", () => {
+      expect(heldQuantityForBroker({ DBS: 367 }, "ib", brokers as any)).toBe(
+        undefined,
+      )
+    })
+  })
+
+  describe("singleHeldBrokerId", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+
+    test("returns the broker id when held at exactly one brokerage", () => {
+      expect(singleHeldBrokerId({ DBS: 367 }, brokers as any)).toBe("dbs")
+    })
+
+    test("returns undefined when held at multiple brokerages", () => {
+      expect(
+        singleHeldBrokerId({ DBS: 367, IB: 47 }, brokers as any),
+      ).toBeUndefined()
+    })
+
+    test("returns undefined when held is empty or missing", () => {
+      expect(singleHeldBrokerId({}, brokers as any)).toBeUndefined()
+      expect(singleHeldBrokerId(undefined, brokers as any)).toBeUndefined()
+    })
+
+    test("returns undefined when the single broker name is unknown", () => {
+      expect(singleHeldBrokerId({ Unknown: 5 }, brokers as any)).toBeUndefined()
+    })
+  })
+
+  describe("resolveSellableQuantity", () => {
+    const brokers = [
+      { id: "dbs", name: "DBS" },
+      { id: "ib", name: "IB" },
+    ]
+    const held = { DBS: 40, IB: 10 }
+
+    test("returns the selected broker's held quantity", () => {
+      expect(
+        resolveSellableQuantity({
+          held,
+          brokerId: "dbs",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(40)
+    })
+
+    test("falls back to the whole-holding total when no broker is selected", () => {
+      expect(
+        resolveSellableQuantity({
+          held,
+          brokerId: undefined,
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(50)
+    })
+
+    test("returns 0 when the selected broker holds none", () => {
+      expect(
+        resolveSellableQuantity({
+          held: { DBS: 0 },
+          brokerId: "dbs",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(0)
+    })
+
+    test("falls back to the total when held has no entry for the broker", () => {
+      expect(
+        resolveSellableQuantity({
+          held: { DBS: 40 },
+          brokerId: "ib",
+          brokers: brokers as any,
+          quantity: 50,
+        }),
+      ).toBe(50)
+    })
+
+    test("prefers currentPositionQuantity over quantity when no held match", () => {
+      expect(
+        resolveSellableQuantity({
+          brokers: brokers as any,
+          currentPositionQuantity: 25,
+          quantity: 50,
+        }),
+      ).toBe(25)
     })
   })
 })

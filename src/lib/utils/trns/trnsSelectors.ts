@@ -73,6 +73,10 @@ export function transformTrnEnvelopeJson(json: unknown): unknown {
       if (Array.isArray(envelope.warnings)) {
         result.warnings = envelope.warnings
       }
+      // Split-adjusted per-group quantity summary for trade drill-downs.
+      if (envelope.summary) {
+        result.summary = envelope.summary
+      }
       return result
     }
   }
