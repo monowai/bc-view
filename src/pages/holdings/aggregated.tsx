@@ -746,6 +746,9 @@ function AggregatedHoldingsPage(): React.ReactElement {
           <PriceChartPopup
             asset={priceChartData.asset}
             currencySymbol={priceChartData.currencySymbol}
+            portfolios={(
+              breakdownByAssetId.get(priceChartData.asset.id) ?? []
+            ).map((b) => b.portfolioId)}
             onClose={handlePriceChartClose}
           />
         )}
