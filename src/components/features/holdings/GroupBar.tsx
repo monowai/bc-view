@@ -4,7 +4,6 @@ import { getSubTotalCellClasses } from "@lib/holdings/cellClasses"
 import { buildSubTotalCells } from "./SubTotal"
 
 interface GroupBarProps extends GroupedSubtotals {
-  positionCount: number
   isCollapsed: boolean
   onToggleCollapse: () => void
   /** Sticky offset (px) so the bar pins just beneath the ColumnHeader. */
@@ -21,7 +20,6 @@ export default function GroupBar({
   groupBy,
   subTotals,
   valueIn,
-  positionCount,
   isCollapsed,
   onToggleCollapse,
   stickyTop,
@@ -55,9 +53,6 @@ export default function GroupBar({
         </svg>
       </button>
       <span className="font-semibold text-sm text-blue-900">{groupBy}</span>
-      <span className="text-xs text-blue-400 ml-1">
-        {positionCount} {positionCount === 1 ? "holding" : "holdings"}
-      </span>
     </div>
   )
 

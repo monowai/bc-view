@@ -86,6 +86,43 @@ describe("PortfolioBreakdownPopup", () => {
     expect(push).toHaveBeenCalledWith("/holdings/MAIN")
   })
 
+  it("marks portfolio codes and broker holdings with drilldown-consistent icons", () => {
+    const { container } = render(
+      <PortfolioBreakdownPopup
+        asset={asset}
+        breakdown={[
+          makePortfolioBreakdown({
+            portfolioId: "p1",
+            portfolioCode: "DbS",
+            portfolioName: "DBS Account",
+            quantity: 255,
+            held: { DBS: 175, SCB: 80 },
+          }),
+        ]}
+        onClose={jest.fn()}
+      />,
+    )
+    // Portfolio code carries the portfolio icon (fa-building, as in trades)
+    expect(container.querySelector("i.fa-building")).toBeInTheDocument()
+    // Each broker slice is badged with the broker icon (fa-university)
+    expect(container.querySelectorAll("i.fa-university")).toHaveLength(2)
+    expect(screen.getByText("DBS")).toBeInTheDocument()
+    expect(screen.getByText("175")).toBeInTheDocument()
+    expect(screen.getByText("SCB")).toBeInTheDocument()
+    expect(screen.getByText("80")).toBeInTheDocument()
+  })
+
+  it("shows no broker badges when a row has no held map", () => {
+    const { container } = render(
+      <PortfolioBreakdownPopup
+        asset={asset}
+        breakdown={breakdown}
+        onClose={jest.fn()}
+      />,
+    )
+    expect(container.querySelector("i.fa-university")).not.toBeInTheDocument()
+  })
+
   it("calls onSelect with the row instead of navigating when provided", () => {
     const onSelect = jest.fn()
     const onClose = jest.fn()
