@@ -52,6 +52,9 @@ import {
   buildDefaultCashAsset,
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
+  resolveSellableQuantity,
+  heldQuantityForBroker,
+  singleHeldBrokerId,
 } from "@lib/trns/tradeFormHelpers"
 import {
   submitEditMode,
@@ -337,13 +340,31 @@ const TradeInputForm: React.FC<{
   const type = watch("type")
   const tradeCurrency = watch("tradeCurrency")
   const asset = watch("asset")
+  const brokerId = watch("brokerId")
 
   // Weight basis: aggregate market value when supplied (aggregated view),
   // otherwise the single portfolio's own market value.
   const weightBasis = weightBasisMarketValue ?? portfolio.marketValue
-  // Calculate current weight from position data
-  const positionQty =
-    initialValues?.currentPositionQuantity ?? initialValues?.quantity ?? 0
+  // Available quantity to trade. When a broker is selected and per-broker
+  // holdings are known, this is what THAT broker holds (split-adjusted), not
+  // the whole-holding total.
+  const positionQty = useMemo(
+    () =>
+      resolveSellableQuantity({
+        held: initialValues?.held,
+        brokerId,
+        brokers,
+        currentPositionQuantity: initialValues?.currentPositionQuantity,
+        quantity: initialValues?.quantity,
+      }),
+    [
+      initialValues?.held,
+      initialValues?.currentPositionQuantity,
+      initialValues?.quantity,
+      brokerId,
+      brokers,
+    ],
+  )
   const currentPositionWeight = useMemo(
     () =>
       currentWeightOverride ??
@@ -352,6 +373,10 @@ const TradeInputForm: React.FC<{
   )
 
   const actualPositionQuantity = positionQty
+  // Quick Sell: the Qty label offers a brokerage picker only when the asset is
+  // held at MORE than one brokerage. A single brokerage is auto-defaulted (see
+  // effect below), so a picker there would be redundant.
+  const hasHeldBrokers = Object.keys(initialValues?.held ?? {}).length > 1
 
   // Handle target weight change
   const handleTargetWeightChange = (newTargetWeight: string): void => {
@@ -625,6 +650,32 @@ const TradeInputForm: React.FC<{
     }
   }, [isEditMode, type?.value, brokers, setValue, watch])
 
+  // Quick Sell: when the asset is held at exactly one brokerage, default to it
+  // (the brokerId effect below then fills the quantity). Fires once; create
+  // mode only. Multi-brokerage holdings surface the picker instead.
+  const heldBrokerDefaultedRef = useRef(false)
+  useEffect(() => {
+    if (heldBrokerDefaultedRef.current || isEditMode) return
+    if (watch("brokerId")) return
+    const only = singleHeldBrokerId(initialValues?.held, brokers)
+    if (!only) return
+    heldBrokerDefaultedRef.current = true
+    setValue("brokerId", only)
+  }, [isEditMode, initialValues?.held, brokers, setValue, watch])
+
+  // Quick Sell: choosing a broker sets the quantity to that broker's holding
+  // (the intent is to sell out one custodian's split-adjusted position). Only
+  // fires when per-broker holdings are known (`held`); leaves the field alone
+  // for brokers that hold none, and is inert in edit mode (no `held`).
+  useEffect(() => {
+    const brokerQty = heldQuantityForBroker(
+      initialValues?.held,
+      brokerId,
+      brokers,
+    )
+    if (brokerQty !== undefined) setValue("quantity", brokerQty)
+  }, [brokerId, brokers, initialValues?.held, setValue])
+
   const cashAmountField = watch("cashAmount")
   const market = watch("market")
 
@@ -671,7 +722,13 @@ const TradeInputForm: React.FC<{
             setValue("quantity", maxQty)
             setShowBrokerSelectionDialog(false)
           }}
-          onSkip={() => setShowBrokerSelectionDialog(false)}
+          onSkip={() => {
+            // Skip = sell the entire position with no specific broker, so
+            // clear any prior broker pick and restore the whole-holding qty.
+            setValue("brokerId", "")
+            setValue("quantity", initialValues.quantity ?? 0)
+            setShowBrokerSelectionDialog(false)
+          }}
         />
       )}
 
@@ -987,9 +1044,28 @@ const TradeInputForm: React.FC<{
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div>
                           <label className={labelClass}>
-                            {actualPositionQuantity > 0
-                              ? `${"Qty"} (${actualPositionQuantity.toLocaleString()})`
-                              : "Qty"}
+                            {actualPositionQuantity > 0 ? (
+                              hasHeldBrokers ? (
+                                <>
+                                  {"Qty ("}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setShowBrokerSelectionDialog(true)
+                                    }
+                                    className="underline decoration-dotted underline-offset-2 text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                                    title="Choose the brokerage to sell from"
+                                  >
+                                    {actualPositionQuantity.toLocaleString()}
+                                  </button>
+                                  {")"}
+                                </>
+                              ) : (
+                                `${"Qty"} (${actualPositionQuantity.toLocaleString()})`
+                              )
+                            ) : (
+                              "Qty"
+                            )}
                           </label>
                           <Controller
                             name="quantity"

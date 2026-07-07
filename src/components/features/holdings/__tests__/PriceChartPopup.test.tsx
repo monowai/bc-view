@@ -95,16 +95,28 @@ function makeRouter(options: {
 }
 
 function renderPopup(
-  overrides: Partial<{ portfolioId: string }> = {},
+  overrides: Partial<{ portfolioId: string; portfolios: string[] }> = {},
 ): ReturnType<typeof render> {
   return render(
     <PriceChartPopup
       asset={asset}
       currencySymbol="$"
-      portfolioId={overrides.portfolioId ?? "pf-1"}
+      portfolioId={
+        overrides.portfolios ? undefined : (overrides.portfolioId ?? "pf-1")
+      }
+      portfolios={overrides.portfolios}
       onClose={jest.fn()}
     />,
   )
+}
+
+function tradesKeys(): string[] {
+  return mockUseSwr.mock.calls
+    .map((call) => call[0])
+    .filter(
+      (k): k is string =>
+        typeof k === "string" && k.includes("/api/trns/trades/"),
+    )
 }
 
 describe("PriceChartPopup", () => {
@@ -168,6 +180,26 @@ describe("PriceChartPopup", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
     expect(screen.getByTestId("line-sma")).toBeInTheDocument()
+  })
+
+  it("fetches trades from a single portfolio via the path form", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup({ portfolioId: "pf-1" })
+
+    const keys = tradesKeys()
+    expect(keys[keys.length - 1]).toBe(`/api/trns/trades/pf-1/${asset.id}`)
+  })
+
+  it("fetches trades across portfolios via the aggregated query form", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup({ portfolios: ["pf-1", "pf-2"] })
+
+    const keys = tradesKeys()
+    expect(keys[keys.length - 1]).toBe(
+      `/api/trns/trades/${asset.id}?portfolios=pf-1%2Cpf-2`,
+    )
   })
 
   it("renders buy and sell scatter series from trades", () => {

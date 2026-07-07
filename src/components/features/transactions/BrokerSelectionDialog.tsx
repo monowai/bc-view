@@ -17,7 +17,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
   onSelect,
   onSkip,
 }) => (
-  <Dialog title="Select Broker" onClose={onSkip} maxWidth="md">
+  <Dialog title="Select Broker" onClose={onSkip} maxWidth="md" zClass="z-[60]">
     <p className="text-sm text-gray-600">
       This position is held across multiple brokers. Select which broker to sell
       from:
