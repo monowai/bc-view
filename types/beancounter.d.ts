@@ -429,6 +429,9 @@ export interface TrnPayload {
 export interface TrnGroupTotal {
   groupId: string
   quantity: number
+  // Broker breakdown of a portfolio group (empty for broker grouping). Each
+  // sub-total is split-adjusted; summing them reconstructs `quantity`.
+  subTotals?: TrnGroupTotal[]
 }
 
 /**

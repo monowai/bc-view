@@ -21,7 +21,7 @@ import FxEditModal from "@components/features/transactions/FxEditModal"
 import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { unsettleTrn } from "@utils/trns/apiHelper"
-import { computeTradeGroupTotals } from "@utils/trns/tradeUtils"
+import { buildTradeGroups } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
@@ -118,106 +118,69 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     (): Transaction[] => trades.data?.data || [],
     [trades.data?.data],
   )
-  // Backend-authoritative, split-adjusted quantity per group. A SPLIT row holds
-  // the ratio (not shares), so the server folds it correctly (see
-  // TrnTradeSummaryBuilder) and we key it by broker id (single) / portfolio id
-  // (aggregated). "" is the server's "No Broker" key.
-  const summaryQty = useMemo(() => {
-    const summary = trades.data?.summary as TrnTradeSummary | undefined
-    const map = new Map<string, number>()
-    summary?.groups.forEach((g) => map.set(g.groupId, g.quantity))
-    return map
-  }, [trades.data?.summary])
-  // Single-portfolio view groups by broker; the aggregated drill-down groups by
-  // portfolio (one asset held across several portfolios).
-  const groups = useMemo(() => {
-    if (!trnResults || trnResults.length === 0) return []
+  // Single-portfolio view groups by broker. The aggregated drill-down groups by
+  // portfolio AND broker (one asset held across several portfolios, each split
+  // over several brokers) so a broker's slice is never hidden inside a portfolio
+  // that happens to share a broker's name. Split-adjusted quantities come from
+  // the server summary (see buildTradeGroups / TrnTradeSummaryBuilder).
+  const groups = useMemo(
+    () =>
+      buildTradeGroups(
+        trnResults,
+        isMulti,
+        trades.data?.summary as TrnTradeSummary | undefined,
+      ),
+    [trnResults, isMulti, trades.data?.summary],
+  )
 
-    const acc: Record<
-      string,
-      {
-        id: string
-        label: string
-        sortName: string
-        transactions: Transaction[]
-      }
-    > = {}
-
-    trnResults.forEach((trn: Transaction) => {
-      const key = isMulti
-        ? trn.portfolio?.id || "__no_portfolio__"
-        : trn.broker?.id || "__no_broker__"
-      const named = isMulti ? !!trn.portfolio : !!trn.broker
-      const label = isMulti
-        ? trn.portfolio?.code || "Unknown Portfolio"
-        : trn.broker?.name || "No Broker"
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          label,
-          sortName: named ? label : "",
-          transactions: [],
-        }
-      }
-      acc[key].transactions.push(trn)
-    })
-
-    // A BALANCE transaction states the absolute position as at its trade date,
-    // so the running quantity must reset to it — computeTradeGroupTotals folds
-    // the trades chronologically rather than naively summing every quantity.
-    const withTotals = Object.values(acc).map((group) => {
-      const totals = computeTradeGroupTotals(group.transactions)
-      // Prefer the server's split-adjusted quantity; the client fold sums raw
-      // trn.quantity and would corrupt the total on a SPLIT. Map the local
-      // "no broker/portfolio" sentinel onto the server's "" key.
-      const summaryId =
-        group.id === "__no_broker__" || group.id === "__no_portfolio__"
-          ? ""
-          : group.id
-      const authQuantity = summaryQty.get(summaryId)
-      return {
-        ...group,
-        totals:
-          authQuantity !== undefined
-            ? { ...totals, quantity: authQuantity }
-            : totals,
-      }
-    })
-
-    // Named groups first (alphabetically), unnamed ("No Broker") last
-    return withTotals.sort((a, b) => {
-      if (!a.sortName && b.sortName) return 1
-      if (a.sortName && !b.sortName) return -1
-      return a.sortName.localeCompare(b.sortName)
-    })
-  }, [trnResults, isMulti, summaryQty])
-
-  // Group header label. In the aggregated (multi-portfolio) view the label is a
-  // portfolio code, so make it a link to that portfolio's holdings page with the
-  // drilled-down asset highlighted. sortName is only set for named portfolios,
-  // so the "Unknown Portfolio" fallback stays plain text.
+  // Group header label. The aggregated (multi-portfolio) view shows the
+  // portfolio code — linked to that portfolio's holdings with the drilled-down
+  // asset highlighted — alongside a broker badge, so one asset split across
+  // brokers within a portfolio is visible. The single-portfolio view shows the
+  // broker name only.
   const renderGroupLabel = (group: {
     label: string
-    sortName: string
+    portfolioCode?: string
+    transactions: Transaction[]
   }): React.ReactElement => {
-    const content = (
-      <>
-        <i className="fas fa-building mr-2 text-indigo-400"></i>
-        {group.label}
-      </>
-    )
-    if (isMulti && assetId && group.sortName) {
+    if (isMulti) {
+      const pCode = group.portfolioCode ?? group.label
+      const isNamedPortfolio = !!group.portfolioCode
+      const brokerBadge = (
+        <span className="ml-2 inline-flex items-center rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+          <i className="fas fa-university mr-1"></i>
+          {group.label}
+        </span>
+      )
+      const portfolio = (
+        <>
+          <i className="fas fa-building mr-2 text-indigo-400"></i>
+          {pCode}
+        </>
+      )
       return (
-        <Link
-          href={holdingsHighlightHref(group.label, assetId as string)}
-          className="font-medium text-indigo-900 hover:text-indigo-700 hover:underline"
-          title={`View ${group.label} holdings`}
-        >
-          {content}
-        </Link>
+        <span className="flex items-center font-medium text-indigo-900">
+          {assetId && isNamedPortfolio ? (
+            <Link
+              href={holdingsHighlightHref(pCode, assetId as string)}
+              className="hover:text-indigo-700 hover:underline"
+              title={`View ${pCode} holdings`}
+            >
+              {portfolio}
+            </Link>
+          ) : (
+            <span>{portfolio}</span>
+          )}
+          {brokerBadge}
+        </span>
       )
     }
-    return <span className="font-medium text-indigo-900">{content}</span>
+    return (
+      <span className="font-medium text-indigo-900">
+        <i className="fas fa-building mr-2 text-indigo-400"></i>
+        {group.label}
+      </span>
+    )
   }
 
   // Copy row data to clipboard as tab-separated values
