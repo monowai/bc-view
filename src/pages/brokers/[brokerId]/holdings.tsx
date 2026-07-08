@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react"
-import useSwr from "swr"
+import useSwr, { useSWRConfig } from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import {
   Broker,
@@ -13,6 +13,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import Link from "next/link"
+import WeightedSellDialog from "@components/features/brokers/WeightedSellDialog"
 
 const brokersKey = "/api/brokers"
 
@@ -25,6 +26,9 @@ export default withPageAuthRequired(
     const [reconciledAssets, setReconciledAssets] = useState<Set<string>>(
       new Set(),
     )
+    const [sellHolding, setSellHolding] =
+      useState<BrokerHoldingPosition | null>(null)
+    const { mutate } = useSWRConfig()
 
     const { data: brokersData, error: brokersError } = useSwr(
       brokersKey,
@@ -124,8 +128,11 @@ export default withPageAuthRequired(
 
     const brokers: Broker[] = brokersData.data || []
     const holdings:
-      | (BrokerHoldingsResponse & { totalHoldings: number })
-      | null = mergedHoldings
+      (BrokerHoldingsResponse & { totalHoldings: number }) | null =
+      mergedHoldings
+    // Sell proposes SELL trns against a real broker; NO_BROKER is a UI
+    // sentinel grouping unassigned transactions, not a real broker id.
+    const canSell = brokerId !== "NO_BROKER"
 
     const handleBrokerChange = (newBrokerId: string): void => {
       setExpandedAsset(null)
@@ -146,6 +153,13 @@ export default withPageAuthRequired(
         }
         return next
       })
+    }
+
+    // Refresh data but leave the dialog open so its success state (with the
+    // link to review proposed transactions) stays visible; onClose dismisses.
+    const handleSellSubmitted = (): void => {
+      if (positionsKey) mutate(positionsKey)
+      if (transactionsKey) mutate(transactionsKey)
     }
 
     const formatQuantity = (qty: number): string => {
@@ -225,12 +239,24 @@ export default withPageAuthRequired(
                 ></i>
               </button>
             </td>
+            {canSell && (
+              <td className="px-4 py-3 text-right">
+                <button
+                  onClick={() => setSellHolding(holding)}
+                  className="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50"
+                  title={"Sell"}
+                >
+                  <i className="fas fa-hand-holding-usd mr-1"></i>
+                  {"Sell"}
+                </button>
+              </td>
+            )}
           </tr>
 
           {/* Expanded detail */}
           {isExpanded && portfolioGroups.length > 0 && (
             <tr>
-              <td colSpan={2} className="px-0 py-0 bg-gray-50">
+              <td colSpan={canSell ? 3 : 2} className="px-0 py-0 bg-gray-50">
                 <div className="border-t border-b border-gray-200">
                   {portfolioGroups.map((pg) => (
                     <div
@@ -390,6 +416,18 @@ export default withPageAuthRequired(
                 ></i>
               </button>
             </div>
+            {canSell && (
+              <div className="mt-2 flex justify-end">
+                <button
+                  onClick={() => setSellHolding(holding)}
+                  className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50"
+                  title={"Sell"}
+                >
+                  <i className="fas fa-hand-holding-usd mr-1"></i>
+                  {"Sell"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Expanded detail */}
@@ -557,6 +595,11 @@ export default withPageAuthRequired(
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           {"Qty"}
                         </th>
+                        {canSell && (
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {"Actions"}
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -584,6 +627,17 @@ export default withPageAuthRequired(
             </div>
           </div>
         </div>
+
+        {sellHolding && (
+          <WeightedSellDialog
+            open={true}
+            onClose={() => setSellHolding(null)}
+            brokerId={String(brokerId)}
+            brokerName={holdings?.brokerName || String(brokerId)}
+            holding={sellHolding}
+            onSubmitted={handleSellSubmitted}
+          />
+        )}
       </div>
     )
   },
