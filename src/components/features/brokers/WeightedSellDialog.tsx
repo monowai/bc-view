@@ -128,6 +128,12 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
 
   const proposalCount = previewRows.filter((row) => row.sellQty > 0).length
 
+  // holding.quantity comes from the positions merge and can span ALL brokers;
+  // only the portfolio groups are scoped to this broker. Sell against the
+  // broker-scoped total and surface the cross-broker figure separately.
+  const brokerTotal = previewRows.reduce((sum, row) => sum + row.heldQty, 0)
+  const crossesBrokers = Math.abs(holding.quantity - brokerTotal) > 1e-9
+
   const canSubmit =
     !isNaN(percentNum) &&
     percentNum > 0 &&
@@ -219,9 +225,14 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
             <div className="text-sm text-gray-600 mt-1">
               {`Total at ${brokerName}: `}
               <span className="font-medium text-gray-900">
-                {trimQty(holding.quantity)}
+                {trimQty(brokerTotal)}
               </span>
             </div>
+            {crossesBrokers && (
+              <div className="text-xs text-gray-500 mt-0.5">
+                {`Across all brokers: ${trimQty(holding.quantity)}`}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
