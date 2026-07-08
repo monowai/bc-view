@@ -70,6 +70,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [settledError, setSettledError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
+  const [brokerFilter, setBrokerFilter] = useState<string>("ALL")
   const [scope, setScope] = useState<ProposedScope>("ALL")
   const [isSettling, setIsSettling] = useState(false)
   const [isUnsettling, setIsUnsettling] = useState(false)
@@ -227,10 +228,18 @@ export default function ProposedTransactions(): React.JSX.Element {
     })
 
     // Apply type filter
-    const filtered =
+    const typeFiltered =
       typeFilter === "ALL"
         ? allTransactions
         : allTransactions.filter((trn) => trn.trnType === typeFilter)
+
+    // Apply broker filter — display-only; never mutates the transactions
+    const filtered =
+      brokerFilter === "ALL"
+        ? typeFiltered
+        : typeFiltered.filter(
+            (trn) => (trn.broker?.id || trn.brokerId) === brokerFilter,
+          )
 
     const sorted = filtered.sort((a, b) => {
       // Sort by broker name first
@@ -261,18 +270,27 @@ export default function ProposedTransactions(): React.JSX.Element {
     settledTransactions: Transaction[]
     includeSettled: boolean
     typeFilter: string
-  }>({ proposedData, settledTransactions, includeSettled, typeFilter })
+    brokerFilter: string
+  }>({
+    proposedData,
+    settledTransactions,
+    includeSettled,
+    typeFilter,
+    brokerFilter,
+  })
   if (
     prevTrnInputs.proposedData !== proposedData ||
     prevTrnInputs.settledTransactions !== settledTransactions ||
     prevTrnInputs.includeSettled !== includeSettled ||
-    prevTrnInputs.typeFilter !== typeFilter
+    prevTrnInputs.typeFilter !== typeFilter ||
+    prevTrnInputs.brokerFilter !== brokerFilter
   ) {
     setPrevTrnInputs({
       proposedData,
       settledTransactions,
       includeSettled,
       typeFilter,
+      brokerFilter,
     })
     setTransactions(buildTransactions())
   }
@@ -281,9 +299,9 @@ export default function ProposedTransactions(): React.JSX.Element {
   // pattern instead of an effect — resets synchronously on the same render
   // that the filter changed, avoiding a cascading render.
   const [prevFilterKey, setPrevFilterKey] = useState(
-    `${typeFilter}:${aggregateView}`,
+    `${typeFilter}:${brokerFilter}:${aggregateView}`,
   )
-  const filterKey = `${typeFilter}:${aggregateView}`
+  const filterKey = `${typeFilter}:${brokerFilter}:${aggregateView}`
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey)
     setSelectedIds(new Set())
@@ -413,16 +431,6 @@ export default function ProposedTransactions(): React.JSX.Element {
       prev.map((trn) =>
         trn.id === id ? { ...trn, editedBrokerId: value || undefined } : trn,
       ),
-    )
-  }
-
-  // Bulk-apply a single broker to every row in the preview. Useful when
-  // the user opened a batch of orders that should all settle through the
-  // same broker — saves clicking the dropdown per row.
-  const handleApplyBrokerToAll = (value: string): void => {
-    if (!value) return
-    setTransactions((prev) =>
-      prev.map((trn) => ({ ...trn, editedBrokerId: value })),
     )
   }
 
@@ -810,6 +818,12 @@ export default function ProposedTransactions(): React.JSX.Element {
                   {` · ${fromDate} → ${toDate}`}
                   {includeSettled ? " · +settled" : ""}
                   {typeFilter !== "ALL" ? ` · ${typeFilter}` : ""}
+                  {brokerFilter !== "ALL"
+                    ? ` · ${
+                        brokers.find((b) => b.id === brokerFilter)?.name ??
+                        "broker"
+                      }`
+                    : ""}
                   {aggregateView ? " · aggregated" : ""}
                 </span>
               )}
@@ -948,21 +962,19 @@ export default function ProposedTransactions(): React.JSX.Element {
                 </label>
               </div>
 
-              {brokers.length > 0 && transactions.length > 0 && (
+              {/* Broker — display-only filter; does not edit transactions */}
+              {brokers.length > 0 && (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Apply broker
+                    Broker
                   </span>
                   <select
-                    value=""
-                    onChange={(e) => {
-                      handleApplyBrokerToAll(e.target.value)
-                      // Reset so the same broker can be re-applied later.
-                      e.currentTarget.selectedIndex = 0
-                    }}
+                    aria-label="Broker filter"
+                    value={brokerFilter}
+                    onChange={(e) => setBrokerFilter(e.target.value)}
                     className="h-[30px] px-2 py-1 border border-gray-300 rounded text-sm bg-white"
                   >
-                    <option value="">— Pick a broker —</option>
+                    <option value="ALL">ALL</option>
                     {brokers.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
