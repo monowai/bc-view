@@ -23,7 +23,7 @@ export function FormatValue({
       <NumericFormat
         value={value * (multiplier ? multiplier : 1)}
         displayType={"text"}
-        decimalScale={scale ? scale : 2}
+        decimalScale={scale ?? 2}
         fixedDecimalScale={true}
         thousandSeparator={true}
       />

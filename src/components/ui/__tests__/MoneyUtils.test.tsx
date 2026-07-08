@@ -37,6 +37,11 @@ describe("MoneyUtils", () => {
         expect(screen.getByText("1,234.568")).toBeInTheDocument()
       })
 
+      it("treats scale zero as zero decimals, not the default two", () => {
+        render(<FormatValue value={1234.56} scale={0} />)
+        expect(screen.getByText("1,235")).toBeInTheDocument()
+      })
+
       it("renders value with multiplier", () => {
         render(<FormatValue value={0.1234} multiplier={100} />)
         expect(screen.getByText("12.34")).toBeInTheDocument()

@@ -61,6 +61,56 @@ const renderWithFooter = (): void => {
   )
 }
 
+describe("CardView group header mobile layout", () => {
+  const renderWithGroupTotals = (): ReturnType<typeof render> => {
+    const portfolio = makePortfolio()
+    const holdings = makeHoldings({
+      portfolio,
+      holdingGroups: {
+        Equity: makeHoldingGroup({
+          subTotals: { marketValue: 3278.4, gainOnDay: 90.6, weight: 0.048 },
+        }),
+      },
+    })
+    return render(
+      <CardView
+        holdings={holdings}
+        portfolio={portfolio}
+        valueIn={ValueIn.PORTFOLIO}
+      />,
+    )
+  }
+
+  beforeEach(() => {
+    mockedUsePrivacyMode.mockReturnValue({
+      hideValues: false,
+      toggleHideValues: jest.fn(),
+    })
+  })
+
+  it("renders group value and day-gain with cents on desktop and without on mobile", () => {
+    renderWithGroupTotals()
+    // ResponsiveFormatValue emits both spans; CSS picks one per breakpoint.
+    // (The summary banner may repeat the amount, so assert at-least-one.)
+    expect(screen.getAllByText("3,278.40").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("3,278").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("90.60").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("91").length).toBeGreaterThan(0)
+  })
+
+  it("hides the group weight on mobile so the sector name keeps its space", () => {
+    const { container } = renderWithGroupTotals()
+    const weight = container.querySelector("span.hidden.sm\\:inline-block.w-14")
+    expect(weight).toBeInTheDocument()
+    expect(weight).toHaveTextContent("4.8")
+  })
+
+  it("titles the group name so a truncated sector stays discoverable", () => {
+    renderWithGroupTotals()
+    expect(screen.getByTitle("Equity")).toHaveTextContent("Equity")
+  })
+})
+
 describe("CardView footer (Quantity / Price / Weight)", () => {
   beforeEach(() => {
     mockedUsePrivacyMode.mockReturnValue({
@@ -76,7 +126,9 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
     expect(screen.getByText("Price")).toBeInTheDocument()
     expect(screen.getByText("Weight")).toBeInTheDocument()
 
-    expect(screen.getByText("100")).toBeInTheDocument()
+    // "100" also appears in the group header's mobile day-gain span.
+    const quantityLabel = screen.getByText("Quantity")
+    expect(quantityLabel.parentElement).toHaveTextContent("100")
     expect(screen.getByText("$150.00")).toBeInTheDocument()
     const weightLabel = screen.getByText("Weight")
     expect(weightLabel.parentElement).toHaveTextContent("25.00%")
