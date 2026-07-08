@@ -79,9 +79,141 @@ describe("WeightedSellDialog", () => {
       expect(screen.getByLabelText("Price")).toHaveValue(420.5),
     )
 
-    // Default percent is 50 -> 100 * 0.5 = 50, 75 * 0.5 = 37.5
+    // Default percent is 50 -> 100 * 0.5 = 50, 75 * 0.5 = 37.5 which
+    // rounds to 38 under the default board lot of 1 (whole shares).
     expect(screen.getByText("50")).toBeInTheDocument()
-    expect(screen.getByText("37.5")).toBeInTheDocument()
+    expect(screen.getByText("38")).toBeInTheDocument()
+  })
+
+  it("rounds sell quantities to whole shares by default", async () => {
+    const wholeShareHolding: BrokerHoldingPosition = {
+      assetId: "asset-1",
+      assetCode: "VOO",
+      market: "US",
+      quantity: 87,
+      portfolioGroups: [
+        {
+          portfolioId: "pf-1",
+          portfolioCode: "CHAT",
+          quantity: 69,
+          transactions: [],
+        },
+        {
+          portfolioId: "pf-2",
+          portfolioCode: "TYLER",
+          quantity: 18,
+          transactions: [],
+        },
+      ],
+    }
+    render(
+      <WeightedSellDialog
+        open={true}
+        onClose={jest.fn()}
+        brokerId="broker-1"
+        brokerName="Interactive Brokers"
+        holding={wholeShareHolding}
+        onSubmitted={jest.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Price")).toHaveValue(420.5),
+    )
+
+    // 69 * 0.5 = 34.5 -> 35 (never 34.5); 18 * 0.5 = 9
+    expect(screen.getByText("35")).toBeInTheDocument()
+    expect(screen.queryByText("34.5")).not.toBeInTheDocument()
+    expect(screen.getByText("9")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /propose 2 sells/i }),
+    ).toBeInTheDocument()
+  })
+
+  it("keeps fractional quantities when boardLot is 0", async () => {
+    const fractionalHolding: BrokerHoldingPosition = {
+      assetId: "asset-1",
+      assetCode: "FUND",
+      market: "US",
+      quantity: 69,
+      boardLot: 0,
+      portfolioGroups: [
+        {
+          portfolioId: "pf-1",
+          portfolioCode: "CHAT",
+          quantity: 69,
+          transactions: [],
+        },
+      ],
+    }
+    render(
+      <WeightedSellDialog
+        open={true}
+        onClose={jest.fn()}
+        brokerId="broker-1"
+        brokerName="Interactive Brokers"
+        holding={fractionalHolding}
+        onSubmitted={jest.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Price")).toHaveValue(420.5),
+    )
+
+    expect(screen.getByText("34.5")).toBeInTheDocument()
+  })
+
+  it("rounds to board lot multiples and mutes sub-lot rows", async () => {
+    const lotHolding: BrokerHoldingPosition = {
+      assetId: "asset-1",
+      assetCode: "SGX1",
+      market: "SG",
+      quantity: 170,
+      boardLot: 100,
+      portfolioGroups: [
+        {
+          portfolioId: "pf-1",
+          portfolioCode: "BIG",
+          quantity: 130,
+          transactions: [],
+        },
+        {
+          portfolioId: "pf-2",
+          portfolioCode: "SMALL",
+          quantity: 40,
+          transactions: [],
+        },
+      ],
+    }
+    render(
+      <WeightedSellDialog
+        open={true}
+        onClose={jest.fn()}
+        brokerId="broker-1"
+        brokerName="Interactive Brokers"
+        holding={lotHolding}
+        onSubmitted={jest.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Price")).toHaveValue(420.5),
+    )
+
+    // 130 * 0.5 = 65 -> nearest lot = 100 (<= held); 40 * 0.5 = 20 -> 0
+    expect(screen.getByText("100")).toBeInTheDocument()
+    expect(screen.getByTitle("Below board lot")).toBeInTheDocument()
+    // Sub-lot row is excluded from the proposal count
+    expect(
+      screen.getByRole("button", { name: /propose 1 sell/i }),
+    ).toBeInTheDocument()
+
+    // Every row below the lot -> nothing to propose -> disabled
+    fireEvent.change(screen.getByLabelText("Percent to sell"), {
+      target: { value: "10" },
+    })
+    expect(screen.getByRole("button", { name: /propose/i })).toBeDisabled()
   })
 
   it("POSTs the propose contract on submit", async () => {
