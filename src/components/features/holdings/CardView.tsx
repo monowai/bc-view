@@ -15,7 +15,11 @@ import {
   SetCashBalanceData,
   SetPriceData,
 } from "types/beancounter"
-import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
+import {
+  FormatValue,
+  PrivateQuantity,
+  ResponsiveFormatValue,
+} from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
   buildAggregatedTradesHref,
@@ -789,14 +793,19 @@ const CardView: React.FC<CardViewProps> = ({
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-              <h3 className="text-sm font-semibold text-gray-700 truncate min-w-0">
+              <h3
+                className="text-sm font-semibold text-gray-700 truncate min-w-0"
+                title={group.groupKey}
+              >
                 {group.groupKey}
               </h3>
               <span className="text-xs text-gray-400 shrink-0">
                 ({group.positions.length})
               </span>
-              <span className="ml-auto flex items-center gap-3 shrink-0">
-                <span className="w-14 text-right text-xs font-medium text-gray-500 tabular-nums">
+              {/* Fixed-width stats block: trimmed on mobile (no weight, no
+                  cents, tighter columns) so the sector name keeps its space. */}
+              <span className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
+                <span className="hidden sm:inline-block w-14 text-right text-xs font-medium text-gray-500 tabular-nums">
                   {groupWeight !== undefined && (
                     <>
                       <FormatValue
@@ -808,18 +817,18 @@ const CardView: React.FC<CardViewProps> = ({
                     </>
                   )}
                 </span>
-                <span className="w-24 text-right text-sm font-medium text-gray-900 tabular-nums">
+                <span className="w-20 sm:w-24 text-right text-sm font-medium text-gray-900 tabular-nums">
                   {currencySymbol}
-                  <FormatValue value={groupMarketValue} />
+                  <ResponsiveFormatValue value={groupMarketValue} />
                 </span>
                 <span
-                  className={`w-24 text-right text-xs font-medium tabular-nums ${
+                  className={`w-16 sm:w-24 text-right text-xs font-medium tabular-nums ${
                     isGroupDayPositive ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {isGroupDayPositive ? "+" : ""}
                   {currencySymbol}
-                  <FormatValue value={groupGainOnDay} />
+                  <ResponsiveFormatValue value={groupGainOnDay} />
                 </span>
               </span>
             </button>
