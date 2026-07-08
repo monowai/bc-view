@@ -60,6 +60,46 @@ describe("WeightedSellDialog", () => {
     await waitFor(() => expect(screen.getByText("GROWTH")).toBeInTheDocument())
     expect(screen.getByText("INCOME")).toBeInTheDocument()
     expect(screen.queryByText("ZERO")).not.toBeInTheDocument()
+    // quantity === sum of groups: total is broker-scoped, no cross-broker note
+    expect(screen.getByText("175")).toBeInTheDocument()
+    expect(screen.queryByText(/Across all brokers/)).not.toBeInTheDocument()
+  })
+
+  it("shows broker-scoped total and labels the cross-broker figure when they differ", async () => {
+    // holding.quantity spans all brokers (96); only 51 + 15 = 66 sit at this one
+    const crossBroker: BrokerHoldingPosition = {
+      ...holding,
+      quantity: 96,
+      portfolioGroups: [
+        {
+          portfolioId: "pf-1",
+          portfolioCode: "TYLER",
+          quantity: 51,
+          transactions: [],
+        },
+        {
+          portfolioId: "pf-2",
+          portfolioCode: "USV",
+          quantity: 15,
+          transactions: [],
+        },
+      ],
+    }
+    render(
+      <WeightedSellDialog
+        open={true}
+        onClose={jest.fn()}
+        brokerId="broker-1"
+        brokerName="IBRK"
+        holding={crossBroker}
+        onSubmitted={jest.fn()}
+      />,
+    )
+
+    await waitFor(() => expect(screen.getByText("TYLER")).toBeInTheDocument())
+    expect(screen.getByText(/Total at IBRK/)).toBeInTheDocument()
+    expect(screen.getByText("66")).toBeInTheDocument()
+    expect(screen.getByText("Across all brokers: 96")).toBeInTheDocument()
   })
 
   it("computes sell quantities for 50% correctly", async () => {
