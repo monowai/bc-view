@@ -100,11 +100,22 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
   const priceNum = parseFloat(price)
   const weight = (isNaN(percentNum) ? 0 : percentNum) / 100
 
+  // Mirrors backend rounding: quantities are whole multiples of the asset's
+  // board lot (default 1 share), never above the held quantity; boardLot 0
+  // means the accounting type permits fractional quantities.
+  const boardLot = holding.boardLot ?? 1
   const previewRows: PreviewRow[] = useMemo(() => {
     return (holding.portfolioGroups || [])
       .filter((pg) => pg.quantity > 0)
       .map((pg) => {
-        const sellQty = pg.quantity * weight
+        const raw = pg.quantity * weight
+        let sellQty = raw
+        if (boardLot >= 1) {
+          sellQty = Math.round(raw / boardLot) * boardLot
+          if (sellQty > pg.quantity) {
+            sellQty = Math.floor(pg.quantity / boardLot) * boardLot
+          }
+        }
         return {
           portfolioId: pg.portfolioId,
           portfolioCode: pg.portfolioCode,
@@ -113,7 +124,9 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
           proceeds: sellQty * (isNaN(priceNum) ? 0 : priceNum),
         }
       })
-  }, [holding.portfolioGroups, weight, priceNum])
+  }, [holding.portfolioGroups, boardLot, weight, priceNum])
+
+  const proposalCount = previewRows.filter((row) => row.sellQty > 0).length
 
   const canSubmit =
     !isNaN(percentNum) &&
@@ -121,7 +134,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
     percentNum <= 100 &&
     !isNaN(priceNum) &&
     priceNum > 0 &&
-    previewRows.length > 0
+    proposalCount > 0
 
   const handlePropose = async (): Promise<void> => {
     if (!canSubmit) return
@@ -149,8 +162,8 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
   if (!open) return null
 
   const assetDisplay = `${holding.market}:${holding.assetCode}`
-  const sellsLabel = `Propose ${previewRows.length} sell${
-    previewRows.length === 1 ? "" : "s"
+  const sellsLabel = `Propose ${proposalCount} sell${
+    proposalCount === 1 ? "" : "s"
   }`
 
   return (
@@ -183,8 +196,8 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
           <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
           <p className="text-green-700 font-medium">
-            {`Created ${previewRows.length} proposed sell${
-              previewRows.length === 1 ? "" : "s"
+            {`Created ${proposalCount} proposed sell${
+              proposalCount === 1 ? "" : "s"
             }`}
           </p>
           <Link
@@ -302,11 +315,20 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
                     <td className="px-3 py-2 text-sm text-right font-mono text-gray-600">
                       {trimQty(row.heldQty)}
                     </td>
-                    <td className="px-3 py-2 text-sm text-right font-mono text-red-600">
-                      {trimQty(row.sellQty)}
-                    </td>
+                    {row.sellQty > 0 ? (
+                      <td className="px-3 py-2 text-sm text-right font-mono text-red-600">
+                        {trimQty(row.sellQty)}
+                      </td>
+                    ) : (
+                      <td
+                        className="px-3 py-2 text-sm text-right font-mono text-gray-400"
+                        title="Below board lot"
+                      >
+                        {"0"}
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-sm text-right font-mono text-gray-600">
-                      {formatMoney(row.proceeds)}
+                      {row.sellQty > 0 ? formatMoney(row.proceeds) : "—"}
                     </td>
                   </tr>
                 ))}

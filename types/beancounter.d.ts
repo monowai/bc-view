@@ -1042,6 +1042,11 @@ export interface BrokerHoldingPosition {
   assetName?: string
   market: string
   quantity: number
+  /**
+   * Trading lot size: quantities must be whole multiples of this.
+   * 0 = fractional quantities allowed. Absent (older responses) = 1.
+   */
+  boardLot?: number
   portfolioGroups: BrokerPortfolioGroup[]
 }
 
