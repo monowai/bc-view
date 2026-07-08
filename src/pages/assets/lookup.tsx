@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
-import useSWR from "swr"
+import useSWR, { mutate } from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -12,6 +12,7 @@ import {
   Market,
   Portfolio,
   Position,
+  QuickSellData,
 } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
@@ -21,6 +22,11 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
+import TradeInputForm from "@components/features/transactions/TradeInputForm"
+import AssetLookupTabNav, {
+  AssetLookupTabId,
+} from "@components/features/assets/AssetLookupTabNav"
+import AssetBrokersTab from "@components/features/assets/AssetBrokersTab"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
@@ -92,6 +98,9 @@ function AssetLookupPage(): React.ReactElement {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [showAdminEdit, setShowAdminEdit] = useState(false)
+  const [activeTab, setActiveTab] = useState<AssetLookupTabId>("portfolios")
+  const [sellRow, setSellRow] = useState<AssetPosition | null>(null)
+  const [sellModalOpen, setSellModalOpen] = useState(false)
   // Mirror selectedAsset into a ref so the in-flight delete handler can
   // identity-check against the LATEST selection at the time the response
   // resolves, not the value it closed over when invoked.
@@ -135,6 +144,9 @@ function AssetLookupPage(): React.ReactElement {
   )
 
   const positions = positionsData?.data || []
+  // Zero-balance rows (fully sold out / roundtripped) add no value to "who
+  // holds this asset" — hide them. Keep negative/short balances visible.
+  const visiblePositions = positions.filter((ap) => ap.balance !== 0)
 
   // Fetch models with active plans containing this asset
   const { data: modelsData, isLoading: loadingModels } =
@@ -152,7 +164,33 @@ function AssetLookupPage(): React.ReactElement {
   const handleAssetSelect = (option: AssetOption | null): void => {
     setSelectedAsset(option)
     setResolveError(null)
+    setActiveTab("portfolios")
   }
+
+  const openSell = (ap: AssetPosition): void => {
+    if (!ap.portfolio) return
+    setSellRow(ap)
+    setSellModalOpen(true)
+  }
+
+  const handleSellModalOpenChange = (open: boolean): void => {
+    setSellModalOpen(open)
+    if (!open) {
+      setSellRow(null)
+      if (selectedAsset?.assetId) {
+        mutate(`/api/assets/${selectedAsset.assetId}/positions?date=today`)
+      }
+    }
+  }
+
+  const quickSellDataFor = (ap: AssetPosition): QuickSellData => ({
+    asset: selectedAsset?.symbol || "",
+    assetId: selectedAsset?.assetId,
+    market: ap.position?.asset?.market?.code || selectedAsset?.market || "",
+    quantity: ap.balance,
+    price: ap.position?.moneyValues?.PORTFOLIO?.priceData?.close || 0,
+    type: "SELL",
+  })
 
   const openChartFor = async (option: AssetOption): Promise<void> => {
     setResolveError(null)
@@ -453,8 +491,13 @@ function AssetLookupPage(): React.ReactElement {
         />
       )}
 
-      {/* Positions Table */}
+      {/* Tabs */}
       {selectedAsset && (
+        <AssetLookupTabNav activeTab={activeTab} onTabChange={setActiveTab} />
+      )}
+
+      {/* Portfolios Tab */}
+      {selectedAsset && activeTab === "portfolios" && (
         <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="text-sm font-medium text-gray-700">
@@ -468,7 +511,7 @@ function AssetLookupPage(): React.ReactElement {
               <Spinner className="mr-2" />
               {"Loading..."}
             </div>
-          ) : positions.length === 0 ? (
+          ) : visiblePositions.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-folder-open text-3xl mb-2 text-gray-300"></i>
               <p>{"This asset is not held in any portfolio"}</p>
@@ -492,10 +535,13 @@ function AssetLookupPage(): React.ReactElement {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                     {"Gain"}
                   </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {"Actions"}
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {positions.map((ap, idx) => {
+                {visiblePositions.map((ap, idx) => {
                   const moneyValues = ap.position?.moneyValues?.PORTFOLIO
                   const gain = moneyValues
                     ? (moneyValues.marketValue || 0) -
@@ -535,6 +581,9 @@ function AssetLookupPage(): React.ReactElement {
                             : formatQuantity(ap.balance)}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-500 hidden md:table-cell">
+                          -
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-500">
                           -
                         </td>
                       </tr>
@@ -611,6 +660,23 @@ function AssetLookupPage(): React.ReactElement {
                           "-"
                         )}
                       </td>
+                      <td
+                        className="px-4 py-3 text-right"
+                        onDoubleClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openSell(ap)
+                          }}
+                          className="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50"
+                          title={`Sell ${selectedAsset.symbol || ""} from ${portfolio.code}`}
+                        >
+                          <i className="fas fa-hand-holding-usd mr-1"></i>
+                          {"Sell"}
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -618,7 +684,7 @@ function AssetLookupPage(): React.ReactElement {
             </table>
           )}
 
-          {positions.length > 0 && (
+          {visiblePositions.length > 0 && (
             <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
               <i className="fas fa-info-circle mr-1"></i>
               {"Double-click a row to view and edit transactions"}
@@ -627,9 +693,28 @@ function AssetLookupPage(): React.ReactElement {
         </div>
       )}
 
+      {/* Brokers Tab */}
+      {selectedAsset && activeTab === "brokers" && (
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-medium text-gray-700">
+              <i className="fas fa-building-columns mr-2 text-gray-400"></i>
+              {"Brokers Holding This Asset"}
+            </h3>
+          </div>
+          {selectedAsset.assetId ? (
+            <AssetBrokersTab assetId={selectedAsset.assetId} />
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <p>{"Resolve this asset first to view broker holdings"}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Models Table */}
-      {selectedAsset && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden mt-6">
+      {selectedAsset && activeTab === "models" && (
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="text-sm font-medium text-gray-700">
               <i className="fas fa-sitemap mr-2 text-gray-400"></i>
@@ -703,6 +788,15 @@ function AssetLookupPage(): React.ReactElement {
             </div>
           )}
         </div>
+      )}
+
+      {sellRow?.portfolio && (
+        <TradeInputForm
+          portfolio={sellRow.portfolio}
+          modalOpen={sellModalOpen}
+          setModalOpen={handleSellModalOpenChange}
+          initialValues={quickSellDataFor(sellRow)}
+        />
       )}
     </div>
   )

@@ -1079,6 +1079,23 @@ export interface BrokerProposalResponse {
   data: Transaction[]
 }
 
+/**
+ * A broker holding a specific asset — used by the asset lookup page's
+ * Brokers tab (GET /trns/asset/{assetId}/brokers).
+ */
+export interface AssetBrokerHolding {
+  brokerId: string
+  brokerName: string
+  holding: BrokerHoldingPosition
+}
+
+/**
+ * Response envelope from GET /trns/asset/{assetId}/brokers.
+ */
+export interface AssetBrokerHoldingsResponse {
+  data: AssetBrokerHolding[]
+}
+
 // ============ Monthly Income Report ============
 
 /**
