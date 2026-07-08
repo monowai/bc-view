@@ -799,8 +799,19 @@ const CardView: React.FC<CardViewProps> = ({
               >
                 {group.groupKey}
               </h3>
-              <span className="text-xs text-gray-400 shrink-0">
-                ({group.positions.length})
+              {/* Mobile: weight rides beside the name (the right-hand stats
+                  block drops it there); desktop shows it on the right. */}
+              <span className="sm:hidden shrink-0 text-xs font-medium text-gray-500 tabular-nums">
+                {groupWeight !== undefined && (
+                  <>
+                    <FormatValue
+                      value={groupWeight}
+                      multiplier={100}
+                      isPublic
+                    />
+                    %
+                  </>
+                )}
               </span>
               {/* Fixed-width stats block: trimmed on mobile (no weight, no
                   cents, tighter columns) so the sector name keeps its space. */}
