@@ -1054,6 +1054,26 @@ export interface BrokerHoldingsResponse {
   holdings: BrokerHoldingPosition[]
 }
 
+/**
+ * Request body for POST /trns/broker/{brokerId}/propose — creates one
+ * PROPOSED transaction per portfolio holding the asset at that broker,
+ * sized as `weight` (a fraction of each portfolio's held quantity).
+ */
+export interface BrokerProposalRequest {
+  assetId: string
+  trnType: TrnType
+  weight: number
+  price: number
+  tradeDate?: string
+}
+
+/**
+ * Response envelope from POST /trns/broker/{brokerId}/propose.
+ */
+export interface BrokerProposalResponse {
+  data: Transaction[]
+}
+
 // ============ Monthly Income Report ============
 
 /**
