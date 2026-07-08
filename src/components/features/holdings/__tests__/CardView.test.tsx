@@ -98,11 +98,18 @@ describe("CardView group header mobile layout", () => {
     expect(screen.getAllByText("91").length).toBeGreaterThan(0)
   })
 
-  it("hides the group weight on mobile so the sector name keeps its space", () => {
+  it("shows the group weight beside the name on mobile instead of the holding count", () => {
     const { container } = renderWithGroupTotals()
-    const weight = container.querySelector("span.hidden.sm\\:inline-block.w-14")
-    expect(weight).toBeInTheDocument()
-    expect(weight).toHaveTextContent("4.8")
+    // Mobile: weight rides next to the sector name where the count used to be
+    const mobileWeight = container.querySelector("span.sm\\:hidden.shrink-0")
+    expect(mobileWeight).toHaveTextContent("4.80%")
+    // Desktop: weight stays in the right-hand stats block
+    const desktopWeight = container.querySelector(
+      "span.hidden.sm\\:inline-block.w-14",
+    )
+    expect(desktopWeight).toHaveTextContent("4.80%")
+    // Holding count is gone entirely
+    expect(screen.queryByText("(1)")).not.toBeInTheDocument()
   })
 
   it("titles the group name so a truncated sector stays discoverable", () => {
