@@ -133,6 +133,27 @@ describe("CashTransferDialog target step", () => {
     expect(transferBtn).toBeEnabled()
   })
 
+  test("defaults amounts and target portfolio when mounted already open (conditional-render call site)", async () => {
+    const user = userEvent.setup()
+    // The holdings page renders `{cashTransferData && <CashTransferDialog modalOpen ...>}`,
+    // so the dialog mounts with modalOpen already true — no false→true toggle.
+    render(
+      <CashTransferDialog
+        modalOpen
+        onClose={() => {}}
+        sourceData={makeSource("sgd-pf")}
+        portfolios={portfolios}
+      />,
+    )
+
+    const nextBtn = await screen.findByRole("button", { name: "Next" })
+    expect(nextBtn).toBeEnabled()
+    await user.click(nextBtn)
+
+    const combos = await screen.findAllByRole("combobox")
+    expect((combos[0] as HTMLSelectElement).value).toBe("sgd-pf")
+  })
+
   test("pre-selects a valid source portfolio so Transfer enables after only the asset is picked", async () => {
     const user = userEvent.setup()
     renderOpen(makeSource("sgd-pf"))
