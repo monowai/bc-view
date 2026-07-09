@@ -6,7 +6,7 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { Broker, Portfolio, Transaction, TrnStatus } from "types/beancounter"
 import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
 import Head from "next/head"
-import { useUser } from "@auth0/nextjs-auth0/client"
+import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { solePortfolio as soleActivePortfolio } from "@lib/user/zenMode"
@@ -28,6 +28,9 @@ const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
 const SESSION_KEY_SCOPE = "proposed-scope"
 const SESSION_KEY_FROM = "proposed-from"
 const SESSION_KEY_TO = "proposed-to"
+// Set only when the user explicitly edits the date range. Without it, stored
+// dates are ignored so the review window stays relative to today.
+const SESSION_KEY_DATES_TOUCHED = "proposed-dates-touched"
 const SESSION_KEY_FILTERS_OPEN = "proposed-filters-open"
 
 // The filter panel is heavy on a phone, so default it collapsed on mobile
@@ -51,7 +54,7 @@ const getAssetDisplayCode = (asset: { code: string }): string => {
   return stripOwnerPrefix(asset.code)
 }
 
-export default function ProposedTransactions(): React.JSX.Element {
+function ProposedTransactions(): React.JSX.Element {
   const { user, isLoading: userLoading } = useUser()
   const router = useRouter()
 
@@ -63,6 +66,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   // settled rows are filtered to tradeDate within fromDate..toDate.
   const [fromDate, setFromDate] = useState(defaultFrom())
   const [toDate, setToDate] = useState(defaultTo())
+  const [datesTouched, setDatesTouched] = useState(false)
   const [settledTransactions, setSettledTransactions] = useState<Transaction[]>(
     [],
   )
@@ -90,8 +94,14 @@ export default function ProposedTransactions(): React.JSX.Element {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
-    setFromDate(getSessionValue(SESSION_KEY_FROM, defaultFrom()))
-    setToDate(getSessionValue(SESSION_KEY_TO, defaultTo()))
+    // Stored dates are only honoured when the user explicitly changed them;
+    // otherwise the window stays relative to today.
+    const touched = getSessionValue(SESSION_KEY_DATES_TOUCHED, false)
+    setDatesTouched(touched)
+    if (touched) {
+      setFromDate(getSessionValue(SESSION_KEY_FROM, defaultFrom()))
+      setToDate(getSessionValue(SESSION_KEY_TO, defaultTo()))
+    }
     setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
     setFiltersOpen(
       getSessionValue(SESSION_KEY_FILTERS_OPEN, defaultFiltersOpen()),
@@ -122,16 +132,22 @@ export default function ProposedTransactions(): React.JSX.Element {
   }, [includeSettled, sessionInitialized])
 
   useEffect(() => {
-    if (sessionInitialized) {
+    if (sessionInitialized && datesTouched) {
       setSessionValue(SESSION_KEY_FROM, fromDate)
     }
-  }, [fromDate, sessionInitialized])
+  }, [fromDate, datesTouched, sessionInitialized])
+
+  useEffect(() => {
+    if (sessionInitialized && datesTouched) {
+      setSessionValue(SESSION_KEY_TO, toDate)
+    }
+  }, [toDate, datesTouched, sessionInitialized])
 
   useEffect(() => {
     if (sessionInitialized) {
-      setSessionValue(SESSION_KEY_TO, toDate)
+      setSessionValue(SESSION_KEY_DATES_TOUCHED, datesTouched)
     }
-  }, [toDate, sessionInitialized])
+  }, [datesTouched, sessionInitialized])
 
   useEffect(() => {
     if (sessionInitialized) {
@@ -228,18 +244,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     })
 
     // Apply type filter
-    const typeFiltered =
+    const filtered =
       typeFilter === "ALL"
         ? allTransactions
         : allTransactions.filter((trn) => trn.trnType === typeFilter)
-
-    // Apply broker filter — display-only; never mutates the transactions
-    const filtered =
-      brokerFilter === "ALL"
-        ? typeFiltered
-        : typeFiltered.filter(
-            (trn) => (trn.broker?.id || trn.brokerId) === brokerFilter,
-          )
 
     const sorted = filtered.sort((a, b) => {
       // Sort by broker name first
@@ -270,27 +278,23 @@ export default function ProposedTransactions(): React.JSX.Element {
     settledTransactions: Transaction[]
     includeSettled: boolean
     typeFilter: string
-    brokerFilter: string
   }>({
     proposedData,
     settledTransactions,
     includeSettled,
     typeFilter,
-    brokerFilter,
   })
   if (
     prevTrnInputs.proposedData !== proposedData ||
     prevTrnInputs.settledTransactions !== settledTransactions ||
     prevTrnInputs.includeSettled !== includeSettled ||
-    prevTrnInputs.typeFilter !== typeFilter ||
-    prevTrnInputs.brokerFilter !== brokerFilter
+    prevTrnInputs.typeFilter !== typeFilter
   ) {
     setPrevTrnInputs({
       proposedData,
       settledTransactions,
       includeSettled,
       typeFilter,
-      brokerFilter,
     })
     setTransactions(buildTransactions())
   }
@@ -307,6 +311,18 @@ export default function ProposedTransactions(): React.JSX.Element {
     setSelectedIds(new Set())
   }
 
+  // Broker filter is display-only: it narrows what is shown without
+  // rebuilding the editable list, so in-progress edits on hidden rows survive.
+  const visibleTransactions = useMemo(
+    () =>
+      brokerFilter === "ALL"
+        ? transactions
+        : transactions.filter(
+            (trn) => (trn.broker?.id || trn.brokerId) === brokerFilter,
+          ),
+    [transactions, brokerFilter],
+  )
+
   // Compute aggregated transactions when aggregate view is enabled. Purely
   // derived from transactions/brokers, so a useMemo replaces the prior effect
   // (which recomputed from scratch on every transactions change anyway).
@@ -317,7 +333,7 @@ export default function ProposedTransactions(): React.JSX.Element {
 
     // Group transactions by broker + asset + trnType
     const groups = new Map<string, ProposedTransaction[]>()
-    transactions.forEach((trn) => {
+    visibleTransactions.forEach((trn) => {
       const brokerId = trn.editedBrokerId || trn.broker?.id || ""
       const key = `${brokerId}:${trn.asset.id}:${trn.trnType}`
       const existing = groups.get(key) || []
@@ -390,7 +406,7 @@ export default function ProposedTransactions(): React.JSX.Element {
     })
 
     return aggregated
-  }, [aggregateView, transactions, brokers])
+  }, [aggregateView, visibleTransactions, brokers])
 
   const handlePriceChange = (id: string, value: number): void => {
     setTransactions((prev) =>
@@ -553,14 +569,15 @@ export default function ProposedTransactions(): React.JSX.Element {
     }
   }
 
-  // Selection handlers
-  const proposedTransactions = transactions.filter(
+  // Selection handlers — scoped to visible rows so select-all and the bulk
+  // buttons never touch rows hidden by the broker filter.
+  const proposedTransactions = visibleTransactions.filter(
     (trn) => trn.status === "PROPOSED",
   )
   const selectedProposed = proposedTransactions.filter((trn) =>
     selectedIds.has(trn.id),
   )
-  const selectedSettled = transactions.filter(
+  const selectedSettled = visibleTransactions.filter(
     (trn) => trn.status === "SETTLED" && selectedIds.has(trn.id),
   )
   const allProposedSelected =
@@ -873,20 +890,27 @@ export default function ProposedTransactions(): React.JSX.Element {
                 <div className="flex items-center gap-2 text-sm">
                   <DateInput
                     value={fromDate}
-                    onChange={setFromDate}
+                    onChange={(v) => {
+                      setDatesTouched(true)
+                      setFromDate(v)
+                    }}
                     max={toDate}
                     className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <span className="text-gray-400">→</span>
                   <DateInput
                     value={toDate}
-                    onChange={setToDate}
+                    onChange={(v) => {
+                      setDatesTouched(true)
+                      setToDate(v)
+                    }}
                     min={fromDate}
                     className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() => {
+                      setDatesTouched(false)
                       setFromDate(defaultFrom())
                       setToDate(defaultTo())
                     }}
@@ -961,29 +985,6 @@ export default function ProposedTransactions(): React.JSX.Element {
                   </span>
                 </label>
               </div>
-
-              {/* Broker — display-only filter; does not edit transactions */}
-              {brokers.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Broker
-                  </span>
-                  <select
-                    aria-label="Broker filter"
-                    value={brokerFilter}
-                    onChange={(e) => setBrokerFilter(e.target.value)}
-                    className="h-[30px] px-2 py-1 border border-gray-300 rounded text-sm bg-white"
-                  >
-                    <option value="ALL">ALL</option>
-                    {brokers.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                        {b.accountNumber ? ` (${b.accountNumber})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -1060,13 +1061,41 @@ export default function ProposedTransactions(): React.JSX.Element {
                   You have unsaved changes
                 </span>
               )}
+              {/* Broker — display-only filter; always visible with the table */}
+              {brokers.length > 0 && (
+                <label className="ml-auto flex items-center gap-2 text-sm text-gray-500">
+                  Broker
+                  <select
+                    aria-label="Broker filter"
+                    value={brokerFilter}
+                    onChange={(e) => setBrokerFilter(e.target.value)}
+                    className="h-[34px] px-2 py-1 border border-gray-300 rounded text-sm bg-white text-gray-900"
+                  >
+                    <option value="ALL">ALL</option>
+                    {brokers.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                        {b.accountNumber ? ` (${b.accountNumber})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </div>
 
+            {/* Broker filter can hide every row — keep the toolbar so it can
+                be changed back, and say why the table is empty. */}
+            {visibleTransactions.length === 0 && (
+              <div className="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-8 rounded text-center">
+                No transactions for the selected broker.
+              </div>
+            )}
+
             {/* Transactions Table - Detailed View */}
-            {!aggregateView && (
+            {!aggregateView && visibleTransactions.length > 0 && (
               <div className="-mx-4 sm:mx-0 overflow-x-auto">
                 <DetailedTransactionsTable
-                  transactions={transactions}
+                  transactions={visibleTransactions}
                   brokers={brokers}
                   selectedIds={selectedIds}
                   allProposedSelected={allProposedSelected}
@@ -1085,7 +1114,7 @@ export default function ProposedTransactions(): React.JSX.Element {
             )}
 
             {/* Transactions Table - Aggregated View */}
-            {aggregateView && (
+            {aggregateView && visibleTransactions.length > 0 && (
               <div className="-mx-4 sm:mx-0 overflow-x-auto">
                 <AggregatedTransactionsTable
                   aggregatedTransactions={aggregatedTransactions}
@@ -1101,7 +1130,7 @@ export default function ProposedTransactions(): React.JSX.Element {
             {/* Summary */}
             <div className="mt-4 bg-gray-50 p-3 sm:p-4 rounded-lg">
               {(() => {
-                const totals = transactions.reduce(
+                const totals = visibleTransactions.reduce(
                   (acc, t) => {
                     const amt = calculateTradeAmount(
                       t.quantity,
@@ -1129,11 +1158,11 @@ export default function ProposedTransactions(): React.JSX.Element {
                       <div className="font-semibold">
                         {aggregateView
                           ? aggregatedTransactions.length
-                          : transactions.length}
+                          : visibleTransactions.length}
                       </div>
                       {aggregateView && (
                         <div className="text-xs text-gray-500">
-                          ({transactions.length} underlying)
+                          ({visibleTransactions.length} underlying)
                         </div>
                       )}
                     </div>
@@ -1215,3 +1244,5 @@ export default function ProposedTransactions(): React.JSX.Element {
     </>
   )
 }
+
+export default withPageAuthRequired(ProposedTransactions)
