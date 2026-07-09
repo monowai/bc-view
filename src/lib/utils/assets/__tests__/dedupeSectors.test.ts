@@ -4,9 +4,21 @@ import { dedupeSectorsByName } from "@utils/assets/dedupeSectors"
 describe("dedupeSectorsByName", () => {
   it("collapses a name shared across standards to one entry, preferring ALPHA", () => {
     const result = dedupeSectorsByName([
-      { code: "INFORMATION_TECHNOLOGY", name: "Information Technology", standard: "USER" },
-      { code: "COMMUNICATION_SERVICES", name: "Communication Services", standard: "ALPHA" },
-      { code: "INFORMATION_TECHNOLOGY", name: "Information Technology", standard: "ALPHA" },
+      {
+        code: "INFORMATION_TECHNOLOGY",
+        name: "Information Technology",
+        standard: "USER",
+      },
+      {
+        code: "COMMUNICATION_SERVICES",
+        name: "Communication Services",
+        standard: "ALPHA",
+      },
+      {
+        code: "INFORMATION_TECHNOLOGY",
+        name: "Information Technology",
+        standard: "ALPHA",
+      },
     ])
 
     expect(result).toHaveLength(2)

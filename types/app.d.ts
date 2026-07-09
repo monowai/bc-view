@@ -76,12 +76,7 @@ export interface HoldingDefaults {
   readonly hasInitialized: boolean
   setHasInitialized(value: boolean): void
   readonly viewMode:
-    | "summary"
-    | "table"
-    | "cards"
-    | "heatmap"
-    | "income"
-    | "chart"
+    "summary" | "table" | "cards" | "heatmap" | "income" | "chart"
   setViewMode(
     value: "summary" | "table" | "cards" | "heatmap" | "income" | "chart",
   ): void

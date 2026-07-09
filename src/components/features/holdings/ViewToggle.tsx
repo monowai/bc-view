@@ -1,10 +1,5 @@
 export type ViewMode =
-  | "summary"
-  | "table"
-  | "cards"
-  | "heatmap"
-  | "income"
-  | "chart"
+  "summary" | "table" | "cards" | "heatmap" | "income" | "chart"
 
 /**
  * Canonical order of holdings view modes for toolbar display.

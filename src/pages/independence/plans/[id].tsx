@@ -569,9 +569,7 @@ function PlanView(): React.ReactElement {
   // truth. Fall back to the local sum until the projection lands so the
   // tile renders something on first paint.
   const projectionTotals = adjustedProjection as unknown as
-    | { totalAssets?: number; liquidAssets?: number }
-    | null
-    | undefined
+    { totalAssets?: number; liquidAssets?: number } | null | undefined
   const displayTotalAssets =
     projectionTotals?.totalAssets != null
       ? projectionTotals.totalAssets

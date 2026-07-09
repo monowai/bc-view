@@ -71,7 +71,10 @@ describe("AssetClassifyPanel sector picker", () => {
         level: "SECTOR",
         source: "MANUAL",
         standard: { key: "USER" },
-        item: { code: "INFORMATION_TECHNOLOGY", name: "Information Technology" },
+        item: {
+          code: "INFORMATION_TECHNOLOGY",
+          name: "Information Technology",
+        },
       },
     ])
 

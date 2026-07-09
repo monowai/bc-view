@@ -9,12 +9,7 @@ export { DEFAULT_NON_SPENDABLE_CATEGORIES, INCOME_STREAM_CATEGORIES }
 
 // Tab identifiers for plan view
 export type TabId =
-  | "fi"
-  | "details"
-  | "assets"
-  | "breakdown"
-  | "timeline"
-  | "simulation"
+  "fi" | "details" | "assets" | "breakdown" | "timeline" | "simulation"
 
 // Tab configuration
 export interface TabConfig {
