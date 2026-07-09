@@ -79,6 +79,7 @@ const navSections: NavSection[] = [
         icon: "fa-money-check-dollar",
         action: "payslip",
       },
+      { href: "/brokers", label: "Brokers", icon: "fa-building" },
       {
         href: "/tools/open-brokerage",
         label: "Open Brokerage",
