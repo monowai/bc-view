@@ -5,11 +5,7 @@ import type {
 } from "types/independence"
 
 export type JourneyStatus =
-  | "building"
-  | "covered"
-  | "onTrack"
-  | "thinning"
-  | "shortfall"
+  "building" | "covered" | "onTrack" | "thinning" | "shortfall"
 
 export interface JourneyCell {
   age: number
@@ -198,16 +194,14 @@ export function fromSinglePlan(
   drawdownRows: YearlyProjection[],
 ): NormalizedJourneyRow[] {
   const normalized: NormalizedJourneyRow[] = [
-    ...accumRows.map(
-      (y): NormalizedJourneyRow => ({
-        age: y.age,
-        isAccumulation: true,
-        endingBalance: y.endingBalance,
-        unfundedExpense: 0,
-        expenses: 0,
-        cashflowIncome: 0,
-      }),
-    ),
+    ...accumRows.map((y): NormalizedJourneyRow => ({
+      age: y.age,
+      isAccumulation: true,
+      endingBalance: y.endingBalance,
+      unfundedExpense: 0,
+      expenses: 0,
+      cashflowIncome: 0,
+    })),
     ...drawdownRows.map((y): NormalizedJourneyRow => {
       const ib = y.incomeBreakdown
       const cashflowIncome = ib ? ib.totalIncome - ib.investmentReturns : 0

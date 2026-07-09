@@ -22,12 +22,7 @@ interface CompositeTabProps {
 }
 
 type CompositeSubTabId =
-  | "overview"
-  | "phases"
-  | "wealth"
-  | "networth"
-  | "stress"
-  | "timeline"
+  "overview" | "phases" | "wealth" | "networth" | "stress" | "timeline"
 
 interface CompositeSubTabConfig {
   id: CompositeSubTabId

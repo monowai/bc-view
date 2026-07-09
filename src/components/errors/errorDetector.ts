@@ -3,12 +3,7 @@
  */
 
 export type ErrorType =
-  | "auth"
-  | "backend"
-  | "network"
-  | "404"
-  | "500"
-  | "generic"
+  "auth" | "backend" | "network" | "404" | "500" | "generic"
 
 export interface DetectedError {
   type: ErrorType

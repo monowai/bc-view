@@ -6,18 +6,10 @@ export type ModelPlanStatus = "DRAFT" | "APPROVED"
 /** Allocation method for distributing cash investments */
 export type AllocationMethod = "TARGET_WEIGHT" | "RETURN_ADJUSTED"
 export type ExecutionStatus =
-  | "EXECUTED"
-  | "SKIPPED"
-  | "FAILED"
-  | "ALREADY_LOCKED"
+  "EXECUTED" | "SKIPPED" | "FAILED" | "ALREADY_LOCKED"
 export type TransactionStatus = "UNSETTLED" | "SETTLED"
 export type PlanStatus =
-  | "DRAFT"
-  | "CALCULATING"
-  | "READY"
-  | "EXECUTING"
-  | "COMPLETED"
-  | "CANCELLED"
+  "DRAFT" | "CALCULATING" | "READY" | "EXECUTING" | "COMPLETED" | "CANCELLED"
 
 // Model Types (new structure - Model is metadata only, weights are in Plans)
 export interface ModelDto {
@@ -327,10 +319,7 @@ export interface RebalanceCalculationResponse {
 // === Execution Types (persisted rebalance configurations) ===
 
 export type ExecutionPlanStatus =
-  | "DRAFT"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED"
+  "DRAFT" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
 
 export type ExecutionMode = "REBALANCE" | "INVEST_CASH"
 

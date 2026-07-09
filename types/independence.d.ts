@@ -45,11 +45,7 @@ export interface WorkScenariosResponse {
 // ============ Manual Asset Categories ============
 // Asset categories for users without portfolios
 export type ManualAssetCategory =
-  | "CASH"
-  | "EQUITY"
-  | "ETF"
-  | "MUTUAL_FUND"
-  | "RE"
+  "CASH" | "EQUITY" | "ETF" | "MUTUAL_FUND" | "RE"
 
 export type ManualAssets = Record<ManualAssetCategory, number>
 
