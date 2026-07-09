@@ -27,7 +27,6 @@ function Avatar({
 const userMenuLinks: { href: string; label: string; icon: string }[] = [
   { href: "/settings", label: "Settings", icon: "fa-cog" },
   { href: "/milestones", label: "Milestones", icon: "fa-trophy" },
-  { href: "/brokers", label: "Brokers", icon: "fa-building" },
   { href: "/shares", label: "Shares", icon: "fa-share-alt" },
 ]
 
