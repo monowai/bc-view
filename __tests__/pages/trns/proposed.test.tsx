@@ -17,6 +17,17 @@ jest.mock("swr", () => ({
   mutate: jest.fn(),
 }))
 
+jest.mock("@auth0/nextjs-auth0/client", () => ({
+  useUser: () => ({
+    user: { email: "test@example.com", sub: "auth0|test" },
+    error: null,
+    isLoading: false,
+  }),
+  // Tag the wrapped component so the test can assert the page is auth-gated
+  withPageAuthRequired: (Component: React.ComponentType) =>
+    Object.assign(Component, { __authRequired: true }),
+}))
+
 import useSWR from "swr"
 import ProposedTransactions from "@pages/trns/proposed"
 
@@ -29,12 +40,13 @@ const makeTrn = (
   id: string,
   assetCode: string,
   broker: { id: string; name: string },
+  price = 5,
 ): Record<string, unknown> => ({
   id,
   trnType: "BUY",
   status: "PROPOSED",
   quantity: 10,
-  price: 5,
+  price,
   fees: 0,
   tradeDate: "2026-07-08",
   tradeCurrency: { code: "USD" },
@@ -49,7 +61,7 @@ const makeTrn = (
 })
 
 const proposedData = {
-  data: [makeTrn("t1", "AAA", brokers[0]), makeTrn("t2", "BBB", brokers[1])],
+  data: [makeTrn("t1", "AAA", brokers[0]), makeTrn("t2", "BBB", brokers[1], 7)],
 }
 
 describe("Proposed Transactions broker filter", () => {
@@ -106,5 +118,87 @@ describe("Proposed Transactions broker filter", () => {
       expect(screen.getByText("AAA")).toBeInTheDocument()
     })
     expect(screen.queryByText("Apply broker")).not.toBeInTheDocument()
+  })
+
+  it("requires authentication (page is wrapped in withPageAuthRequired)", () => {
+    expect(
+      (ProposedTransactions as unknown as { __authRequired?: boolean })
+        .__authRequired,
+    ).toBe(true)
+  })
+
+  it("keeps the broker filter visible when the filter panel is collapsed", async () => {
+    render(<ProposedTransactions />)
+
+    await waitFor(() => {
+      expect(screen.getByText("AAA")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /filters/i }))
+
+    // Panel content hidden, broker filter still available
+    expect(screen.queryByText("Scope")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Broker filter")).toBeInTheDocument()
+  })
+
+  it("keeps edits and the toolbar when the broker filter matches nothing, and preserves edits across filtering", async () => {
+    render(<ProposedTransactions />)
+
+    await waitFor(() => {
+      expect(screen.getByText("AAA")).toBeInTheDocument()
+    })
+
+    // Edit BBB's price, then filter it out and back
+    fireEvent.change(screen.getByDisplayValue("7"), {
+      target: { value: "9" },
+    })
+    fireEvent.change(screen.getByLabelText("Broker filter"), {
+      target: { value: "b1" },
+    })
+    expect(screen.queryByText("BBB")).not.toBeInTheDocument()
+
+    // Filter to a broker with no rows: toolbar (and the filter itself) must survive
+    fireEvent.change(screen.getByLabelText("Broker filter"), {
+      target: { value: "b2" },
+    })
+    expect(screen.queryByText("AAA")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Broker filter")).toBeInTheDocument()
+
+    // Back to ALL: the edit made before filtering is still there
+    fireEvent.change(screen.getByLabelText("Broker filter"), {
+      target: { value: "ALL" },
+    })
+    expect(screen.getByDisplayValue("9")).toBeInTheDocument()
+    expect(screen.getByText("You have unsaved changes")).toBeInTheDocument()
+  })
+
+  it("ignores stale stored dates unless the user explicitly changed them", async () => {
+    // Simulate a previous session that merely visited the page (no explicit change)
+    sessionStorage.setItem("proposed-from", JSON.stringify("2020-01-01"))
+    sessionStorage.setItem("proposed-to", JSON.stringify("2020-01-03"))
+
+    render(<ProposedTransactions />)
+
+    await waitFor(() => {
+      expect(screen.getByText("AAA")).toBeInTheDocument()
+    })
+
+    expect(screen.queryByDisplayValue("2020-01-01")).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue("2020-01-03")).not.toBeInTheDocument()
+  })
+
+  it("honours stored dates when the user explicitly changed them", async () => {
+    sessionStorage.setItem("proposed-from", JSON.stringify("2020-01-01"))
+    sessionStorage.setItem("proposed-to", JSON.stringify("2020-01-03"))
+    sessionStorage.setItem("proposed-dates-touched", JSON.stringify(true))
+
+    render(<ProposedTransactions />)
+
+    await waitFor(() => {
+      expect(screen.getByText("AAA")).toBeInTheDocument()
+    })
+
+    expect(screen.getByDisplayValue("2020-01-01")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("2020-01-03")).toBeInTheDocument()
   })
 })
