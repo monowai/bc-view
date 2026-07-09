@@ -296,9 +296,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           )
           return
         }
-        // The server cascade-deletes the auto-emitted cash legs on unsettle, so
-        // there is nothing for the user to confirm. Invalidate holdings so the row
-        // reflects the new PROPOSED status, then close.
+        // On unsettle the server reverts the auto-settled cash legs to PROPOSED
+        // (not deleted). Invalidate holdings so the row reflects the new PROPOSED
+        // status, then close.
         setTimeout(() => {
           mutate(holdingKey(transaction.portfolio.code, "today"))
           mutate("/api/holdings/aggregated?asAt=today")
