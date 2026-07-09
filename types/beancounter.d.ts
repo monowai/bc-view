@@ -478,7 +478,7 @@ export interface TrnStatusUpdateRequest {
 
 /**
  * Response from PATCH /trns/{trnId}/status. [siblings] is the auto-settled
- * cash leg ids; the UI prompts to delete them after a successful Unsettle.
+ * cash leg ids; they are reverted to PROPOSED server-side (not deleted).
  */
 export interface TrnStatusUpdateResponse {
   updated: TrnDto
@@ -493,14 +493,21 @@ interface Registration {
 }
 
 export type HoldingsView =
-  "SUMMARY" | "TABLE" | "CARDS" | "HEATMAP" | "ALLOCATION"
+  | "SUMMARY"
+  | "TABLE"
+  | "CARDS"
+  | "HEATMAP"
+  | "ALLOCATION"
 
 // Type aliases for UserPreferences - runtime values defined in types/constants.ts
 export type ValueInOption = "PORTFOLIO" | "BASE" | "TRADE"
 
 // Backend GroupBy API values (enum names as persisted in the database)
 export type GroupByApiValue =
-  "ASSET_CLASS" | "SECTOR" | "MARKET_CURRENCY" | "MARKET"
+  | "ASSET_CLASS"
+  | "SECTOR"
+  | "MARKET_CURRENCY"
+  | "MARKET"
 
 // Frontend GroupBy property paths (used for client-side grouping)
 export type GroupByOption =
@@ -1142,7 +1149,10 @@ export interface MonthlyIncomeResponse {
 
 export type ShareAccessLevel = "VIEW" | "FULL"
 export type ShareStatus =
-  "PENDING_CLIENT_INVITE" | "PENDING_ADVISER_REQUEST" | "ACTIVE" | "REVOKED"
+  | "PENDING_CLIENT_INVITE"
+  | "PENDING_ADVISER_REQUEST"
+  | "ACTIVE"
+  | "REVOKED"
 
 export interface PortfolioShare {
   id: string

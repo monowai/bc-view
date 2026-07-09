@@ -670,8 +670,8 @@ function ProposedTransactions(): React.JSX.Element {
         byPortfolio.set(trn.portfolio.id, ids)
       })
 
-      // Unsettle each portfolio's transactions. The server cascade-deletes each
-      // trade's auto-emitted cash legs.
+      // Unsettle each portfolio's transactions. The server reverts each trade's
+      // auto-settled cash legs to PROPOSED (not deleted); mutate shows them on refresh.
       for (const [portfolioId, trnIds] of byPortfolio) {
         const response = await fetch(
           `/api/trns/portfolio/${portfolioId}/unsettle`,
