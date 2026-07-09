@@ -35,9 +35,18 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   portfolios,
 }) => {
   const [step, setStep] = useState<WizardStep>("amounts")
-  const [sentAmount, setSentAmount] = useState<string>("")
-  const [receivedAmount, setReceivedAmount] = useState<string>("")
-  const [targetPortfolioId, setTargetPortfolioId] = useState<string>("")
+  // Initialize from sourceData: call sites conditionally render the dialog
+  // with modalOpen already true, so the open-reset below never fires on the
+  // first mount — defaults must come from the initial state.
+  const [sentAmount, setSentAmount] = useState<string>(
+    String(sourceData.currentBalance),
+  )
+  const [receivedAmount, setReceivedAmount] = useState<string>(
+    String(sourceData.currentBalance),
+  )
+  const [targetPortfolioId, setTargetPortfolioId] = useState<string>(
+    sourceData.portfolioId,
+  )
   const [targetAssetId, setTargetAssetId] = useState<string>("")
   const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
     useDialogSubmit({
