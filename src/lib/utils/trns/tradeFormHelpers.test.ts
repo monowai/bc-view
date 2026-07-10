@@ -17,6 +17,7 @@ import {
   resolveSellableQuantity,
   heldQuantityForBroker,
   singleHeldBrokerId,
+  deriveTradeToBaseFxRate,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -159,6 +160,52 @@ describe("tradeFormHelpers", () => {
       // tradeAmount = 10 * 100 + 10 = 1010
       expect(result!.value).toBeCloseTo(10.1, 1)
     })
+
+    test("weights a foreign-currency BUY against a base-converted price", () => {
+      // BUY, no existing position: trade weight = qty*priceBase / base PV.
+      // priceBase = 100 * 2 = 200; tradeAmount = 10*200 = 2000; 2000/10000 = 20%.
+      const result = computeWeightInfo({
+        quantity: 10,
+        price: 100,
+        tax: 0,
+        fees: 0,
+        tradeType: "BUY",
+        portfolioMarketValue: 10000,
+        actualPositionQuantity: 0,
+        fxRate: 2,
+      })
+      expect(result).toEqual({ label: "Trade Weight", value: 20 })
+    })
+  })
+
+  describe("deriveTradeToBaseFxRate", () => {
+    test("returns base/trade market value ratio", () => {
+      expect(
+        deriveTradeToBaseFxRate({
+          TRADE: { marketValue: 8860.25 },
+          BASE: { marketValue: 11451.98 },
+        }),
+      ).toBeCloseTo(1.2925, 4)
+    })
+
+    test("returns 1 when trade market value is zero or missing", () => {
+      expect(
+        deriveTradeToBaseFxRate({
+          TRADE: { marketValue: 0 },
+          BASE: { marketValue: 100 },
+        }),
+      ).toBe(1)
+      expect(deriveTradeToBaseFxRate({ BASE: { marketValue: 100 } })).toBe(1)
+    })
+
+    test("returns 1 for same-currency holdings (equal values)", () => {
+      expect(
+        deriveTradeToBaseFxRate({
+          TRADE: { marketValue: 5000 },
+          BASE: { marketValue: 5000 },
+        }),
+      ).toBe(1)
+    })
   })
 
   describe("computeCurrentPositionWeight", () => {
@@ -176,6 +223,20 @@ describe("tradeFormHelpers", () => {
 
     test("returns null when portfolioMarketValue is 0", () => {
       expect(computeCurrentPositionWeight(100, 10, 0)).toBeNull()
+    })
+
+    test("converts trade-currency price to base via fxRate before weighting", () => {
+      // Numerator (qty*price) is in the asset's trade currency; the
+      // portfolioMarketValue denominator is in the portfolio's base currency.
+      // fxRate (trade->base) must be applied so both sides share a currency.
+      // 100 * 10 * 2 = 2000 base / 10000 base = 20%.
+      expect(computeCurrentPositionWeight(100, 10, 10000, 2)).toBe(20)
+    })
+
+    test("fxRate defaults to 1 (same-currency, unchanged behaviour)", () => {
+      expect(computeCurrentPositionWeight(100, 10, 10000)).toBe(
+        computeCurrentPositionWeight(100, 10, 10000, 1),
+      )
     })
   })
 
@@ -203,6 +264,15 @@ describe("tradeFormHelpers", () => {
 
     test("returns null for NaN target weight", () => {
       expect(calculateQuantityFromTargetWeight(NaN, 5, 10, 10000)).toBeNull()
+    })
+
+    test("divides the base-currency value diff by the base-converted price", () => {
+      // target 15% and current 10% are base-currency weights of a base PV.
+      // The required-share count must divide the base value diff by the price
+      // expressed in base currency (price * fxRate), not the raw trade price.
+      // diff = 500 base; priceBase = 10 * 2 = 20; shares = round(500/20) = 25.
+      const result = calculateQuantityFromTargetWeight(15, 10, 10, 10000, 2)
+      expect(result).toEqual({ quantity: 25, tradeType: "BUY" })
     })
   })
 
@@ -256,6 +326,25 @@ describe("tradeFormHelpers", () => {
       expect(
         calculateNewPositionQuantityFromTargetWeight(NaN, 10, 10000),
       ).toBeNull()
+    })
+
+    test("sizes a foreign-currency new position using the base-converted price", () => {
+      // PV (base) = 30000, want 70%. Target base value V = 0.7*30000/0.3 = 70000.
+      // priceBase = 10 * 2 = 20; qty = round(70000/20) = 3500;
+      // nominal = 30000 + 3500*20 = 100000. Realised weight lands on 70%.
+      const result = calculateNewPositionQuantityFromTargetWeight(
+        70,
+        10,
+        30000,
+        2,
+      )
+      expect(result).toEqual({
+        quantity: 3500,
+        tradeType: "BUY",
+        nominalPortfolioValue: 100000,
+      })
+      const { quantity, nominalPortfolioValue } = result!
+      expect(((quantity * 20) / nominalPortfolioValue) * 100).toBeCloseTo(70, 5)
     })
   })
 

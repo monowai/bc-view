@@ -43,6 +43,7 @@ import {
   CorporateActionsData,
   SectorWeightingsData,
 } from "./ActionsMenus"
+import { deriveTradeToBaseFxRate } from "@lib/trns/tradeFormHelpers"
 import { COPYABLE_HOLDING_COLUMNS } from "./constants"
 
 export type { CorporateActionsData, SectorWeightingsData }
@@ -217,6 +218,7 @@ export default function Rows({
                       }
                       valueIn={valueIn}
                       held={held}
+                      fxRate={deriveTradeToBaseFxRate(moneyValues)}
                       onTrade={isCashRelated(asset) ? undefined : onTrade}
                       onQuickSell={
                         isCashRelated(asset) ? undefined : onQuickSell

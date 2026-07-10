@@ -109,6 +109,7 @@ describe("Quick Sell Feature via Actions Menu", () => {
         quantity: 100,
         price: 150,
         held: undefined,
+        fxRate: 1,
       })
     })
 
@@ -194,6 +195,8 @@ describe("Quick Sell Feature via Actions Menu", () => {
         market: "NASDAQ",
         quantity: 100,
         price: 150,
+        held: undefined,
+        fxRate: 1,
       })
     })
 
