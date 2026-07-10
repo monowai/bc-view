@@ -8,6 +8,7 @@ import {
   PolicyType,
   Portfolio,
   SubAccountRequest,
+  TaxTreatment,
 } from "types/beancounter"
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
@@ -53,10 +54,16 @@ export interface Pension {
   monthlyPayoutAmount?: number
   lumpSum?: boolean // If true, pays out in full rather than monthly
   monthlyContribution?: number // Regular contribution amount
-  policyType?: PolicyType // Composite policy type (CPF, ILP, GENERIC)
+  policyType?: PolicyType // Composite policy type (CPF, ILP, GENERIC, US_401K, US_IRA, UK_ISA)
   cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING" // CPF LIFE payout plan
   lockedUntilDate?: string // Date when asset can be liquidated
   subAccounts?: SubAccountRequest[] // Sub-accounts for composite policies
+  // US 401(k)/IRA + UK ISA wrapper settings
+  taxTreatment?: TaxTreatment
+  employeeDeferralPercent?: number
+  employerMatchPercent?: number
+  employerMatchCapPercent?: number
+  withdrawalTaxRate?: number
 }
 
 export interface Insurance {
@@ -501,6 +508,11 @@ const OnboardingWizard: React.FC = () => {
             cpfLifePlan: pension.cpfLifePlan,
             lockedUntilDate: pension.lockedUntilDate || null,
             subAccounts: pension.subAccounts,
+            taxTreatment: pension.taxTreatment,
+            employeeDeferralPercent: pension.employeeDeferralPercent,
+            employerMatchPercent: pension.employerMatchPercent,
+            employerMatchCapPercent: pension.employerMatchCapPercent,
+            withdrawalTaxRate: pension.withdrawalTaxRate,
           }),
         })
 

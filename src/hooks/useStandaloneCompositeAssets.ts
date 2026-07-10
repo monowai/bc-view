@@ -49,6 +49,9 @@ const CONFIGS_KEY = "/api/assets/config"
 // a server-side lookup (deferred — empty string forces the caller to handle).
 const POLICY_CURRENCY: Record<string, string> = {
   CPF: "SGD",
+  US_401K: "USD",
+  US_IRA: "USD",
+  UK_ISA: "GBP",
 }
 
 /**

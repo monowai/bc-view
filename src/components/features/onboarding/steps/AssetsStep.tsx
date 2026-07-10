@@ -641,6 +641,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               cpfPayoutStartAge={newPension.payoutAge}
               lockedUntilDate={newPension.lockedUntilDate || ""}
               subAccounts={newPension.subAccounts || []}
+              taxTreatment={newPension.taxTreatment}
+              employeeDeferralPercent={newPension.employeeDeferralPercent}
+              employerMatchPercent={newPension.employerMatchPercent}
+              employerMatchCapPercent={newPension.employerMatchCapPercent}
+              withdrawalTaxRate={newPension.withdrawalTaxRate}
               onPolicyTypeChange={(value: PolicyType | undefined) =>
                 // Functional update: the CPF branch also fires
                 // onCpfLifePlanChange in the same tick, and a stale-closure
@@ -666,6 +671,33 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               }
               onCpfPayoutStartAgeChange={(value) =>
                 setNewPension((prev) => ({ ...prev, payoutAge: value }))
+              }
+              onTaxTreatmentChange={(value) =>
+                setNewPension((prev) => ({ ...prev, taxTreatment: value }))
+              }
+              onEmployeeDeferralPercentChange={(value) =>
+                setNewPension((prev) => ({
+                  ...prev,
+                  employeeDeferralPercent: value,
+                }))
+              }
+              onEmployerMatchPercentChange={(value) =>
+                setNewPension((prev) => ({
+                  ...prev,
+                  employerMatchPercent: value,
+                }))
+              }
+              onEmployerMatchCapPercentChange={(value) =>
+                setNewPension((prev) => ({
+                  ...prev,
+                  employerMatchCapPercent: value,
+                }))
+              }
+              onWithdrawalTaxRateChange={(value) =>
+                setNewPension((prev) => ({
+                  ...prev,
+                  withdrawalTaxRate: value,
+                }))
               }
             />
 

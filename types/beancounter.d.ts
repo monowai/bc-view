@@ -493,21 +493,14 @@ interface Registration {
 }
 
 export type HoldingsView =
-  | "SUMMARY"
-  | "TABLE"
-  | "CARDS"
-  | "HEATMAP"
-  | "ALLOCATION"
+  "SUMMARY" | "TABLE" | "CARDS" | "HEATMAP" | "ALLOCATION"
 
 // Type aliases for UserPreferences - runtime values defined in types/constants.ts
 export type ValueInOption = "PORTFOLIO" | "BASE" | "TRADE"
 
 // Backend GroupBy API values (enum names as persisted in the database)
 export type GroupByApiValue =
-  | "ASSET_CLASS"
-  | "SECTOR"
-  | "MARKET_CURRENCY"
-  | "MARKET"
+  "ASSET_CLASS" | "SECTOR" | "MARKET_CURRENCY" | "MARKET"
 
 // Frontend GroupBy property paths (used for client-side grouping)
 export type GroupByOption =
@@ -796,7 +789,16 @@ export interface AssetHoldingsResponse {
 /**
  * Type of composite policy asset.
  */
-export type PolicyType = "CPF" | "ILP" | "GENERIC"
+export type PolicyType =
+  "CPF" | "ILP" | "GENERIC" | "US_401K" | "US_IRA" | "UK_ISA"
+
+/**
+ * Tax treatment for a composite policy asset. Determines whether projected
+ * withdrawals are taxed (TRADITIONAL), tax-free (ROTH / TAX_FREE), or net of
+ * a configured withdrawal tax rate. US_401K/US_IRA default TRADITIONAL when
+ * omitted; UK_ISA is always TAX_FREE.
+ */
+export type TaxTreatment = "TRADITIONAL" | "ROTH" | "TAX_FREE"
 
 /**
  * Sub-account within a composite policy asset (e.g. CPF OA/SA/MA/RA, ILP funds).
@@ -867,6 +869,14 @@ export interface PrivateAssetConfig {
   // CPF LIFE settings
   cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
   cpfPayoutStartAge?: number
+  // US 401(k)/IRA + UK ISA wrapper settings. Decimals (e.g. 0.06 = 6%).
+  // Omitted taxTreatment defaults to TRADITIONAL for US_401K/US_IRA and
+  // TAX_FREE for UK_ISA.
+  taxTreatment?: TaxTreatment
+  employeeDeferralPercent?: number
+  employerMatchPercent?: number
+  employerMatchCapPercent?: number
+  withdrawalTaxRate?: number
   // Timestamps
   createdDate: string
   updatedDate: string
@@ -903,6 +913,12 @@ export interface PrivateAssetConfigRequest {
   // CPF LIFE settings
   cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
   cpfPayoutStartAge?: number
+  // US 401(k)/IRA + UK ISA wrapper settings. Decimals (e.g. 0.06 = 6%).
+  taxTreatment?: TaxTreatment
+  employeeDeferralPercent?: number
+  employerMatchPercent?: number
+  employerMatchCapPercent?: number
+  withdrawalTaxRate?: number
 }
 
 export interface PrivateAssetConfigResponse {
@@ -1149,10 +1165,7 @@ export interface MonthlyIncomeResponse {
 
 export type ShareAccessLevel = "VIEW" | "FULL"
 export type ShareStatus =
-  | "PENDING_CLIENT_INVITE"
-  | "PENDING_ADVISER_REQUEST"
-  | "ACTIVE"
-  | "REVOKED"
+  "PENDING_CLIENT_INVITE" | "PENDING_ADVISER_REQUEST" | "ACTIVE" | "REVOKED"
 
 export interface PortfolioShare {
   id: string

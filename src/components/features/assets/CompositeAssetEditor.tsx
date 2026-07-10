@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react"
-import { PolicyType, SubAccountRequest } from "types/beancounter"
+import { PolicyType, SubAccountRequest, TaxTreatment } from "types/beancounter"
 import TouchDatePicker from "@components/ui/TouchDatePicker"
 import MathInput from "@components/ui/MathInput"
 
@@ -37,10 +37,22 @@ const CPF_TEMPLATE: SubAccountRequest[] = [
   },
 ]
 
+/**
+ * US 401(k)/IRA + UK ISA default to a single sub-account holding the whole
+ * balance — unlike CPF's prescribed OA/SA/MA/RA split, these wrappers don't
+ * have statutory buckets.
+ */
+const SINGLE_ACCOUNT_TEMPLATE: SubAccountRequest[] = [
+  { code: "BAL", displayName: "Balance", balance: 0, liquid: true },
+]
+
 const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "CPF", label: "CPF" },
   { value: "ILP", label: "Investment-Linked Policy" },
   { value: "GENERIC", label: "Generic Composite" },
+  { value: "US_401K", label: "US 401(k)" },
+  { value: "US_IRA", label: "US IRA" },
+  { value: "UK_ISA", label: "UK ISA" },
 ]
 
 type CpfLifePlan = "STANDARD" | "BASIC" | "ESCALATING"
@@ -74,11 +86,22 @@ export interface CompositeAssetEditorProps {
   subAccounts: SubAccountRequest[]
   cpfLifePlan?: CpfLifePlan
   cpfPayoutStartAge?: number
+  // US 401(k)/IRA + UK ISA wrapper settings. Decimals (e.g. 0.06 = 6%).
+  taxTreatment?: TaxTreatment
+  employeeDeferralPercent?: number
+  employerMatchPercent?: number
+  employerMatchCapPercent?: number
+  withdrawalTaxRate?: number
   onPolicyTypeChange: (value: PolicyType | undefined) => void
   onLockedUntilDateChange: (value: string) => void
   onSubAccountsChange: (accounts: SubAccountRequest[]) => void
   onCpfLifePlanChange?: (value: CpfLifePlan | undefined) => void
   onCpfPayoutStartAgeChange?: (value: number | undefined) => void
+  onTaxTreatmentChange?: (value: TaxTreatment | undefined) => void
+  onEmployeeDeferralPercentChange?: (value: number | undefined) => void
+  onEmployerMatchPercentChange?: (value: number | undefined) => void
+  onEmployerMatchCapPercentChange?: (value: number | undefined) => void
+  onWithdrawalTaxRateChange?: (value: number | undefined) => void
 }
 
 export default function CompositeAssetEditor({
@@ -87,11 +110,21 @@ export default function CompositeAssetEditor({
   subAccounts,
   cpfLifePlan,
   cpfPayoutStartAge,
+  taxTreatment,
+  employeeDeferralPercent,
+  employerMatchPercent,
+  employerMatchCapPercent,
+  withdrawalTaxRate,
   onPolicyTypeChange,
   onLockedUntilDateChange,
   onSubAccountsChange,
   onCpfLifePlanChange,
   onCpfPayoutStartAgeChange,
+  onTaxTreatmentChange,
+  onEmployeeDeferralPercentChange,
+  onEmployerMatchPercentChange,
+  onEmployerMatchCapPercentChange,
+  onWithdrawalTaxRateChange,
 }: CompositeAssetEditorProps): React.ReactElement {
   const [newCode, setNewCode] = useState("")
 
@@ -134,6 +167,38 @@ export default function CompositeAssetEditor({
 
   const isComposite = policyType !== undefined
   const isCpf = policyType === "CPF"
+  const isUsWrapper = policyType === "US_401K" || policyType === "US_IRA"
+
+  // CPF LIFE settings (cpfLifePlan/cpfPayoutStartAge) are CPF-only — clear
+  // them when switching to any other policy type.
+  const clearCpfOnlyFields = (): void => {
+    if (cpfLifePlan) {
+      onCpfLifePlanChange?.(undefined)
+    }
+    if (cpfPayoutStartAge != null) {
+      onCpfPayoutStartAgeChange?.(undefined)
+    }
+  }
+
+  // US 401(k)/IRA/ISA wrapper settings — clear when switching to CPF/ILP/
+  // Generic/None so they can't leak into an unrelated policy's save.
+  const clearWrapperFields = (): void => {
+    if (taxTreatment) {
+      onTaxTreatmentChange?.(undefined)
+    }
+    if (employeeDeferralPercent != null) {
+      onEmployeeDeferralPercentChange?.(undefined)
+    }
+    if (employerMatchPercent != null) {
+      onEmployerMatchPercentChange?.(undefined)
+    }
+    if (employerMatchCapPercent != null) {
+      onEmployerMatchCapPercentChange?.(undefined)
+    }
+    if (withdrawalTaxRate != null) {
+      onWithdrawalTaxRateChange?.(undefined)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -167,18 +232,40 @@ export default function CompositeAssetEditor({
                 if (lockedUntilDate) {
                   onLockedUntilDateChange("")
                 }
+                clearWrapperFields()
+              } else if (val === "US_401K" || val === "US_IRA") {
+                // No statutory buckets — start from a single Balance
+                // sub-account and default to TRADITIONAL (svc-retire projects
+                // net of withdrawalTaxRate for TRADITIONAL, 1:1 for ROTH).
+                // Keep an already-chosen treatment (e.g. re-selecting IRA
+                // after ROTH).
+                onSubAccountsChange(
+                  SINGLE_ACCOUNT_TEMPLATE.map((t) => ({ ...t })),
+                )
+                if (!taxTreatment) {
+                  onTaxTreatmentChange?.("TRADITIONAL")
+                }
+                clearCpfOnlyFields()
+              } else if (val === "UK_ISA") {
+                // ISA is always tax-free — not a user choice — so force
+                // TAX_FREE unconditionally rather than only-if-unset.
+                onSubAccountsChange(
+                  SINGLE_ACCOUNT_TEMPLATE.map((t) => ({ ...t })),
+                )
+                onTaxTreatmentChange?.("TAX_FREE")
+                onEmployeeDeferralPercentChange?.(undefined)
+                onEmployerMatchPercentChange?.(undefined)
+                onEmployerMatchCapPercentChange?.(undefined)
+                onWithdrawalTaxRateChange?.(undefined)
+                clearCpfOnlyFields()
               } else {
                 // ILP / Generic / None have no prescribed buckets — start from
-                // an empty template and drop CPF-only settings.
+                // an empty template and drop CPF-only and wrapper settings.
                 if (subAccounts.length > 0) {
                   onSubAccountsChange([])
                 }
-                if (cpfLifePlan) {
-                  onCpfLifePlanChange?.(undefined)
-                }
-                if (cpfPayoutStartAge != null) {
-                  onCpfPayoutStartAgeChange?.(undefined)
-                }
+                clearCpfOnlyFields()
+                clearWrapperFields()
               }
             }}
             className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
@@ -281,6 +368,180 @@ export default function CompositeAssetEditor({
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* US 401(k)/IRA Wrapper Settings — UK ISA has no user-facing tax
+              fields (TAX_FREE is implied and forced above). */}
+          {isUsWrapper && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-3">
+              <h4 className="text-sm font-medium text-emerald-800">
+                Retirement Wrapper Settings
+              </h4>
+              <div>
+                <span className="block text-xs font-medium text-emerald-700 mb-1">
+                  Tax Treatment
+                </span>
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center text-sm text-emerald-700">
+                    <input
+                      type="radio"
+                      name="taxTreatment"
+                      value="TRADITIONAL"
+                      checked={
+                        (taxTreatment || "TRADITIONAL") === "TRADITIONAL"
+                      }
+                      onChange={() => onTaxTreatmentChange?.("TRADITIONAL")}
+                      className="mr-1.5"
+                    />
+                    Traditional
+                  </label>
+                  <label className="flex items-center text-sm text-emerald-700">
+                    <input
+                      type="radio"
+                      name="taxTreatment"
+                      value="ROTH"
+                      checked={taxTreatment === "ROTH"}
+                      onChange={() => onTaxTreatmentChange?.("ROTH")}
+                      className="mr-1.5"
+                    />
+                    Roth
+                  </label>
+                </div>
+                <p className="text-xs text-emerald-600 mt-1">
+                  Traditional projects withdrawals net of tax; Roth projects 1:1
+                  (already taxed).
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label
+                    htmlFor="employeeDeferralPercent"
+                    className="block text-xs font-medium text-emerald-700 mb-1"
+                  >
+                    Employee Deferral %
+                  </label>
+                  <input
+                    id="employeeDeferralPercent"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={
+                      employeeDeferralPercent != null
+                        ? Math.round(employeeDeferralPercent * 1000) / 10
+                        : ""
+                    }
+                    onChange={(e) =>
+                      onEmployeeDeferralPercentChange?.(
+                        e.target.value
+                          ? parseFloat(e.target.value) / 100
+                          : undefined,
+                      )
+                    }
+                    placeholder="--"
+                    className="w-full border-emerald-300 rounded px-2 py-1.5 border text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="employerMatchPercent"
+                    className="block text-xs font-medium text-emerald-700 mb-1"
+                  >
+                    Employer Match %
+                  </label>
+                  <input
+                    id="employerMatchPercent"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={
+                      employerMatchPercent != null
+                        ? Math.round(employerMatchPercent * 1000) / 10
+                        : ""
+                    }
+                    onChange={(e) =>
+                      onEmployerMatchPercentChange?.(
+                        e.target.value
+                          ? parseFloat(e.target.value) / 100
+                          : undefined,
+                      )
+                    }
+                    placeholder="--"
+                    className="w-full border-emerald-300 rounded px-2 py-1.5 border text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="employerMatchCapPercent"
+                    className="block text-xs font-medium text-emerald-700 mb-1"
+                  >
+                    Match Cap % (of salary)
+                  </label>
+                  <input
+                    id="employerMatchCapPercent"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={
+                      employerMatchCapPercent != null
+                        ? Math.round(employerMatchCapPercent * 1000) / 10
+                        : ""
+                    }
+                    onChange={(e) =>
+                      onEmployerMatchCapPercentChange?.(
+                        e.target.value
+                          ? parseFloat(e.target.value) / 100
+                          : undefined,
+                      )
+                    }
+                    placeholder="--"
+                    className="w-full border-emerald-300 rounded px-2 py-1.5 border text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-emerald-600">
+                Match = min(deferral, cap % of salary) × match %.
+              </p>
+              {/* Withdrawal tax rate only applies when withdrawals are
+                  taxable — Roth is already taxed, so hide it. */}
+              {(taxTreatment || "TRADITIONAL") !== "ROTH" && (
+                <div>
+                  <label
+                    htmlFor="withdrawalTaxRate"
+                    className="block text-xs font-medium text-emerald-700 mb-1"
+                  >
+                    Withdrawal Tax Rate %
+                  </label>
+                  <input
+                    id="withdrawalTaxRate"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={
+                      withdrawalTaxRate != null
+                        ? Math.round(withdrawalTaxRate * 1000) / 10
+                        : ""
+                    }
+                    onChange={(e) =>
+                      onWithdrawalTaxRateChange?.(
+                        e.target.value
+                          ? parseFloat(e.target.value) / 100
+                          : undefined,
+                      )
+                    }
+                    placeholder="22"
+                    className="w-full border-emerald-300 rounded px-2 py-1.5 border text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Applied to projected withdrawals. Defaults to 22% if left
+                    blank.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
