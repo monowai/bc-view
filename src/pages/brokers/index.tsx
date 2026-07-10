@@ -200,6 +200,14 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             </div>
             <div className="flex space-x-2">
               <button
+                className="bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors flex items-center shadow-sm"
+                onClick={() => router.push("/tools/open-brokerage")}
+                title={"Open Brokerage"}
+              >
+                <i className="fas fa-building-columns mr-2"></i>
+                <span className="hidden sm:inline">{"Open Brokerage"}</span>
+              </button>
+              <button
                 className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center shadow-sm"
                 onClick={() => router.push("/brokers/NO_BROKER/holdings")}
                 title={"Reconcile Holdings"}
