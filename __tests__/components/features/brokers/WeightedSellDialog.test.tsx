@@ -102,6 +102,23 @@ describe("WeightedSellDialog", () => {
     expect(screen.getByText("Across all brokers: 96")).toBeInTheDocument()
   })
 
+  it("defaults 'Percent to sell' to 100", async () => {
+    render(
+      <WeightedSellDialog
+        open={true}
+        onClose={jest.fn()}
+        brokerId="broker-1"
+        brokerName="Interactive Brokers"
+        holding={holding}
+        onSubmitted={jest.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Percent to sell")).toHaveValue(100),
+    )
+  })
+
   it("computes sell quantities for 50% correctly", async () => {
     render(
       <WeightedSellDialog
@@ -119,8 +136,11 @@ describe("WeightedSellDialog", () => {
       expect(screen.getByLabelText("Price")).toHaveValue(420.5),
     )
 
-    // Default percent is 50 -> 100 * 0.5 = 50, 75 * 0.5 = 37.5 which
-    // rounds to 38 under the default board lot of 1 (whole shares).
+    // 50% -> 100 * 0.5 = 50, 75 * 0.5 = 37.5 which rounds to 38 under the
+    // default board lot of 1 (whole shares).
+    fireEvent.change(screen.getByLabelText("Percent to sell"), {
+      target: { value: "50" },
+    })
     expect(screen.getByText("50")).toBeInTheDocument()
     expect(screen.getByText("38")).toBeInTheDocument()
   })
@@ -161,6 +181,9 @@ describe("WeightedSellDialog", () => {
       expect(screen.getByLabelText("Price")).toHaveValue(420.5),
     )
 
+    fireEvent.change(screen.getByLabelText("Percent to sell"), {
+      target: { value: "50" },
+    })
     // 69 * 0.5 = 34.5 -> 35 (never 34.5); 18 * 0.5 = 9
     expect(screen.getByText("35")).toBeInTheDocument()
     expect(screen.queryByText("34.5")).not.toBeInTheDocument()
@@ -201,6 +224,9 @@ describe("WeightedSellDialog", () => {
       expect(screen.getByLabelText("Price")).toHaveValue(420.5),
     )
 
+    fireEvent.change(screen.getByLabelText("Percent to sell"), {
+      target: { value: "50" },
+    })
     expect(screen.getByText("34.5")).toBeInTheDocument()
   })
 
@@ -281,6 +307,9 @@ describe("WeightedSellDialog", () => {
       expect(screen.getByLabelText("Price")).toHaveValue(420.5),
     )
 
+    fireEvent.change(screen.getByLabelText("Percent to sell"), {
+      target: { value: "50" },
+    })
     fireEvent.click(screen.getByRole("button", { name: /propose 2 sells/i }))
 
     await waitFor(() => expect(onSubmitted).toHaveBeenCalled())
