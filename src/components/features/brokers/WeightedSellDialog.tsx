@@ -40,7 +40,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
   holding,
   onSubmitted,
 }) => {
-  const [percent, setPercent] = useState<string>("50")
+  const [percent, setPercent] = useState<string>("100")
   const [price, setPrice] = useState<string>("")
   const [tradeDate, setTradeDate] = useState<string>(todayIso())
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
@@ -59,7 +59,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
   if (openKey !== resetKey) {
     setResetKey(openKey)
     if (open) {
-      setPercent("50")
+      setPercent("100")
       setPrice("")
       setTradeDate(todayIso())
       reset()
