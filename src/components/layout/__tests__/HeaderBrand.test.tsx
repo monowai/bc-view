@@ -61,6 +61,16 @@ describe("HeaderBrand", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("Tools dropdown has a single Brokers entry (Open Brokerage lives on /brokers)", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
+    const brokers = screen.getByRole("link", { name: /Brokers/i })
+    expect(brokers).toHaveAttribute("href", "/brokers")
+    expect(
+      screen.queryByRole("link", { name: /Open Brokerage/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it("Tools dropdown includes Cost Stack link", () => {
     render(<HeaderBrand />)
     fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))

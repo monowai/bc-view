@@ -30,7 +30,8 @@ interface NavSection {
 }
 
 // Main nav: core domain actions only.
-// Settings, Brokers, Admin live in the user menu (HeaderUserControls).
+// Settings and Admin live in the user menu (HeaderUserControls).
+// Brokers (incl. Open Brokerage, reachable from /brokers) lives under Tools.
 const navSections: NavSection[] = [
   {
     title: "Wealth",
@@ -79,11 +80,7 @@ const navSections: NavSection[] = [
         icon: "fa-money-check-dollar",
         action: "payslip",
       },
-      {
-        href: "/tools/open-brokerage",
-        label: "Open Brokerage",
-        icon: "fa-building-columns",
-      },
+      { href: "/brokers", label: "Brokers", icon: "fa-building" },
       {
         href: "/tools/cost-stack",
         label: "Cost Stack",
