@@ -8,6 +8,8 @@ import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
 import Head from "next/head"
 import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
+import { downloadCsv } from "@lib/csvExport"
+import { buildIbkrBasketCsv, ibkrBasketFilename } from "@lib/ibkrBasket"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { solePortfolio as soleActivePortfolio } from "@lib/user/zenMode"
 import DateInput from "@components/ui/DateInput"
@@ -703,6 +705,20 @@ function ProposedTransactions(): React.JSX.Element {
     }
   }
 
+  // IBKR basket export covers the rows currently shown (post broker filter);
+  // only BUY/SELL become TWS orders, so the button is inert without any.
+  const exportableTrnCount = visibleTransactions.filter(
+    (trn) => trn.trnType === "BUY" || trn.trnType === "SELL",
+  ).length
+
+  const handleExportIbkrBasket = (): void => {
+    if (exportableTrnCount === 0) return
+    downloadCsv(
+      ibkrBasketFilename(toDate),
+      buildIbkrBasketCsv(visibleTransactions),
+    )
+  }
+
   const hasChanges = (trn: ProposedTransaction): boolean =>
     trn.editedPrice !== trn.price ||
     trn.editedFees !== trn.fees ||
@@ -1055,6 +1071,14 @@ function ProposedTransactions(): React.JSX.Element {
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 {isSaving ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={handleExportIbkrBasket}
+                disabled={exportableTrnCount === 0}
+                title="Download the visible BUY/SELL rows as a TWS BasketTrader CSV"
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                {`Export IBKR Basket (${exportableTrnCount})`}
               </button>
               {anyChanges && (
                 <span className="text-sm text-gray-500">
