@@ -142,6 +142,8 @@ export interface MoneyValues {
   fees: number
   tax: number
   cash: number // separate out cash into its own bucket
+  /** Cash reserved for pending/unsettled settlement; marketValue + earmarked = nominal */
+  earmarked: number
   purchases: number
   sales: number
   costBasis: number

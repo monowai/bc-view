@@ -447,6 +447,24 @@ const PositionCard: React.FC<PositionCardProps> = ({
           <FormatValue value={marketValue} />
         </div>
         <div className="text-sm text-gray-500">Current Value</div>
+        {values.earmarked !== 0 && (
+          <div className="mt-1 text-sm text-muted-foreground">
+            <div className="flex justify-between">
+              <span className="text-xs">Earmarked</span>
+              <span>
+                {currencySymbol}
+                <FormatValue value={convert(values.earmarked)} />
+              </span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span className="text-xs">Nominal</span>
+              <span>
+                {currencySymbol}
+                <FormatValue value={marketValue + convert(values.earmarked)} />
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <PositionPnL

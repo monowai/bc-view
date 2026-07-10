@@ -422,10 +422,30 @@ export default function Rows({
               </span>
             </td>
             <td className={getCellClasses(5)}>
-              <ResponsiveFormatValue
-                value={convert(moneyValues[valueIn].marketValue)}
-                defaultValue="0"
-              />
+              {moneyValues[valueIn].earmarked !== 0 ? (
+                <span className="relative group cursor-help">
+                  <ResponsiveFormatValue
+                    value={convert(moneyValues[valueIn].marketValue)}
+                    defaultValue="0"
+                  />
+                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                    Current {effectiveCurrencySymbol}
+                    {convert(moneyValues[valueIn].marketValue).toFixed(2)} +
+                    Earmarked {effectiveCurrencySymbol}
+                    {convert(moneyValues[valueIn].earmarked).toFixed(2)} =
+                    Nominal {effectiveCurrencySymbol}
+                    {(
+                      convert(moneyValues[valueIn].marketValue) +
+                      convert(moneyValues[valueIn].earmarked)
+                    ).toFixed(2)}
+                  </span>
+                </span>
+              ) : (
+                <ResponsiveFormatValue
+                  value={convert(moneyValues[valueIn].marketValue)}
+                  defaultValue="0"
+                />
+              )}
             </td>
             <td className={getCellClasses(6)}>
               {!isCashRelated(asset) && (

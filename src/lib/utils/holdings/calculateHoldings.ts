@@ -127,6 +127,7 @@ function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
     unrealisedGain: 0,
     fees: 0,
     cash: 0,
+    earmarked: 0,
     purchases: 0,
     sales: 0,
     tax: 0,
