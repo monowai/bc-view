@@ -439,6 +439,10 @@ export interface YearlyAccumulation {
   totalWealth: number
   /** Currency code */
   currency: string
+  /** Portion of endingBalance held in tax-advantaged wrappers (401(k)/IRA/ISA
+   * sub-accounts) whose withdrawal tax treatment differs from the rest of the
+   * balance. Undefined/null when no wrapper configs exist for the plan. */
+  shieldedValue?: number
 }
 
 /** Breakdown of income sources for a projection year */

@@ -8,6 +8,7 @@ import {
   Portfolio,
   PolicyType,
   SubAccountRequest,
+  TaxTreatment,
 } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
@@ -119,6 +120,21 @@ export default function AssetsStep({
     "STANDARD" | "BASIC" | "ESCALATING" | undefined
   >(undefined)
   const [cpfPayoutStartAge, setCpfPayoutStartAge] = useState<
+    number | undefined
+  >(undefined)
+  const [taxTreatment, setTaxTreatment] = useState<TaxTreatment | undefined>(
+    undefined,
+  )
+  const [employeeDeferralPercent, setEmployeeDeferralPercent] = useState<
+    number | undefined
+  >(undefined)
+  const [employerMatchPercent, setEmployerMatchPercent] = useState<
+    number | undefined
+  >(undefined)
+  const [employerMatchCapPercent, setEmployerMatchCapPercent] = useState<
+    number | undefined
+  >(undefined)
+  const [withdrawalTaxRate, setWithdrawalTaxRate] = useState<
     number | undefined
   >(undefined)
   // Simple asset balance (when no policyType)
@@ -476,6 +492,11 @@ export default function AssetsStep({
     setPolicyType(undefined)
     setLockedUntilDate("")
     setSubAccounts([])
+    setTaxTreatment(undefined)
+    setEmployeeDeferralPercent(undefined)
+    setEmployerMatchPercent(undefined)
+    setEmployerMatchCapPercent(undefined)
+    setWithdrawalTaxRate(undefined)
     setSimpleBalance(0)
     setExpectedReturnRate("4")
     setPayoutAge("65")
@@ -574,6 +595,11 @@ export default function AssetsStep({
           subAccounts,
           cpfLifePlan: cpfLifePlan || null,
           cpfPayoutStartAge: cpfPayoutStartAge || null,
+          taxTreatment: taxTreatment || null,
+          employeeDeferralPercent: employeeDeferralPercent ?? null,
+          employerMatchPercent: employerMatchPercent ?? null,
+          employerMatchCapPercent: employerMatchCapPercent ?? null,
+          withdrawalTaxRate: withdrawalTaxRate ?? null,
         })
       }
 
@@ -664,6 +690,11 @@ export default function AssetsStep({
     lockedUntilDate,
     cpfLifePlan,
     cpfPayoutStartAge,
+    taxTreatment,
+    employeeDeferralPercent,
+    employerMatchPercent,
+    employerMatchCapPercent,
+    withdrawalTaxRate,
   ])
 
   return (
@@ -1141,11 +1172,21 @@ export default function AssetsStep({
                 subAccounts={subAccounts}
                 cpfLifePlan={cpfLifePlan}
                 cpfPayoutStartAge={cpfPayoutStartAge}
+                taxTreatment={taxTreatment}
+                employeeDeferralPercent={employeeDeferralPercent}
+                employerMatchPercent={employerMatchPercent}
+                employerMatchCapPercent={employerMatchCapPercent}
+                withdrawalTaxRate={withdrawalTaxRate}
                 onPolicyTypeChange={setPolicyType}
                 onLockedUntilDateChange={setLockedUntilDate}
                 onSubAccountsChange={setSubAccounts}
                 onCpfLifePlanChange={setCpfLifePlan}
                 onCpfPayoutStartAgeChange={setCpfPayoutStartAge}
+                onTaxTreatmentChange={setTaxTreatment}
+                onEmployeeDeferralPercentChange={setEmployeeDeferralPercent}
+                onEmployerMatchPercentChange={setEmployerMatchPercent}
+                onEmployerMatchCapPercentChange={setEmployerMatchCapPercent}
+                onWithdrawalTaxRateChange={setWithdrawalTaxRate}
               />
 
               {/* Simple Asset Balance (when no policy type selected) */}

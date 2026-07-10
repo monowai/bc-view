@@ -176,3 +176,169 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
     ).not.toBeInTheDocument()
   })
 })
+
+/**
+ * US 401(k)/IRA + UK ISA wrapper support (#1087). Mirrors the CPF pattern:
+ * selecting the policy type applies a single-account template and, for
+ * US wrappers, defaults tax treatment to TRADITIONAL (svc-retire projects
+ * net-of-tax for TRADITIONAL, 1:1 for ROTH/TAX_FREE).
+ */
+describe("CompositeAssetEditor — US 401(k)/IRA + UK ISA wrappers", () => {
+  const baseProps = {
+    lockedUntilDate: "",
+    subAccounts: [],
+    onPolicyTypeChange: jest.fn(),
+    onLockedUntilDateChange: jest.fn(),
+    onSubAccountsChange: jest.fn(),
+    onCpfLifePlanChange: jest.fn(),
+    onCpfPayoutStartAgeChange: jest.fn(),
+  }
+
+  it("seeds a single Balance sub-account and defaults TRADITIONAL when policy turns US_401K", () => {
+    const onPolicyTypeChange = jest.fn()
+    const onSubAccountsChange = jest.fn()
+    const onTaxTreatmentChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType={undefined}
+        taxTreatment={undefined}
+        onPolicyTypeChange={onPolicyTypeChange}
+        onSubAccountsChange={onSubAccountsChange}
+        onTaxTreatmentChange={onTaxTreatmentChange}
+      />,
+    )
+    const policySelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement
+    fireEvent.change(policySelect, { target: { value: "US_401K" } })
+    expect(onPolicyTypeChange).toHaveBeenCalledWith("US_401K")
+    const applied = onSubAccountsChange.mock.calls[0][0] as { code: string }[]
+    expect(applied.map((a) => a.code)).toEqual(["BAL"])
+    expect(onTaxTreatmentChange).toHaveBeenCalledWith("TRADITIONAL")
+  })
+
+  it("shows Traditional/Roth toggle + match fields for US_401K, and hides withdrawal tax rate for Roth", () => {
+    const { rerender } = render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType="US_401K"
+        taxTreatment="TRADITIONAL"
+      />,
+    )
+    expect(
+      screen.getByRole("radio", { name: /Traditional/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: /Roth/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Employee Deferral/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Employer Match %/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Match Cap/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Withdrawal Tax Rate/i)).toBeInTheDocument()
+
+    rerender(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType="US_401K"
+        taxTreatment="ROTH"
+      />,
+    )
+    expect(
+      screen.queryByLabelText(/Withdrawal Tax Rate/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("submits deferral/match/cap as decimals from percent input", () => {
+    const onEmployeeDeferralPercentChange = jest.fn()
+    const onEmployerMatchPercentChange = jest.fn()
+    const onEmployerMatchCapPercentChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType="US_401K"
+        taxTreatment="TRADITIONAL"
+        onEmployeeDeferralPercentChange={onEmployeeDeferralPercentChange}
+        onEmployerMatchPercentChange={onEmployerMatchPercentChange}
+        onEmployerMatchCapPercentChange={onEmployerMatchCapPercentChange}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText(/Employee Deferral/i), {
+      target: { value: "6" },
+    })
+    expect(onEmployeeDeferralPercentChange).toHaveBeenCalledWith(0.06)
+
+    fireEvent.change(screen.getByLabelText(/Employer Match %/i), {
+      target: { value: "3" },
+    })
+    expect(onEmployerMatchPercentChange).toHaveBeenCalledWith(0.03)
+
+    fireEvent.change(screen.getByLabelText(/Match Cap/i), {
+      target: { value: "6" },
+    })
+    expect(onEmployerMatchCapPercentChange).toHaveBeenCalledWith(0.06)
+  })
+
+  it("seeds a single Balance sub-account and forces TAX_FREE (hidden) for UK_ISA — no tax fields shown", () => {
+    const onSubAccountsChange = jest.fn()
+    const onTaxTreatmentChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType={undefined}
+        onSubAccountsChange={onSubAccountsChange}
+        onTaxTreatmentChange={onTaxTreatmentChange}
+      />,
+    )
+    const policySelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement
+    fireEvent.change(policySelect, { target: { value: "UK_ISA" } })
+    const applied = onSubAccountsChange.mock.calls[0][0] as { code: string }[]
+    expect(applied.map((a) => a.code)).toEqual(["BAL"])
+    expect(onTaxTreatmentChange).toHaveBeenCalledWith("TAX_FREE")
+
+    // Re-render as the committed UK_ISA state — no tax-treatment/deferral/
+    // match fields for ISA; TAX_FREE is implied, not user-editable.
+    render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType="UK_ISA"
+        taxTreatment="TAX_FREE"
+        subAccounts={[makeSubAccount({ code: "BAL", displayName: "Balance" })]}
+      />,
+    )
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/Employee Deferral/i),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/Withdrawal Tax Rate/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("clears wrapper fields when switching away from a US wrapper policy type", () => {
+    const onTaxTreatmentChange = jest.fn()
+    const onEmployeeDeferralPercentChange = jest.fn()
+    const onEmployerMatchPercentChange = jest.fn()
+    const onEmployerMatchCapPercentChange = jest.fn()
+    const onWithdrawalTaxRateChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        {...baseProps}
+        policyType="US_401K"
+        taxTreatment="TRADITIONAL"
+        employeeDeferralPercent={0.06}
+        employerMatchPercent={0.03}
+        employerMatchCapPercent={0.06}
+        withdrawalTaxRate={0.22}
+        onTaxTreatmentChange={onTaxTreatmentChange}
+        onEmployeeDeferralPercentChange={onEmployeeDeferralPercentChange}
+        onEmployerMatchPercentChange={onEmployerMatchPercentChange}
+        onEmployerMatchCapPercentChange={onEmployerMatchCapPercentChange}
+        onWithdrawalTaxRateChange={onWithdrawalTaxRateChange}
+      />,
+    )
+    const policySelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement
+    fireEvent.change(policySelect, { target: { value: "ILP" } })
+    expect(onTaxTreatmentChange).toHaveBeenCalledWith(undefined)
+    expect(onEmployeeDeferralPercentChange).toHaveBeenCalledWith(undefined)
+    expect(onEmployerMatchPercentChange).toHaveBeenCalledWith(undefined)
+    expect(onEmployerMatchCapPercentChange).toHaveBeenCalledWith(undefined)
+    expect(onWithdrawalTaxRateChange).toHaveBeenCalledWith(undefined)
+  })
+})

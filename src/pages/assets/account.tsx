@@ -7,6 +7,7 @@ import {
   CurrencyOption,
   PolicyType,
   SubAccountRequest,
+  TaxTreatment,
 } from "types/beancounter"
 import { ccyKey, categoriesKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
@@ -81,6 +82,21 @@ export default withPageAuthRequired(
       "STANDARD" | "BASIC" | "ESCALATING" | undefined
     >(undefined)
     const [cpfPayoutStartAge, setCpfPayoutStartAge] = useState<
+      number | undefined
+    >(undefined)
+    const [taxTreatment, setTaxTreatment] = useState<TaxTreatment | undefined>(
+      undefined,
+    )
+    const [employeeDeferralPercent, setEmployeeDeferralPercent] = useState<
+      number | undefined
+    >(undefined)
+    const [employerMatchPercent, setEmployerMatchPercent] = useState<
+      number | undefined
+    >(undefined)
+    const [employerMatchCapPercent, setEmployerMatchCapPercent] = useState<
+      number | undefined
+    >(undefined)
+    const [withdrawalTaxRate, setWithdrawalTaxRate] = useState<
       number | undefined
     >(undefined)
 
@@ -264,6 +280,24 @@ export default withPageAuthRequired(
                       if (cpfPayoutStartAge != null) {
                         configPayload.cpfPayoutStartAge = cpfPayoutStartAge
                       }
+                      if (taxTreatment) {
+                        configPayload.taxTreatment = taxTreatment
+                      }
+                      if (employeeDeferralPercent != null) {
+                        configPayload.employeeDeferralPercent =
+                          employeeDeferralPercent
+                      }
+                      if (employerMatchPercent != null) {
+                        configPayload.employerMatchPercent =
+                          employerMatchPercent
+                      }
+                      if (employerMatchCapPercent != null) {
+                        configPayload.employerMatchCapPercent =
+                          employerMatchCapPercent
+                      }
+                      if (withdrawalTaxRate != null) {
+                        configPayload.withdrawalTaxRate = withdrawalTaxRate
+                      }
                     }
 
                     await fetch(`/api/assets/config/${createdAsset.id}`, {
@@ -413,11 +447,21 @@ export default withPageAuthRequired(
                 subAccounts={subAccounts}
                 cpfLifePlan={cpfLifePlan}
                 cpfPayoutStartAge={cpfPayoutStartAge}
+                taxTreatment={taxTreatment}
+                employeeDeferralPercent={employeeDeferralPercent}
+                employerMatchPercent={employerMatchPercent}
+                employerMatchCapPercent={employerMatchCapPercent}
+                withdrawalTaxRate={withdrawalTaxRate}
                 onPolicyTypeChange={setPolicyType}
                 onLockedUntilDateChange={setLockedUntilDate}
                 onSubAccountsChange={setSubAccounts}
                 onCpfLifePlanChange={setCpfLifePlan}
                 onCpfPayoutStartAgeChange={setCpfPayoutStartAge}
+                onTaxTreatmentChange={setTaxTreatment}
+                onEmployeeDeferralPercentChange={setEmployeeDeferralPercent}
+                onEmployerMatchPercentChange={setEmployerMatchPercent}
+                onEmployerMatchCapPercentChange={setEmployerMatchCapPercent}
+                onWithdrawalTaxRateChange={setWithdrawalTaxRate}
               />
 
               <p className="text-xs text-gray-500 mt-4">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import useSWR from "swr"
 import { Asset, CurrencyOption } from "types/beancounter"
-import { PolicyType, SubAccountRequest } from "types/beancounter"
+import { PolicyType, SubAccountRequest, TaxTreatment } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
@@ -45,6 +45,12 @@ interface AssetConfigState {
   // CPF LIFE settings
   cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
   cpfPayoutStartAge?: number
+  // US 401(k)/IRA + UK ISA wrapper settings
+  taxTreatment?: TaxTreatment
+  employeeDeferralPercent?: number
+  employerMatchPercent?: number
+  employerMatchCapPercent?: number
+  withdrawalTaxRate?: number
   // For projection calculation (client-side only)
   currentAge: string
 }
@@ -370,6 +376,14 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               // CPF LIFE settings
               cpfLifePlan: data.data.cpfLifePlan || undefined,
               cpfPayoutStartAge: data.data.cpfPayoutStartAge || undefined,
+              // US 401(k)/IRA + UK ISA wrapper settings
+              taxTreatment: data.data.taxTreatment || undefined,
+              employeeDeferralPercent:
+                data.data.employeeDeferralPercent ?? undefined,
+              employerMatchPercent: data.data.employerMatchPercent ?? undefined,
+              employerMatchCapPercent:
+                data.data.employerMatchCapPercent ?? undefined,
+              withdrawalTaxRate: data.data.withdrawalTaxRate ?? undefined,
               // Client-side only for projection calculation
               currentAge: "",
             })
@@ -538,6 +552,11 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               subAccounts: config.subAccounts,
               cpfLifePlan: config.cpfLifePlan || null,
               cpfPayoutStartAge: config.cpfPayoutStartAge || null,
+              taxTreatment: config.taxTreatment || null,
+              employeeDeferralPercent: config.employeeDeferralPercent ?? null,
+              employerMatchPercent: config.employerMatchPercent ?? null,
+              employerMatchCapPercent: config.employerMatchCapPercent ?? null,
+              withdrawalTaxRate: config.withdrawalTaxRate ?? null,
             })
           }
         }
@@ -925,6 +944,11 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       subAccounts={config.subAccounts}
                       cpfLifePlan={config.cpfLifePlan}
                       cpfPayoutStartAge={config.cpfPayoutStartAge}
+                      taxTreatment={config.taxTreatment}
+                      employeeDeferralPercent={config.employeeDeferralPercent}
+                      employerMatchPercent={config.employerMatchPercent}
+                      employerMatchCapPercent={config.employerMatchCapPercent}
+                      withdrawalTaxRate={config.withdrawalTaxRate}
                       onPolicyTypeChange={(val) =>
                         // Functional updates: selecting CPF fires policy +
                         // template + CPF-LIFE setters in one tick; stale-closure
@@ -947,6 +971,33 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         setConfig((prev) => ({
                           ...prev,
                           cpfPayoutStartAge: val,
+                        }))
+                      }
+                      onTaxTreatmentChange={(val) =>
+                        setConfig((prev) => ({ ...prev, taxTreatment: val }))
+                      }
+                      onEmployeeDeferralPercentChange={(val) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          employeeDeferralPercent: val,
+                        }))
+                      }
+                      onEmployerMatchPercentChange={(val) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          employerMatchPercent: val,
+                        }))
+                      }
+                      onEmployerMatchCapPercentChange={(val) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          employerMatchCapPercent: val,
+                        }))
+                      }
+                      onWithdrawalTaxRateChange={(val) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          withdrawalTaxRate: val,
                         }))
                       }
                     />
