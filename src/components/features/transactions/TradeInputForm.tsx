@@ -345,6 +345,10 @@ const TradeInputForm: React.FC<{
   // Weight basis: aggregate market value when supplied (aggregated view),
   // otherwise the single portfolio's own market value.
   const weightBasis = weightBasisMarketValue ?? portfolio.marketValue
+  // `price` is the asset's trade currency but `weightBasis` is base currency.
+  // fxRate (trade->base) reconciles them so weights/target-sizing are correct
+  // for foreign-currency holdings. Defaults to 1 for same-currency positions.
+  const fxRate = initialValues?.fxRate ?? 1
   // Available quantity to trade. When a broker is selected and per-broker
   // holdings are known, this is what THAT broker holds (split-adjusted), not
   // the whole-holding total.
@@ -368,8 +372,8 @@ const TradeInputForm: React.FC<{
   const currentPositionWeight = useMemo(
     () =>
       currentWeightOverride ??
-      computeCurrentPositionWeight(positionQty, price, weightBasis),
-    [currentWeightOverride, positionQty, price, weightBasis],
+      computeCurrentPositionWeight(positionQty, price, weightBasis, fxRate),
+    [currentWeightOverride, positionQty, price, weightBasis, fxRate],
   )
 
   const actualPositionQuantity = positionQty
@@ -387,6 +391,7 @@ const TradeInputForm: React.FC<{
       currentPositionWeight,
       price,
       weightBasis,
+      fxRate,
     )
     if (!result) return
     setValue("quantity", result.quantity)
@@ -403,9 +408,10 @@ const TradeInputForm: React.FC<{
             parseFloat(targetWeight),
             price,
             weightBasis,
+            fxRate,
           )
         : null,
-    [currentPositionWeight, targetWeight, price, weightBasis],
+    [currentPositionWeight, targetWeight, price, weightBasis, fxRate],
   )
   const canTargetNewPositionWeight =
     currentPositionWeight === null && price > 0 && weightBasis > 0
@@ -419,6 +425,7 @@ const TradeInputForm: React.FC<{
       parseFloat(newTargetWeight),
       price,
       weightBasis,
+      fxRate,
     )
     if (!result) return
     setValue("quantity", result.quantity)
@@ -514,6 +521,7 @@ const TradeInputForm: React.FC<{
         tradeType: type.value,
         portfolioMarketValue: weightBasis,
         actualPositionQuantity,
+        fxRate,
       }),
     [
       quantity,
@@ -523,6 +531,7 @@ const TradeInputForm: React.FC<{
       weightBasis,
       type.value,
       actualPositionQuantity,
+      fxRate,
     ],
   )
 

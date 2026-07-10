@@ -29,6 +29,10 @@ export interface QuickSellData {
   type?: "BUY" | "SELL" | "INCOME" | "EXPENSE"
   currentPositionQuantity?: number // For rebalance: the current position size
   held?: Record<string, number> // Broker name -> quantity for broker selection
+  // Trade-currency -> portfolio base-currency rate, so the trade dialog can
+  // weigh a trade-currency price against the base-currency portfolio value.
+  // Omitted for same-currency holdings (treated as 1).
+  fxRate?: number
 }
 
 export interface RebalanceData {

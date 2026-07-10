@@ -29,6 +29,10 @@ export interface ComputeWeightInfoParams {
   tradeType: string
   portfolioMarketValue: number
   actualPositionQuantity: number
+  // Trade-currency -> portfolio base-currency rate. `price` is in the asset's
+  // trade currency but `portfolioMarketValue` is base currency, so the price
+  // is converted before weighing the two together. Defaults to 1 (same ccy).
+  fxRate?: number
 }
 
 /**
@@ -46,13 +50,16 @@ export const computeWeightInfo = (
     tradeType,
     portfolioMarketValue,
     actualPositionQuantity,
+    fxRate = 1,
   } = params
 
   if (!quantity || !price || !portfolioMarketValue) return null
 
+  // Weight is a base-currency ratio, so express the trade price in base ccy.
+  const priceInBase = price * fxRate
   const tradeAmount = calculateTradeAmount(
     quantity,
-    price,
+    priceInBase,
     tax,
     fees,
     tradeType,
@@ -62,7 +69,7 @@ export const computeWeightInfo = (
     const newWeight = calculateNewPositionWeight(
       actualPositionQuantity,
       quantity,
-      price,
+      priceInBase,
       portfolioMarketValue,
     )
     const tradeWeight = calculateTradeWeight(tradeAmount, portfolioMarketValue)
@@ -70,7 +77,7 @@ export const computeWeightInfo = (
   }
 
   if (tradeType === "BUY" && actualPositionQuantity > 0) {
-    const currentPositionValue = actualPositionQuantity * price
+    const currentPositionValue = actualPositionQuantity * priceInBase
     const newPositionValue = currentPositionValue + tradeAmount
     const newWeight = (newPositionValue / portfolioMarketValue) * 100
     const tradeWeight = calculateTradeWeight(tradeAmount, portfolioMarketValue)
@@ -91,6 +98,23 @@ export const computeWeightInfo = (
 }
 
 /**
+ * Derive the trade-currency -> portfolio base-currency FX rate for a position
+ * from its already-valued money buckets: base marketValue / trade marketValue.
+ * Both buckets value the same holding, so their ratio is the FX rate. Falls
+ * back to 1 (same currency / insufficient data) when either bucket is missing
+ * or the trade value is zero.
+ */
+export const deriveTradeToBaseFxRate = (moneyValues: {
+  TRADE?: { marketValue?: number }
+  BASE?: { marketValue?: number }
+}): number => {
+  const tradeValue = moneyValues.TRADE?.marketValue
+  const baseValue = moneyValues.BASE?.marketValue
+  if (!tradeValue || baseValue === undefined || baseValue === null) return 1
+  return baseValue / tradeValue
+}
+
+/**
  * Compute the current position weight as a percentage of portfolio value.
  * Returns null if any required value is missing or zero.
  */
@@ -98,9 +122,12 @@ export const computeCurrentPositionWeight = (
   positionQuantity: number,
   price: number,
   portfolioMarketValue: number,
+  fxRate = 1,
 ): number | null => {
   if (!positionQuantity || !price || !portfolioMarketValue) return null
-  const positionValue = positionQuantity * price
+  // `price` is trade currency; `portfolioMarketValue` is base currency.
+  // Convert so numerator and denominator share a currency.
+  const positionValue = positionQuantity * price * fxRate
   return (positionValue / portfolioMarketValue) * 100
 }
 
@@ -113,13 +140,15 @@ export const calculateQuantityFromTargetWeight = (
   currentPositionWeight: number,
   price: number,
   portfolioMarketValue: number,
+  fxRate = 1,
 ): { quantity: number; tradeType: "BUY" | "SELL" } | null => {
   if (isNaN(targetWeightPercent) || !price || !portfolioMarketValue) return null
 
   const targetValue = (targetWeightPercent / 100) * portfolioMarketValue
   const currentValue = (currentPositionWeight / 100) * portfolioMarketValue
   const valueDiff = targetValue - currentValue
-  const requiredShares = Math.round(Math.abs(valueDiff) / price)
+  // valueDiff is base currency; divide by the base-converted price for shares.
+  const requiredShares = Math.round(Math.abs(valueDiff) / (price * fxRate))
 
   return {
     quantity: requiredShares,
@@ -140,6 +169,7 @@ export const calculateNewPositionQuantityFromTargetWeight = (
   targetWeightPercent: number,
   price: number,
   portfolioMarketValue: number,
+  fxRate = 1,
 ): {
   quantity: number
   tradeType: "BUY"
@@ -157,13 +187,16 @@ export const calculateNewPositionQuantityFromTargetWeight = (
 
   const w = targetWeightPercent / 100
   const targetValue = (w * portfolioMarketValue) / (1 - w)
+  // targetValue and portfolioMarketValue are base currency; convert the trade
+  // price to base so the share count and nominal total stay currency-consistent.
+  const priceInBase = price * fxRate
   // Round (not floor) so we land on the nearest share to the target weight,
   // matching calculateQuantityFromTargetWeight and avoiding float undershoot.
-  const quantity = Math.round(targetValue / price)
+  const quantity = Math.round(targetValue / priceInBase)
   return {
     quantity,
     tradeType: "BUY",
-    nominalPortfolioValue: portfolioMarketValue + quantity * price,
+    nominalPortfolioValue: portfolioMarketValue + quantity * priceInBase,
   }
 }
 
