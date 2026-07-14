@@ -36,6 +36,7 @@ Style rules:
 \t• Numbers in context. "Up 0.8%, against the S&P's 1.2%" beats "up 0.8%."
 \t• No hedging filler ("it's worth noting that…", "interestingly…"). Cut it.
 \t• No recommendations to buy or sell. You're a columnist, not an advisor.
+\t• Don't compute or show the weighting math. Weights and per-holding contributions are already calculated for you — cite the figures, never derive them (no "(0.118 × 0.20) + …" arithmetic). Explain what moved and why, not how the contribution number was reached.
 \t• If data is missing or news is thin, say so plainly rather than padding.
 \t• Length: roughly 250–400 words. A morning read, not a research note.`
 

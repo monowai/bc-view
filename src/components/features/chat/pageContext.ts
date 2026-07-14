@@ -60,7 +60,7 @@ const routeContextMap: Record<string, PageContext> = {
     suggestions: [
       "What's the ROI on this portfolio?",
       "Show dividends received",
-      "Which holdings have unrealised gains?",
+      "What news has been impacting this portfolio?",
     ],
   },
   "/allocation": {
