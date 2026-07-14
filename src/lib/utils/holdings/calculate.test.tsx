@@ -302,3 +302,47 @@ describe("Cash grouping behavior", () => {
     expect(holdings.holdingGroups["PRIVATE"]).toBeUndefined()
   })
 })
+
+describe("hideEmpty filtering for ACCOUNT assets", () => {
+  const valueIn = ValueIn.PORTFOLIO
+  const groupBy = GroupBy.ASSET_CLASS
+
+  function buildContractWithZeroBalanceAccount(): HoldingContract {
+    const contract: HoldingContract = JSON.parse(data).data
+    const cashTemplate = contract.positions["USD:CASH"]
+    contract.positions["BANK:PRIVATE"] = {
+      ...cashTemplate,
+      asset: {
+        ...cashTemplate.asset,
+        code: "user.BANK",
+        id: "bank-account-id",
+        name: "Bank Account",
+        market: { ...cashTemplate.asset.market, code: "PRIVATE" },
+        assetCategory: { id: "ACCOUNT", name: "Bank Account" },
+      },
+      quantityValues: {
+        ...cashTemplate.quantityValues,
+        total: 0,
+      },
+    } as unknown as Position
+    return contract
+  }
+
+  function accountPositionsIn(result: Holdings): Position[] {
+    return Object.values(result.holdingGroups)
+      .flatMap((group) => group.positions)
+      .filter((p) => p.asset.assetCategory.id === "ACCOUNT")
+  }
+
+  it("excludes a zero-balance ACCOUNT position when hideEmpty is true", () => {
+    const contract = buildContractWithZeroBalanceAccount()
+    const result = calculateHoldings(contract, true, valueIn, groupBy)
+    expect(accountPositionsIn(result).length).toEqual(0)
+  })
+
+  it("includes a zero-balance ACCOUNT position when hideEmpty is false", () => {
+    const contract = buildContractWithZeroBalanceAccount()
+    const result = calculateHoldings(contract, false, valueIn, groupBy)
+    expect(accountPositionsIn(result).length).toEqual(1)
+  })
+})
