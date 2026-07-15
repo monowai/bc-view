@@ -11,6 +11,7 @@ import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
 import { useEffect } from "react"
 import { BC_STORAGE_PREFIX } from "../storage/sessionState"
+import { GROUP_BY_OPTIONS } from "types/constants"
 
 const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
@@ -187,6 +188,11 @@ export function useHoldingState(): HoldingDefaults {
       return state.viewMode.get() || "summary"
     },
     setViewMode(value: ViewMode): void {
+      // Heatmap reads best grouped by sector; only applies until the user
+      // picks a grouping themselves (raw state stays null until they do).
+      if (value === "heatmap" && state.groupBy.get() == null) {
+        state.groupBy.set({ value: GROUP_BY_OPTIONS.SECTOR, label: "Sector" })
+      }
       state.viewMode.set(value)
       saveState()
     },

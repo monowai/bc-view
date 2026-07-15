@@ -693,7 +693,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               holdingGroups={holdings.holdingGroups}
               valueIn={holdingState.valueIn.value}
               groupBy={holdingState.groupBy.value}
-              viewByGroup={true}
+              viewByGroup={false}
               portfolioTotalValue={holdings.viewTotals.marketValue}
             />
           </div>
