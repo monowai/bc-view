@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { HoldingGroup } from "types/beancounter"
+import { Currency, HoldingGroup, Portfolio, Position } from "types/beancounter"
+import { GROUP_BY_OPTIONS } from "types/constants"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import {
   isCash,
@@ -9,12 +10,13 @@ import {
 import { getGroupComparator } from "@lib/categoryMapping"
 import { ProgressBar } from "@components/ui/ProgressBar"
 import Dialog from "@components/ui/Dialog"
+import { PositionCard } from "@components/features/holdings/CardView"
 import { squarify, TreemapRect } from "@lib/holdings/treemapLayout"
 
 interface PerformanceHeatmapProps {
   holdingGroups: Record<string, HoldingGroup>
   valueIn: string
-  groupBy?: string
+  portfolio: Portfolio
   viewByGroup?: boolean // When true, show groups as cells instead of positions
   portfolioTotalValue?: number // Total portfolio value for weight calculation (includes cash)
   className?: string
@@ -34,12 +36,31 @@ interface HeatmapCell {
   irr: number
   changePercent?: number
   gainOnDay: number
+  costValue: number
+  // Only present on asset cells (Assets mode) — used to open the
+  // holding-detail dialog. Group/classification cells omit it.
+  position?: Position
 }
 
 interface GroupedCells {
   groupKey: string
   cells: HeatmapCell[]
   groupMarketValue: number
+}
+
+const UNKNOWN_CLASSIFICATION = "Unknown"
+
+// Mirrors CardView's per-view sourceCurrency derivation (see CardView.tsx),
+// specialised for a single position since the heatmap dialog shows one
+// PositionCard at a time rather than a whole grouped view.
+function getSourceCurrency(
+  valueIn: string,
+  portfolio: Portfolio,
+  position: Position,
+): Currency | undefined {
+  if (valueIn === "PORTFOLIO") return portfolio.currency
+  if (valueIn === "BASE") return portfolio.base
+  return position.moneyValues?.TRADE?.currency || portfolio.currency
 }
 
 const FALLBACK_WIDTH = 800
@@ -177,9 +198,7 @@ function HeatTile({
       data-testid={`heatmap-tile-${mode}-${cell.code}`}
       title={title}
       onClick={onClick}
-      className={`absolute rounded-xl overflow-hidden text-white ${padding} ${
-        mode === "groups" ? "cursor-pointer" : ""
-      }`}
+      className={`absolute rounded-xl overflow-hidden text-white ${padding} cursor-pointer`}
       style={{
         left: rect.x + 1.5,
         top: rect.y + 1.5,
@@ -219,7 +238,7 @@ function HeatTile({
 export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   holdingGroups,
   valueIn,
-  groupBy,
+  portfolio,
   viewByGroup = false,
   portfolioTotalValue,
   className = "",
@@ -227,6 +246,9 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   const [selectedMetric, setSelectedMetric] =
     React.useState<MetricType>("dailyGain")
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(
+    null,
+  )
   const [viewMode, setViewMode] = useState<ViewMode>(
     viewByGroup ? "groups" : "assets",
   )
@@ -265,15 +287,13 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
     }
   }, [])
 
-  // Build grouped cells
-  const sorter = getGroupComparator(groupBy ?? "")
+  // Flatten every non-cash, tradeable position out of holdingGroups. The page's
+  // groupBy is irrelevant here — Groups mode always regroups by classification
+  // below, and Assets mode just wants the flat list.
+  const assetCells: HeatmapCell[] = useMemo(() => {
+    const cells: HeatmapCell[] = []
 
-  const groupedCells: GroupedCells[] = Object.keys(holdingGroups)
-    .sort(sorter)
-    .map((groupKey) => {
-      const group = holdingGroups[groupKey]
-      const cells: HeatmapCell[] = []
-
+    Object.values(holdingGroups).forEach((group) => {
       group.positions.forEach((position) => {
         if (isCash(position.asset) || isNonTradeable(position.asset)) return
 
@@ -294,58 +314,91 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
           irr: moneyValues.irr,
           changePercent: moneyValues.priceData?.changePercent,
           gainOnDay: moneyValues.gainOnDay,
+          costValue: moneyValues.costValue,
+          position,
         })
       })
-
-      // Sort by market value within group
-      cells.sort((a, b) => b.marketValue - a.marketValue)
-
-      const groupMarketValue = cells.reduce(
-        (sum, cell) => sum + cell.marketValue,
-        0,
-      )
-
-      return { groupKey, cells, groupMarketValue }
     })
-    .filter((g) => g.cells.length > 0) // Only show groups with non-cash positions
 
-  const totalMarketValue = groupedCells.reduce(
-    (sum, g) => sum + g.groupMarketValue,
+    return cells
+  }, [holdingGroups, valueIn])
+
+  const totalMarketValue = assetCells.reduce(
+    (sum, cell) => sum + cell.marketValue,
     0,
   )
 
-  // Build group-level cells for Groups mode.
   // Use portfolioTotalValue (includes cash) for weight calculation if provided
   const weightDenominator = portfolioTotalValue ?? totalMarketValue
 
-  const groupCells: HeatmapCell[] = React.useMemo(() => {
-    return groupedCells.map((g) => {
-      const subTotals = holdingGroups[g.groupKey]?.subTotals?.[valueIn]
-      const totalGain = subTotals?.totalGain || 0
-      const costValue = subTotals?.costValue || 0
+  // Groups mode: regroup the flat asset cells by classification
+  // (asset.assetCategory.name), ignoring the page's groupBy entirely.
+  const classificationGroups: GroupedCells[] = useMemo(() => {
+    const byClassification = new Map<string, HeatmapCell[]>()
+
+    assetCells.forEach((cell) => {
+      const key =
+        cell.position?.asset.assetCategory?.name || UNKNOWN_CLASSIFICATION
+      const existing = byClassification.get(key)
+      if (existing) {
+        existing.push(cell)
+      } else {
+        byClassification.set(key, [cell])
+      }
+    })
+
+    const sorter = getGroupComparator(GROUP_BY_OPTIONS.ASSET_CLASS)
+
+    return Array.from(byClassification.entries())
+      .sort(([a], [b]) => sorter(a, b))
+      .map(([groupKey, groupMembers]) => {
+        const cells = [...groupMembers].sort(
+          (a, b) => b.marketValue - a.marketValue,
+        )
+        const groupMarketValue = cells.reduce(
+          (sum, cell) => sum + cell.marketValue,
+          0,
+        )
+        return { groupKey, cells, groupMarketValue }
+      })
+  }, [assetCells])
+
+  // Build group-level (classification) cells for Groups mode, aggregating
+  // from the member asset cells since the page's holdingGroups.subTotals no
+  // longer match this grouping.
+  const groupCells: HeatmapCell[] = useMemo(() => {
+    return classificationGroups.map((g) => {
+      const marketValue = g.groupMarketValue
+      const totalGain = g.cells.reduce((sum, cell) => sum + cell.totalGain, 0)
+      const gainOnDay = g.cells.reduce((sum, cell) => sum + cell.gainOnDay, 0)
+      const costValue = g.cells.reduce((sum, cell) => sum + cell.costValue, 0)
       const totalGainPercent = costValue > 0 ? totalGain / costValue : 0
-      const irr = subTotals?.weightedIrr || subTotals?.irr || 0
-      const gainOnDay = subTotals?.gainOnDay || 0
+      const unrealisedGain = g.cells.reduce(
+        (sum, cell) => sum + cell.unrealisedGain,
+        0,
+      )
+      const irr =
+        marketValue > 0
+          ? g.cells.reduce(
+              (sum, cell) => sum + cell.irr * cell.marketValue,
+              0,
+            ) / marketValue
+          : 0
 
       return {
         code: g.groupKey,
         name: g.groupKey,
-        marketValue: g.groupMarketValue,
+        marketValue,
         totalGain,
         totalGainPercent,
-        weight:
-          weightDenominator > 0 ? g.groupMarketValue / weightDenominator : 0,
-        unrealisedGain: subTotals?.unrealisedGain || 0,
+        weight: weightDenominator > 0 ? marketValue / weightDenominator : 0,
+        unrealisedGain,
         irr,
         gainOnDay,
+        costValue,
       }
     })
-  }, [groupedCells, holdingGroups, valueIn, weightDenominator])
-
-  const assetCells: HeatmapCell[] = useMemo(
-    () => groupedCells.flatMap((g) => g.cells),
-    [groupedCells],
-  )
+  }, [classificationGroups, weightDenominator])
 
   const activeCells = viewMode === "groups" ? groupCells : assetCells
 
@@ -435,7 +488,11 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
               onClick={
                 viewMode === "groups"
                   ? () => setSelectedGroup(rect.data.code)
-                  : undefined
+                  : () => {
+                      if (rect.data.position) {
+                        setSelectedPosition(rect.data.position)
+                      }
+                    }
               }
             />
           ))}
@@ -500,8 +557,8 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
             <div>
               <div>{selectedGroup}</div>
               <p className="text-sm text-gray-500 font-normal">
-                {groupedCells.find((g) => g.groupKey === selectedGroup)?.cells
-                  .length || 0}{" "}
+                {classificationGroups.find((g) => g.groupKey === selectedGroup)
+                  ?.cells.length || 0}{" "}
                 assets
               </p>
             </div>
@@ -515,8 +572,9 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
               <span className="font-semibold text-gray-900">
                 <FormatValue
                   value={
-                    groupedCells.find((g) => g.groupKey === selectedGroup)
-                      ?.groupMarketValue || 0
+                    classificationGroups.find(
+                      (g) => g.groupKey === selectedGroup,
+                    )?.groupMarketValue || 0
                   }
                 />
               </span>
@@ -542,7 +600,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
               </tr>
             </thead>
             <tbody>
-              {groupedCells
+              {classificationGroups
                 .find((g) => g.groupKey === selectedGroup)
                 ?.cells.map((cell) => {
                   const irrColor =
@@ -591,6 +649,34 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
                 })}
             </tbody>
           </table>
+        </Dialog>
+      )}
+
+      {/* Asset Detail Modal — reuses the card-view PositionCard, no action
+          handlers since the heatmap is a read-only lens on the holding. */}
+      {selectedPosition && (
+        <Dialog
+          title={
+            <div>
+              <div>{stripOwnerPrefix(selectedPosition.asset.code)}</div>
+              <p className="text-sm text-gray-500 font-normal">
+                {selectedPosition.asset.name}
+              </p>
+            </div>
+          }
+          onClose={() => setSelectedPosition(null)}
+          maxWidth="md"
+        >
+          <PositionCard
+            position={selectedPosition}
+            portfolio={portfolio}
+            valueIn={valueIn}
+            sourceCurrency={getSourceCurrency(
+              valueIn,
+              portfolio,
+              selectedPosition,
+            )}
+          />
         </Dialog>
       )}
     </div>

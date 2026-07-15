@@ -275,7 +275,7 @@ const PositionPnL: React.FC<PositionPnLProps> = ({
 const CARD_CLASSNAME =
   "block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
 
-const PositionCard: React.FC<PositionCardProps> = ({
+export const PositionCard: React.FC<PositionCardProps> = ({
   position,
   portfolio,
   valueIn,
