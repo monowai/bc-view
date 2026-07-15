@@ -17,12 +17,25 @@ import { HoldingGroup } from "types/beancounter"
 const VALUE_IN = "PORTFOLIO"
 const PORTFOLIO = makePortfolio()
 
-// Page-groupBy keys are deliberately unrelated to asset classification names
-// ("Sector A"/"Sector B" vs. "Equity"/"Fixed Income") to prove Groups mode
-// regroups by classification and ignores the holdingGroups key entirely.
+// Page-groupBy keys are deliberately unrelated to sector names ("Group
+// Alpha"/"Group Beta" vs. "Technology"/"Healthcare") to prove Groups mode
+// regroups by sector and ignores the holdingGroups key entirely.
+//
+// AAPL and BND share a sector ("Technology") but have *different*
+// assetCategory values (Equity vs. Fixed Income) — proving the grouping key
+// is asset.sector, not asset.assetCategory.name. MSFT sits in a different
+// sector ("Healthcare") despite sharing AAPL's assetCategory (Equity) —
+// proving two same-category assets are NOT merged just because they share a
+// category. CSCO carries no sector at all, exercising the "Unclassified"
+// fallback.
 function buildHoldingGroups(): Record<string, HoldingGroup> {
   const aapl = makePosition({
-    asset: makeAsset({ id: "asset-aapl", code: "AAPL", name: "Apple Inc." }),
+    asset: makeAsset({
+      id: "asset-aapl",
+      code: "AAPL",
+      name: "Apple Inc.",
+      sector: "Technology",
+    }),
     moneyValues: {
       marketValue: 50000,
       weight: 0.5,
@@ -44,6 +57,7 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
       id: "asset-msft",
       code: "MSFT",
       name: "Microsoft Corp",
+      sector: "Healthcare",
     }),
     moneyValues: {
       marketValue: 30000,
@@ -71,6 +85,7 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
       code: "BND",
       name: "Vanguard Bond ETF",
       assetCategory: { id: "BOND", name: "Fixed Income" },
+      sector: "Technology",
     }),
     moneyValues: {
       marketValue: 20000,
@@ -89,18 +104,40 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
     } as any,
   })
 
+  // No sector at all — must fall back to the "Unclassified" group.
+  const csco = makePosition({
+    asset: makeAsset({
+      id: "asset-csco",
+      code: "CSCO",
+      name: "Cisco Systems Inc.",
+    }),
+    moneyValues: {
+      marketValue: 2000,
+      weight: 0.02,
+      irr: 0.05,
+      gainOnDay: 5,
+      priceData: {
+        close: 50,
+        previousClose: 49.9,
+        change: 0.1,
+        changePercent: 0.002,
+        priceDate: "2024-01-15",
+      },
+    } as any,
+  })
+
   return {
-    "Sector A": makeHoldingGroup({
-      positions: [aapl, msft, cashPosition],
+    "Group Alpha": makeHoldingGroup({
+      positions: [aapl, msft, cashPosition, csco],
       subTotals: {
-        marketValue: 80000,
+        marketValue: 82000,
         totalGain: 8000,
         costValue: 60000,
-        gainOnDay: 400,
+        gainOnDay: 405,
         weightedIrr: 0.1,
       },
     }),
-    "Sector B": makeHoldingGroup({
+    "Group Beta": makeHoldingGroup({
       positions: [bond],
       subTotals: {
         marketValue: 20000,
@@ -156,7 +193,7 @@ describe("PerformanceHeatmap", () => {
     ).toBeInTheDocument()
   })
 
-  it("Groups mode regroups by asset classification, not the page's holdingGroups key", () => {
+  it("Groups mode regroups by sector, not asset category or the page's holdingGroups key", () => {
     render(
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
@@ -166,15 +203,20 @@ describe("PerformanceHeatmap", () => {
       />,
     )
 
-    // Classification names show up as tiles...
-    expect(screen.getAllByText("Equity").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Fixed Income").length).toBeGreaterThan(0)
-    // ...but the page's own grouping keys never appear as tiles.
-    expect(screen.queryByText("Sector A")).not.toBeInTheDocument()
-    expect(screen.queryByText("Sector B")).not.toBeInTheDocument()
+    // Sector names show up as tiles...
+    expect(screen.getAllByText("Technology").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Healthcare").length).toBeGreaterThan(0)
+    // ...including the fallback for assets with no sector at all.
+    expect(screen.getAllByText("Unclassified").length).toBeGreaterThan(0)
+    // ...but asset-category names never appear as tiles in Groups mode.
+    expect(screen.queryByText("Equity")).not.toBeInTheDocument()
+    expect(screen.queryByText("Fixed Income")).not.toBeInTheDocument()
+    // ...and the page's own grouping keys never appear as tiles.
+    expect(screen.queryByText("Group Alpha")).not.toBeInTheDocument()
+    expect(screen.queryByText("Group Beta")).not.toBeInTheDocument()
   })
 
-  it("Groups mode opens a dialog listing a classification group's assets on click", () => {
+  it("Groups mode opens a dialog listing a sector group's assets on click, merging assets across differing asset categories", () => {
     render(
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
@@ -184,13 +226,17 @@ describe("PerformanceHeatmap", () => {
       />,
     )
 
-    fireEvent.click(screen.getByTestId("heatmap-tile-groups-Equity"))
+    fireEvent.click(screen.getByTestId("heatmap-tile-groups-Technology"))
 
-    // Dialog title + table rows for the classification group's assets.
-    const dialogs = screen.getAllByText("Equity")
+    // Dialog title + table rows for the sector group's assets. AAPL (Equity)
+    // and BND (Fixed Income) both land in "Technology" — proving the group
+    // is keyed by sector even though their asset categories differ.
+    const dialogs = screen.getAllByText("Technology")
     expect(dialogs.length).toBeGreaterThan(1)
     expect(screen.getByText("Apple Inc.")).toBeInTheDocument()
-    expect(screen.getByText("Microsoft Corp")).toBeInTheDocument()
+    expect(screen.getByText("Vanguard Bond ETF")).toBeInTheDocument()
+    // MSFT is in a different sector ("Healthcare") and must not appear here.
+    expect(screen.queryByText("Microsoft Corp")).not.toBeInTheDocument()
   })
 
   it("switches metric label/values when toggled between Daily Gain and IRR", () => {
