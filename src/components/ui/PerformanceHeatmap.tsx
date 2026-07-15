@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { HoldingGroup } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import {
@@ -9,6 +9,7 @@ import {
 import { getGroupComparator } from "@lib/categoryMapping"
 import { ProgressBar } from "@components/ui/ProgressBar"
 import Dialog from "@components/ui/Dialog"
+import { squarify, TreemapRect } from "@lib/holdings/treemapLayout"
 
 interface PerformanceHeatmapProps {
   holdingGroups: Record<string, HoldingGroup>
@@ -20,6 +21,7 @@ interface PerformanceHeatmapProps {
 }
 
 type MetricType = "totalReturn" | "irr" | "dailyGain"
+type ViewMode = "groups" | "assets"
 
 interface HeatmapCell {
   code: string
@@ -34,42 +36,184 @@ interface HeatmapCell {
   gainOnDay: number
 }
 
-const getPerformanceColor = (value: number, metric: MetricType): string => {
-  let thresholds: {
-    strong: number
-    positive: number
-    flat: number
-    negative: number
-  }
-
-  switch (metric) {
-    case "irr":
-      thresholds = { strong: 0.15, positive: 0.05, flat: 0, negative: -0.1 }
-      break
-    case "dailyGain":
-    default:
-      thresholds = { strong: 0.03, positive: 0, flat: -0.01, negative: -0.03 }
-      break
-  }
-
-  if (value > thresholds.strong) return "bg-green-500 text-white"
-  if (value > thresholds.positive) return "bg-green-200 text-green-900"
-  if (value > thresholds.flat) return "bg-yellow-100 text-yellow-900"
-  if (value > thresholds.negative) return "bg-red-200 text-red-900"
-  return "bg-red-500 text-white"
-}
-
-const getOpacity = (weight: number): string => {
-  if (weight >= 0.1) return "opacity-100"
-  if (weight >= 0.05) return "opacity-90"
-  if (weight >= 0.02) return "opacity-80"
-  return "opacity-70"
-}
-
 interface GroupedCells {
   groupKey: string
   cells: HeatmapCell[]
   groupMarketValue: number
+}
+
+const FALLBACK_WIDTH = 800
+const FALLBACK_HEIGHT = 480
+// Canvas height adapts to the viewport so the full treemap (and the legend
+// below it) stays on screen — reserved space covers app nav + card chrome.
+const CANVAS_VIEWPORT_RESERVED = 290
+const MIN_CANVAS_HEIGHT = 300
+const MAX_CANVAS_HEIGHT = 840
+
+// Color scale — darker/more saturated = bigger move (Google Finance style).
+// dailyGain thresholds are fractions (0.02 = 2%); irr reuses the same table
+// scaled x5 since annualized returns run much larger than daily moves.
+const GRAY_NO_DATA = "#8a8f98"
+const STRONG_GREEN = "#1f4d21"
+const MID_GREEN = "#37652f"
+const LIGHT_GREEN = "#5f8f57"
+const FLAT = "#66716b"
+const LIGHT_RED = "#c96b60"
+const MID_RED = "#a03d36"
+const STRONG_RED = "#7f1d1d"
+
+const DAILY_GAIN_STRONG = 0.02
+const DAILY_GAIN_MID = 0.0075
+const DAILY_GAIN_LIGHT = 0.001
+const IRR_SCALE = 5
+
+export function getHeatColor(
+  value: number | null | undefined,
+  metric: MetricType,
+): string {
+  if (value === null || value === undefined) return GRAY_NO_DATA
+
+  const scale = metric === "irr" ? IRR_SCALE : 1
+  const strong = DAILY_GAIN_STRONG * scale
+  const mid = DAILY_GAIN_MID * scale
+  const light = DAILY_GAIN_LIGHT * scale
+
+  if (value >= strong) return STRONG_GREEN
+  if (value >= mid) return MID_GREEN
+  if (value > light) return LIGHT_GREEN
+  if (value >= -light) return FLAT
+  if (value > -mid) return LIGHT_RED
+  if (value > -strong) return MID_RED
+  return STRONG_RED
+}
+
+function getMetricValue(
+  cell: HeatmapCell,
+  metric: MetricType,
+  mode: ViewMode,
+): number | null {
+  switch (metric) {
+    case "irr":
+      return cell.irr
+    case "totalReturn":
+      return cell.totalGainPercent
+    case "dailyGain":
+    default:
+      if (mode === "assets") {
+        return cell.changePercent === undefined || cell.changePercent === null
+          ? null
+          : cell.changePercent
+      }
+      return cell.marketValue > 0 ? cell.gainOnDay / cell.marketValue : 0
+  }
+}
+
+function formatMetricValue(value: number | null): string {
+  if (value === null) return "--"
+  return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`
+}
+
+function getMetricLabel(metric: MetricType): string {
+  switch (metric) {
+    case "totalReturn":
+      return "Total Return"
+    case "irr":
+      return "IRR"
+    case "dailyGain":
+    default:
+      return "Daily Gain"
+  }
+}
+
+function getMetricTooltip(metric: MetricType): string {
+  switch (metric) {
+    case "dailyGain":
+      return "Today's change in value"
+    case "totalReturn":
+      return "Simple return: (Current Value - Cost) / Cost. Does not account for timing of purchases."
+    case "irr":
+      return "Internal Rate of Return: Annualized return accounting for when you bought and sold. Better for comparing investments held for different periods."
+    default:
+      return ""
+  }
+}
+
+interface HeatTileProps {
+  cell: HeatmapCell
+  rect: TreemapRect
+  metric: MetricType
+  mode: ViewMode
+  onClick?: () => void
+}
+
+// Module-scoped tile renderer — kept out of PerformanceHeatmap's render body
+// per the React Compiler rule against defining components inline.
+function HeatTile({
+  cell,
+  rect,
+  metric,
+  mode,
+  onClick,
+}: HeatTileProps): React.ReactElement {
+  const value = getMetricValue(cell, metric, mode)
+  const color = getHeatColor(value, metric)
+
+  const w = rect.width
+  const h = rect.height
+  const showTicker = w >= 60 && h >= 36
+  const showChip = w >= 90 && h >= 64 && value !== null
+  const showName = w >= 140 && h >= 90
+  const showBadge = w >= 180 && h >= 110
+
+  const padding = w >= 140 ? "p-3" : w >= 90 ? "p-2" : "p-1"
+
+  const title =
+    mode === "assets"
+      ? `${cell.name}\n${getMetricLabel(metric)}: ${formatMetricValue(value)}\nMarket Value: ${cell.marketValue.toLocaleString()}\nWeight: ${(cell.weight * 100).toFixed(2)}%`
+      : `Click to see assets in ${cell.name}`
+
+  return (
+    <div
+      data-testid={`heatmap-tile-${mode}-${cell.code}`}
+      title={title}
+      onClick={onClick}
+      className={`absolute rounded-xl overflow-hidden text-white ${padding} ${
+        mode === "groups" ? "cursor-pointer" : ""
+      }`}
+      style={{
+        left: rect.x + 1.5,
+        top: rect.y + 1.5,
+        width: Math.max(rect.width - 3, 0),
+        height: Math.max(rect.height - 3, 0),
+        backgroundColor: color,
+      }}
+    >
+      {showBadge && (
+        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded bg-black/25 flex items-center justify-center text-[10px] font-bold">
+          {(cell.name || cell.code).charAt(0).toUpperCase()}
+        </div>
+      )}
+      {showTicker && (
+        <div className="text-xs sm:text-sm font-bold truncate pr-6">
+          {cell.code}
+        </div>
+      )}
+      {showName && (
+        <div className="text-[10px] opacity-80 truncate">{cell.name}</div>
+      )}
+      {showChip && (
+        <div
+          data-testid={`heatmap-chip-${mode}-${cell.code}`}
+          className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold"
+        >
+          <span>{formatMetricValue(value)}</span>
+          <span className="w-3.5 h-3.5 rounded-full bg-white/30 inline-flex items-center justify-center text-[9px] leading-none">
+            {(value as number) >= 0 ? "↑" : "↓"}
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
@@ -83,6 +227,43 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   const [selectedMetric, setSelectedMetric] =
     React.useState<MetricType>("dailyGain")
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    viewByGroup ? "groups" : "assets",
+  )
+
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [canvasSize, setCanvasSize] = useState({
+    width: FALLBACK_WIDTH,
+    height: FALLBACK_HEIGHT,
+  })
+
+  useEffect(() => {
+    const node = containerRef.current
+    if (!node) return undefined
+
+    const measure = (): void => {
+      setCanvasSize({
+        width: node.offsetWidth || FALLBACK_WIDTH,
+        height: Math.min(
+          MAX_CANVAS_HEIGHT,
+          Math.max(
+            MIN_CANVAS_HEIGHT,
+            window.innerHeight - CANVAS_VIEWPORT_RESERVED,
+          ),
+        ),
+      })
+    }
+    measure()
+
+    window.addEventListener("resize", measure)
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null
+    observer?.observe(node)
+    return () => {
+      window.removeEventListener("resize", measure)
+      observer?.disconnect()
+    }
+  }, [])
 
   // Build grouped cells
   const sorter = getGroupComparator(groupBy ?? "")
@@ -133,13 +314,11 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
     0,
   )
 
-  // Build group-level cells for viewByGroup mode
+  // Build group-level cells for Groups mode.
   // Use portfolioTotalValue (includes cash) for weight calculation if provided
   const weightDenominator = portfolioTotalValue ?? totalMarketValue
 
   const groupCells: HeatmapCell[] = React.useMemo(() => {
-    if (!viewByGroup) return []
-
     return groupedCells.map((g) => {
       const subTotals = holdingGroups[g.groupKey]?.subTotals?.[valueIn]
       const totalGain = subTotals?.totalGain || 0
@@ -161,261 +340,161 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         gainOnDay,
       }
     })
-  }, [viewByGroup, groupedCells, holdingGroups, valueIn, weightDenominator])
+  }, [groupedCells, holdingGroups, valueIn, weightDenominator])
 
-  const getMetricValue = (cell: HeatmapCell, metric: MetricType): number => {
-    switch (metric) {
-      case "totalReturn":
-        return cell.totalGainPercent
-      case "irr":
-        return cell.irr
-      case "dailyGain":
-        return cell.gainOnDay / cell.marketValue // Convert to percentage
-      default:
-        return 0
-    }
-  }
+  const assetCells: HeatmapCell[] = useMemo(
+    () => groupedCells.flatMap((g) => g.cells),
+    [groupedCells],
+  )
 
-  const formatMetricValue = (cell: HeatmapCell, metric: MetricType): string => {
-    const value = getMetricValue(cell, metric)
-    return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`
-  }
+  const activeCells = viewMode === "groups" ? groupCells : assetCells
 
-  const getMetricLabel = (metric: MetricType): string => {
-    switch (metric) {
-      case "totalReturn":
-        return "Total Return"
-      case "irr":
-        return "IRR"
-      case "dailyGain":
-        return "Daily Gain"
-      default:
-        return metric
-    }
-  }
+  const sortedCells = useMemo(
+    () => [...activeCells].sort((a, b) => b.marketValue - a.marketValue),
+    [activeCells],
+  )
 
-  const getMetricTooltip = (metric: MetricType): string => {
-    switch (metric) {
-      case "dailyGain":
-        return "Today's change in value"
-      case "totalReturn":
-        return "Simple return: (Current Value - Cost) / Cost. Does not account for timing of purchases."
-      case "irr":
-        return "Internal Rate of Return: Annualized return accounting for when you bought and sold. Better for comparing investments held for different periods."
-      default:
-        return ""
-    }
-  }
+  const rects = useMemo(
+    () =>
+      squarify(
+        sortedCells.map((cell) => ({ value: cell.marketValue, data: cell })),
+        canvasSize.width,
+        canvasSize.height,
+      ),
+    [sortedCells, canvasSize],
+  )
+
+  const isIrrMetric = selectedMetric === "irr"
+  const legendLabels = isIrrMetric
+    ? { neg: "-10%", mid: "0", pos: "+10%" }
+    : { neg: "-2%", mid: "0", pos: "+2%" }
 
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}
+      className={`bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden ${className}`}
     >
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex justify-between items-center">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex flex-wrap justify-between items-center gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Performance Heatmap
             </h3>
-            <p className="text-sm text-gray-600">
-              Color intensity shows performance, cell size shows allocation
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Color intensity shows performance, tile size shows allocation
             </p>
           </div>
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-            {(["dailyGain", "irr"] as MetricType[]).map((metric) => (
-              <button
-                key={metric}
-                onClick={() => setSelectedMetric(metric)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  selectedMetric === metric
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title={getMetricTooltip(metric)}
-              >
-                {getMetricLabel(metric)}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              {(["groups", "assets"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    viewMode === mode
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  }`}
+                >
+                  {mode === "groups" ? "Groups" : "Assets"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              {(["dailyGain", "irr"] as MetricType[]).map((metric) => (
+                <button
+                  key={metric}
+                  onClick={() => setSelectedMetric(metric)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    selectedMetric === metric
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  }`}
+                  title={getMetricTooltip(metric)}
+                >
+                  {getMetricLabel(metric)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="p-4 space-y-4">
-        {viewByGroup ? (
-          /* Group-level heatmap - each cell is a group */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {groupCells.map((cell) => {
-              const metricValue = getMetricValue(cell, selectedMetric)
-              const performanceColor = getPerformanceColor(
-                metricValue,
-                selectedMetric,
-              )
-              // Larger cells for group view
-              const sizeClass =
-                cell.weight >= 0.3
-                  ? "h-32"
-                  : cell.weight >= 0.15
-                    ? "h-28"
-                    : "h-24"
+        <div
+          ref={containerRef}
+          className="relative bg-gray-100 dark:bg-gray-950 rounded-lg p-[1.5px]"
+          style={{ height: canvasSize.height }}
+        >
+          {rects.map((rect) => (
+            <HeatTile
+              key={`${viewMode}-${rect.data.code}`}
+              cell={rect.data}
+              rect={rect}
+              metric={selectedMetric}
+              mode={viewMode}
+              onClick={
+                viewMode === "groups"
+                  ? () => setSelectedGroup(rect.data.code)
+                  : undefined
+              }
+            />
+          ))}
+        </div>
 
-              return (
-                <div
-                  key={cell.code}
-                  onClick={() => setSelectedGroup(cell.code)}
-                  className={`
-                    ${sizeClass} ${performanceColor}
-                    rounded-xl p-4 flex flex-col justify-between
-                    hover:scale-102 transition-all duration-200 cursor-pointer
-                    shadow-md hover:shadow-lg
-                  `}
-                  title={`Click to see assets in ${cell.name}`}
-                >
-                  <div>
-                    <div className="text-base font-bold">{cell.code}</div>
-                    <div className="text-xs opacity-80 mt-1">
-                      {(cell.weight * 100).toFixed(1)}% of portfolio
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <div className="text-lg font-bold">
-                      {formatMetricValue(cell, selectedMetric)}
-                    </div>
-                    <div className="text-xs opacity-80">
-                      <FormatValue value={cell.marketValue} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          /* Position-level heatmap grouped by category */
-          groupedCells.map((group) => (
-            <div key={group.groupKey}>
-              {/* Group Header */}
-              <div className="flex items-center gap-2 mb-2">
-                <h4 className="text-sm font-semibold text-gray-700">
-                  {group.groupKey}
-                </h4>
-                <span className="text-xs text-gray-400">
-                  ({group.cells.length})
-                </span>
-                <span className="ml-auto text-sm font-medium text-gray-600">
-                  <FormatValue value={group.groupMarketValue} />
-                </span>
-              </div>
-
-              {/* Cells Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {group.cells.map((cell) => {
-                  const sizeClass =
-                    cell.weight >= 0.1
-                      ? "h-20"
-                      : cell.weight >= 0.05
-                        ? "h-16"
-                        : "h-12"
-                  const metricValue = getMetricValue(cell, selectedMetric)
-                  const performanceColor = getPerformanceColor(
-                    metricValue,
-                    selectedMetric,
-                  )
-                  const opacity = getOpacity(cell.weight)
-
-                  return (
-                    <div
-                      key={cell.code}
-                      className={`
-                        ${sizeClass} ${performanceColor} ${opacity}
-                        rounded-lg p-2 flex flex-col justify-between
-                        hover:scale-105 transition-all duration-200 cursor-pointer
-                        shadow-sm hover:shadow-md
-                      `}
-                      title={`${cell.name}\n${getMetricLabel(selectedMetric)}: ${formatMetricValue(cell, selectedMetric)}\nMarket Value: ${cell.marketValue.toLocaleString()}\nWeight: ${(cell.weight * 100).toFixed(2)}%`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold truncate">
-                          {cell.code}
-                        </div>
-                        {cell.weight >= 0.05 && (
-                          <div className="text-[10px] opacity-90 truncate mt-1">
-                            {cell.name.length > 24
-                              ? cell.name.substring(0, 24) + "..."
-                              : cell.name}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="text-xs font-bold">
-                        {formatMetricValue(cell, selectedMetric)}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+        <div className="flex flex-wrap justify-between items-center gap-3 text-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: STRONG_RED }}
+              />
+              <span className="text-gray-600 dark:text-gray-400">
+                {legendLabels.neg}
+              </span>
             </div>
-          ))
-        )}
-
-        <div className="mt-6 flex justify-between items-center text-sm">
-          <div className="flex items-center space-x-4">
-            {(() => {
-              const thresholds =
-                selectedMetric === "irr"
-                  ? { strong: 15, positive: 5, flat: 0, negative: -10 }
-                  : { strong: 3, positive: 0, flat: -1, negative: -3 } // dailyGain
-
-              return (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-500 rounded"></div>
-                    <span className="text-gray-600">
-                      Strong ({">"}+{thresholds.strong}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-200 rounded"></div>
-                    <span className="text-gray-600">
-                      Positive ({thresholds.positive}-{thresholds.strong}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-yellow-100 rounded border"></div>
-                    <span className="text-gray-600">
-                      Flat ({thresholds.flat}-{thresholds.positive}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-red-200 rounded"></div>
-                    <span className="text-gray-600">
-                      Negative ({thresholds.negative}-{thresholds.flat}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-red-500 rounded"></div>
-                    <span className="text-gray-600">
-                      Poor ({"<"}
-                      {thresholds.negative}%)
-                    </span>
-                  </div>
-                </>
-              )
-            })()}
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: FLAT }}
+              />
+              <span className="text-gray-600 dark:text-gray-400">
+                {legendLabels.mid}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: STRONG_GREEN }}
+              />
+              <span className="text-gray-600 dark:text-gray-400">
+                {legendLabels.pos}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: GRAY_NO_DATA }}
+              />
+              <span className="text-gray-600 dark:text-gray-400">
+                No price data
+              </span>
+            </div>
           </div>
 
-          <div className="text-gray-600">
+          <div className="text-gray-600 dark:text-gray-400">
             Total: <FormatValue value={totalMarketValue} />
           </div>
         </div>
 
-        <div className="mt-2 text-xs text-gray-500">
-          {viewByGroup
+        <div className="text-xs text-gray-500 dark:text-gray-500">
+          {viewMode === "groups"
             ? "Click a group to see individual assets"
-            : "Cell size indicates position weight • Hover for details"}
+            : "Tile size indicates market value • Hover for details"}
         </div>
       </div>
 
       {/* Group Detail Modal */}
-      {selectedGroup && viewByGroup && (
+      {selectedGroup && (
         <Dialog
           title={
             <div>
@@ -454,7 +533,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
                 <th className="pb-2 font-medium text-gray-600 text-right">
                   IRR
                 </th>
-                <th className="pb-2 font-medium text-gray-600 w-32 hidden sm:table-cell">
+                <th className="pb-2 pl-4 font-medium text-gray-600 w-32 hidden sm:table-cell">
                   Alpha
                 </th>
                 <th className="pb-2 font-medium text-gray-600 text-right">
