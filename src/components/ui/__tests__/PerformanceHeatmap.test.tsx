@@ -1,6 +1,10 @@
 import React from "react"
 import { render, screen, fireEvent, within } from "@testing-library/react"
-import { PerformanceHeatmap, getHeatColor } from "../PerformanceHeatmap"
+import {
+  PerformanceHeatmap,
+  getHeatColor,
+  HeatTile,
+} from "../PerformanceHeatmap"
 import {
   makeAsset,
   makeCashAsset,
@@ -241,6 +245,54 @@ describe("PerformanceHeatmap", () => {
     // never by the treemap tile itself.
     expect(screen.getByText("Quantity")).toBeInTheDocument()
     expect(screen.getByText("Current Value")).toBeInTheDocument()
+  })
+})
+
+describe("HeatTile mobile compact typography", () => {
+  const compactCell = {
+    code: "SPY",
+    name: "SPY",
+    marketValue: 1000,
+    totalGain: 50,
+    totalGainPercent: 0.05,
+    weight: 0.1,
+    unrealisedGain: 50,
+    irr: 0.05,
+    changePercent: 0.01,
+    gainOnDay: 10,
+    costValue: 950,
+  } as any
+
+  it("still shows the ticker on a small (50x30) tile that would previously render blank", () => {
+    render(
+      <HeatTile
+        cell={compactCell}
+        rect={{ x: 0, y: 0, width: 50, height: 30 }}
+        metric="dailyGain"
+        mode="assets"
+      />,
+    )
+    expect(screen.getByText("SPY")).toBeInTheDocument()
+  })
+
+  it("suppresses the redundant name subtitle when cell.name === cell.code", () => {
+    const groupCell = {
+      ...compactCell,
+      code: "Large Blend",
+      name: "Large Blend",
+    } as any
+
+    render(
+      <HeatTile
+        cell={groupCell}
+        rect={{ x: 0, y: 0, width: 200, height: 150 }}
+        metric="dailyGain"
+        mode="groups"
+      />,
+    )
+    // Only the ticker renders "Large Blend" — the subtitle is suppressed
+    // because it would just repeat the ticker text.
+    expect(screen.getAllByText("Large Blend")).toHaveLength(1)
   })
 })
 

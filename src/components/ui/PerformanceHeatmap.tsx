@@ -168,8 +168,11 @@ interface HeatTileProps {
 }
 
 // Module-scoped tile renderer — kept out of PerformanceHeatmap's render body
-// per the React Compiler rule against defining components inline.
-function HeatTile({
+// per the React Compiler rule against defining components inline. Exported
+// (like getHeatColor) so the mobile compact-tile typography can be unit
+// tested directly against a small TreemapRect without driving the full
+// squarify layout.
+export function HeatTile({
   cell,
   rect,
   metric,
@@ -181,12 +184,15 @@ function HeatTile({
 
   const w = rect.width
   const h = rect.height
-  const showTicker = w >= 60 && h >= 36
-  const showChip = w >= 90 && h >= 64 && value !== null
-  const showName = w >= 140 && h >= 90
+  // Small tiles (typical on phones) get a compact type scale so they still
+  // show a legible ticker/chip instead of rendering blank.
+  const compact = w < 96 || h < 56
+  const showTicker = w >= 40 && h >= 22
+  const showChip = w >= 64 && h >= 44 && value !== null
+  const showName = w >= 140 && h >= 90 && cell.name !== cell.code
   const showBadge = w >= 180 && h >= 110
 
-  const padding = w >= 140 ? "p-3" : w >= 90 ? "p-2" : "p-1"
+  const padding = compact ? "p-1" : w >= 140 ? "p-3" : w >= 90 ? "p-2" : "p-1"
 
   const title =
     mode === "assets"
@@ -213,7 +219,11 @@ function HeatTile({
         </div>
       )}
       {showTicker && (
-        <div className="text-xs sm:text-sm font-bold truncate pr-6">
+        <div
+          className={`font-bold truncate ${
+            compact ? "text-[10px]" : "text-xs sm:text-sm pr-6"
+          }`}
+        >
           {cell.code}
         </div>
       )}
@@ -223,10 +233,16 @@ function HeatTile({
       {showChip && (
         <div
           data-testid={`heatmap-chip-${mode}-${cell.code}`}
-          className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold"
+          className={`mt-1 inline-flex items-center gap-1 font-semibold ${
+            compact ? "text-[9px]" : "text-[11px]"
+          }`}
         >
           <span>{formatMetricValue(value)}</span>
-          <span className="w-3.5 h-3.5 rounded-full bg-white/30 inline-flex items-center justify-center text-[9px] leading-none">
+          <span
+            className={`rounded-full bg-white/30 inline-flex items-center justify-center leading-none ${
+              compact ? "w-3 h-3 text-[8px]" : "w-3.5 h-3.5 text-[9px]"
+            }`}
+          >
             {(value as number) >= 0 ? "↑" : "↓"}
           </span>
         </div>
