@@ -692,7 +692,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             <PerformanceHeatmap
               holdingGroups={holdings.holdingGroups}
               valueIn={holdingState.valueIn.value}
-              groupBy={holdingState.groupBy.value}
+              portfolio={holdingResults.portfolio}
               viewByGroup={false}
               portfolioTotalValue={holdings.viewTotals.marketValue}
             />

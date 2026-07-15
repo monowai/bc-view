@@ -1,16 +1,25 @@
 import React from "react"
 import { render, screen, fireEvent, within } from "@testing-library/react"
-import { PerformanceHeatmap, getHeatColor } from "../PerformanceHeatmap"
+import {
+  PerformanceHeatmap,
+  getHeatColor,
+  HeatTile,
+} from "../PerformanceHeatmap"
 import {
   makeAsset,
   makeCashAsset,
   makeHoldingGroup,
+  makePortfolio,
   makePosition,
 } from "@test-fixtures/beancounter"
 import { HoldingGroup } from "types/beancounter"
 
 const VALUE_IN = "PORTFOLIO"
+const PORTFOLIO = makePortfolio()
 
+// Page-groupBy keys are deliberately unrelated to asset classification names
+// ("Sector A"/"Sector B" vs. "Equity"/"Fixed Income") to prove Groups mode
+// regroups by classification and ignores the holdingGroups key entirely.
 function buildHoldingGroups(): Record<string, HoldingGroup> {
   const aapl = makePosition({
     asset: makeAsset({ id: "asset-aapl", code: "AAPL", name: "Apple Inc." }),
@@ -61,12 +70,15 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
       id: "asset-bnd",
       code: "BND",
       name: "Vanguard Bond ETF",
+      assetCategory: { id: "BOND", name: "Fixed Income" },
     }),
     moneyValues: {
       marketValue: 20000,
       weight: 0.2,
       irr: 0.03,
       gainOnDay: 20,
+      costValue: 19000,
+      totalGain: 500,
       priceData: {
         close: 80,
         previousClose: 79.9,
@@ -78,7 +90,7 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
   })
 
   return {
-    Equity: makeHoldingGroup({
+    "Sector A": makeHoldingGroup({
       positions: [aapl, msft, cashPosition],
       subTotals: {
         marketValue: 80000,
@@ -88,7 +100,7 @@ function buildHoldingGroups(): Record<string, HoldingGroup> {
         weightedIrr: 0.1,
       },
     }),
-    Bonds: makeHoldingGroup({
+    "Sector B": makeHoldingGroup({
       positions: [bond],
       subTotals: {
         marketValue: 20000,
@@ -107,6 +119,7 @@ describe("PerformanceHeatmap", () => {
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
         valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
         viewByGroup={false}
       />,
     )
@@ -124,6 +137,7 @@ describe("PerformanceHeatmap", () => {
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
         valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
         viewByGroup={false}
       />,
     )
@@ -142,21 +156,37 @@ describe("PerformanceHeatmap", () => {
     ).toBeInTheDocument()
   })
 
-  it("Groups mode renders group names and opens a dialog listing its assets on click", () => {
+  it("Groups mode regroups by asset classification, not the page's holdingGroups key", () => {
     render(
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
         valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
         viewByGroup={true}
       />,
     )
 
+    // Classification names show up as tiles...
     expect(screen.getAllByText("Equity").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Bonds").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Fixed Income").length).toBeGreaterThan(0)
+    // ...but the page's own grouping keys never appear as tiles.
+    expect(screen.queryByText("Sector A")).not.toBeInTheDocument()
+    expect(screen.queryByText("Sector B")).not.toBeInTheDocument()
+  })
+
+  it("Groups mode opens a dialog listing a classification group's assets on click", () => {
+    render(
+      <PerformanceHeatmap
+        holdingGroups={buildHoldingGroups()}
+        valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
+        viewByGroup={true}
+      />,
+    )
 
     fireEvent.click(screen.getByTestId("heatmap-tile-groups-Equity"))
 
-    // Dialog title + table rows for the group's (non-cash) assets.
+    // Dialog title + table rows for the classification group's assets.
     const dialogs = screen.getAllByText("Equity")
     expect(dialogs.length).toBeGreaterThan(1)
     expect(screen.getByText("Apple Inc.")).toBeInTheDocument()
@@ -168,6 +198,7 @@ describe("PerformanceHeatmap", () => {
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
         valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
         viewByGroup={false}
       />,
     )
@@ -186,12 +217,82 @@ describe("PerformanceHeatmap", () => {
       <PerformanceHeatmap
         holdingGroups={buildHoldingGroups()}
         valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
         viewByGroup={true}
       />,
     )
     expect(screen.getByRole("button", { name: "Groups" })).toHaveClass(
       "bg-white",
     )
+  })
+
+  it("Assets mode: clicking a tile opens a dialog with the holding-detail card", () => {
+    render(
+      <PerformanceHeatmap
+        holdingGroups={buildHoldingGroups()}
+        valueIn={VALUE_IN}
+        portfolio={PORTFOLIO}
+        viewByGroup={false}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Assets" }))
+
+    fireEvent.click(screen.getByTestId("heatmap-tile-assets-AAPL"))
+
+    // Dialog title shows the asset name (in addition to any tile label).
+    expect(screen.getAllByText("Apple Inc.").length).toBeGreaterThan(0)
+    // PositionCard content — stable labels rendered only by CardView's card,
+    // never by the treemap tile itself.
+    expect(screen.getByText("Quantity")).toBeInTheDocument()
+    expect(screen.getByText("Current Value")).toBeInTheDocument()
+  })
+})
+
+describe("HeatTile mobile compact typography", () => {
+  const compactCell = {
+    code: "SPY",
+    name: "SPY",
+    marketValue: 1000,
+    totalGain: 50,
+    totalGainPercent: 0.05,
+    weight: 0.1,
+    unrealisedGain: 50,
+    irr: 0.05,
+    changePercent: 0.01,
+    gainOnDay: 10,
+    costValue: 950,
+  } as any
+
+  it("still shows the ticker on a small (50x30) tile that would previously render blank", () => {
+    render(
+      <HeatTile
+        cell={compactCell}
+        rect={{ x: 0, y: 0, width: 50, height: 30 }}
+        metric="dailyGain"
+        mode="assets"
+      />,
+    )
+    expect(screen.getByText("SPY")).toBeInTheDocument()
+  })
+
+  it("suppresses the redundant name subtitle when cell.name === cell.code", () => {
+    const groupCell = {
+      ...compactCell,
+      code: "Large Blend",
+      name: "Large Blend",
+    } as any
+
+    render(
+      <HeatTile
+        cell={groupCell}
+        rect={{ x: 0, y: 0, width: 200, height: 150 }}
+        metric="dailyGain"
+        mode="groups"
+      />,
+    )
+    // Only the ticker renders "Large Blend" — the subtitle is suppressed
+    // because it would just repeat the ticker text.
+    expect(screen.getAllByText("Large Blend")).toHaveLength(1)
   })
 })
 
