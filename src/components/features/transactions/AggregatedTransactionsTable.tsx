@@ -11,6 +11,7 @@ interface AggregatedTransactionsTableProps {
   onPriceChange: (aggregateKey: string, value: number) => void
   onStatusChange: (aggregateKey: string, value: TrnStatus) => void
   onTradeDateChange: (aggregateKey: string, value: string) => void
+  onShowChart?: (agg: AggregatedTransaction) => void
 }
 
 function isAggregatedSelected(
@@ -47,6 +48,7 @@ export default function AggregatedTransactionsTable({
   onPriceChange,
   onStatusChange,
   onTradeDateChange,
+  onShowChart,
 }: AggregatedTransactionsTableProps): React.ReactElement {
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow">
@@ -186,8 +188,21 @@ export default function AggregatedTransactionsTable({
                     </span>
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">
-                      {agg.assetCode}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-gray-900">
+                        {agg.assetCode}
+                      </span>
+                      {onShowChart && (
+                        <button
+                          type="button"
+                          onClick={() => onShowChart(agg)}
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Price chart vs avg price"
+                          aria-label={`Price chart for ${agg.assetCode}`}
+                        >
+                          <i className="fas fa-chart-line text-xs"></i>
+                        </button>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500 truncate max-w-32">
                       {agg.assetName}

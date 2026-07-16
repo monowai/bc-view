@@ -21,6 +21,7 @@ interface DetailedTransactionsTableProps {
   onBrokerChange: (id: string, value: string) => void
   onEdit: (portfolioId: string, trnId: string) => void
   onDelete: (id: string) => void
+  onShowChart?: (trn: ProposedTransaction) => void
 }
 
 export default function DetailedTransactionsTable({
@@ -38,6 +39,7 @@ export default function DetailedTransactionsTable({
   onBrokerChange,
   onEdit,
   onDelete,
+  onShowChart,
 }: DetailedTransactionsTableProps): React.ReactElement {
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow">
@@ -150,8 +152,23 @@ export default function DetailedTransactionsTable({
                 </span>
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap">
-                <div className="font-medium text-gray-900">
-                  {stripOwnerPrefix(trn.asset.code)}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium text-gray-900">
+                    {stripOwnerPrefix(trn.asset.code)}
+                  </span>
+                  {onShowChart && (
+                    <button
+                      type="button"
+                      onClick={() => onShowChart(trn)}
+                      className="text-gray-400 hover:text-blue-600"
+                      title="Price chart vs limit"
+                      aria-label={`Price chart for ${stripOwnerPrefix(
+                        trn.asset.code,
+                      )}`}
+                    >
+                      <i className="fas fa-chart-line text-xs"></i>
+                    </button>
+                  )}
                 </div>
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">

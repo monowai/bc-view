@@ -32,6 +32,12 @@ interface PriceChartPopupProps {
   // Aggregated holdings drill-down: an asset held across several portfolios.
   // Takes precedence over portfolioId; trades are fetched for the union.
   portfolios?: string[]
+  // Optional limit/target price to compare against the latest market close.
+  // When set, a horizontal reference line is drawn and the header reports the
+  // gap between market and limit — used by the proposed-trade review to sanity
+  // check a limit price against current market.
+  limitPrice?: number
+  limitLabel?: string
   onClose: () => void
 }
 
@@ -234,6 +240,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   currencySymbol = "",
   portfolioId,
   portfolios,
+  limitPrice,
+  limitLabel = "Limit",
   onClose,
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
@@ -391,8 +399,10 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       if (typeof p.buyPrice === "number") vals.push(p.buyPrice)
       if (typeof p.sellPrice === "number") vals.push(p.sellPrice)
     }
+    // Keep the limit line inside the plotted range so it never clips off-axis.
+    if (typeof limitPrice === "number") vals.push(limitPrice)
     return { min: Math.min(...vals), max: Math.max(...vals) }
-  }, [series])
+  }, [series, limitPrice])
 
   const yDomain = useMemo<[number, number]>(() => {
     if (series.length === 0) return [0, 1]
@@ -407,6 +417,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       ? ((last.close - first.close) / first.close) * 100
       : 0
   const positive = changePct >= 0
+
+  // Gap of the latest market close over the supplied limit. Positive means the
+  // market trades above the limit (a buy limit would not fill; a sell limit
+  // would). null until we have both a close and a non-zero limit.
+  const limitGapPct =
+    typeof limitPrice === "number" && limitPrice !== 0 && last
+      ? ((last.close - limitPrice) / limitPrice) * 100
+      : null
 
   const splitEvents = useMemo(
     () => series.filter((p) => typeof p.split === "number"),
@@ -508,6 +526,25 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {positive ? "+" : ""}
               {changePct.toFixed(2)}%
             </div>
+            {typeof limitPrice === "number" && (
+              <div className="mt-1 text-xs tabular-nums">
+                <span className="text-gray-500">{limitLabel} </span>
+                <span className="font-medium text-gray-700">
+                  {currencySymbol}
+                  {limitPrice.toFixed(2)}
+                </span>
+                {limitGapPct !== null && (
+                  <span
+                    className={`ml-1 ${
+                      limitGapPct >= 0 ? "text-emerald-600" : "text-red-600"
+                    }`}
+                  >
+                    {limitGapPct >= 0 ? "+" : ""}
+                    {limitGapPct.toFixed(2)}% vs limit
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -595,6 +632,20 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 fill="url(#priceFill)"
                 isAnimationActive={false}
               />
+              {typeof limitPrice === "number" && (
+                <ReferenceLine
+                  y={limitPrice}
+                  stroke="#7C3AED"
+                  strokeDasharray="5 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `${limitLabel} ${currencySymbol}${limitPrice.toFixed(2)}`,
+                    position: "insideTopLeft",
+                    fontSize: 10,
+                    fill: "#6D28D9",
+                  }}
+                />
+              )}
               {splitEvents.map((p) => (
                 <ReferenceLine
                   key={`split-${p.priceDate}`}
