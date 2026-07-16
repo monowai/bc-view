@@ -48,7 +48,7 @@ interface GroupedCells {
   groupMarketValue: number
 }
 
-const UNKNOWN_CLASSIFICATION = "Unknown"
+const UNCLASSIFIED_SECTOR = "Unclassified"
 
 // Mirrors CardView's per-view sourceCurrency derivation (see CardView.tsx),
 // specialised for a single position since the heatmap dialog shows one
@@ -347,14 +347,13 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   // Use portfolioTotalValue (includes cash) for weight calculation if provided
   const weightDenominator = portfolioTotalValue ?? totalMarketValue
 
-  // Groups mode: regroup the flat asset cells by classification
-  // (asset.assetCategory.name), ignoring the page's groupBy entirely.
+  // Groups mode: regroup the flat asset cells by sector/industry
+  // classification (asset.sector), ignoring the page's groupBy entirely.
   const classificationGroups: GroupedCells[] = useMemo(() => {
     const byClassification = new Map<string, HeatmapCell[]>()
 
     assetCells.forEach((cell) => {
-      const key =
-        cell.position?.asset.assetCategory?.name || UNKNOWN_CLASSIFICATION
+      const key = cell.position?.asset.sector || UNCLASSIFIED_SECTOR
       const existing = byClassification.get(key)
       if (existing) {
         existing.push(cell)
@@ -363,7 +362,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
       }
     })
 
-    const sorter = getGroupComparator(GROUP_BY_OPTIONS.ASSET_CLASS)
+    const sorter = getGroupComparator(GROUP_BY_OPTIONS.SECTOR)
 
     return Array.from(byClassification.entries())
       .sort(([a], [b]) => sorter(a, b))
