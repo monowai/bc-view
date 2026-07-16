@@ -128,8 +128,8 @@ export default withPageAuthRequired(
 
     const brokers: Broker[] = brokersData.data || []
     const holdings:
-      (BrokerHoldingsResponse & { totalHoldings: number }) | null =
-      mergedHoldings
+      | (BrokerHoldingsResponse & { totalHoldings: number })
+      | null = mergedHoldings
     // Sell proposes SELL trns against a real broker; NO_BROKER is a UI
     // sentinel grouping unassigned transactions, not a real broker id.
     const canSell = brokerId !== "NO_BROKER"
@@ -334,7 +334,7 @@ export default withPageAuthRequired(
                               </td>
                               <td className="px-4 py-1 text-right">
                                 <Link
-                                  href={`/trns/trades/${pg.portfolioCode}?trnId=${trn.id}`}
+                                  href={`/trns/trades/edit/${pg.portfolioId}/${trn.id}`}
                                   className="text-gray-400 hover:text-blue-600"
                                   title={"Edit"}
                                 >
@@ -471,7 +471,7 @@ export default withPageAuthRequired(
                           </span>
                         </div>
                         <Link
-                          href={`/trns/trades/${pg.portfolioCode}?trnId=${trn.id}`}
+                          href={`/trns/trades/edit/${pg.portfolioId}/${trn.id}`}
                           className="text-gray-400 hover:text-blue-600 p-1"
                         >
                           <i className="far fa-edit"></i>
