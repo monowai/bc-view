@@ -42,7 +42,6 @@ export function useWealthSummary(
       }
     }
 
-    let totalValue = 0
     const portfolioValues: {
       code: string
       name: string
@@ -50,13 +49,15 @@ export function useWealthSummary(
       irr: number
     }[] = []
 
+    // Per-portfolio persisted marketValue — drives the breakdown table rows.
+    let portfolioMarketValueTotal = 0
     portfolios.forEach((portfolio) => {
       // marketValue is stored in the portfolio's BASE currency
       const marketValue = portfolio.marketValue || 0
       const rate = fxRates[portfolio.base.code] || 1
       const convertedValue = marketValue * rate
 
-      totalValue += convertedValue
+      portfolioMarketValueTotal += convertedValue
 
       portfolioValues.push({
         code: portfolio.code,
@@ -65,6 +66,17 @@ export function useWealthSummary(
         irr: portfolio.irr || 0,
       })
     })
+
+    // Headline: prefer the live aggregated holdings total (Σ live positions in
+    // BASE) over the persisted per-portfolio marketValue, which lags current FX
+    // until svc-position revalues. Reading totals.BASE keeps the headline
+    // reconciled with the holdings drill-down. Fall back to the persisted sum
+    // when holdings (or their totals) are unavailable.
+    const liveBase = holdingsData?.totals?.BASE
+    let totalValue =
+      liveBase && typeof liveBase.marketValue === "number"
+        ? liveBase.marketValue * (fxRates[liveBase.currency?.code] || 1)
+        : portfolioMarketValueTotal
 
     Object.entries(customAssetTotals).forEach(([currency, balance]) => {
       const rate = fxRates[currency] || 1
