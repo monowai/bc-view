@@ -44,7 +44,12 @@ jest.mock("recharts", () => ({
   Scatter: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`scatter-${dataKey}`} />
   ),
-  ReferenceLine: ({ x }: { x: string }) => <g data-testid={`refline-${x}`} />,
+  ReferenceLine: ({ x, y }: { x?: string; y?: number }) =>
+    x != null ? (
+      <g data-testid={`refline-${x}`} />
+    ) : (
+      <g data-testid={`refline-y-${y}`} />
+    ),
   XAxis: () => <g />,
   YAxis: () => <g />,
   Tooltip: () => <g />,
@@ -95,7 +100,12 @@ function makeRouter(options: {
 }
 
 function renderPopup(
-  overrides: Partial<{ portfolioId: string; portfolios: string[] }> = {},
+  overrides: Partial<{
+    portfolioId: string
+    portfolios: string[]
+    limitPrice: number
+    limitLabel: string
+  }> = {},
 ): ReturnType<typeof render> {
   return render(
     <PriceChartPopup
@@ -105,6 +115,8 @@ function renderPopup(
         overrides.portfolios ? undefined : (overrides.portfolioId ?? "pf-1")
       }
       portfolios={overrides.portfolios}
+      limitPrice={overrides.limitPrice}
+      limitLabel={overrides.limitLabel}
       onClose={jest.fn()}
     />,
   )
@@ -138,6 +150,27 @@ describe("PriceChartPopup", () => {
     expect(screen.getByText("Microsoft")).toBeInTheDocument()
     expect(screen.getByTestId("area-close")).toBeInTheDocument()
     expect(screen.getByText(/5\.00%/)).toBeInTheDocument()
+  })
+
+  it("draws a limit reference line and the gap vs close when a limit is given", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    // Latest close is 420; a 415 limit sits 1.20% below market.
+    renderPopup({ limitPrice: 415 })
+
+    expect(screen.getByTestId("refline-y-415")).toBeInTheDocument()
+    expect(screen.getByText("Limit")).toBeInTheDocument()
+    expect(screen.getByText(/\$415\.00/)).toBeInTheDocument()
+    // Market (close) is above the limit → positive gap.
+    expect(screen.getByText(/\+1\.20% vs limit/)).toBeInTheDocument()
+  })
+
+  it("omits the limit reference line when no limit is supplied", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup()
+
+    expect(screen.queryByText("Limit")).not.toBeInTheDocument()
   })
 
   it("defaults to the 6m range with SMA 20 on", () => {

@@ -3,7 +3,13 @@ import { useRouter } from "next/router"
 import useSwr, { mutate } from "swr"
 import { fetcher, simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Broker, Portfolio, Transaction, TrnStatus } from "types/beancounter"
+import {
+  Asset,
+  Broker,
+  Portfolio,
+  Transaction,
+  TrnStatus,
+} from "types/beancounter"
 import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
 import Head from "next/head"
 import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
@@ -17,6 +23,7 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import DetailedTransactionsTable from "@components/features/transactions/DetailedTransactionsTable"
 import AggregatedTransactionsTable from "@components/features/transactions/AggregatedTransactionsTable"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import {
   getToday,
   getDateOffset,
@@ -86,6 +93,16 @@ function ProposedTransactions(): React.JSX.Element {
   const [editTarget, setEditTarget] = useState<{
     portfolioId: string
     trnId: string
+  } | null>(null)
+  // Price-chart popup target. limitPrice is the row's (edited) price so the
+  // reviewer can eyeball the limit against the latest market close.
+  const [chartTarget, setChartTarget] = useState<{
+    asset: Asset
+    portfolioId?: string
+    portfolios?: string[]
+    limitPrice: number
+    limitLabel: string
+    currencySymbol: string
   } | null>(null)
   const [sessionInitialized, setSessionInitialized] = useState(false)
 
@@ -538,6 +555,33 @@ function ProposedTransactions(): React.JSX.Element {
         proposedIds.forEach((id) => next.delete(id))
       }
       return next
+    })
+  }
+
+  const handleShowChart = (trn: ProposedTransaction): void => {
+    setChartTarget({
+      asset: trn.asset,
+      portfolioId: trn.portfolio.id,
+      limitPrice: trn.editedPrice ?? trn.price,
+      limitLabel: "Limit",
+      currencySymbol: trn.tradeCurrency?.symbol ?? "",
+    })
+  }
+
+  const handleShowAggregatedChart = (agg: AggregatedTransaction): void => {
+    const first = agg.transactions[0]
+    if (!first) return
+    // The aggregate spans one asset across portfolios — overlay trades from all
+    // of them and compare the weighted-average price against market.
+    const portfolios = Array.from(
+      new Set(agg.transactions.map((t) => t.portfolio.id)),
+    )
+    setChartTarget({
+      asset: first.asset,
+      portfolios,
+      limitPrice: agg.editedPrice ?? agg.avgPrice,
+      limitLabel: "Avg",
+      currencySymbol: first.tradeCurrency?.symbol ?? "",
     })
   }
 
@@ -1133,6 +1177,7 @@ function ProposedTransactions(): React.JSX.Element {
                   onBrokerChange={handleBrokerChange}
                   onEdit={handleEdit}
                   onDelete={setDeleteTargetId}
+                  onShowChart={handleShowChart}
                 />
               </div>
             )}
@@ -1147,6 +1192,7 @@ function ProposedTransactions(): React.JSX.Element {
                   onPriceChange={handleAggregatedPriceChange}
                   onStatusChange={handleAggregatedStatusChange}
                   onTradeDateChange={handleAggregatedTradeDateChange}
+                  onShowChart={handleShowAggregatedChart}
                 />
               </div>
             )}
@@ -1246,6 +1292,17 @@ function ProposedTransactions(): React.JSX.Element {
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteTargetId(null)}
+        />
+      )}
+      {chartTarget && (
+        <PriceChartPopup
+          asset={chartTarget.asset}
+          currencySymbol={chartTarget.currencySymbol}
+          portfolioId={chartTarget.portfolioId}
+          portfolios={chartTarget.portfolios}
+          limitPrice={chartTarget.limitPrice}
+          limitLabel={chartTarget.limitLabel}
+          onClose={() => setChartTarget(null)}
         />
       )}
       {editTarget && (
