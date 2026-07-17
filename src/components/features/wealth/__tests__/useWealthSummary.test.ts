@@ -183,6 +183,63 @@ describe("useWealthSummary", () => {
     expect(result.current.totalValue).toBeCloseTo(100000, 2)
   })
 
+  it("headline totalValue uses the live holdings totals.BASE, not the stale persisted portfolio.marketValue", () => {
+    // portfolio.marketValue is a persisted snapshot that can lag current FX.
+    // When the live aggregated holdings response is present, the headline must
+    // read its authoritative totals.BASE so it reconciles with the drill-down.
+    const holdingsData = {
+      positions: {},
+      totals: {
+        BASE: { marketValue: 1914364, currency: { code: "USD" } },
+      },
+    } as unknown as HoldingContract
+    const portfolios = [
+      portfolio({
+        code: "P-USD",
+        marketValue: 1912969,
+        base: USD,
+        currency: USD,
+      }),
+    ]
+    const fxRates = { USD: 1 }
+
+    const { result } = renderHook(() =>
+      useWealthSummary(portfolios, fxRates, NO_SORT, holdingsData),
+    )
+    // Live total wins over the stale 1,912,969.
+    expect(result.current.totalValue).toBeCloseTo(1914364, 2)
+  })
+
+  it("converts the live totals.BASE to display currency and still adds standalone custom assets", () => {
+    const holdingsData = {
+      positions: {},
+      totals: {
+        BASE: { marketValue: 40000, currency: { code: "USD" } },
+      },
+    } as unknown as HoldingContract
+    const portfolios = [
+      portfolio({
+        code: "P-USD",
+        marketValue: 39999,
+        base: USD,
+        currency: USD,
+      }),
+    ]
+    const fxRates = { USD: 1.28, SGD: 1 }
+    const customAssetTotals = { SGD: 5000 }
+
+    const { result } = renderHook(() =>
+      useWealthSummary(
+        portfolios,
+        fxRates,
+        NO_SORT,
+        holdingsData,
+        customAssetTotals,
+      ),
+    )
+    expect(result.current.totalValue).toBeCloseTo(40000 * 1.28 + 5000, 2)
+  })
+
   it("converts classificationBreakdown (liquidity) values via fxRates, not raw BASE marketValue", () => {
     // Selected display currency is SGD. One position priced in SGD (Equity,
     // rate 1) and one in USD (Cash, rate 1.28) — the USD position's
