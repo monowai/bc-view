@@ -282,7 +282,7 @@ export function useRebalanceExecution(
         (item) => ({
           assetId: item.assetId,
           effectiveTargetOverride: localOverrides[item.assetId],
-          excluded: localExclusions[item.assetId] ?? false,
+          excluded: localExclusions[item.assetId] ?? item.excluded,
         }),
       )
 

@@ -606,6 +606,71 @@ describe("useRebalanceExecution", () => {
     expect(result.current.states.hasChanges).toBe(false)
   })
 
+  it("handleSave preserves server-seeded excluded items the user never toggled", async () => {
+    // Regression (E2E-confirmed, critical): on execution CREATE (ad-hoc or
+    // model-based), the hook seeds localOverrides from the response but
+    // never seeds localExclusions (unlike the load-existing-execution path,
+    // which does). So a2 arrives excluded=true from the server (e.g. the
+    // backend auto-excludes a PRIVATE/CPF asset) but localExclusions has no
+    // entry for it. If handleSave falls back to `?? false` instead of `??
+    // item.excluded`, it clobbers the server-seeded exclusion, and the
+    // backend then recalculates and proposes a sell-to-zero for it.
+    const exec = makeExecution({
+      id: "adhoc-exec-1",
+      planId: null,
+      planVersion: null,
+      modelId: null,
+      modelName: null,
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "a2", excluded: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: exec }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: exec }),
+      })
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+        currency: "USD",
+      }),
+    )
+
+    await act(async () => {})
+    expect(result.current.execution).toEqual(exec)
+
+    // The user never touches a2's checkbox — only an unrelated target
+    // change on a1.
+    act(() => {
+      result.current.handlers.targetChange("a1", 0.7)
+    })
+
+    await act(async () => {
+      await result.current.handlers.save()
+    })
+
+    const putCall = (global.fetch as jest.Mock).mock.calls.find(
+      ([url, opts]) =>
+        url === "/api/rebalance/executions/adhoc-exec-1" &&
+        opts?.method === "PUT",
+    )
+    expect(putCall).toBeDefined()
+    const body = JSON.parse(putCall![1].body)
+    const a2Update = body.itemUpdates.find(
+      (u: { assetId: string }) => u.assetId === "a2",
+    )
+    expect(a2Update.excluded).toBe(true)
+  })
+
   // --- Refresh ---
 
   it("handleRefresh sends POST to refresh endpoint", async () => {
