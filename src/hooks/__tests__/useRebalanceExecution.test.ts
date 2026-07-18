@@ -60,10 +60,13 @@ const makeExecution = (
   overrides: Partial<ExecutionDto> = {},
 ): ExecutionDto => ({
   id: overrides.id ?? "exec-1",
-  planId: overrides.planId ?? "plan-1",
-  planVersion: overrides.planVersion ?? 1,
-  modelId: overrides.modelId ?? "model-1",
-  modelName: overrides.modelName ?? "Test Model",
+  // Nullable AD_HOC fields: use `in` rather than `??` so an explicit `null`
+  // override (ad-hoc fixtures) isn't collapsed back to the default — `??`
+  // treats null and undefined alike.
+  planId: "planId" in overrides ? overrides.planId! : "plan-1",
+  planVersion: "planVersion" in overrides ? overrides.planVersion! : 1,
+  modelId: "modelId" in overrides ? overrides.modelId! : "model-1",
+  modelName: "modelName" in overrides ? overrides.modelName! : "Test Model",
   portfolioIds: overrides.portfolioIds ?? ["portfolio-1"],
   snapshotTotalValue: overrides.snapshotTotalValue ?? 10000,
   snapshotCashValue: overrides.snapshotCashValue ?? 1000,
@@ -255,6 +258,102 @@ describe("useRebalanceExecution", () => {
     })
     expect(result.current.execution).toEqual(exec)
     expect(result.current.createdExecutionId).toBe("new-exec-1")
+  })
+
+  it("creates ad-hoc execution when adhoc+currency provided without planId", async () => {
+    const exec = makeExecution({
+      id: "adhoc-exec-1",
+      planId: null,
+      planVersion: null,
+      modelId: null,
+      modelName: null,
+    })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: exec }),
+    })
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+        currency: "USD",
+      }),
+    )
+
+    await act(async () => {})
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/rebalance/executions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "AD_HOC",
+        portfolioIds: ["portfolio-1"],
+        currency: "USD",
+      }),
+    })
+    expect(result.current.execution).toEqual(exec)
+    expect(result.current.createdExecutionId).toBe("adhoc-exec-1")
+  })
+
+  it("guards against a duplicate create POST when the mount effect fires twice before the first create resolves (React 18 dev double-invoke)", async () => {
+    const exec = makeExecution({ id: "new-exec-1" })
+    // Never resolves within this test — we only care how many creates were
+    // dispatched before the (guarded) second attempt bails out.
+    let resolveFetch: (value: unknown) => void = () => {}
+    ;(global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        planId: "plan-1",
+        portfolioIds: ["portfolio-1"],
+        filterByModel: true,
+      }),
+    )
+
+    // The mount effect has already fired initializeExecution() once (fetch
+    // #1 is in flight, paused before its `await` resolves). Simulate a
+    // second invocation of the same effect body — exactly what React 18
+    // StrictMode's dev double-invoke (or a re-render racing the in-flight
+    // create) does — before any state from the first call has committed.
+    act(() => {
+      result.current.handlers.initialize()
+    })
+
+    const createCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url, opts]) =>
+        url === "/api/rebalance/executions" && opts?.method === "POST",
+    )
+    expect(createCalls.length).toBe(1)
+
+    // Let the in-flight create resolve so the test doesn't leak a pending
+    // promise/timer into the next test.
+    await act(async () => {
+      resolveFetch({ ok: true, json: () => Promise.resolve({ data: exec }) })
+      await Promise.resolve()
+    })
+  })
+
+  it("does not create an execution when adhoc is true but currency is missing", async () => {
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+      }),
+    )
+
+    await act(async () => {})
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      "/api/rebalance/executions",
+      expect.anything(),
+    )
+    expect(result.current.execution).toBeNull()
   })
 
   // --- Display items computation ---
@@ -505,6 +604,71 @@ describe("useRebalanceExecution", () => {
       }),
     )
     expect(result.current.states.hasChanges).toBe(false)
+  })
+
+  it("handleSave preserves server-seeded excluded items the user never toggled", async () => {
+    // Regression (E2E-confirmed, critical): on execution CREATE (ad-hoc or
+    // model-based), the hook seeds localOverrides from the response but
+    // never seeds localExclusions (unlike the load-existing-execution path,
+    // which does). So a2 arrives excluded=true from the server (e.g. the
+    // backend auto-excludes a PRIVATE/CPF asset) but localExclusions has no
+    // entry for it. If handleSave falls back to `?? false` instead of `??
+    // item.excluded`, it clobbers the server-seeded exclusion, and the
+    // backend then recalculates and proposes a sell-to-zero for it.
+    const exec = makeExecution({
+      id: "adhoc-exec-1",
+      planId: null,
+      planVersion: null,
+      modelId: null,
+      modelName: null,
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "a2", excluded: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: exec }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: exec }),
+      })
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+        currency: "USD",
+      }),
+    )
+
+    await act(async () => {})
+    expect(result.current.execution).toEqual(exec)
+
+    // The user never touches a2's checkbox — only an unrelated target
+    // change on a1.
+    act(() => {
+      result.current.handlers.targetChange("a1", 0.7)
+    })
+
+    await act(async () => {
+      await result.current.handlers.save()
+    })
+
+    const putCall = (global.fetch as jest.Mock).mock.calls.find(
+      ([url, opts]) =>
+        url === "/api/rebalance/executions/adhoc-exec-1" &&
+        opts?.method === "PUT",
+    )
+    expect(putCall).toBeDefined()
+    const body = JSON.parse(putCall![1].body)
+    const a2Update = body.itemUpdates.find(
+      (u: { assetId: string }) => u.assetId === "a2",
+    )
+    expect(a2Update.excluded).toBe(true)
   })
 
   // --- Refresh ---

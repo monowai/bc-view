@@ -321,14 +321,15 @@ export interface RebalanceCalculationResponse {
 export type ExecutionPlanStatus =
   "DRAFT" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
 
-export type ExecutionMode = "REBALANCE" | "INVEST_CASH"
+export type ExecutionMode = "REBALANCE" | "INVEST_CASH" | "AD_HOC"
 
 export interface ExecutionDto {
   id: string
-  planId: string
-  planVersion: number
-  modelId: string
-  modelName: string
+  /** Null for AD_HOC mode (no model/plan behind the execution) */
+  planId: string | null
+  planVersion: number | null
+  modelId: string | null
+  modelName: string | null
   portfolioIds: string[]
   name?: string
   snapshotTotalValue: number
@@ -349,10 +350,11 @@ export interface ExecutionDto {
 
 export interface ExecutionSummaryDto {
   id: string
-  planId: string
-  planVersion: number
-  modelId: string
-  modelName: string
+  /** Null for AD_HOC mode (no model/plan behind the execution) */
+  planId: string | null
+  planVersion: number | null
+  modelId: string | null
+  modelName: string | null
   name?: string
   portfolioCount: number
   status: ExecutionPlanStatus
@@ -401,15 +403,18 @@ export interface CashSummaryDto {
 }
 
 export interface CreateExecutionRequest {
-  planId: string
+  /** Required for REBALANCE/INVEST_CASH; omitted (and rejected if supplied) for AD_HOC */
+  planId?: string
   portfolioIds: string[]
   name?: string
-  /** Execution mode: REBALANCE (default) or INVEST_CASH */
+  /** Execution mode: REBALANCE (default), INVEST_CASH, or AD_HOC */
   mode?: ExecutionMode
   /** Amount of cash to invest (only used in INVEST_CASH mode) */
   investmentAmount?: number
   /** When true, only consider positions from transactions tagged with this model's ID */
   filterByModel?: boolean
+  /** Required for AD_HOC mode — the portfolio's report currency */
+  currency?: string
 }
 
 export interface CommitExecutionRequest {

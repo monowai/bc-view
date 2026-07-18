@@ -16,6 +16,8 @@ function ExecuteRebalancePage(): React.ReactElement {
     executionId,
     source,
     filterByModel: filterByModelParam,
+    adhoc,
+    currency,
   } = router.query
 
   const portfolioIds = useMemo(
@@ -47,6 +49,8 @@ function ExecuteRebalancePage(): React.ReactElement {
     planId: planId as string | undefined,
     portfolioIds,
     filterByModel: filterByModelParam === "true",
+    adhoc: adhoc === "1",
+    currency: currency as string | undefined,
   })
 
   // Handle URL update after new execution creation. The executionId guard is
@@ -119,15 +123,21 @@ function ExecuteRebalancePage(): React.ReactElement {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {"Rebalance Portfolio"}
+              {execution.modelName ? "Rebalance Portfolio" : "Ad-hoc Rebalance"}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              {"Using plan"}: {execution.modelName} v{execution.planVersion}
-              {execution.filterByModel && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                  <i className="fas fa-filter mr-1"></i>
-                  {"Model positions only"}
-                </span>
+              {execution.modelName ? (
+                <>
+                  {"Using plan"}: {execution.modelName} v{execution.planVersion}
+                  {execution.filterByModel && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                      <i className="fas fa-filter mr-1"></i>
+                      {"Model positions only"}
+                    </span>
+                  )}
+                </>
+              ) : (
+                "Target weights seeded from current holdings — edit to rebalance"
               )}
             </p>
           </div>

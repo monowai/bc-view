@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { toErrorMessage } from "@lib/formatters"
@@ -33,6 +33,10 @@ export interface UseRebalanceExecutionParams {
   planId?: string
   portfolioIds: string[]
   filterByModel?: boolean
+  /** Create an AD_HOC execution (seeded from live holdings, no plan) — requires `currency` */
+  adhoc?: boolean
+  /** Portfolio report currency — required when `adhoc` is true */
+  currency?: string
 }
 
 export interface UseRebalanceExecutionResult {
@@ -81,7 +85,8 @@ export interface UseRebalanceExecutionResult {
 export function useRebalanceExecution(
   params: UseRebalanceExecutionParams,
 ): UseRebalanceExecutionResult {
-  const { executionId, planId, portfolioIds, filterByModel } = params
+  const { executionId, planId, portfolioIds, filterByModel, adhoc, currency } =
+    params
 
   // Core state
   const [execution, setExecution] = useState<ExecutionDto | null>(null)
@@ -109,6 +114,16 @@ export function useRebalanceExecution(
   const [createdExecutionId, setCreatedExecutionId] = useState<string | null>(
     null,
   )
+
+  // Guards the create-execution POST against firing twice for the same
+  // mount/param-set. The mount effect's re-entry guard reads `execution` /
+  // `loading` from render-time state, but two effect invocations that both
+  // fire before either state update commits (React 18 dev double-invoke, or
+  // any re-render racing the in-flight fetch) both see the pre-create
+  // snapshot and both pass the guard — each issuing its own POST and
+  // orphaning a duplicate DRAFT execution. A ref is synchronous and shared
+  // across those invocations, so the second one bails out immediately.
+  const createInFlightRef = useRef(false)
 
   // --- SWR data ---
 
@@ -169,19 +184,30 @@ export function useRebalanceExecution(
       } finally {
         setLoading(false)
       }
-    } else if (planId && portfolioIds.length > 0) {
-      // Create new execution
+    } else {
+      // Create new execution: model-based (planId) or ad-hoc (adhoc + currency).
+      // Ad-hoc omits planId entirely — the server rejects AD_HOC requests that
+      // supply one.
+      const createBody = planId
+        ? { planId, portfolioIds, filterByModel: filterByModel === true }
+        : adhoc && currency
+          ? { mode: "AD_HOC" as const, portfolioIds, currency }
+          : null
+
+      if (!createBody || portfolioIds.length === 0) return
+
+      // Bail if a create is already in flight (or already succeeded) for
+      // this hook instance — see createInFlightRef above.
+      if (createInFlightRef.current) return
+      createInFlightRef.current = true
+
       setLoading(true)
       setError(null)
       try {
         const response = await fetch("/api/rebalance/executions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId,
-            portfolioIds,
-            filterByModel: filterByModel === true,
-          }),
+          body: JSON.stringify(createBody),
         })
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
@@ -189,11 +215,16 @@ export function useRebalanceExecution(
             errorData.message ||
               `Failed to create execution: ${response.status}`,
           )
+          // Allow a retry (e.g. via the error banner's Retry button) to
+          // issue a fresh create.
+          createInFlightRef.current = false
           return
         }
         const data = await response.json()
         setExecution(data.data)
-        // Default to return-adjusted targets for new executions
+        // Default to return-adjusted targets for new executions (ad-hoc
+        // executions have no returnAdjustedTarget, so this is a no-op there —
+        // items are already seeded with zero deltas).
         const adjustedOverrides: Record<string, number> = {}
         data.data.items.forEach((item: ExecutionItemDto) => {
           if (!item.isCash && item.returnAdjustedTarget != null) {
@@ -206,11 +237,12 @@ export function useRebalanceExecution(
       } catch (err) {
         console.error("Failed to create execution:", err)
         setError(toErrorMessage(err, "Failed to create execution"))
+        createInFlightRef.current = false
       } finally {
         setLoading(false)
       }
     }
-  }, [executionId, planId, portfolioIds, filterByModel])
+  }, [executionId, planId, portfolioIds, filterByModel, adhoc, currency])
 
   // Initialize on mount (skip if already loaded, loading, or errored)
   useEffect(() => {
@@ -218,7 +250,9 @@ export function useRebalanceExecution(
       !execution &&
       !loading &&
       !error &&
-      (executionId || (planId && portfolioIds.length > 0))
+      (executionId ||
+        (planId && portfolioIds.length > 0) ||
+        (adhoc && currency && portfolioIds.length > 0))
     ) {
       // Genuine async data-load orchestration: fetches/creates an execution
       // and sets state from the awaited result. Guarded against re-entry by
@@ -233,6 +267,8 @@ export function useRebalanceExecution(
     executionId,
     planId,
     portfolioIds.length,
+    adhoc,
+    currency,
     initializeExecution,
   ])
 
@@ -246,7 +282,7 @@ export function useRebalanceExecution(
         (item) => ({
           assetId: item.assetId,
           effectiveTargetOverride: localOverrides[item.assetId],
-          excluded: localExclusions[item.assetId] ?? false,
+          excluded: localExclusions[item.assetId] ?? item.excluded,
         }),
       )
 

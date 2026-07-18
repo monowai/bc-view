@@ -440,6 +440,18 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
         icon: "fa-chart-pie",
         onClick: () => onInvestCash?.(),
       },
+      {
+        // Ad-hoc rebalance: opens the multi-position rebalance editor seeded
+        // from live holdings (all deltas zero, no model/plan). Available to
+        // all users — unlike "Rebalance Model" below, it doesn't rely on the
+        // (still in-development) model/plan feature.
+        label: "Rebalance Weights",
+        icon: "fa-sliders-h",
+        onClick: () =>
+          router.push(
+            `/rebalance/execute?adhoc=1&portfolios=${holdingResults.portfolio.id}&currency=${holdingResults.portfolio.currency.code}`,
+          ),
+      },
     ]
     // Add "Rebalance Model" for admins only (feature in development)
     if (isAdmin) {
@@ -450,7 +462,14 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
       })
     }
     return items
-  }, [isAdmin, onInvestCash, onSelectPlan])
+  }, [
+    isAdmin,
+    onInvestCash,
+    onSelectPlan,
+    router,
+    holdingResults.portfolio.id,
+    holdingResults.portfolio.currency.code,
+  ])
 
   return (
     <>

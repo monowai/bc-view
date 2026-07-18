@@ -4,6 +4,22 @@ import "@testing-library/jest-dom"
 import HoldingActions from "../HoldingActions"
 import { HoldingContract } from "types/beancounter"
 
+// Local router mock (overrides jest.setup.js's default) so we can assert on
+// the exact push() call the "Rebalance Weights" menu item makes.
+const mockPush = jest.fn()
+jest.mock("next/router", () => ({
+  useRouter: () => ({
+    route: "/",
+    pathname: "",
+    query: {},
+    asPath: "",
+    push: mockPush,
+    events: { on: jest.fn(), off: jest.fn() },
+    beforePopState: jest.fn(() => null),
+    prefetch: jest.fn(() => null),
+  }),
+}))
+
 // Helper to set up matchMedia mock
 function setupMatchMedia(width: number, height: number): void {
   const isPortrait = height > width
@@ -310,6 +326,46 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       fireEvent.click(screen.getByText("Invest Cash"))
 
       expect(onInvestCash).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // Ad-hoc rebalance entry point: unlike "Rebalance Model" (admin-gated,
+  // model/plan feature in development), "Rebalance Weights" opens the
+  // multi-position rebalance editor seeded straight from live holdings and
+  // must be reachable by all users.
+  describe("Rebalance Weights entry (ad-hoc)", () => {
+    beforeEach(() => {
+      mockPush.mockClear()
+    })
+
+    it("is reachable for non-admin users", () => {
+      render(
+        <HoldingActions
+          holdingResults={mockHoldingResults}
+          columns={mockColumns}
+          valueIn={mockValueIn}
+        />,
+      )
+
+      fireEvent.click(screen.getByLabelText("Invest"))
+      expect(screen.getByText("Rebalance Weights")).toBeInTheDocument()
+    })
+
+    it("routes to the ad-hoc rebalance execute page with portfolio id and currency", () => {
+      render(
+        <HoldingActions
+          holdingResults={mockHoldingResults}
+          columns={mockColumns}
+          valueIn={mockValueIn}
+        />,
+      )
+
+      fireEvent.click(screen.getByLabelText("Invest"))
+      fireEvent.click(screen.getByText("Rebalance Weights"))
+
+      expect(mockPush).toHaveBeenCalledWith(
+        "/rebalance/execute?adhoc=1&portfolios=test-portfolio&currency=USD",
+      )
     })
   })
 })
