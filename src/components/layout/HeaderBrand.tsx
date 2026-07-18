@@ -518,6 +518,20 @@ function HeaderBrand(): React.ReactElement {
         Holds<i>worth</i>
       </Link>
 
+      {/* In-development badge — visible to everyone (incl. unauthenticated
+          visitors) so it's clear the app is a work in progress. Links to the
+          repo where feedback and contributions are welcome. */}
+      <a
+        href="https://github.com/monowai/bc-view"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="In active development — feedback and contributions welcome"
+        title="In active development — feedback & contributions welcome"
+        className="ml-2 inline-flex items-center rounded-full bg-amber-400/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-900 transition-colors hover:bg-amber-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+      >
+        Beta
+      </a>
+
       {/* Desktop Navigation — hidden when unauthenticated */}
       {isAuthed && (
         <nav className="hidden lg:flex items-center ml-8 space-x-1">

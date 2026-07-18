@@ -34,6 +34,20 @@ describe("HeaderBrand", () => {
     mockPortfolios = [{ id: "pf-1" }, { id: "pf-2" }] // master mode by default
   })
 
+  it("shows an in-development badge linking to the repo, even when unauthenticated", () => {
+    mockUseUser.mockReturnValueOnce({
+      user: undefined,
+      error: undefined,
+      isLoading: false,
+      invalidate: jest.fn(),
+    } as unknown as ReturnType<typeof useUser>)
+
+    render(<HeaderBrand />)
+    const badge = screen.getByRole("link", { name: /development/i })
+    expect(badge).toHaveAttribute("href", "https://github.com/monowai/bc-view")
+    expect(badge).toHaveTextContent(/beta/i)
+  })
+
   it("renders nav dropdowns for authenticated user", () => {
     render(<HeaderBrand />)
     expect(screen.getByRole("button", { name: /^Wealth/i })).toBeInTheDocument()
