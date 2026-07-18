@@ -8,6 +8,21 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
 import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
 
+type SliderStep = 5 | 1 | 0.01
+
+const SLIDER_STEP_OPTIONS: { value: SliderStep; label: string }[] = [
+  { value: 5, label: "5%" },
+  { value: 1, label: "1%" },
+  { value: 0.01, label: "0.01%" },
+]
+
+/** Round a raw percent value to the nearest multiple of `step`, guarding
+ * against floating-point drift (e.g. 0.01 steps producing 14.999999998). */
+function snapToStep(value: number, step: number): number {
+  const snapped = Math.round(value / step) * step
+  return Math.round(snapped * 100) / 100
+}
+
 function ExecuteRebalancePage(): React.ReactElement {
   const router = useRouter()
   const {
@@ -31,6 +46,12 @@ function ExecuteRebalancePage(): React.ReactElement {
 
   // Page-only UI state
   const [step, setStep] = useState<"configure" | "preview">("configure")
+
+  // Slider precision toggle for target-weight editing — pure UI state, not
+  // persisted. Drives both the range input's `step` and the numeric input's
+  // spinner increment; typed numeric entries still accept arbitrary 0.01
+  // precision regardless of this setting.
+  const [sliderStep, setSliderStep] = useState<SliderStep>(5)
 
   // Hook handles all data fetching, state, and operations
   const {
@@ -266,6 +287,37 @@ function ExecuteRebalancePage(): React.ReactElement {
                   </button>
                 </div>
               </div>
+              {/* Slider precision toggle */}
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-xs text-gray-500">{"Slider step:"}</span>
+                <div
+                  className="inline-flex rounded-md shadow-sm"
+                  role="group"
+                  aria-label="Slider step precision"
+                >
+                  {SLIDER_STEP_OPTIONS.map((opt, idx) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSliderStep(opt.value)}
+                      aria-pressed={sliderStep === opt.value}
+                      className={`px-3 py-1 text-xs font-medium border ${
+                        idx === 0
+                          ? "rounded-l-md"
+                          : idx === SLIDER_STEP_OPTIONS.length - 1
+                            ? "rounded-r-md border-l-0"
+                            : "border-l-0"
+                      } ${
+                        sliderStep === opt.value
+                          ? "bg-invest-100 text-invest-700 border-invest-200"
+                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -443,25 +495,47 @@ function ExecuteRebalancePage(): React.ReactElement {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={(item.effectiveTarget * 100).toFixed(2)}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0
-                              handlers.targetChange(item.assetId, val / 100)
-                            }}
-                            disabled={item.isExcluded}
-                            className={`w-20 px-2 py-1 text-right border rounded focus:ring-invest-500 focus:border-invest-500 ${
-                              isCash
-                                ? "border-blue-300 bg-blue-50"
-                                : item.isExcluded
-                                  ? "border-gray-300 bg-gray-100"
-                                  : "border-gray-300"
-                            }`}
-                          />
+                          <div className="flex items-center justify-end gap-2">
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={sliderStep}
+                              value={item.effectiveTarget * 100}
+                              onChange={(e) => {
+                                const raw = parseFloat(e.target.value)
+                                if (Number.isNaN(raw)) return
+                                const snapped = snapToStep(raw, sliderStep)
+                                handlers.targetChange(
+                                  item.assetId,
+                                  snapped / 100,
+                                )
+                              }}
+                              disabled={item.isExcluded}
+                              aria-label={`${item.assetCode || item.assetId} target weight`}
+                              className="w-16 sm:w-24 min-w-[60px] h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step={sliderStep}
+                              value={(item.effectiveTarget * 100).toFixed(2)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0
+                                handlers.targetChange(item.assetId, val / 100)
+                              }}
+                              disabled={item.isExcluded}
+                              aria-label={`${item.assetCode || item.assetId} target weight percent`}
+                              className={`w-20 px-2 py-1 text-right border rounded focus:ring-invest-500 focus:border-invest-500 ${
+                                isCash
+                                  ? "border-blue-300 bg-blue-50"
+                                  : item.isExcluded
+                                    ? "border-gray-300 bg-gray-100"
+                                    : "border-gray-300"
+                              }`}
+                            />
+                          </div>
                         </td>
                         <td className={`px-4 py-3 text-right ${quantityClass}`}>
                           {isCash ? (
