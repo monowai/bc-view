@@ -18,6 +18,16 @@ export interface DisplayItem extends ExecutionItemDto {
   deltaQuantity: number
   isExcluded: boolean
   isCash: boolean
+  /** snapshotValue + deltaValue (cash row: currentCash + netImpact, clamped to >= 0) */
+  projectedValue: number
+  /**
+   * projectedValue / projectedTotal, as a decimal (e.g. 0.2381). `null` for
+   * excluded rows (incl. server-auto-excluded PRIVATE/CPF assets) — they sit
+   * outside the projected-total denominator, same as PRIVATE sits outside
+   * the server's snapshotWeight denominator, so a weight against it isn't
+   * meaningful.
+   */
+  projectedWeight: number | null
 }
 
 export interface CashSummary {
@@ -26,6 +36,10 @@ export interface CashSummary {
   targetCash: number
   cashFromSales: number
   cashForPurchases: number
+  /** cashFromSales - cashForPurchases + (currentCash - targetCash); negative means the rebalance needs new deposited cash */
+  netImpact: number
+  /** currentCash + netImpact, unclamped — negative means a deposit is required to fund the changes */
+  projectedCash: number
 }
 
 export interface UseRebalanceExecutionParams {
@@ -489,8 +503,21 @@ export function useRebalanceExecution(
 
   // --- Computed values ---
 
-  const displayItems: DisplayItem[] = useMemo(() => {
-    if (!execution) return []
+  // Single source of truth for target-weight rescaling, projected (post-trade)
+  // values/weights, and cash-impact figures. One pass over `execution.items`
+  // feeds both `displayItems` (incl. the After-% column) and `cashSummary` so
+  // the two never drift out of sync with independent calculations.
+  const computed = useMemo(() => {
+    if (!execution) {
+      return {
+        items: [] as DisplayItem[],
+        targetCash: 0,
+        cashFromSales: 0,
+        cashForPurchases: 0,
+        netImpact: 0,
+        projectedCash: 0,
+      }
+    }
 
     const totalPortfolioValue = execution.totalPortfolioValue
 
@@ -508,7 +535,7 @@ export function useRebalanceExecution(
       .filter((item) => !item.isCash)
       .reduce((sum, item) => sum + item.planTargetWeight, 0)
 
-    return execution.items.map((item) => {
+    const base = execution.items.map((item) => {
       const isCash = item.isCash ?? false
       const isExcluded = localExclusions[item.assetId] ?? item.excluded
 
@@ -543,7 +570,70 @@ export function useRebalanceExecution(
         isCash,
       }
     })
+
+    // Cash impact of the trades: sales generate cash, purchases consume it,
+    // and any explicit cash-target change releases/absorbs the difference.
+    // Excluded rows (incl. server-auto-excluded PRIVATE/CPF assets) never
+    // reach the market, so they're skipped here.
+    const currentCash = execution.snapshotCashValue
+    const cashDisplay = base.find((item) => item.isCash)
+    const targetCash = totalPortfolioValue * (cashDisplay?.effectiveTarget ?? 0)
+
+    let cashFromSales = 0
+    let cashForPurchases = 0
+    for (const item of base) {
+      if (item.isCash || item.isExcluded) continue
+      if (item.deltaValue < 0) {
+        cashFromSales += Math.abs(item.deltaValue)
+      } else if (item.deltaValue > 0) {
+        cashForPurchases += item.deltaValue
+      }
+    }
+    const cashPositionChange = currentCash - targetCash
+    const netImpact = cashFromSales - cashForPurchases + cashPositionChange
+    const projectedCash = currentCash + netImpact
+    // Negative projected cash means the rebalance needs a deposit — it's not
+    // a negative asset, so the After-% denominator clamps it to zero (the
+    // deposit itself is exactly what dilutes the other rows' weights).
+    const projectedCashClamped = Math.max(projectedCash, 0)
+
+    const projectedNonCashTotal = base
+      .filter((item) => !item.isCash && !item.isExcluded)
+      .reduce((sum, item) => sum + (item.snapshotValue + item.deltaValue), 0)
+    const projectedTotal = projectedNonCashTotal + projectedCashClamped
+
+    const items: DisplayItem[] = base.map((item) => {
+      if (item.isCash) {
+        return {
+          ...item,
+          projectedValue: projectedCashClamped,
+          projectedWeight:
+            projectedTotal > 0 ? projectedCashClamped / projectedTotal : 0,
+        }
+      }
+      const projectedValue = item.snapshotValue + item.deltaValue
+      return {
+        ...item,
+        projectedValue,
+        projectedWeight: item.isExcluded
+          ? null
+          : projectedTotal > 0
+            ? projectedValue / projectedTotal
+            : 0,
+      }
+    })
+
+    return {
+      items,
+      targetCash,
+      cashFromSales,
+      cashForPurchases,
+      netImpact,
+      projectedCash,
+    }
   }, [execution, localOverrides, localExclusions])
+
+  const displayItems = computed.items
 
   const activeItems = useMemo(
     () =>
@@ -554,41 +644,18 @@ export function useRebalanceExecution(
     [displayItems],
   )
 
-  const cashSummary: CashSummary = useMemo(() => {
-    if (!execution) {
-      return {
-        currentMarketValue: 0,
-        currentCash: 0,
-        targetCash: 0,
-        cashFromSales: 0,
-        cashForPurchases: 0,
-      }
-    }
-
-    const cashItem = displayItems.find((item) => item.isCash)
-    const targetCash =
-      execution.totalPortfolioValue * (cashItem?.effectiveTarget ?? 0)
-
-    let cashFromSales = 0
-    let cashForPurchases = 0
-
-    for (const item of displayItems) {
-      if (item.isCash || item.isExcluded) continue
-      if (item.deltaValue < 0) {
-        cashFromSales += Math.abs(item.deltaValue)
-      } else if (item.deltaValue > 0) {
-        cashForPurchases += item.deltaValue
-      }
-    }
-
-    return {
-      currentMarketValue: execution.totalPortfolioValue,
-      currentCash: execution.snapshotCashValue,
-      targetCash,
-      cashFromSales,
-      cashForPurchases,
-    }
-  }, [execution, displayItems])
+  const cashSummary: CashSummary = useMemo(
+    () => ({
+      currentMarketValue: execution?.totalPortfolioValue ?? 0,
+      currentCash: execution?.snapshotCashValue ?? 0,
+      targetCash: computed.targetCash,
+      cashFromSales: computed.cashFromSales,
+      cashForPurchases: computed.cashForPurchases,
+      netImpact: computed.netImpact,
+      projectedCash: computed.projectedCash,
+    }),
+    [execution, computed],
+  )
 
   return {
     execution,

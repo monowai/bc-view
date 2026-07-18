@@ -788,6 +788,197 @@ describe("useRebalanceExecution", () => {
     expect(result.current.cashSummary.currentCash).toBe(1000)
   })
 
+  // --- Projected weight (After %) ---
+
+  it("raising a small position's target funds it via deposit and dilutes the other rows' projected weight", async () => {
+    // Portfolio: big position 1000 (25% of 4000), small position 200 (5% of
+    // 4000), a third untouched holding making up the remaining 2800 (70%),
+    // cash 0. Plan target weights mirror snapshot weights so untouched rows
+    // have zero delta unless overridden.
+    const exec = makeExecution({
+      totalPortfolioValue: 4000,
+      snapshotCashValue: 0,
+      items: [
+        makeItem({
+          id: "big",
+          assetId: "big-asset",
+          assetCode: "GOOG",
+          snapshotWeight: 0.25,
+          snapshotValue: 1000,
+          planTargetWeight: 0.25,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "small",
+          assetId: "small-asset",
+          assetCode: "MSFT",
+          snapshotWeight: 0.05,
+          snapshotValue: 200,
+          planTargetWeight: 0.05,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "rest",
+          assetId: "rest-asset",
+          assetCode: "OTHER",
+          snapshotWeight: 0.7,
+          snapshotValue: 2800,
+          planTargetWeight: 0.7,
+          snapshotPrice: 100,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          snapshotWeight: 0,
+          snapshotValue: 0,
+          planTargetWeight: 0,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      // 5% -> 10%
+      result.current.handlers.targetChange("small-asset", 0.1)
+    })
+
+    const small = result.current.displayItems.find(
+      (i) => i.assetId === "small-asset",
+    )
+    const big = result.current.displayItems.find(
+      (i) => i.assetId === "big-asset",
+    )
+
+    // Funded by a deposit (no sales elsewhere): delta ~= +200
+    expect(small?.deltaValue).toBeCloseTo(200, 5)
+
+    // Big position's own value is untouched, but the portfolio total grows
+    // by the deposit (4000 -> 4200), so its projected weight drops.
+    expect(big?.deltaValue).toBeCloseTo(0, 5)
+    expect(big?.projectedWeight).toBeCloseTo(1000 / 4200, 4)
+
+    // All (non-excluded) rows' projected weights sum to ~100%.
+    const total = result.current.displayItems.reduce(
+      (sum, item) => sum + (item.projectedWeight ?? 0),
+      0,
+    )
+    expect(total).toBeCloseTo(1, 5)
+  })
+
+  it("internal shuffle funded by an offsetting sale leaves projected total and untouched rows' weight unchanged", async () => {
+    // Sell 300 from X, buy 300 into Y — self-funded, cash stays positive and
+    // unchanged, so the projected total should equal the snapshot total and
+    // the untouched row Z's projected weight should equal its current weight.
+    const exec = makeExecution({
+      totalPortfolioValue: 5000,
+      snapshotCashValue: 1000,
+      items: [
+        makeItem({
+          id: "x",
+          assetId: "x-asset",
+          assetCode: "X",
+          snapshotWeight: 0.2,
+          snapshotValue: 1000,
+          planTargetWeight: 0.2,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "y",
+          assetId: "y-asset",
+          assetCode: "Y",
+          snapshotWeight: 0.2,
+          snapshotValue: 1000,
+          planTargetWeight: 0.2,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "z",
+          assetId: "z-asset",
+          assetCode: "Z",
+          snapshotWeight: 0.4,
+          snapshotValue: 2000,
+          planTargetWeight: 0.4,
+          snapshotPrice: 100,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          snapshotWeight: 0.2,
+          snapshotValue: 1000,
+          planTargetWeight: 0.2,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.targetChange("x-asset", 0.14) // sell 300
+      result.current.handlers.targetChange("y-asset", 0.26) // buy 300
+    })
+
+    const z = result.current.displayItems.find((i) => i.assetId === "z-asset")
+    const cash = result.current.displayItems.find((i) => i.isCash)
+
+    expect(result.current.cashSummary.projectedCash).toBeCloseTo(1000, 5)
+    expect(cash?.projectedWeight).toBeCloseTo(1000 / 5000, 5)
+
+    // Untouched row's projected weight is unchanged from its snapshot weight.
+    expect(z?.projectedWeight).toBeCloseTo(z!.snapshotWeight, 5)
+
+    const total = result.current.displayItems.reduce(
+      (sum, item) => sum + (item.projectedWeight ?? 0),
+      0,
+    )
+    expect(total).toBeCloseTo(1, 5)
+  })
+
+  it("excludes an excluded/PRIVATE row from the projected-total denominator and its own projected weight", async () => {
+    const exec = makeExecution({
+      totalPortfolioValue: 5000,
+      snapshotCashValue: 1000,
+      items: [
+        makeItem({
+          id: "priv",
+          assetId: "private-asset",
+          assetCode: "PRIV",
+          snapshotWeight: 0,
+          snapshotValue: 500,
+          planTargetWeight: 0,
+          snapshotPrice: 100,
+          excluded: true,
+        }),
+        makeItem({
+          id: "a1",
+          assetId: "a1",
+          assetCode: "A1",
+          snapshotWeight: 0.6,
+          snapshotValue: 3000,
+          planTargetWeight: 0.6,
+          snapshotPrice: 100,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          snapshotWeight: 0.2,
+          snapshotValue: 1000,
+          planTargetWeight: 0.2,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    const priv = result.current.displayItems.find(
+      (i) => i.assetId === "private-asset",
+    )
+    expect(priv?.projectedWeight).toBeNull()
+
+    const total = result.current.displayItems.reduce(
+      (sum, item) => sum + (item.projectedWeight ?? 0),
+      0,
+    )
+    expect(total).toBeCloseTo(1, 5)
+  })
+
   // --- Brokers ---
 
   it("derives brokers from SWR data", () => {
