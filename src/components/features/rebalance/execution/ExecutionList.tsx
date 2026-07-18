@@ -98,11 +98,14 @@ const ExecutionList: React.FC = () => {
             >
               <td className="px-4 py-3">
                 <span className="font-medium text-blue-600">
-                  {execution.name || `Plan v${execution.planVersion}`}
+                  {execution.name ||
+                    (execution.modelName
+                      ? `Plan v${execution.planVersion}`
+                      : "Ad-hoc Rebalance")}
                 </span>
               </td>
               <td className={`px-4 py-3 text-gray-600 ${hiddenSm}`}>
-                {execution.modelName}
+                {execution.modelName ?? "Ad-hoc"}
               </td>
               <td className="px-4 py-3 text-center">
                 <span className="bg-gray-100 px-2 py-1 rounded text-sm">

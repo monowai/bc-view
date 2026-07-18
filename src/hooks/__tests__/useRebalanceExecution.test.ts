@@ -60,10 +60,13 @@ const makeExecution = (
   overrides: Partial<ExecutionDto> = {},
 ): ExecutionDto => ({
   id: overrides.id ?? "exec-1",
-  planId: overrides.planId ?? "plan-1",
-  planVersion: overrides.planVersion ?? 1,
-  modelId: overrides.modelId ?? "model-1",
-  modelName: overrides.modelName ?? "Test Model",
+  // Nullable AD_HOC fields: use `in` rather than `??` so an explicit `null`
+  // override (ad-hoc fixtures) isn't collapsed back to the default — `??`
+  // treats null and undefined alike.
+  planId: "planId" in overrides ? overrides.planId! : "plan-1",
+  planVersion: "planVersion" in overrides ? overrides.planVersion! : 1,
+  modelId: "modelId" in overrides ? overrides.modelId! : "model-1",
+  modelName: "modelName" in overrides ? overrides.modelName! : "Test Model",
   portfolioIds: overrides.portfolioIds ?? ["portfolio-1"],
   snapshotTotalValue: overrides.snapshotTotalValue ?? 10000,
   snapshotCashValue: overrides.snapshotCashValue ?? 1000,
@@ -255,6 +258,59 @@ describe("useRebalanceExecution", () => {
     })
     expect(result.current.execution).toEqual(exec)
     expect(result.current.createdExecutionId).toBe("new-exec-1")
+  })
+
+  it("creates ad-hoc execution when adhoc+currency provided without planId", async () => {
+    const exec = makeExecution({
+      id: "adhoc-exec-1",
+      planId: null,
+      planVersion: null,
+      modelId: null,
+      modelName: null,
+    })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: exec }),
+    })
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+        currency: "USD",
+      }),
+    )
+
+    await act(async () => {})
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/rebalance/executions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "AD_HOC",
+        portfolioIds: ["portfolio-1"],
+        currency: "USD",
+      }),
+    })
+    expect(result.current.execution).toEqual(exec)
+    expect(result.current.createdExecutionId).toBe("adhoc-exec-1")
+  })
+
+  it("does not create an execution when adhoc is true but currency is missing", async () => {
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        portfolioIds: ["portfolio-1"],
+        adhoc: true,
+      }),
+    )
+
+    await act(async () => {})
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      "/api/rebalance/executions",
+      expect.anything(),
+    )
+    expect(result.current.execution).toBeNull()
   })
 
   // --- Display items computation ---
