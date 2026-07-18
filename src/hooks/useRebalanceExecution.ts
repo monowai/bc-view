@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { toErrorMessage } from "@lib/formatters"
@@ -115,6 +115,16 @@ export function useRebalanceExecution(
     null,
   )
 
+  // Guards the create-execution POST against firing twice for the same
+  // mount/param-set. The mount effect's re-entry guard reads `execution` /
+  // `loading` from render-time state, but two effect invocations that both
+  // fire before either state update commits (React 18 dev double-invoke, or
+  // any re-render racing the in-flight fetch) both see the pre-create
+  // snapshot and both pass the guard — each issuing its own POST and
+  // orphaning a duplicate DRAFT execution. A ref is synchronous and shared
+  // across those invocations, so the second one bails out immediately.
+  const createInFlightRef = useRef(false)
+
   // --- SWR data ---
 
   const { data: brokersData } = useSwr(
@@ -186,6 +196,11 @@ export function useRebalanceExecution(
 
       if (!createBody || portfolioIds.length === 0) return
 
+      // Bail if a create is already in flight (or already succeeded) for
+      // this hook instance — see createInFlightRef above.
+      if (createInFlightRef.current) return
+      createInFlightRef.current = true
+
       setLoading(true)
       setError(null)
       try {
@@ -200,6 +215,9 @@ export function useRebalanceExecution(
             errorData.message ||
               `Failed to create execution: ${response.status}`,
           )
+          // Allow a retry (e.g. via the error banner's Retry button) to
+          // issue a fresh create.
+          createInFlightRef.current = false
           return
         }
         const data = await response.json()
@@ -219,6 +237,7 @@ export function useRebalanceExecution(
       } catch (err) {
         console.error("Failed to create execution:", err)
         setError(toErrorMessage(err, "Failed to create execution"))
+        createInFlightRef.current = false
       } finally {
         setLoading(false)
       }

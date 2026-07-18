@@ -296,6 +296,49 @@ describe("useRebalanceExecution", () => {
     expect(result.current.createdExecutionId).toBe("adhoc-exec-1")
   })
 
+  it("guards against a duplicate create POST when the mount effect fires twice before the first create resolves (React 18 dev double-invoke)", async () => {
+    const exec = makeExecution({ id: "new-exec-1" })
+    // Never resolves within this test — we only care how many creates were
+    // dispatched before the (guarded) second attempt bails out.
+    let resolveFetch: (value: unknown) => void = () => {}
+    ;(global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        planId: "plan-1",
+        portfolioIds: ["portfolio-1"],
+        filterByModel: true,
+      }),
+    )
+
+    // The mount effect has already fired initializeExecution() once (fetch
+    // #1 is in flight, paused before its `await` resolves). Simulate a
+    // second invocation of the same effect body — exactly what React 18
+    // StrictMode's dev double-invoke (or a re-render racing the in-flight
+    // create) does — before any state from the first call has committed.
+    act(() => {
+      result.current.handlers.initialize()
+    })
+
+    const createCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url, opts]) =>
+        url === "/api/rebalance/executions" && opts?.method === "POST",
+    )
+    expect(createCalls.length).toBe(1)
+
+    // Let the in-flight create resolve so the test doesn't leak a pending
+    // promise/timer into the next test.
+    await act(async () => {
+      resolveFetch({ ok: true, json: () => Promise.resolve({ data: exec }) })
+      await Promise.resolve()
+    })
+  })
+
   it("does not create an execution when adhoc is true but currency is missing", async () => {
     const { result } = renderHook(() =>
       useRebalanceExecution({
