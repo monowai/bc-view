@@ -103,6 +103,8 @@ function makeItem(overrides: Partial<DisplayItem> = {}): DisplayItem {
       overrides.projectedWeight === undefined
         ? 0.65
         : overrides.projectedWeight,
+    isPrivate: overrides.isPrivate,
+    isImmune: overrides.isImmune ?? false,
     ...overrides,
   } as DisplayItem
 }
@@ -503,6 +505,60 @@ describe("ExecuteRebalancePage", () => {
         "Locked — not eligible for execution",
       ) as HTMLInputElement
       expect(lockedCheckbox).toBeDisabled()
+    })
+
+    it("ignores isPrivate rows entirely — they never drive checked/indeterminate", () => {
+      mockHookResult([
+        makeItem({ assetId: "a1", isExcluded: false }),
+        makeItem({
+          assetId: "cpf-1",
+          assetCode: "CPF",
+          isPrivate: true,
+          isImmune: true,
+          isExcluded: true,
+          excluded: true,
+        }),
+      ])
+      render(<ExecuteRebalancePage />)
+
+      // Only "a1" is eligible and it's included -> checked, despite the
+      // PRIVATE row being excluded.
+      const checkbox = screen.getByLabelText("Include all") as HTMLInputElement
+      expect(checkbox.checked).toBe(true)
+      expect(checkbox.indeterminate).toBe(false)
+    })
+
+    it("clicking never toggles an isPrivate row's own checkbox — it's disabled with a non-tradeable title/aria-label", () => {
+      const setIncludeAll = jest.fn()
+      mockHookResult(
+        [
+          makeItem({ assetId: "a1", assetCode: "AAPL", isExcluded: false }),
+          makeItem({
+            assetId: "cpf-1",
+            assetCode: "CPF",
+            isPrivate: true,
+            isImmune: true,
+            isExcluded: true,
+            excluded: true,
+          }),
+        ],
+        { handlers: { setIncludeAll } },
+      )
+      render(<ExecuteRebalancePage />)
+
+      fireEvent.click(screen.getByLabelText("Include all"))
+      // Only a1 is eligible and currently included -> click flips to
+      // "exclude all"; the isPrivate row plays no part in that decision.
+      expect(setIncludeAll).toHaveBeenCalledWith(false)
+
+      const privateCheckbox = screen.getByLabelText(
+        "Non-tradeable asset — always excluded",
+      ) as HTMLInputElement
+      expect(privateCheckbox).toBeDisabled()
+      expect(privateCheckbox.checked).toBe(true)
+      expect(privateCheckbox.title).toBe(
+        "Non-tradeable asset — always excluded",
+      )
     })
   })
 

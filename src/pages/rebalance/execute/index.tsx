@@ -397,7 +397,10 @@ function ExecuteRebalancePage(): React.ReactElement {
   // --- Select-all (include/exclude column header) ---
   const selectAllRef = useRef<HTMLInputElement>(null)
   const eligibleItems = useMemo(
-    () => displayItems.filter((item) => !item.isCash && !item.locked),
+    () =>
+      displayItems.filter(
+        (item) => !item.isCash && !item.locked && !item.isImmune,
+      ),
     [displayItems],
   )
   const eligibleIncludedCount = eligibleItems.filter(
@@ -797,17 +800,24 @@ function ExecuteRebalancePage(): React.ReactElement {
                             <input
                               type="checkbox"
                               checked={item.isExcluded}
-                              disabled={item.locked}
+                              disabled={item.locked || item.isPrivate === true}
                               onChange={() =>
                                 handlers.excludeToggle(item.assetId)
                               }
                               className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500 disabled:opacity-40"
+                              aria-label={
+                                item.isPrivate === true
+                                  ? "Non-tradeable asset — always excluded"
+                                  : undefined
+                              }
                               title={
-                                item.locked
-                                  ? "Locked — not eligible for execution"
-                                  : item.isExcluded
-                                    ? "Include in execution"
-                                    : "Exclude from execution"
+                                item.isPrivate === true
+                                  ? "Non-tradeable asset — always excluded"
+                                  : item.locked
+                                    ? "Locked — not eligible for execution"
+                                    : item.isExcluded
+                                      ? "Include in execution"
+                                      : "Exclude from execution"
                               }
                             />
                           )}

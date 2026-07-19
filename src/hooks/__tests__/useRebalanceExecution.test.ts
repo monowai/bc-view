@@ -32,6 +32,7 @@ const makeItem = (
   sortOrder: overrides.sortOrder ?? 0,
   isCash: overrides.isCash ?? false,
   rationale: overrides.rationale ?? undefined,
+  isPrivate: overrides.isPrivate,
 })
 
 const makeCashItem = (
@@ -1247,11 +1248,48 @@ describe("useRebalanceExecution", () => {
   })
 
   it("setIncludeAll(true) re-includes previously-excluded eligible rows, still leaving locked rows alone", async () => {
+    // a1/a2 start included at load (NOT server-excluded) and are excluded
+    // locally by the user mid-session — this is what the test exercises:
+    // a locally-excluded row is re-includable. A row that was ALREADY
+    // excluded=true in the server payload at load is a different case (the
+    // isPrivate-undefined fallback immunity — see the PRIVATE-row tests
+    // below), so it's deliberately not used here.
     const exec = makeExecution({
       items: [
-        makeItem({ assetId: "a1", excluded: true }),
-        makeItem({ assetId: "a2", excluded: true }),
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "a2", excluded: false }),
         makeItem({ assetId: "locked-1", excluded: true, locked: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.excludeToggle("a1")
+      result.current.handlers.excludeToggle("a2")
+    })
+
+    act(() => {
+      result.current.handlers.setIncludeAll(true)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(false)
+    expect(byId("a2")).toBe(false)
+    expect(byId("locked-1")).toBe(true)
+  })
+
+  // --- PRIVATE row immunity (isPrivate) ---
+
+  it("setIncludeAll(true) never re-includes an isPrivate row, even from an indeterminate mixed state", async () => {
+    // a1 carries an explicit isPrivate: false (a real, current-backend
+    // response) so it's unambiguously a normal row, distinct from the
+    // isPrivate-undefined fallback case covered separately below.
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: true, isPrivate: false }),
+        makeItem({ assetId: "cpf-1", excluded: true, isPrivate: true }),
         makeCashItem({ assetId: "cash" }),
       ],
     })
@@ -1264,7 +1302,147 @@ describe("useRebalanceExecution", () => {
     const byId = (id: string): boolean | undefined =>
       result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
     expect(byId("a1")).toBe(false)
-    expect(byId("a2")).toBe(false)
-    expect(byId("locked-1")).toBe(true)
+    // The isPrivate row stays excluded regardless of direction.
+    expect(byId("cpf-1")).toBe(true)
+  })
+
+  it("setIncludeAll(false) leaves an isPrivate row excluded (no-op, already excluded)", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "cpf-1", excluded: true, isPrivate: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.setIncludeAll(false)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(true)
+    expect(byId("cpf-1")).toBe(true)
+  })
+
+  it("excludeToggle is a no-op for an isPrivate row (belt-and-braces against a stray call)", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "cpf-1", excluded: true, isPrivate: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.excludeToggle("cpf-1")
+    })
+
+    const item = result.current.displayItems.find((i) => i.assetId === "cpf-1")
+    expect(item?.isExcluded).toBe(true)
+    expect(result.current.states.hasChanges).toBe(false)
+  })
+
+  it("fallback (no isPrivate field anywhere): setIncludeAll(true) leaves a row that arrived server-excluded at load untouched", async () => {
+    // Old backend hasn't deployed isPrivate yet — every item has
+    // isPrivate === undefined. The row that was excluded=true in the
+    // server payload at load time must stay immune to the bulk toggle,
+    // same as a real isPrivate row would be. a1 arrived included at load,
+    // so it's a normal row under the same fallback — it toggles freely.
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "cpf-1", excluded: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.setIncludeAll(true)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(false)
+    // Was server-excluded at load, isPrivate undefined -> immune fallback.
+    expect(byId("cpf-1")).toBe(true)
+  })
+
+  it("fallback: a row that was NOT excluded at load (isPrivate undefined) is a normal toggleable row", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "a2", excluded: false }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.setIncludeAll(false)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(true)
+    expect(byId("a2")).toBe(true)
+  })
+
+  it("handleSave omits isPrivate rows from itemUpdates", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "cpf-1", excluded: true, isPrivate: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      { ok: true, data: { data: exec } },
+    )
+
+    act(() => {
+      result.current.handlers.targetChange("a1", 0.7)
+    })
+
+    await act(async () => {
+      await result.current.handlers.save()
+    })
+
+    const putCall = (global.fetch as jest.Mock).mock.calls.find(
+      ([url, opts]) =>
+        url === "/api/rebalance/executions/exec-1" && opts?.method === "PUT",
+    )
+    expect(putCall).toBeDefined()
+    const body = JSON.parse(putCall![1].body)
+    const cpfUpdate = body.itemUpdates.find(
+      (u: { assetId: string }) => u.assetId === "cpf-1",
+    )
+    expect(cpfUpdate).toBeUndefined()
+    const a1Update = body.itemUpdates.find(
+      (u: { assetId: string }) => u.assetId === "a1",
+    )
+    expect(a1Update).toBeDefined()
+  })
+
+  it("displayItems flags isImmune for an isPrivate row and for a fallback server-excluded-at-load row, but not for a normal row", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false }),
+        makeItem({ assetId: "cpf-1", excluded: true, isPrivate: true }),
+        makeItem({ assetId: "fallback-1", excluded: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isImmune
+    expect(byId("a1")).toBe(false)
+    expect(byId("cpf-1")).toBe(true)
+    expect(byId("fallback-1")).toBe(true)
   })
 })

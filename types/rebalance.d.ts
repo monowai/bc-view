@@ -391,6 +391,15 @@ export interface ExecutionItemDto {
   isCash?: boolean
   /** Rationale for why this asset is in the model */
   rationale?: string
+  /**
+   * Non-tradeable asset (e.g. CPF) the server always excludes from
+   * execution — un-exclude requests are silently ignored server-side.
+   * Optional so the UI degrades gracefully against a backend that hasn't
+   * deployed the field yet; see the initial-excluded-at-load fallback in
+   * `useRebalanceExecution`. Absent/undefined does NOT mean "not private" —
+   * it means "unknown, use the fallback."
+   */
+  isPrivate?: boolean
 }
 
 export interface CashSummaryDto {

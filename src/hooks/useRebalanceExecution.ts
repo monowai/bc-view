@@ -37,6 +37,17 @@ export interface DisplayItem extends ExecutionItemDto {
    * meaningful.
    */
   projectedWeight: number | null
+  /**
+   * True when this row must never be flipped by the select-all bulk toggle:
+   * either the server has explicitly marked it `isPrivate` (e.g. CPF — a
+   * server-side lock makes un-exclude a no-op anyway, so the UI must never
+   * imply otherwise), or — transitionally, against a backend that hasn't
+   * deployed `isPrivate` yet (`isPrivate === undefined` on every item) — it
+   * arrived excluded=true in the server payload when the execution was
+   * loaded. Does NOT disable the per-row checkbox by itself; only
+   * `isPrivate === true` does that (see the page component).
+   */
+  isImmune: boolean
 }
 
 export interface CashSummary {
@@ -145,6 +156,15 @@ export function useRebalanceExecution(
     Record<string, number>
   >({})
 
+  // Asset ids that arrived excluded=true in the server payload the moment
+  // the execution was loaded/created (re-captured on refresh, same cadence
+  // as originalTargets). Backs the transitional isPrivate-undefined fallback
+  // in setIncludeAll: against a backend that hasn't deployed `isPrivate` yet,
+  // a row the server itself excluded at load (e.g. an un-flagged PRIVATE/CPF
+  // asset) stays immune to the bulk select-all toggle rather than being
+  // silently force-included.
+  const [initialExcluded, setInitialExcluded] = useState<Set<string>>(new Set())
+
   // Broker selection (settlement account auto-defaults on backend)
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>(
     undefined,
@@ -221,6 +241,13 @@ export function useRebalanceExecution(
         setLocalOverrides(overrides)
         setLocalExclusions(exclusions)
         setOriginalTargets(original)
+        setInitialExcluded(
+          new Set(
+            data.data.items
+              .filter((item: ExecutionItemDto) => item.excluded)
+              .map((item: ExecutionItemDto) => item.assetId),
+          ),
+        )
       } catch (err) {
         console.error("Failed to load execution:", err)
         setError(toErrorMessage(err, "Failed to load execution"))
@@ -282,6 +309,13 @@ export function useRebalanceExecution(
         })
         setLocalOverrides(adjustedOverrides)
         setOriginalTargets(original)
+        setInitialExcluded(
+          new Set(
+            data.data.items
+              .filter((item: ExecutionItemDto) => item.excluded)
+              .map((item: ExecutionItemDto) => item.assetId),
+          ),
+        )
         // Signal that the page should update the URL
         setCreatedExecutionId(data.data.id)
       } catch (err) {
@@ -328,13 +362,17 @@ export function useRebalanceExecution(
 
     setSaving(true)
     try {
-      const itemUpdates: ExecutionItemUpdate[] = execution.items.map(
-        (item) => ({
+      // PRIVATE rows are omitted entirely: the server ignores exclusion
+      // changes on them anyway (it never un-excludes a non-tradeable asset),
+      // so sending them is pure noise — and it keeps the payload honest
+      // about what this save can actually affect.
+      const itemUpdates: ExecutionItemUpdate[] = execution.items
+        .filter((item) => item.isPrivate !== true)
+        .map((item) => ({
           assetId: item.assetId,
           effectiveTargetOverride: localOverrides[item.assetId],
           excluded: localExclusions[item.assetId] ?? item.excluded,
-        }),
-      )
+        }))
 
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}`,
@@ -404,6 +442,13 @@ export function useRebalanceExecution(
       setLocalOverrides(overrides)
       setLocalExclusions(exclusions)
       setOriginalTargets(original)
+      setInitialExcluded(
+        new Set(
+          data.data.items
+            .filter((item: ExecutionItemDto) => item.excluded)
+            .map((item: ExecutionItemDto) => item.assetId),
+        ),
+      )
       setHasChanges(false)
     } catch (err) {
       console.error("Failed to refresh:", err)
@@ -423,10 +468,18 @@ export function useRebalanceExecution(
     [],
   )
 
-  const handleExcludeToggle = useCallback((assetId: string): void => {
-    setLocalExclusions((prev) => ({ ...prev, [assetId]: !prev[assetId] }))
-    setHasChanges(true)
-  }, [])
+  const handleExcludeToggle = useCallback(
+    (assetId: string): void => {
+      // Belt-and-braces: the per-row checkbox is disabled for isPrivate rows
+      // at the UI layer, but guard here too in case a caller wires the
+      // handler directly — a PRIVATE row must never be force-included.
+      const item = execution?.items.find((i) => i.assetId === assetId)
+      if (item?.isPrivate === true) return
+      setLocalExclusions((prev) => ({ ...prev, [assetId]: !prev[assetId] }))
+      setHasChanges(true)
+    },
+    [execution],
+  )
 
   const handleSetIncludeAll = useCallback(
     (included: boolean): void => {
@@ -439,13 +492,23 @@ export function useRebalanceExecution(
           // changes on them, so leaving local state alone keeps the select-all
           // checkbox's semantics honest about what it actually affects.
           if (item.isCash || item.locked) return
+          // PRIVATE rows are never toggled by the bulk action, in either
+          // direction — same rationale as `locked` above, but keyed on the
+          // explicit isPrivate flag. Transitionally (old backend, isPrivate
+          // undefined on every item), a row that arrived excluded=true at
+          // load is treated the same way, since it's very likely an
+          // un-flagged PRIVATE/CPF asset the server itself already excluded.
+          const immune =
+            item.isPrivate === true ||
+            (item.isPrivate === undefined && initialExcluded.has(item.assetId))
+          if (immune) return
           next[item.assetId] = !included
         })
         return next
       })
       setHasChanges(true)
     },
-    [execution],
+    [execution, initialExcluded],
   )
 
   const handleResetTarget = useCallback(
@@ -606,7 +669,16 @@ export function useRebalanceExecution(
 
     const base = execution.items.map((item) => {
       const isCash = item.isCash ?? false
-      const isExcluded = localExclusions[item.assetId] ?? item.excluded
+      // PRIVATE rows are always excluded, regardless of local state — belt
+      // for the case local state briefly diverges (e.g. a stray toggle
+      // slips past the disabled UI before a re-render lands).
+      const isExcluded =
+        item.isPrivate === true
+          ? true
+          : (localExclusions[item.assetId] ?? item.excluded)
+      const isImmune =
+        item.isPrivate === true ||
+        (item.isPrivate === undefined && initialExcluded.has(item.assetId))
 
       let effectiveTarget: number
       if (isCash) {
@@ -637,6 +709,7 @@ export function useRebalanceExecution(
         deltaQuantity,
         isExcluded,
         isCash,
+        isImmune,
         // Fallback covers the render that lands between `setExecution` and
         // the paired `setOriginalTargets` call (both fire from the same
         // async handler, but state updates aren't batched across `await`
@@ -706,7 +779,13 @@ export function useRebalanceExecution(
       netImpact,
       projectedCash,
     }
-  }, [execution, localOverrides, localExclusions, originalTargets])
+  }, [
+    execution,
+    localOverrides,
+    localExclusions,
+    originalTargets,
+    initialExcluded,
+  ])
 
   const displayItems = computed.items
 
