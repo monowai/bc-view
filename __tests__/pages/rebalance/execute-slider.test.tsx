@@ -174,6 +174,13 @@ function displayItemsFor(execution: ExecutionDto): unknown[] {
     return {
       ...item,
       effectiveTarget: item.effectiveTarget,
+      // Baseline for the per-row reset + Trade column's delta-vs-original
+      // label. These fixtures never mutate snapshotWeight after construction
+      // — only `effectiveTarget` — so using it as the seeded "original" keeps
+      // the vs-original delta numerically identical to the old vs-current
+      // one in every test below, which is exactly the intended baseline for
+      // a freshly-loaded, never-touched row.
+      originalTarget: item.snapshotWeight,
       deltaValue: item.deltaValue,
       deltaQuantity: item.deltaQuantity,
       isExcluded: item.excluded,
@@ -217,10 +224,12 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
       "false",
     )
 
+    // QUAL's target is 50% (unedited) — with no explicit anchor pinned yet,
+    // the slider's +-10pp window is centered on that live target.
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
     expect(slider).toHaveAttribute("step", "5")
-    expect(slider).toHaveAttribute("min", "-10")
-    expect(slider).toHaveAttribute("max", "10")
+    expect(slider).toHaveAttribute("min", "40")
+    expect(slider).toHaveAttribute("max", "60")
   })
 
   it("switching the step toggle updates the slider step attr and numeric input step attr", () => {
@@ -246,19 +255,21 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     expect(numeric).toHaveAttribute("step", "0.01")
   })
 
-  it("centers the slider at delta 0 when effectiveTarget equals snapshotWeight", () => {
+  it("sits at the live target (50%) when no explicit anchor has been pinned yet", () => {
     render(<ExecuteRebalancePage />)
 
-    // QUAL: snapshotWeight 0.5, effectiveTarget 0.5 -> unchanged -> delta 0
+    // QUAL: snapshotWeight 0.5, effectiveTarget 0.5 — the slider's value is
+    // now the ABSOLUTE target (not a delta from current weight).
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    expect(slider).toHaveValue("0")
+    expect(slider).toHaveValue("50")
   })
 
-  it("derives the slider's displayed delta from effectiveTarget - snapshotWeight after a re-render", () => {
+  it("recenters the slider's +-10pp window on the live effectiveTarget after an external state update", () => {
     const { rerender } = render(<ExecuteRebalancePage />)
 
     // Simulate the parent state updating after a targetChange call: QUAL's
-    // effectiveTarget moves to snapshotWeight (0.5) + 4pp = 0.54.
+    // effectiveTarget moves to 0.54. No user gesture pinned an anchor, so
+    // the window follows the new target automatically.
     executionState.displayItems = executionState.displayItems.map((item) => {
       const typed = item as { assetId: string; effectiveTarget: number }
       return typed.assetId === "asset-qual"
@@ -269,15 +280,18 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     rerender(<ExecuteRebalancePage />)
 
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    expect(slider).toHaveValue("4")
+    expect(slider).toHaveValue("54")
+    expect(slider).toHaveAttribute("min", "44")
+    expect(slider).toHaveAttribute("max", "64")
   })
 
-  it("sliding to +5 with the 5% step active calls targetChange with current + 5pp as a fraction", () => {
+  it("sliding to 55% (within the anchor's +-10pp window) calls targetChange with 0.55 directly", () => {
     render(<ExecuteRebalancePage />)
 
-    // QUAL current weight is 50% (snapshotWeight 0.5).
+    // The slider now carries the ABSOLUTE target percent, not an offset —
+    // no more "current + delta" arithmetic on the read side.
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    fireEvent.change(slider, { target: { value: "5" } })
+    fireEvent.change(slider, { target: { value: "55" } })
 
     expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
       "asset-qual",
@@ -285,12 +299,12 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     )
   })
 
-  it("snaps an off-step slider delta to the nearest step before calling targetChange", () => {
+  it("snaps an off-step slider value to the nearest step before calling targetChange", () => {
     render(<ExecuteRebalancePage />)
 
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    // Raw delta 7 snaps to nearest multiple of 5 -> 5 -> current(50) + 5 = 55
-    fireEvent.change(slider, { target: { value: "7" } })
+    // Raw value 57 snaps to the nearest multiple of 5 -> 55.
+    fireEvent.change(slider, { target: { value: "57" } })
 
     expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
       "asset-qual",
@@ -298,7 +312,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     )
   })
 
-  it("clamps the resulting target to 0 when a low-weight row is slid to the -10 edge", () => {
+  it("clamps the resulting target to 0 when the slider is dragged below 0%", () => {
     const execution = makeExecution()
     execution.items[0].snapshotWeight = 0.02
     execution.items[0].effectiveTarget = 0.02
@@ -311,18 +325,18 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
     fireEvent.change(slider, { target: { value: "-10" } })
 
-    // current(2) - 10 = -8, clamped to 0
     expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
       "asset-qual",
       0,
     )
   })
 
-  it("pins the slider thumb at the +10 edge when the numeric input's real delta exceeds the range", () => {
+  it("re-anchors (no longer pins to an edge) when the numeric input's target is far from the current anchor", () => {
     const { rerender } = render(<ExecuteRebalancePage />)
 
-    // QUAL current weight is 50%; type a target 25pp above current (75%) —
-    // a delta far outside the +-10pp slider track.
+    // QUAL current target is 50%; type a target 25pp above it (75%) — far
+    // outside the ORIGINAL +-10pp window. Change 4 explicitly drops the old
+    // edge-pinning behavior: the window re-anchors on 75 instead.
     const numeric = screen.getByRole("spinbutton", {
       name: "QUAL target weight percent",
     })
@@ -332,7 +346,9 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
       0.75,
     )
 
-    // Simulate the parent state applying that change.
+    // Simulate the parent state applying that change (the numeric input's
+    // own re-anchor call already fired synchronously above, against the
+    // page's real internal state).
     executionState.displayItems = executionState.displayItems.map((item) => {
       const typed = item as { assetId: string; effectiveTarget: number }
       return typed.assetId === "asset-qual"
@@ -343,7 +359,9 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     rerender(<ExecuteRebalancePage />)
 
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    expect(slider).toHaveValue("10")
+    expect(slider).toHaveValue("75")
+    expect(slider).toHaveAttribute("min", "65")
+    expect(slider).toHaveAttribute("max", "85")
 
     const numericAfter = screen.getByRole("spinbutton", {
       name: "QUAL target weight percent",
@@ -351,9 +369,9 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     expect(numericAfter).toHaveValue(75)
   })
 
-  it("renders a signed, color-coded delta label next to the slider", () => {
+  it("renders a signed, color-coded delta-vs-original label in the Trade column", () => {
     const execution = makeExecution()
-    // QUAL: +4pp (green), EXCL stays excluded/unchanged (neutral)
+    // QUAL: +4pp vs its seeded original (snapshotWeight 0.5) -> green.
     execution.items[0].effectiveTarget = 0.54
     executionState.execution = execution
     executionState.displayItems = displayItemsFor(execution)
@@ -361,9 +379,12 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     const { rerender } = render(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("+4.0 → 54.00%")).toHaveClass("text-green-600")
-    // Excluded row (EXCL) keeps its current weight -> delta 0 -> neutral.
-    expect(screen.getByText("0.0 → 20.00%")).toHaveClass("text-gray-500")
+    expect(screen.getByText("+4.0")).toHaveClass("text-green-600")
+    // Excluded row (EXCL) never shows a delta label — the Trade column
+    // falls back to a plain dash for excluded rows.
+    const exclRow = screen.getByText("EXCL").closest("tr")!
+    expect(exclRow.textContent).toContain("-")
+    expect(exclRow.textContent).not.toMatch(/[+-]\d/)
 
     // Sanity: negative delta renders red.
     executionState.displayItems = executionState.displayItems.map((item) => {
@@ -375,7 +396,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     executionState.activeItems = executionState.displayItems
     rerender(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("-3.0 → 47.00%")).toHaveClass("text-red-600")
+    expect(screen.getByText("-3.0")).toHaveClass("text-red-600")
   })
 
   it("treats a float-noise effectiveTarget residual as exactly zero delta", () => {
@@ -390,16 +411,17 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     render(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("0.0 → 50.00%")).toHaveClass("text-gray-500")
+    expect(screen.getByText("0.0")).toHaveClass("text-gray-500")
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    expect(slider).toHaveValue("0")
+    expect(slider).toHaveValue("50")
   })
 
   it("rounds a half-way delta up rather than truncating due to float representation", () => {
     const execution = makeExecution()
-    // snapshotWeight 0.5 (50%), effectiveTarget 0.7415 (74.15%) -> a raw
-    // delta of 24.15pp, which (24.15).toFixed(1) mis-rounds down to "24.1"
-    // because of how 24.15 is represented in binary floating point.
+    // snapshotWeight 0.5 (50%, also the seeded original), effectiveTarget
+    // 0.7415 (74.15%) -> a raw delta of 24.15pp, which (24.15).toFixed(1)
+    // mis-rounds down to "24.1" because of how 24.15 is represented in
+    // binary floating point.
     execution.items[0].effectiveTarget = 0.7415
     executionState.execution = execution
     executionState.displayItems = displayItemsFor(execution)
@@ -407,18 +429,20 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     render(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("+24.2 → 74.15%")).toHaveClass("text-green-600")
+    expect(screen.getByText("+24.2")).toHaveClass("text-green-600")
   })
 
-  it("disables the slider on an excluded row and centers it at delta 0", () => {
+  it("disables the slider on an excluded row, sitting at its own (unchanged) target", () => {
     render(<ExecuteRebalancePage />)
 
+    // EXCL's target equals its current weight (20%) — excluded rows keep
+    // their current weight regardless of any stale effectiveTarget.
     const slider = screen.getByRole("slider", { name: "EXCL target weight" })
     const numeric = screen.getByRole("spinbutton", {
       name: "EXCL target weight percent",
     })
     expect(slider).toBeDisabled()
-    expect(slider).toHaveValue("0")
+    expect(slider).toHaveValue("20")
     expect(numeric).toBeDisabled()
   })
 

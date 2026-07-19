@@ -1128,4 +1128,143 @@ describe("useRebalanceExecution", () => {
     const item2 = result.current.displayItems.find((i) => i.assetId === "a2")
     expect(item2?.isExcluded).toBe(true)
   })
+
+  // --- originalTarget seeding + per-row reset ---
+
+  it("seeds originalTarget from the loaded execution's effectiveTarget, independent of hasOverride", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({
+          assetId: "a1",
+          hasOverride: true,
+          effectiveTarget: 0.75,
+        }),
+        makeItem({ assetId: "a2", effectiveTarget: 0.4, hasOverride: false }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "a1")
+        ?.originalTarget,
+    ).toBe(0.75)
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "a2")
+        ?.originalTarget,
+    ).toBe(0.4)
+  })
+
+  it("seeds originalTarget from the return-adjusted target on a newly-created execution", async () => {
+    const exec = makeExecution({
+      id: "new-exec-1",
+      items: [
+        makeItem({
+          assetId: "a1",
+          returnAdjustedTarget: 0.55,
+          effectiveTarget: 0.6,
+        }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: exec }),
+    })
+
+    const { result } = renderHook(() =>
+      useRebalanceExecution({
+        planId: "plan-1",
+        portfolioIds: ["portfolio-1"],
+      }),
+    )
+    await act(async () => {})
+
+    // Non-cash item seeded from returnAdjustedTarget (matches the applied
+    // override); cash has none, so it falls back to its own effectiveTarget.
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "a1")
+        ?.originalTarget,
+    ).toBe(0.55)
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "cash")
+        ?.originalTarget,
+    ).toBe(exec.items.find((i) => i.assetId === "cash")!.effectiveTarget)
+  })
+
+  it("resetTarget restores a single row's target to its seeded original, undoing any later edits", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", effectiveTarget: 0.5 }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.targetChange("a1", 0.9)
+    })
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "a1")
+        ?.effectiveTarget,
+    ).toBe(0.9)
+
+    act(() => {
+      result.current.handlers.resetTarget("a1")
+    })
+    expect(
+      result.current.displayItems.find((i) => i.assetId === "a1")
+        ?.effectiveTarget,
+    ).toBe(0.5)
+  })
+
+  // --- setIncludeAll (select-all header checkbox) ---
+
+  it("setIncludeAll(false) excludes every non-cash, non-locked row and leaves locked rows untouched", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: false, locked: false }),
+        makeItem({ assetId: "a2", excluded: false, locked: false }),
+        makeItem({ assetId: "locked-1", excluded: false, locked: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.setIncludeAll(false)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(true)
+    expect(byId("a2")).toBe(true)
+    // Locked row's exclusion is never touched by the bulk action.
+    expect(byId("locked-1")).toBe(false)
+    // Cash isn't a toggleable row either.
+    expect(byId("cash")).toBe(false)
+  })
+
+  it("setIncludeAll(true) re-includes previously-excluded eligible rows, still leaving locked rows alone", async () => {
+    const exec = makeExecution({
+      items: [
+        makeItem({ assetId: "a1", excluded: true }),
+        makeItem({ assetId: "a2", excluded: true }),
+        makeItem({ assetId: "locked-1", excluded: true, locked: true }),
+        makeCashItem({ assetId: "cash" }),
+      ],
+    })
+    const { result } = await renderWithExecution(exec)
+
+    act(() => {
+      result.current.handlers.setIncludeAll(true)
+    })
+
+    const byId = (id: string): boolean | undefined =>
+      result.current.displayItems.find((i) => i.assetId === id)?.isExcluded
+    expect(byId("a1")).toBe(false)
+    expect(byId("a2")).toBe(false)
+    expect(byId("locked-1")).toBe(true)
+  })
 })

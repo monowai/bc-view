@@ -18,6 +18,15 @@ export interface DisplayItem extends ExecutionItemDto {
   deltaQuantity: number
   isExcluded: boolean
   isCash: boolean
+  /**
+   * The target weight this row was seeded with when the execution was
+   * loaded/created (or last refreshed) — captured once and held stable
+   * across the session regardless of subsequent edits. This is the "original"
+   * a per-row reset returns to; distinct from `planTargetWeight` (the
+   * model's static target, unaffected by return-adjustment or prior
+   * overrides on a reloaded execution).
+   */
+  originalTarget: number
   /** snapshotValue + deltaValue (cash row: currentCash + netImpact, clamped to >= 0) */
   projectedValue: number
   /**
@@ -82,12 +91,21 @@ export interface UseRebalanceExecutionResult {
     >
     targetChange: (assetId: string, value: number) => void
     excludeToggle: (assetId: string) => void
+    /**
+     * Sets exclusion for every non-cash, non-locked row in one pass — backs
+     * the select-all header checkbox. Locked (server-enforced, e.g. PRIVATE)
+     * rows are never touched: the server ignores exclusion changes on them
+     * anyway, so leaving their local state alone keeps the UI honest.
+     */
+    setIncludeAll: (included: boolean) => void
     setAllToCurrent: () => void
     setAllToTarget: () => void
     setAllToZero: () => void
     setAllToAdjusted: () => void
     setToCurrent: (assetId: string, currentWeight: number) => void
     setToTarget: (assetId: string) => void
+    /** Resets a single row's target back to its seeded `originalTarget`. */
+    resetTarget: (assetId: string) => void
     setError: (msg: string | null) => void
   }
   /** Set after a new execution is created so the page can update the URL */
@@ -117,6 +135,14 @@ export function useRebalanceExecution(
   >({})
   const [localExclusions, setLocalExclusions] = useState<
     Record<string, boolean>
+  >({})
+
+  // Baseline target weight per row, captured once when the execution is
+  // loaded/created (and re-captured on refresh) — never mutated by edits.
+  // Backs the per-row "reset to original" affordance and the Trade column's
+  // delta-vs-original label.
+  const [originalTargets, setOriginalTargets] = useState<
+    Record<string, number>
   >({})
 
   // Broker selection (settlement account auto-defaults on backend)
@@ -182,6 +208,7 @@ export function useRebalanceExecution(
         // Initialize local state from execution items
         const overrides: Record<string, number | undefined> = {}
         const exclusions: Record<string, boolean> = {}
+        const original: Record<string, number> = {}
         data.data.items.forEach((item: ExecutionItemDto) => {
           if (item.hasOverride) {
             overrides[item.assetId] = item.effectiveTarget
@@ -189,9 +216,11 @@ export function useRebalanceExecution(
           if (item.excluded) {
             exclusions[item.assetId] = true
           }
+          original[item.assetId] = item.effectiveTarget
         })
         setLocalOverrides(overrides)
         setLocalExclusions(exclusions)
+        setOriginalTargets(original)
       } catch (err) {
         console.error("Failed to load execution:", err)
         setError(toErrorMessage(err, "Failed to load execution"))
@@ -240,12 +269,19 @@ export function useRebalanceExecution(
         // executions have no returnAdjustedTarget, so this is a no-op there —
         // items are already seeded with zero deltas).
         const adjustedOverrides: Record<string, number> = {}
+        const original: Record<string, number> = {}
         data.data.items.forEach((item: ExecutionItemDto) => {
           if (!item.isCash && item.returnAdjustedTarget != null) {
             adjustedOverrides[item.assetId] = item.returnAdjustedTarget
           }
+          // Original = whatever the row is actually seeded with (the
+          // return-adjusted target when applied, else the server's own
+          // effectiveTarget — e.g. cash, or ad-hoc items with none).
+          original[item.assetId] =
+            adjustedOverrides[item.assetId] ?? item.effectiveTarget
         })
         setLocalOverrides(adjustedOverrides)
+        setOriginalTargets(original)
         // Signal that the page should update the URL
         setCreatedExecutionId(data.data.id)
       } catch (err) {
@@ -355,6 +391,7 @@ export function useRebalanceExecution(
       // Re-initialize local state
       const overrides: Record<string, number | undefined> = {}
       const exclusions: Record<string, boolean> = {}
+      const original: Record<string, number> = {}
       data.data.items.forEach((item: ExecutionItemDto) => {
         if (item.hasOverride) {
           overrides[item.assetId] = item.effectiveTarget
@@ -362,9 +399,11 @@ export function useRebalanceExecution(
         if (item.excluded) {
           exclusions[item.assetId] = true
         }
+        original[item.assetId] = item.effectiveTarget
       })
       setLocalOverrides(overrides)
       setLocalExclusions(exclusions)
+      setOriginalTargets(original)
       setHasChanges(false)
     } catch (err) {
       console.error("Failed to refresh:", err)
@@ -388,6 +427,36 @@ export function useRebalanceExecution(
     setLocalExclusions((prev) => ({ ...prev, [assetId]: !prev[assetId] }))
     setHasChanges(true)
   }, [])
+
+  const handleSetIncludeAll = useCallback(
+    (included: boolean): void => {
+      if (!execution) return
+      setLocalExclusions((prev) => {
+        const next = { ...prev }
+        execution.items.forEach((item) => {
+          // Cash isn't a toggleable row; locked (server-enforced) rows are
+          // never touched by the bulk action — the server ignores exclusion
+          // changes on them, so leaving local state alone keeps the select-all
+          // checkbox's semantics honest about what it actually affects.
+          if (item.isCash || item.locked) return
+          next[item.assetId] = !included
+        })
+        return next
+      })
+      setHasChanges(true)
+    },
+    [execution],
+  )
+
+  const handleResetTarget = useCallback(
+    (assetId: string): void => {
+      const original = originalTargets[assetId]
+      if (original === undefined) return
+      setLocalOverrides((prev) => ({ ...prev, [assetId]: original }))
+      setHasChanges(true)
+    },
+    [originalTargets],
+  )
 
   const handleSetAllToCurrent = useCallback((): void => {
     if (!execution) return
@@ -568,6 +637,12 @@ export function useRebalanceExecution(
         deltaQuantity,
         isExcluded,
         isCash,
+        // Fallback covers the render that lands between `setExecution` and
+        // the paired `setOriginalTargets` call (both fire from the same
+        // async handler, but state updates aren't batched across `await`
+        // boundaries in every React version) — the server's own
+        // `effectiveTarget` is the right seed value regardless.
+        originalTarget: originalTargets[item.assetId] ?? item.effectiveTarget,
       }
     })
 
@@ -631,7 +706,7 @@ export function useRebalanceExecution(
       netImpact,
       projectedCash,
     }
-  }, [execution, localOverrides, localExclusions])
+  }, [execution, localOverrides, localExclusions, originalTargets])
 
   const displayItems = computed.items
 
@@ -680,12 +755,14 @@ export function useRebalanceExecution(
       commit: handleCommit,
       targetChange: handleTargetChange,
       excludeToggle: handleExcludeToggle,
+      setIncludeAll: handleSetIncludeAll,
       setAllToCurrent: handleSetAllToCurrent,
       setAllToTarget: handleSetAllToTarget,
       setAllToZero: handleSetAllToZero,
       setAllToAdjusted: handleSetAllToAdjusted,
       setToCurrent: handleSetToCurrent,
       setToTarget: handleSetToTarget,
+      resetTarget: handleResetTarget,
       setError,
     },
     createdExecutionId,

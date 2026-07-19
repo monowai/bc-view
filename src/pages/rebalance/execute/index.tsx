@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   formatCurrency,
   formatPercent,
@@ -12,9 +12,11 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
+import { setPageContext } from "@components/features/chat/pageContextBus"
 import {
   useRebalanceExecution,
   DisplayItem,
+  CashSummary,
 } from "@hooks/useRebalanceExecution"
 import { Asset } from "types/beancounter"
 import { ExecutionDto } from "types/rebalance"
@@ -34,8 +36,19 @@ function snapToStep(value: number, step: number): number {
   return Math.round(snapped * 100) / 100
 }
 
-/** How far the slider range extends either side of "unchanged" (0). */
+/** How far the slider's range extends either side of its anchor (the row's
+ * target value as of the last completed edit gesture) — see the "Slider
+ * anchor" state block in the page component for the full re-anchoring
+ * design. Bounds are then clamped into [0, 100], so the window can be
+ * asymmetric near the floor/ceiling (anchor 5 -> range 0-15, not -5-15). */
 const DELTA_RANGE_PP = 10
+
+/** Quiet period after the last keyboard/arrow-driven slider change before
+ * the slider re-anchors. Long enough that a burst of arrow-key presses
+ * doesn't shift the range out from under the user mid-adjustment; short
+ * enough that the range settles promptly once they stop. Drag gestures
+ * re-anchor immediately on pointer-up instead of waiting on this timer. */
+const REANCHOR_DEBOUNCE_MS = 400
 
 /** Deltas at or under this magnitude (percentage points) are treated as
  * exactly zero for label color, label text, and slider centering. The
@@ -155,6 +168,82 @@ Style: Clear, direct, evidence-based. No filler.`
   }
 }
 
+/** A row counts as "changed" for the draft-context summary when it's been
+ * excluded, or its target has moved off the row's current weight by more
+ * than float noise. Mirrors the epsilon rule the table itself uses for
+ * delta-label coloring, so the FAB's notion of "changed" matches what's
+ * visually tinted on screen. */
+function isRowChanged(item: DisplayItem): boolean {
+  if (item.isCash) return false
+  if (item.isExcluded) return true
+  return (
+    snapEpsilonZero(item.effectiveTarget * 100 - item.snapshotWeight * 100) !==
+    0
+  )
+}
+
+/**
+ * Compact plain-text summary of the current (client-only, unsaved-included)
+ * draft rebalance state — published to the global Chat FAB via
+ * `pageContextBus` so "what am I looking at" / "does this make sense"
+ * questions are answered against what's actually on screen, not the
+ * last-saved server snapshot. Only *changed* rows are itemised (unchanged
+ * rows are just counted) so the block stays small regardless of portfolio
+ * size — cheap enough to rebuild on every edit.
+ */
+export function buildDraftContext(
+  execution: ExecutionDto,
+  displayItems: DisplayItem[],
+  cashSummary: CashSummary,
+): string {
+  const nonCashItems = displayItems.filter((item) => !item.isCash)
+  const changed = nonCashItems.filter(isRowChanged)
+  const unchangedCount = nonCashItems.length - changed.length
+
+  const portfolioLabel = execution.name || execution.modelName || "Ad-hoc"
+  const lines: string[] = [
+    "DRAFT portfolio rebalance under consideration — nothing has been executed yet.",
+    `Execution: ${execution.id} (${execution.mode}${
+      execution.modelName ? `, model ${execution.modelName}` : ""
+    })`,
+    `Portfolio: ${portfolioLabel} (${execution.portfolioIds.join(", ") || "unknown"})`,
+    `Changed rows (${changed.length}):`,
+  ]
+
+  if (changed.length === 0) {
+    lines.push("- none yet — all targets still match current holdings")
+  } else {
+    for (const item of changed) {
+      const code = item.assetCode || item.assetId
+      if (item.isExcluded) {
+        lines.push(
+          `- ${code}: excluded from execution — held at current ${formatPercent(item.snapshotWeight)}`,
+        )
+        continue
+      }
+      const afterText =
+        item.projectedWeight != null
+          ? formatPercent(item.projectedWeight)
+          : "n/a"
+      lines.push(
+        `- ${code}: ${formatPercent(item.snapshotWeight)} -> ${formatPercent(item.effectiveTarget)} target (after ${afterText}), ` +
+          `qty ${item.deltaQuantity > 0 ? "+" : ""}${item.deltaQuantity}, value ${formatSignedNumber(item.deltaValue)} ${execution.currency}`,
+      )
+    }
+  }
+
+  lines.push(`Unchanged rows: ${unchangedCount}`)
+  lines.push(
+    `Cash: net impact ${formatSignedNumber(cashSummary.netImpact)} ${execution.currency}, ` +
+      `projected cash ${formatCurrency(cashSummary.projectedCash)} ${execution.currency}` +
+      (cashSummary.projectedCash < 0
+        ? " — DEPOSIT REQUIRED to fund this draft"
+        : ""),
+  )
+
+  return lines.join("\n")
+}
+
 function ExecuteRebalancePage(): React.ReactElement {
   const router = useRouter()
   const {
@@ -227,6 +316,118 @@ function ExecuteRebalancePage(): React.ReactElement {
       )
     }
   }, [createdExecutionId, executionId, source, router])
+
+  // --- Slider anchor state ---
+  //
+  // Per-assetId "anchor" (percent, 0-100) each row's slider range is
+  // centered on: min = max(0, anchor-10), max = min(100, anchor+10). Chosen
+  // to live in the PAGE (not the hook) — it's pure input-widget presentation
+  // state with no bearing on save/refresh/commit payloads, same footing as
+  // `sliderStep` just above.
+  //
+  // At rest, anchor === the row's current target (no explicit entry falls
+  // back to `item.effectiveTarget * 100` below). A stored entry only
+  // diverges from the live target mid-drag, where it must stay FIXED so the
+  // range doesn't shift under the user's thumb — re-anchoring happens on
+  // gesture-complete: pointer-up for drag, blur/400ms-debounce for
+  // keyboard/arrows, immediately for a numeric-input commit.
+  const [sliderAnchors, setSliderAnchors] = useState<Record<string, number>>({})
+  const draggingRef = useRef<Record<string, boolean>>({})
+  const debounceTimersRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({})
+
+  const reanchor = useCallback((assetId: string, pct: number): void => {
+    setSliderAnchors((prev) => ({ ...prev, [assetId]: pct }))
+  }, [])
+
+  const clearAnchor = useCallback((assetId: string): void => {
+    setSliderAnchors((prev) => {
+      if (!(assetId in prev)) return prev
+      const next = { ...prev }
+      delete next[assetId]
+      return next
+    })
+  }, [])
+
+  const scheduleReanchor = useCallback(
+    (assetId: string, pct: number): void => {
+      const timers = debounceTimersRef.current
+      if (timers[assetId]) clearTimeout(timers[assetId])
+      timers[assetId] = setTimeout(() => {
+        reanchor(assetId, pct)
+        delete timers[assetId]
+      }, REANCHOR_DEBOUNCE_MS)
+    },
+    [reanchor],
+  )
+
+  // Any full data round-trip (load/create/save/refresh) replaces `execution`
+  // with a new object — a clean signal to drop all anchors and let every
+  // row re-derive from its (possibly server-reset) target on next render.
+  //
+  // The functional-update + "return prev when already empty" guard is
+  // load-bearing, not style: a bare `setSliderAnchors({})` hands React a
+  // fresh object literal every time this effect fires — including on
+  // mount, when there's nothing to clear — and a *different reference* is
+  // always a real state change to React (no structural comparison), so it
+  // schedules a re-render even though nothing observable changed. Pages
+  // Router rebuilds its router object on every render (see the URL-update
+  // effect below), so that extra, otherwise-harmless re-render was enough
+  // to re-fire `router.replace` a second time — the exact replaceState-loop
+  // shape as BC-VIEW-60.
+  useEffect(() => {
+    // Reacting to an external system's identity change (`execution`, from
+    // the data-fetching hook) — not derivable in render. The no-op guard
+    // (return `prev` unchanged when already empty) is what keeps this from
+    // cascading; see the block comment above for why that guard matters.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSliderAnchors((prev) => (Object.keys(prev).length === 0 ? prev : {}))
+  }, [execution])
+
+  // Flush pending debounce timers on unmount so no `setState` fires after
+  // the page has gone away.
+  useEffect(() => {
+    const timers = debounceTimersRef.current
+    return () => {
+      Object.values(timers).forEach((t) => clearTimeout(t))
+    }
+  }, [])
+
+  // --- Select-all (include/exclude column header) ---
+  const selectAllRef = useRef<HTMLInputElement>(null)
+  const eligibleItems = useMemo(
+    () => displayItems.filter((item) => !item.isCash && !item.locked),
+    [displayItems],
+  )
+  const eligibleIncludedCount = eligibleItems.filter(
+    (item) => !item.isExcluded,
+  ).length
+  const allIncluded =
+    eligibleItems.length > 0 && eligibleIncludedCount === eligibleItems.length
+  const someIncluded = eligibleIncludedCount > 0
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someIncluded && !allIncluded
+    }
+  }, [someIncluded, allIncluded])
+
+  // --- Live draft context for the global Chat FAB (pageContextBus) ---
+  const draftContext = useMemo(
+    () =>
+      execution
+        ? buildDraftContext(execution, displayItems, cashSummary)
+        : null,
+    [execution, displayItems, cashSummary],
+  )
+  useEffect(() => {
+    setPageContext(draftContext)
+  }, [draftContext])
+  // Clear on unmount only — ChatFab persists across navigation in `_app`,
+  // so a page that never clears leaks its context into the next page.
+  useEffect(() => {
+    return () => setPageContext(null)
+  }, [])
 
   if (states.loading) {
     return (
@@ -372,7 +573,10 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <div className="flex gap-2">
                   {isAdHoc ? (
                     <button
-                      onClick={handlers.setAllToCurrent}
+                      onClick={() => {
+                        handlers.setAllToCurrent()
+                        setSliderAnchors({})
+                      }}
                       className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
                       title="Reset all target weights to current holdings"
                     >
@@ -381,14 +585,20 @@ function ExecuteRebalancePage(): React.ReactElement {
                   ) : (
                     <>
                       <button
-                        onClick={handlers.setAllToCurrent}
+                        onClick={() => {
+                          handlers.setAllToCurrent()
+                          setSliderAnchors({})
+                        }}
                         className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
                         title="Set all % to current weights (no changes)"
                       >
                         All &rarr; Current
                       </button>
                       <button
-                        onClick={handlers.setAllToTarget}
+                        onClick={() => {
+                          handlers.setAllToTarget()
+                          setSliderAnchors({})
+                        }}
                         className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
                         title="Reset all to target weights from model"
                       >
@@ -397,7 +607,10 @@ function ExecuteRebalancePage(): React.ReactElement {
                     </>
                   )}
                   <button
-                    onClick={handlers.setAllToZero}
+                    onClick={() => {
+                      handlers.setAllToZero()
+                      setSliderAnchors({})
+                    }}
                     className="px-3 py-1 text-xs text-red-600 bg-white border border-red-300 rounded hover:bg-red-50"
                     title="Set all assets to 0% (sell everything)"
                   >
@@ -451,9 +664,16 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
-                      <span title="Exclude from execution">
-                        <i className="fas fa-ban"></i>
-                      </span>
+                      <input
+                        ref={selectAllRef}
+                        type="checkbox"
+                        checked={allIncluded}
+                        onChange={() => handlers.setIncludeAll(!allIncluded)}
+                        disabled={eligibleItems.length === 0}
+                        aria-label="Include all"
+                        title="Include/exclude all eligible rows"
+                        className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500 disabled:opacity-40"
+                      />
                     </th>
                     <th className="sticky top-0 left-0 z-30 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       {"Asset"}
@@ -478,7 +698,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                       {"After %"}
                     </th>
                     <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Delta"}
+                      {"Trade"}
                     </th>
                   </tr>
                 </thead>
@@ -524,30 +744,51 @@ function ExecuteRebalancePage(): React.ReactElement {
                             ? "bg-red-50"
                             : "bg-white"
 
-                    // Delta-slider semantics: the slider expresses target
-                    // weight as an offset from CURRENT weight, not an
-                    // absolute 0-100 value — typical edits are a few points,
-                    // so the full track resolves them precisely. Excluded
-                    // rows are forced to delta 0 (centered, disabled) since
-                    // they keep their current weight regardless of any
-                    // stale effectiveTarget. Real delta can exceed the
-                    // +-10pp track (e.g. a big absolute edit via the numeric
-                    // input) — the slider THUMB pins at the edge while the
-                    // numeric input keeps showing the real, uncapped value.
-                    const currentPct = item.snapshotWeight * 100
-                    const realDeltaPct = item.isExcluded
+                    // Slider semantics: the range now tracks an absolute
+                    // target percent, windowed to +-DELTA_RANGE_PP either
+                    // side of the row's "anchor" (see the anchor state block
+                    // above the early returns) — re-anchored on gesture-
+                    // complete rather than pinned to the current weight.
+                    const targetPct = item.effectiveTarget * 100
+                    const originalPct = item.originalTarget * 100
+
+                    const anchorPct = sliderAnchors[item.assetId] ?? targetPct
+                    const sliderMin = Math.max(0, anchorPct - DELTA_RANGE_PP)
+                    const sliderMax = Math.min(100, anchorPct + DELTA_RANGE_PP)
+                    // Rounded to 2dp — `targetPct` inherits the same
+                    // proportional-scaling float noise documented on
+                    // DELTA_EPSILON_PP above (residuals around 1e-9–1e-13
+                    // pp). The delta label already snaps that noise to zero;
+                    // the slider's raw `value` attribute needs its own
+                    // rounding since it renders `targetPct` directly rather
+                    // than through a comparison.
+                    const sliderValue =
+                      Math.round(
+                        Math.min(sliderMax, Math.max(sliderMin, targetPct)) *
+                          100,
+                      ) / 100
+
+                    // Delta-vs-ORIGINAL (not vs current) drives the Trade
+                    // column's pp label — the cumulative, meaningful number
+                    // once a row's been edited more than once in the
+                    // session. Excluded rows keep their current weight
+                    // regardless of any stale effectiveTarget, so they never
+                    // show a delta.
+                    const deltaVsOriginalPct = item.isExcluded
                       ? 0
-                      : snapEpsilonZero(item.effectiveTarget * 100 - currentPct)
-                    const sliderDeltaPct = Math.min(
-                      DELTA_RANGE_PP,
-                      Math.max(-DELTA_RANGE_PP, realDeltaPct),
-                    )
+                      : snapEpsilonZero(targetPct - originalPct)
                     const deltaLabelClass =
-                      realDeltaPct === 0
+                      deltaVsOriginalPct === 0
                         ? "text-gray-500"
-                        : realDeltaPct > 0
+                        : deltaVsOriginalPct > 0
                           ? "text-green-600"
                           : "text-red-600"
+
+                    // Per-row reset (Change 3) is only actionable once the
+                    // target has actually moved off its seeded original —
+                    // independent of exclusion, which is a separate control.
+                    const targetChangedFromOriginal =
+                      snapEpsilonZero(targetPct - originalPct) !== 0
 
                     return (
                       <tr key={item.assetId} className={rowClass}>
@@ -556,14 +797,17 @@ function ExecuteRebalancePage(): React.ReactElement {
                             <input
                               type="checkbox"
                               checked={item.isExcluded}
+                              disabled={item.locked}
                               onChange={() =>
                                 handlers.excludeToggle(item.assetId)
                               }
-                              className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
+                              className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500 disabled:opacity-40"
                               title={
-                                item.isExcluded
-                                  ? "Include in execution"
-                                  : "Exclude from execution"
+                                item.locked
+                                  ? "Locked — not eligible for execution"
+                                  : item.isExcluded
+                                    ? "Include in execution"
+                                    : "Exclude from execution"
                               }
                             />
                           )}
@@ -620,12 +864,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                         <td className="px-3 py-2 text-right tabular-nums">
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
                               handlers.setToCurrent(
                                 item.assetId,
                                 item.snapshotWeight,
                               )
-                            }
+                              clearAnchor(item.assetId)
+                            }}
                             title="Set target to current weight"
                             className={`block w-full text-right hover:underline ${
                               isCash ? "text-blue-900" : "text-gray-900"
@@ -642,37 +887,92 @@ function ExecuteRebalancePage(): React.ReactElement {
                         <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-2">
                             <div className="relative w-14 sm:w-20 min-w-[56px]">
-                              {/* Center detent — marks "unchanged from current
-                                  weight" (delta 0) at the track midpoint. */}
-                              <span
-                                aria-hidden="true"
-                                className="pointer-events-none absolute top-1/2 left-1/2 z-0 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-gray-400"
-                              />
                               <input
                                 type="range"
-                                min={-DELTA_RANGE_PP}
-                                max={DELTA_RANGE_PP}
+                                min={sliderMin}
+                                max={sliderMax}
                                 step={sliderStep}
-                                value={sliderDeltaPct}
+                                value={sliderValue}
+                                onPointerDown={() => {
+                                  draggingRef.current[item.assetId] = true
+                                  // Explicitly pin the anchor to the
+                                  // pre-drag target. Without this, the
+                                  // no-explicit-anchor fallback below
+                                  // (`sliderAnchors[id] ?? targetPct`) would
+                                  // keep tracking the LIVE target on every
+                                  // drag tick — sliding the range under the
+                                  // thumb instead of holding it fixed.
+                                  reanchor(item.assetId, targetPct)
+                                }}
+                                onPointerUp={(e) => {
+                                  draggingRef.current[item.assetId] = false
+                                  const val = Math.min(
+                                    100,
+                                    Math.max(
+                                      0,
+                                      (e.target as HTMLInputElement)
+                                        .valueAsNumber,
+                                    ),
+                                  )
+                                  reanchor(item.assetId, val)
+                                }}
+                                onPointerCancel={() => {
+                                  draggingRef.current[item.assetId] = false
+                                }}
                                 onChange={(e) => {
                                   const raw = parseFloat(e.target.value)
                                   if (Number.isNaN(raw)) return
-                                  const snappedDelta = snapToStep(
-                                    raw,
-                                    sliderStep,
-                                  )
-                                  const newTargetPct = Math.min(
+                                  const snapped = snapToStep(raw, sliderStep)
+                                  const clamped = Math.min(
                                     100,
-                                    Math.max(0, currentPct + snappedDelta),
+                                    Math.max(0, snapped),
                                   )
+                                  if (!draggingRef.current[item.assetId]) {
+                                    // Keyboard/arrow path: pin the anchor to
+                                    // where it was BEFORE this keystroke (so
+                                    // the range doesn't jump on every press
+                                    // while we wait out the debounce below) —
+                                    // only on the first press of a burst;
+                                    // once pinned, later presses in the same
+                                    // burst leave it alone.
+                                    if (
+                                      sliderAnchors[item.assetId] === undefined
+                                    ) {
+                                      reanchor(item.assetId, anchorPct)
+                                    }
+                                  }
                                   handlers.targetChange(
                                     item.assetId,
-                                    newTargetPct / 100,
+                                    clamped / 100,
                                   )
+                                  // Drag gestures re-anchor on pointer-up
+                                  // above; this path is the keyboard/arrow
+                                  // case, which debounces instead so a burst
+                                  // of key presses doesn't shift the range
+                                  // mid-adjustment.
+                                  if (!draggingRef.current[item.assetId]) {
+                                    scheduleReanchor(item.assetId, clamped)
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const timers = debounceTimersRef.current
+                                  if (timers[item.assetId]) {
+                                    clearTimeout(timers[item.assetId])
+                                    delete timers[item.assetId]
+                                  }
+                                  const val = Math.min(
+                                    100,
+                                    Math.max(
+                                      0,
+                                      (e.target as HTMLInputElement)
+                                        .valueAsNumber,
+                                    ),
+                                  )
+                                  reanchor(item.assetId, val)
                                 }}
                                 disabled={item.isExcluded}
                                 aria-label={`${item.assetCode || item.assetId} target weight`}
-                                aria-valuetext={`${formatSignedPp(sliderDeltaPct, 0)} percentage points, target ${formatPercent(item.effectiveTarget)}`}
+                                aria-valuetext={`${formatPercent(item.effectiveTarget)} target (${formatSignedPp(deltaVsOriginalPct, 0)}pp vs original)`}
                                 className="relative z-10 w-full h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
                               />
                             </div>
@@ -685,6 +985,10 @@ function ExecuteRebalancePage(): React.ReactElement {
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value) || 0
                                 handlers.targetChange(item.assetId, val / 100)
+                                // Numeric entry re-anchors immediately — the
+                                // user just told us exactly where they want
+                                // to be, so the +-10pp window should follow.
+                                reanchor(item.assetId, val)
                               }}
                               disabled={item.isExcluded}
                               aria-label={`${item.assetCode || item.assetId} target weight percent`}
@@ -696,20 +1000,26 @@ function ExecuteRebalancePage(): React.ReactElement {
                                     : "border-gray-300"
                               }`}
                             />
-                          </div>
-                          <div
-                            className={`text-right text-[11px] tabular-nums ${deltaLabelClass}`}
-                          >
-                            {formatSignedPp(
-                              realDeltaPct,
-                              sliderStep === 0.01 ? 2 : 1,
-                            )}
-                            {" → "}
-                            {formatPercent(item.effectiveTarget)}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handlers.resetTarget(item.assetId)
+                                clearAnchor(item.assetId)
+                              }}
+                              disabled={!targetChangedFromOriginal}
+                              title="Reset to original weight"
+                              aria-label={`Reset ${item.assetCode || item.assetId} weight`}
+                              className="text-gray-400 hover:text-invest-600 disabled:opacity-0 disabled:pointer-events-none p-0.5"
+                            >
+                              <i className="fas fa-rotate-left text-xs"></i>
+                            </button>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handlers.setToTarget(item.assetId)}
+                            onClick={() => {
+                              handlers.setToTarget(item.assetId)
+                              clearAnchor(item.assetId)
+                            }}
                             title="Reset target to plan weight"
                             className="block w-full text-right text-[11px] text-gray-400 hover:text-invest-600 hover:underline mt-0.5"
                           >
@@ -733,9 +1043,17 @@ function ExecuteRebalancePage(): React.ReactElement {
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           {isCash ? (
-                            <span className={cashDeltaClass}>
-                              {formatSignedNumber(cashSummary.netImpact)}
-                            </span>
+                            <>
+                              <span className={cashDeltaClass}>
+                                {formatSignedNumber(cashSummary.netImpact)}
+                              </span>
+                              <div className={`text-[11px] ${deltaLabelClass}`}>
+                                {formatSignedPp(
+                                  deltaVsOriginalPct,
+                                  sliderStep === 0.01 ? 2 : 1,
+                                )}
+                              </div>
+                            </>
                           ) : item.isExcluded ? (
                             <span className="text-gray-400">-</span>
                           ) : (
@@ -746,6 +1064,12 @@ function ExecuteRebalancePage(): React.ReactElement {
                               </div>
                               <div className="text-xs text-gray-500">
                                 {formatSignedNumber(item.deltaValue)}
+                              </div>
+                              <div className={`text-[11px] ${deltaLabelClass}`}>
+                                {formatSignedPp(
+                                  deltaVsOriginalPct,
+                                  sliderStep === 0.01 ? 2 : 1,
+                                )}
                               </div>
                             </>
                           )}
