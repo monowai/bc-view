@@ -219,6 +219,8 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
     expect(slider).toHaveAttribute("step", "5")
+    expect(slider).toHaveAttribute("min", "-10")
+    expect(slider).toHaveAttribute("max", "10")
   })
 
   it("switching the step toggle updates the slider step attr and numeric input step attr", () => {
@@ -244,32 +246,139 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     expect(numeric).toHaveAttribute("step", "0.01")
   })
 
-  it("dragging a row's slider to 15 with 5% step calls targetChange with 0.15", () => {
+  it("centers the slider at delta 0 when effectiveTarget equals snapshotWeight", () => {
     render(<ExecuteRebalancePage />)
 
+    // QUAL: snapshotWeight 0.5, effectiveTarget 0.5 -> unchanged -> delta 0
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    fireEvent.change(slider, { target: { value: "15" } })
+    expect(slider).toHaveValue("0")
+  })
+
+  it("derives the slider's displayed delta from effectiveTarget - snapshotWeight after a re-render", () => {
+    const { rerender } = render(<ExecuteRebalancePage />)
+
+    // Simulate the parent state updating after a targetChange call: QUAL's
+    // effectiveTarget moves to snapshotWeight (0.5) + 4pp = 0.54.
+    executionState.displayItems = executionState.displayItems.map((item) => {
+      const typed = item as { assetId: string; effectiveTarget: number }
+      return typed.assetId === "asset-qual"
+        ? { ...typed, effectiveTarget: 0.54 }
+        : typed
+    })
+    executionState.activeItems = executionState.displayItems
+    rerender(<ExecuteRebalancePage />)
+
+    const slider = screen.getByRole("slider", { name: "QUAL target weight" })
+    expect(slider).toHaveValue("4")
+  })
+
+  it("sliding to +5 with the 5% step active calls targetChange with current + 5pp as a fraction", () => {
+    render(<ExecuteRebalancePage />)
+
+    // QUAL current weight is 50% (snapshotWeight 0.5).
+    const slider = screen.getByRole("slider", { name: "QUAL target weight" })
+    fireEvent.change(slider, { target: { value: "5" } })
 
     expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
       "asset-qual",
-      0.15,
+      0.55,
     )
   })
 
-  it("snaps an off-step slider value to the nearest step before calling targetChange", () => {
+  it("snaps an off-step slider delta to the nearest step before calling targetChange", () => {
     render(<ExecuteRebalancePage />)
 
     const slider = screen.getByRole("slider", { name: "QUAL target weight" })
-    fireEvent.change(slider, { target: { value: "17" } })
+    // Raw delta 7 snaps to nearest multiple of 5 -> 5 -> current(50) + 5 = 55
+    fireEvent.change(slider, { target: { value: "7" } })
 
-    // 17 snapped to nearest multiple of 5 => 15 => 0.15
     expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
       "asset-qual",
-      0.15,
+      0.55,
     )
   })
 
-  it("disables the slider on an excluded row, mirroring the numeric input", () => {
+  it("clamps the resulting target to 0 when a low-weight row is slid to the -10 edge", () => {
+    const execution = makeExecution()
+    execution.items[0].snapshotWeight = 0.02
+    execution.items[0].effectiveTarget = 0.02
+    executionState.execution = execution
+    executionState.displayItems = displayItemsFor(execution)
+    executionState.activeItems = executionState.displayItems
+
+    render(<ExecuteRebalancePage />)
+
+    const slider = screen.getByRole("slider", { name: "QUAL target weight" })
+    fireEvent.change(slider, { target: { value: "-10" } })
+
+    // current(2) - 10 = -8, clamped to 0
+    expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
+      "asset-qual",
+      0,
+    )
+  })
+
+  it("pins the slider thumb at the +10 edge when the numeric input's real delta exceeds the range", () => {
+    const { rerender } = render(<ExecuteRebalancePage />)
+
+    // QUAL current weight is 50%; type a target 25pp above current (75%) —
+    // a delta far outside the +-10pp slider track.
+    const numeric = screen.getByRole("spinbutton", {
+      name: "QUAL target weight percent",
+    })
+    fireEvent.change(numeric, { target: { value: "75" } })
+    expect(executionState.handlers.targetChange).toHaveBeenCalledWith(
+      "asset-qual",
+      0.75,
+    )
+
+    // Simulate the parent state applying that change.
+    executionState.displayItems = executionState.displayItems.map((item) => {
+      const typed = item as { assetId: string; effectiveTarget: number }
+      return typed.assetId === "asset-qual"
+        ? { ...typed, effectiveTarget: 0.75 }
+        : typed
+    })
+    executionState.activeItems = executionState.displayItems
+    rerender(<ExecuteRebalancePage />)
+
+    const slider = screen.getByRole("slider", { name: "QUAL target weight" })
+    expect(slider).toHaveValue("10")
+
+    const numericAfter = screen.getByRole("spinbutton", {
+      name: "QUAL target weight percent",
+    })
+    expect(numericAfter).toHaveValue(75)
+  })
+
+  it("renders a signed, color-coded delta label next to the slider", () => {
+    const execution = makeExecution()
+    // QUAL: +4pp (green), EXCL stays excluded/unchanged (neutral)
+    execution.items[0].effectiveTarget = 0.54
+    executionState.execution = execution
+    executionState.displayItems = displayItemsFor(execution)
+    executionState.activeItems = executionState.displayItems
+
+    const { rerender } = render(<ExecuteRebalancePage />)
+
+    expect(screen.getByText("+4.0 → 54.00%")).toHaveClass("text-green-600")
+    // Excluded row (EXCL) keeps its current weight -> delta 0 -> neutral.
+    expect(screen.getByText("0.0 → 20.00%")).toHaveClass("text-gray-500")
+
+    // Sanity: negative delta renders red.
+    executionState.displayItems = executionState.displayItems.map((item) => {
+      const typed = item as { assetId: string; effectiveTarget: number }
+      return typed.assetId === "asset-qual"
+        ? { ...typed, effectiveTarget: 0.47 }
+        : typed
+    })
+    executionState.activeItems = executionState.displayItems
+    rerender(<ExecuteRebalancePage />)
+
+    expect(screen.getByText("-3.0 → 47.00%")).toHaveClass("text-red-600")
+  })
+
+  it("disables the slider on an excluded row and centers it at delta 0", () => {
     render(<ExecuteRebalancePage />)
 
     const slider = screen.getByRole("slider", { name: "EXCL target weight" })
@@ -277,6 +386,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
       name: "EXCL target weight percent",
     })
     expect(slider).toBeDisabled()
+    expect(slider).toHaveValue("0")
     expect(numeric).toBeDisabled()
   })
 

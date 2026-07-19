@@ -34,6 +34,19 @@ function snapToStep(value: number, step: number): number {
   return Math.round(snapped * 100) / 100
 }
 
+/** How far the slider range extends either side of "unchanged" (0). */
+const DELTA_RANGE_PP = 10
+
+/** Formats a percentage-point delta with an explicit "+" for positive values
+ * (negative values already carry their sign from `toFixed`; zero gets no
+ * sign). `fractionDigits` controls precision — 1 for the visible label,
+ * 0 for the terser `aria-valuetext`. */
+function formatSignedPp(value: number, fractionDigits: number): string {
+  const rounded = Number(value.toFixed(fractionDigits))
+  const sign = rounded > 0 ? "+" : ""
+  return `${sign}${rounded.toFixed(fractionDigits)}`
+}
+
 /** Builds a minimal Asset for PriceChartPopup from a rebalance display row.
  * The execution DTO only carries id/code/name/price — market and category
  * are never resolved server-side for this flow, so a placeholder satisfies
@@ -480,6 +493,31 @@ function ExecuteRebalancePage(): React.ReactElement {
                             ? "bg-red-50"
                             : "bg-white"
 
+                    // Delta-slider semantics: the slider expresses target
+                    // weight as an offset from CURRENT weight, not an
+                    // absolute 0-100 value — typical edits are a few points,
+                    // so the full track resolves them precisely. Excluded
+                    // rows are forced to delta 0 (centered, disabled) since
+                    // they keep their current weight regardless of any
+                    // stale effectiveTarget. Real delta can exceed the
+                    // +-10pp track (e.g. a big absolute edit via the numeric
+                    // input) — the slider THUMB pins at the edge while the
+                    // numeric input keeps showing the real, uncapped value.
+                    const currentPct = item.snapshotWeight * 100
+                    const realDeltaPct = item.isExcluded
+                      ? 0
+                      : item.effectiveTarget * 100 - currentPct
+                    const sliderDeltaPct = Math.min(
+                      DELTA_RANGE_PP,
+                      Math.max(-DELTA_RANGE_PP, realDeltaPct),
+                    )
+                    const deltaLabelClass =
+                      realDeltaPct === 0
+                        ? "text-gray-500"
+                        : realDeltaPct > 0
+                          ? "text-green-600"
+                          : "text-red-600"
+
                     return (
                       <tr key={item.assetId} className={rowClass}>
                         <td className="px-2 py-2 text-center">
@@ -572,25 +610,41 @@ function ExecuteRebalancePage(): React.ReactElement {
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-2">
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={sliderStep}
-                              value={item.effectiveTarget * 100}
-                              onChange={(e) => {
-                                const raw = parseFloat(e.target.value)
-                                if (Number.isNaN(raw)) return
-                                const snapped = snapToStep(raw, sliderStep)
-                                handlers.targetChange(
-                                  item.assetId,
-                                  snapped / 100,
-                                )
-                              }}
-                              disabled={item.isExcluded}
-                              aria-label={`${item.assetCode || item.assetId} target weight`}
-                              className="w-14 sm:w-20 min-w-[56px] h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                            />
+                            <div className="relative w-14 sm:w-20 min-w-[56px]">
+                              {/* Center detent — marks "unchanged from current
+                                  weight" (delta 0) at the track midpoint. */}
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute top-1/2 left-1/2 z-0 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-gray-400"
+                              />
+                              <input
+                                type="range"
+                                min={-DELTA_RANGE_PP}
+                                max={DELTA_RANGE_PP}
+                                step={sliderStep}
+                                value={sliderDeltaPct}
+                                onChange={(e) => {
+                                  const raw = parseFloat(e.target.value)
+                                  if (Number.isNaN(raw)) return
+                                  const snappedDelta = snapToStep(
+                                    raw,
+                                    sliderStep,
+                                  )
+                                  const newTargetPct = Math.min(
+                                    100,
+                                    Math.max(0, currentPct + snappedDelta),
+                                  )
+                                  handlers.targetChange(
+                                    item.assetId,
+                                    newTargetPct / 100,
+                                  )
+                                }}
+                                disabled={item.isExcluded}
+                                aria-label={`${item.assetCode || item.assetId} target weight`}
+                                aria-valuetext={`${formatSignedPp(sliderDeltaPct, 0)} percentage points, target ${formatPercent(item.effectiveTarget)}`}
+                                className="relative z-10 w-full h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                              />
+                            </div>
                             <input
                               type="number"
                               min="0"
@@ -611,6 +665,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                                     : "border-gray-300"
                               }`}
                             />
+                          </div>
+                          <div
+                            className={`text-right text-[11px] tabular-nums ${deltaLabelClass}`}
+                          >
+                            {formatSignedPp(realDeltaPct, 1)}
+                            {" → "}
+                            {formatPercent(item.effectiveTarget)}
                           </div>
                           <button
                             type="button"
