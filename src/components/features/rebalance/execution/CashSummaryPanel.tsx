@@ -1,107 +1,139 @@
-import React from "react"
-import { formatCurrency, gainLossClass } from "@lib/formatters"
+import React, { useState } from "react"
+import {
+  formatCurrency,
+  formatSignedNumber,
+  gainLossClass,
+} from "@lib/formatters"
+
 interface CashSummaryPanelProps {
   currentMarketValue: number
   currentCash: number
-  targetCash: number
   cashFromSales: number
   cashForPurchases: number
+  /** cashFromSales - cashForPurchases + (currentCash - targetCash) — computed once in useRebalanceExecution; passed through, never recomputed here. */
+  netImpact: number
+  /** currentCash + netImpact, unclamped — computed once in useRebalanceExecution; passed through, never recomputed here. */
+  projectedCash: number
   currency: string
+  /** Default disclosure state. Defaults to expanded (desktop-friendly). */
+  defaultExpanded?: boolean
+}
+
+interface StatCard {
+  key: string
+  label: string
+  display: string
+  valueClass: string
 }
 
 const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
   currentMarketValue,
   currentCash,
-  targetCash,
   cashFromSales,
   cashForPurchases,
+  netImpact,
+  projectedCash,
   currency,
+  defaultExpanded = true,
 }) => {
-  // Net impact: sales generate cash, purchases consume cash, cash position change provides/absorbs cash
-  // When reducing cash target, freed cash funds purchases (cash neutral)
-  // When increasing cash target, sales fund the cash increase (cash neutral)
-  const cashPositionChange = currentCash - targetCash // positive = cash being released
-  const netImpact = cashFromSales - cashForPurchases + cashPositionChange
-  // Projected cash = target cash (after rebalancing, cash will be at target)
-  const projectedCash = targetCash
-
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const netImpactColor = gainLossClass(netImpact)
 
+  const stats: StatCard[] = [
+    {
+      key: "currentCash",
+      label: "Current Cash",
+      display: `${formatCurrency(currentCash)} ${currency}`,
+      valueClass: "text-gray-900",
+    },
+    {
+      key: "fromSales",
+      label: "From Sales",
+      display: `+${formatCurrency(cashFromSales)} ${currency}`,
+      valueClass: "text-green-600",
+    },
+    {
+      key: "forPurchases",
+      label: "For Purchases",
+      display: `-${formatCurrency(cashForPurchases)} ${currency}`,
+      valueClass: "text-red-600",
+    },
+    {
+      key: "netImpact",
+      label: "Net Impact",
+      display: `${formatSignedNumber(netImpact)} ${currency}`,
+      valueClass: netImpactColor,
+    },
+    {
+      key: "projectedCash",
+      label: "Projected Cash",
+      display: `${formatCurrency(projectedCash)} ${currency}`,
+      valueClass: "text-blue-600",
+    },
+    {
+      key: "projectedValue",
+      label: "Projected Value",
+      display: `${formatCurrency(currentMarketValue)} ${currency}`,
+      valueClass: "text-gray-900",
+    },
+  ]
+
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">{"Summary"}</h3>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        {/* Left column - Market Value */}
-        <div className="flex justify-between">
-          <span className="text-gray-700 font-medium">
-            {"Current Market Value"}:
-          </span>
-          <span className="font-bold text-gray-900">
-            {formatCurrency(currentMarketValue)} {currency}
-          </span>
-        </div>
-
-        {/* Right column - Current Cash */}
-        <div className="flex justify-between">
-          <span className="text-gray-500">{"Current Cash"}:</span>
-          <span className="text-gray-900 font-medium">
-            {formatCurrency(currentCash)} {currency}
-          </span>
-        </div>
-
-        {/* From Sales */}
-        <div className="flex justify-between">
-          <span className="text-gray-500">{"From Sales"}:</span>
-          <span className="text-green-600 font-medium">
-            +{formatCurrency(cashFromSales)} {currency}
-          </span>
-        </div>
-
-        {/* Target Cash */}
-        <div className="flex justify-between">
-          <span className="text-gray-500">{"Target Cash"}:</span>
-          <span className="text-blue-600 font-medium">
-            {formatCurrency(targetCash)} {currency}
-          </span>
-        </div>
-
-        {/* For Purchases */}
-        <div className="flex justify-between">
-          <span className="text-gray-500">{"For Purchases"}:</span>
-          <span className="text-red-600 font-medium">
-            -{formatCurrency(cashForPurchases)} {currency}
-          </span>
-        </div>
-
-        {/* Net Impact */}
-        <div className="flex justify-between">
-          <span className="text-gray-700 font-medium">{"Net Impact"}:</span>
-          <span className={`font-bold ${netImpactColor}`}>
-            {netImpact >= 0 ? "+" : ""}
-            {formatCurrency(netImpact)} {currency}
-          </span>
-        </div>
-
-        {/* Projected values - full width */}
-        <div className="col-span-2 border-t border-gray-200 pt-2 mt-1 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-700 font-medium">
-              {"Projected Market Value"}:
+    <div className="bg-gray-50 border border-gray-200 rounded-lg">
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        aria-expanded={expanded}
+        aria-controls="cash-summary-stats"
+        className="w-full flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-left hover:bg-gray-100 rounded-lg transition-colors"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <i
+            className={`fas fa-chevron-${expanded ? "down" : "right"} text-xs text-gray-400 w-3`}
+          ></i>
+          {"Cash Summary"}
+        </span>
+        <span className="flex items-center gap-4 text-sm">
+          <span className="text-gray-500">
+            {"Net Impact"}:{" "}
+            <span
+              data-testid="cash-summary-headline-net-impact"
+              className={`font-bold ${netImpactColor}`}
+            >
+              {formatSignedNumber(netImpact)} {currency}
             </span>
-            <span className="font-bold text-gray-900">
-              {formatCurrency(currentMarketValue)} {currency}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-700 font-medium">
-              {"Projected Cash"}:
-            </span>
-            <span className="font-bold text-blue-600">
+          </span>
+          <span className="text-gray-500">
+            {"Projected Cash"}:{" "}
+            <span
+              data-testid="cash-summary-headline-projected-cash"
+              className="font-bold text-blue-600"
+            >
               {formatCurrency(projectedCash)} {currency}
             </span>
-          </div>
+          </span>
+        </span>
+      </button>
+      {expanded && (
+        <div
+          id="cash-summary-stats"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 px-4 pb-4"
+        >
+          {stats.map((stat) => (
+            <div
+              key={stat.key}
+              className="bg-white border border-gray-200 rounded-md px-3 py-2"
+            >
+              <div className="text-xs text-gray-500 truncate">{stat.label}</div>
+              <div
+                className={`text-sm font-bold tabular-nums ${stat.valueClass}`}
+              >
+                {stat.display}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, within } from "@testing-library/react"
 import ExecuteRebalancePage from "@pages/rebalance/execute/index"
 import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
 import type {
@@ -273,5 +273,119 @@ describe("ExecuteRebalancePage", () => {
     expect(query).toContain("XYZ")
     expect(query).toContain("42.00%")
     expect(query).toMatch(/DRAFT/)
+  })
+
+  it("renders the configuration table columns in Asset, Price, Current, Target, After %, Delta order", () => {
+    mockHookResult([makeItem()])
+    render(<ExecuteRebalancePage />)
+
+    // Only the configuration table is rendered while step === "configure".
+    const table = screen.getByRole("table")
+    const headers = within(table)
+      .getAllByRole("columnheader")
+      .map((th) => th.textContent?.trim())
+
+    expect(headers).toEqual([
+      "",
+      "Asset",
+      "Price",
+      "Current",
+      "Target",
+      "After %",
+      "Delta",
+    ])
+  })
+
+  it("CASH row's delta cell mirrors cashSummary.netImpact exactly — not the row's own (stale) deltaValue", () => {
+    mockHookResult(
+      [
+        makeItem({
+          assetId: "cash",
+          assetCode: "CASH",
+          isCash: true,
+          deltaValue: 1, // deliberately stale/irrelevant — must NOT be displayed
+        }),
+      ],
+      {
+        cashSummary: {
+          currentMarketValue: 10000,
+          currentCash: 1000,
+          targetCash: 1000,
+          cashFromSales: 2000,
+          cashForPurchases: 1500,
+          netImpact: 500,
+          projectedCash: 1500,
+        },
+      },
+    )
+    render(<ExecuteRebalancePage />)
+
+    const cashRow = screen.getByText("CASH").closest("tr")
+    expect(cashRow).not.toBeNull()
+    expect(within(cashRow!).getByText("+500.00")).toBeInTheDocument()
+    expect(within(cashRow!).getByText("+500.00")).toHaveClass("text-green-700")
+    expect(within(cashRow!).queryByText("+1.00")).not.toBeInTheDocument()
+  })
+
+  it("CASH row's delta cell shows netImpact in red when negative, and a Deposit sub-line when projected cash is negative", () => {
+    mockHookResult(
+      [
+        makeItem({
+          assetId: "cash",
+          assetCode: "CASH",
+          isCash: true,
+          deltaValue: 1,
+          projectedWeight: 0,
+        }),
+      ],
+      {
+        cashSummary: {
+          currentMarketValue: 10000,
+          currentCash: 1000,
+          targetCash: 1000,
+          cashFromSales: 0,
+          cashForPurchases: 11472.49,
+          netImpact: -10472.49,
+          projectedCash: -9472.49,
+        },
+      },
+    )
+    render(<ExecuteRebalancePage />)
+
+    const cashRow = screen.getByText("CASH").closest("tr")
+    expect(cashRow).not.toBeNull()
+    expect(within(cashRow!).getByText("-10,472.49")).toBeInTheDocument()
+    expect(within(cashRow!).getByText("-10,472.49")).toHaveClass("text-red-700")
+    expect(within(cashRow!).getByText(/Deposit/)).toBeInTheDocument()
+    expect(within(cashRow!).getByText(/9,472\.49/)).toBeInTheDocument()
+  })
+
+  it("ad-hoc mode hides the 'All -> Target' bulk button and shows a single 'Reset' button", () => {
+    mockHookResult([makeItem()], {
+      execution: makeExecution({ mode: "AD_HOC", modelName: null }),
+    })
+    render(<ExecuteRebalancePage />)
+
+    expect(
+      screen.queryByRole("button", { name: /All.*Target/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /All.*0/i })).toBeInTheDocument()
+  })
+
+  it("plan/model mode keeps the full bulk-button set (All -> Current, All -> Target, All -> 0)", () => {
+    mockHookResult([makeItem()])
+    render(<ExecuteRebalancePage />)
+
+    expect(
+      screen.getByRole("button", { name: /All.*Current/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /All.*Target/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /All.*0/i })).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Reset" }),
+    ).not.toBeInTheDocument()
   })
 })
