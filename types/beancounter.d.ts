@@ -44,6 +44,15 @@ export interface RebalanceData {
   currentPositionQuantity: number
 }
 
+// Overrides the default query/context sent to /api/agent/query/stream by
+// AssetInsightPopup — lets callers outside the rebalance-model editor (e.g.
+// the rebalance execute page) seed the popup with their own question while
+// reusing the same streaming Dialog wrapper.
+export interface AssetInsightPromptOverride {
+  query: string
+  context: Record<string, unknown>
+}
+
 export interface WeightClickData {
   asset: Asset
   currentWeight: number

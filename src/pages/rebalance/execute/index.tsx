@@ -1,12 +1,23 @@
 import React, { useState, useMemo, useEffect } from "react"
-import { formatCurrency, formatPercent } from "@lib/formatters"
+import {
+  formatCurrency,
+  formatPercent,
+  formatSignedNumber,
+} from "@lib/formatters"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
-import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
+import {
+  useRebalanceExecution,
+  DisplayItem,
+} from "@hooks/useRebalanceExecution"
+import { Asset } from "types/beancounter"
+import { ExecutionDto } from "types/rebalance"
 
 type SliderStep = 5 | 1 | 0.01
 
@@ -21,6 +32,83 @@ const SLIDER_STEP_OPTIONS: { value: SliderStep; label: string }[] = [
 function snapToStep(value: number, step: number): number {
   const snapped = Math.round(value / step) * step
   return Math.round(snapped * 100) / 100
+}
+
+/** Builds a minimal Asset for PriceChartPopup from a rebalance display row.
+ * The execution DTO only carries id/code/name/price — market and category
+ * are never resolved server-side for this flow, so a placeholder satisfies
+ * the Asset contract without inventing data; PriceChartPopup replaces the
+ * display name/market once its own price-history fetch resolves. */
+function toChartAsset(item: DisplayItem): Asset {
+  return {
+    id: item.assetId,
+    code: item.assetCode || item.assetId,
+    name: item.assetName || item.assetCode || item.assetId,
+    assetCategory: { id: "", name: "" },
+    market: {
+      code: "",
+      name: "",
+      currency: { code: item.priceCurrency || "", name: "", symbol: "" },
+    },
+  }
+}
+
+/** Seeds the "ask AI about this asset" popup with the row's full draft-
+ * rebalance context so the model can comment on THIS proposed change rather
+ * than the asset in the abstract — includes an explicit note that nothing
+ * has been executed yet. */
+function buildDraftRebalanceInsight(
+  item: DisplayItem,
+  execution: ExecutionDto,
+): { query: string; context: Record<string, unknown> } {
+  const assetLabel = item.assetCode || item.assetId
+  const currentPriceText =
+    item.snapshotPrice != null
+      ? `${formatCurrency(item.snapshotPrice)} ${item.priceCurrency || ""}`.trim()
+      : "unavailable"
+  const afterWeightText =
+    item.projectedWeight != null ? formatPercent(item.projectedWeight) : "n/a"
+  const portfolioLabel =
+    execution.name || execution.modelName || "Ad-hoc rebalance"
+
+  const query = `Role: You are a concise financial analyst helping a user review a DRAFT portfolio rebalance. This rebalance is under consideration only — no transactions have been executed yet.
+
+Analyse this single asset within the draft rebalance (150-250 words):
+1. Does the proposed change (buy/sell/hold) make sense given current vs target weight?
+2. Key risks or considerations specific to this trade
+3. Anything notable about the size of the change relative to the position or portfolio
+
+Portfolio: ${portfolioLabel} (portfolio id: ${execution.portfolioIds.join(", ") || "unknown"})
+Asset: ${assetLabel}${item.assetName ? ` — ${item.assetName}` : ""}
+Current weight: ${formatPercent(item.snapshotWeight)}
+Target weight: ${formatPercent(item.effectiveTarget)}
+After % (projected weight once this draft is applied): ${afterWeightText}
+Delta quantity: ${item.deltaQuantity}
+Delta value: ${formatSignedNumber(item.deltaValue)} ${execution.currency}
+Current price: ${currentPriceText}
+
+Note: this is a DRAFT rebalance under consideration — it has not been executed.
+
+Style: Clear, direct, evidence-based. No filler.`
+
+  return {
+    query,
+    context: {
+      page: "Rebalance Execute — Asset Insight",
+      description:
+        "AI analysis of a single asset within a draft (unexecuted) portfolio rebalance",
+      portfolioIds: execution.portfolioIds,
+      assetCode: assetLabel,
+      assetName: item.assetName,
+      currentWeight: formatPercent(item.snapshotWeight),
+      targetWeight: formatPercent(item.effectiveTarget),
+      afterWeight: afterWeightText,
+      deltaQuantity: item.deltaQuantity,
+      deltaValue: item.deltaValue,
+      currentPrice: currentPriceText,
+      draft: true,
+    },
+  }
 }
 
 function ExecuteRebalancePage(): React.ReactElement {
@@ -52,6 +140,11 @@ function ExecuteRebalancePage(): React.ReactElement {
   // spinner increment; typed numeric entries still accept arbitrary 0.01
   // precision regardless of this setting.
   const [sliderStep, setSliderStep] = useState<SliderStep>(5)
+
+  // Price-chart / AI-insight popup targets — the row the user clicked the
+  // chart-line or wand-sparkles affordance on. Null closes the popup.
+  const [chartTarget, setChartTarget] = useState<DisplayItem | null>(null)
+  const [insightTarget, setInsightTarget] = useState<DisplayItem | null>(null)
 
   // Hook handles all data fetching, state, and operations
   const {
@@ -216,45 +309,6 @@ function ExecuteRebalancePage(): React.ReactElement {
                       "Edit target % to adjust allocations. Exclude positions to maintain their current weight."
                     }
                   </p>
-                  {/* Allocation Method Toggle */}
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-xs text-gray-500">
-                      {"Allocation:"}
-                    </span>
-                    <div
-                      className="inline-flex rounded-md shadow-sm"
-                      role="group"
-                    >
-                      <button
-                        type="button"
-                        onClick={handlers.setAllToTarget}
-                        className={`px-3 py-1 text-xs font-medium rounded-l-md border ${
-                          displayItems.every(
-                            (i) =>
-                              i.isCash ||
-                              i.effectiveTarget === i.planTargetWeight,
-                          )
-                            ? "bg-invest-100 text-invest-700 border-invest-200"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}
-                        title="Use original model target weights - helps rebalance toward targets"
-                      >
-                        Model
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlers.setAllToAdjusted}
-                        className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-b border-r ${
-                          states.hasChanges
-                            ? "bg-amber-100 text-amber-700 border-amber-300"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}
-                        title="Use return-adjusted weights - maintains current portfolio proportions"
-                      >
-                        Adjusted
-                      </button>
-                    </div>
-                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -270,13 +324,6 @@ function ExecuteRebalancePage(): React.ReactElement {
                     title="Reset all to target weights from model"
                   >
                     All &rarr; Target
-                  </button>
-                  <button
-                    onClick={handlers.setAllToAdjusted}
-                    className="px-3 py-1 text-xs text-amber-600 bg-white border border-amber-300 rounded hover:bg-amber-50"
-                    title="Set all to return-adjusted targets (accounts for price movements)"
-                  >
-                    All &rarr; Adjusted
                   </button>
                   <button
                     onClick={handlers.setAllToZero}
@@ -332,16 +379,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                       {"Asset"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      {"Price"}
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Current"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Target"}
-                    </th>
-                    <th
-                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"
-                      title="Return-adjusted target accounting for price movements since model creation"
-                    >
-                      {"Adjusted"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       %
@@ -364,10 +408,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {displayItems.map((item) => {
                     const isCash = item.isCash
+                    // Row tinge follows deltaQuantity (not deltaValue) so a
+                    // trade of any nonzero size is coloured — excluded/PRIVATE
+                    // rows stay neutral regardless of a stale nonzero delta.
                     const isBuy =
-                      !item.isExcluded && !isCash && item.deltaValue > 100
+                      !item.isExcluded && !isCash && item.deltaQuantity > 0
                     const isSell =
-                      !item.isExcluded && !isCash && item.deltaValue < -100
+                      !item.isExcluded && !isCash && item.deltaQuantity < 0
                     const rowClass = isCash
                       ? "bg-blue-50 border-b-2 border-blue-200"
                       : item.isExcluded
@@ -408,18 +455,38 @@ function ExecuteRebalancePage(): React.ReactElement {
                         </td>
                         <td className="px-4 py-3">
                           <div
-                            className={`font-medium ${isCash ? "text-blue-900" : "text-gray-900"}`}
+                            className={`font-medium flex items-center gap-1 ${isCash ? "text-blue-900" : "text-gray-900"}`}
                             title={item.rationale || undefined}
                           >
                             {isCash && (
                               <i className="fas fa-coins mr-2 text-blue-500"></i>
                             )}
-                            {item.assetCode || item.assetId}
+                            <span>{item.assetCode || item.assetId}</span>
                             {item.rationale && !isCash && (
                               <i
-                                className="fas fa-info-circle ml-1 text-gray-400 text-xs cursor-help"
+                                className="fas fa-info-circle text-gray-400 text-xs cursor-help"
                                 title={item.rationale}
                               ></i>
+                            )}
+                            {!isCash && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setChartTarget(item)}
+                                  className="text-gray-400 hover:text-invest-600 p-0.5"
+                                  title="Price history chart"
+                                >
+                                  <i className="fas fa-chart-line text-xs"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setInsightTarget(item)}
+                                  className="text-gray-400 hover:text-invest-600 p-0.5"
+                                  title="Ask AI about this asset"
+                                >
+                                  <i className="fas fa-wand-magic-sparkles text-xs"></i>
+                                </button>
+                              </>
                             )}
                           </div>
                           {item.assetName && !isCash && (
@@ -427,6 +494,11 @@ function ExecuteRebalancePage(): React.ReactElement {
                               {item.assetName}
                             </div>
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-700">
+                          {item.snapshotPrice != null
+                            ? `${formatCurrency(item.snapshotPrice)} ${item.priceCurrency || ""}`.trim()
+                            : "—"}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -475,34 +547,6 @@ function ExecuteRebalancePage(): React.ReactElement {
                               {formatPercent(item.planTargetWeight)}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {item.returnAdjustedTarget != null ? (
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() =>
-                                  handlers.targetChange(
-                                    item.assetId,
-                                    item.returnAdjustedTarget!,
-                                  )
-                                }
-                                className="text-gray-400 hover:text-invest-600 p-0.5"
-                                title="Copy return-adjusted target to %"
-                              >
-                                <i className="fas fa-arrow-right text-xs"></i>
-                              </button>
-                              <span
-                                className={
-                                  isCash ? "text-blue-600" : "text-amber-600"
-                                }
-                                title="Target adjusted for price movements since model creation"
-                              >
-                                {formatPercent(item.returnAdjustedTarget)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -580,6 +624,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                       {"Total"}
                     </td>
                     <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3"></td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-700">
                       {formatPercent(
                         displayItems.reduce(
@@ -587,18 +632,6 @@ function ExecuteRebalancePage(): React.ReactElement {
                           0,
                         ),
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-700">
-                      {(() => {
-                        const total = displayItems.reduce(
-                          (sum, item) => sum + (item.returnAdjustedTarget ?? 0),
-                          0,
-                        )
-                        const hasAdjusted = displayItems.some(
-                          (item) => item.returnAdjustedTarget != null,
-                        )
-                        return hasAdjusted ? formatPercent(total) : "-"
-                      })()}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
                       {formatPercent(
@@ -866,6 +899,25 @@ function ExecuteRebalancePage(): React.ReactElement {
             </button>
           </div>
         </>
+      )}
+      {chartTarget && (
+        <PriceChartPopup
+          asset={toChartAsset(chartTarget)}
+          portfolioId={execution.portfolioIds[0]}
+          onClose={() => setChartTarget(null)}
+        />
+      )}
+      {insightTarget && (
+        <AssetInsightPopup
+          asset={{
+            assetId: insightTarget.assetId,
+            assetCode: insightTarget.assetCode,
+            assetName: insightTarget.assetName,
+            weight: insightTarget.effectiveTarget * 100,
+          }}
+          promptOverride={buildDraftRebalanceInsight(insightTarget, execution)}
+          onClose={() => setInsightTarget(null)}
+        />
       )}
     </div>
   )
