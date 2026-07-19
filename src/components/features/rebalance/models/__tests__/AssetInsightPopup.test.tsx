@@ -167,4 +167,28 @@ describe("AssetInsightPopup", () => {
     )
     await waitFor(() => screen.getByText(/run out of credit/i))
   })
+
+  it("uses promptOverride's query/context instead of the default model-insight prompt", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([
+        { event: "token", data: "Draft rebalance take" },
+        { event: "done", data: "{}" },
+      ]),
+    )
+    render(
+      <AssetInsightPopup
+        asset={sampleAsset()}
+        onClose={jest.fn()}
+        promptOverride={{
+          query: "Custom draft-rebalance question about LSE:VUAA",
+          context: { draft: true, portfolioId: "portfolio-1" },
+        }}
+      />,
+    )
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
+    const [, init] = mockFetch.mock.calls[0]
+    const body = JSON.parse(init.body)
+    expect(body.query).toBe("Custom draft-rebalance question about LSE:VUAA")
+    expect(body.context).toEqual({ draft: true, portfolioId: "portfolio-1" })
+  })
 })
