@@ -37,12 +37,43 @@ function snapToStep(value: number, step: number): number {
 /** How far the slider range extends either side of "unchanged" (0). */
 const DELTA_RANGE_PP = 10
 
+/** Deltas at or under this magnitude (percentage points) are treated as
+ * exactly zero for label color, label text, and slider centering. The
+ * seeded `effectiveTarget` is derived from a proportional-scaling formula
+ * (planTargetWeight / totalPlanTargetWeights * availableForAssets) that is
+ * mathematically equal to `snapshotWeight` on an unedited landing but lands
+ * a hair off it in floating point (residuals around 1e-9–1e-13 pp) — that
+ * noise must not flip the sign-based color/label. A genuine edit is at
+ * least an order of magnitude larger than this threshold. */
+const DELTA_EPSILON_PP = 0.005
+
+/** Snaps a delta whose magnitude is float noise (below DELTA_EPSILON_PP) to
+ * exactly zero, so every consumer — label color, label text, and slider
+ * centering — agrees on "unchanged" from a single source. */
+function snapEpsilonZero(deltaPct: number): number {
+  return Math.abs(deltaPct) < DELTA_EPSILON_PP ? 0 : deltaPct
+}
+
+/** Rounds half-away-from-zero to `fractionDigits`, correcting for cases
+ * where native `toFixed` under-rounds a value due to its binary
+ * floating-point representation (e.g. (24.15).toFixed(1) === "24.1", not
+ * the expected "24.2", because the nearest double to the literal 24.15 is
+ * actually ~24.149999999999998579). The small additive epsilon is far
+ * larger than that representation error but far smaller than the display
+ * precision, so it only ever nudges genuine half-way values. */
+function roundHalfUp(value: number, fractionDigits: number): number {
+  const factor = 10 ** fractionDigits
+  const sign = value < 0 ? -1 : 1
+  return (sign * Math.round(Math.abs(value) * factor + 1e-9)) / factor
+}
+
 /** Formats a percentage-point delta with an explicit "+" for positive values
  * (negative values already carry their sign from `toFixed`; zero gets no
- * sign). `fractionDigits` controls precision — 1 for the visible label,
- * 0 for the terser `aria-valuetext`. */
+ * sign). `fractionDigits` controls precision — 2 when the 0.01% slider step
+ * is active, 1 otherwise for the visible label; 0 for the terser
+ * `aria-valuetext`. */
 function formatSignedPp(value: number, fractionDigits: number): string {
-  const rounded = Number(value.toFixed(fractionDigits))
+  const rounded = roundHalfUp(value, fractionDigits)
   const sign = rounded > 0 ? "+" : ""
   return `${sign}${rounded.toFixed(fractionDigits)}`
 }
@@ -506,7 +537,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     const currentPct = item.snapshotWeight * 100
                     const realDeltaPct = item.isExcluded
                       ? 0
-                      : item.effectiveTarget * 100 - currentPct
+                      : snapEpsilonZero(item.effectiveTarget * 100 - currentPct)
                     const sliderDeltaPct = Math.min(
                       DELTA_RANGE_PP,
                       Math.max(-DELTA_RANGE_PP, realDeltaPct),
@@ -669,7 +700,10 @@ function ExecuteRebalancePage(): React.ReactElement {
                           <div
                             className={`text-right text-[11px] tabular-nums ${deltaLabelClass}`}
                           >
-                            {formatSignedPp(realDeltaPct, 1)}
+                            {formatSignedPp(
+                              realDeltaPct,
+                              sliderStep === 0.01 ? 2 : 1,
+                            )}
                             {" → "}
                             {formatPercent(item.effectiveTarget)}
                           </div>
