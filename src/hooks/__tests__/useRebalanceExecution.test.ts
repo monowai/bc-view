@@ -865,6 +865,64 @@ describe("useRebalanceExecution", () => {
     expect(total).toBeCloseTo(1, 5)
   })
 
+  it("landing with no overrides never yields a nonzero deltaQuantity from proportional-scaling float noise", async () => {
+    // Three equal-weight holdings whose planTargetWeight mirrors current
+    // weight (as an AD_HOC execution seeds it) sum to 0.8999999999999999 in
+    // floating point rather than an exact 0.9 — the proportional-scaling
+    // formula (planTargetWeight / totalPlanTargetWeights * availableForAssets)
+    // then lands effectiveTarget a few 1e-15 pp off snapshotWeight even
+    // though nothing was edited. deltaQuantity rounds that residual to a
+    // whole share, which must resolve to 0 (not a phantom +/-1) so the
+    // "Delta" column stays neutral on landing.
+    const exec = makeExecution({
+      totalPortfolioValue: 10000,
+      snapshotCashValue: 1000,
+      items: [
+        makeItem({
+          id: "a",
+          assetId: "a-asset",
+          assetCode: "AAA",
+          snapshotWeight: 0.3,
+          snapshotValue: 3000,
+          planTargetWeight: 0.3,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "b",
+          assetId: "b-asset",
+          assetCode: "BBB",
+          snapshotWeight: 0.3,
+          snapshotValue: 3000,
+          planTargetWeight: 0.3,
+          snapshotPrice: 100,
+        }),
+        makeItem({
+          id: "c",
+          assetId: "c-asset",
+          assetCode: "CCC",
+          snapshotWeight: 0.3,
+          snapshotValue: 3000,
+          planTargetWeight: 0.3,
+          snapshotPrice: 100,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          snapshotWeight: 0.1,
+          snapshotValue: 1000,
+          planTargetWeight: 0.1,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    for (const item of result.current.displayItems) {
+      if (!item.isCash) {
+        expect(item.deltaQuantity).toBe(0)
+      }
+    }
+  })
+
   it("internal shuffle funded by an offsetting sale leaves projected total and untouched rows' weight unchanged", async () => {
     // Sell 300 from X, buy 300 into Y — self-funded, cash stays positive and
     // unchanged, so the projected total should equal the snapshot total and

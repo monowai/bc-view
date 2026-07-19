@@ -378,6 +378,38 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     expect(screen.getByText("-3.0 → 47.00%")).toHaveClass("text-red-600")
   })
 
+  it("treats a float-noise effectiveTarget residual as exactly zero delta", () => {
+    const execution = makeExecution()
+    // Seeded effectiveTarget carries a 1e-9 float residual over
+    // snapshotWeight (0.5) — far below any real edit — so the label, its
+    // color, and the slider must all read "unchanged".
+    execution.items[0].effectiveTarget = 0.5 + 1e-9
+    executionState.execution = execution
+    executionState.displayItems = displayItemsFor(execution)
+    executionState.activeItems = executionState.displayItems
+
+    render(<ExecuteRebalancePage />)
+
+    expect(screen.getByText("0.0 → 50.00%")).toHaveClass("text-gray-500")
+    const slider = screen.getByRole("slider", { name: "QUAL target weight" })
+    expect(slider).toHaveValue("0")
+  })
+
+  it("rounds a half-way delta up rather than truncating due to float representation", () => {
+    const execution = makeExecution()
+    // snapshotWeight 0.5 (50%), effectiveTarget 0.7415 (74.15%) -> a raw
+    // delta of 24.15pp, which (24.15).toFixed(1) mis-rounds down to "24.1"
+    // because of how 24.15 is represented in binary floating point.
+    execution.items[0].effectiveTarget = 0.7415
+    executionState.execution = execution
+    executionState.displayItems = displayItemsFor(execution)
+    executionState.activeItems = executionState.displayItems
+
+    render(<ExecuteRebalancePage />)
+
+    expect(screen.getByText("+24.2 → 74.15%")).toHaveClass("text-green-600")
+  })
+
   it("disables the slider on an excluded row and centers it at delta 0", () => {
     render(<ExecuteRebalancePage />)
 
