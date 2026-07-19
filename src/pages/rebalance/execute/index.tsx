@@ -221,6 +221,20 @@ function ExecuteRebalancePage(): React.ReactElement {
     )
   }
 
+  // Ad-hoc executions have no model/plan behind them — target weights are
+  // seeded from current holdings, so model-derived controls (All -> Target,
+  // which would be a no-op duplicate of All -> Current) are noise.
+  const isAdHoc = execution.mode === "AD_HOC"
+
+  // CASH row's delta/value cell mirrors this exactly (Change 1) — never
+  // recomputed from the row's own deltaValue, which only reflects cash's own
+  // target-vs-snapshot and drifts from the true net cash impact once other
+  // rows are edited.
+  const cashDeltaClass =
+    cashSummary.netImpact >= 0
+      ? "text-green-700 font-medium"
+      : "text-red-700 font-medium"
+
   return (
     <div className="w-full py-4">
       {/* Breadcrumb */}
@@ -286,9 +300,10 @@ function ExecuteRebalancePage(): React.ReactElement {
           <CashSummaryPanel
             currentMarketValue={cashSummary.currentMarketValue}
             currentCash={cashSummary.currentCash}
-            targetCash={cashSummary.targetCash}
             cashFromSales={cashSummary.cashFromSales}
             cashForPurchases={cashSummary.cashForPurchases}
+            netImpact={cashSummary.netImpact}
+            projectedCash={cashSummary.projectedCash}
             currency={execution.currency}
           />
         </div>
@@ -305,26 +320,38 @@ function ExecuteRebalancePage(): React.ReactElement {
                     {"Execution Plan"}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    {
-                      "Edit target % to adjust allocations. Exclude positions to maintain their current weight."
-                    }
+                    {isAdHoc
+                      ? "Adjust target weights; excluded rows keep their current weight."
+                      : "Edit target % to adjust allocations. Exclude positions to maintain their current weight."}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handlers.setAllToCurrent}
-                    className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
-                    title="Set all % to current weights (no changes)"
-                  >
-                    All &rarr; Current
-                  </button>
-                  <button
-                    onClick={handlers.setAllToTarget}
-                    className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
-                    title="Reset all to target weights from model"
-                  >
-                    All &rarr; Target
-                  </button>
+                  {isAdHoc ? (
+                    <button
+                      onClick={handlers.setAllToCurrent}
+                      className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                      title="Reset all target weights to current holdings"
+                    >
+                      {"Reset"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handlers.setAllToCurrent}
+                        className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                        title="Set all % to current weights (no changes)"
+                      >
+                        All &rarr; Current
+                      </button>
+                      <button
+                        onClick={handlers.setAllToTarget}
+                        className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                        title="Reset all to target weights from model"
+                      >
+                        All &rarr; Target
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={handlers.setAllToZero}
                     className="px-3 py-1 text-xs text-red-600 bg-white border border-red-300 rounded hover:bg-red-50"
@@ -366,32 +393,38 @@ function ExecuteRebalancePage(): React.ReactElement {
                 </div>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-auto max-h-[65vh]">
+              <table className="min-w-full table-fixed divide-y divide-gray-200">
+                <colgroup>
+                  <col className="w-10" />
+                  <col className="w-44" />
+                  <col className="w-24" />
+                  <col className="w-28" />
+                  <col className="w-56" />
+                  <col className="w-20" />
+                  <col className="w-32" />
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase w-12">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                       <span title="Exclude from execution">
                         <i className="fas fa-ban"></i>
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 left-0 z-30 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       {"Asset"}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Price"}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Current"}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Target"}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      %
-                    </th>
                     <th
-                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+                      className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase"
                       title={
                         cashSummary.projectedCash < 0
                           ? "Assumes required cash is funded"
@@ -400,8 +433,8 @@ function ExecuteRebalancePage(): React.ReactElement {
                     >
                       {"After %"}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Quantity"}
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                      {"Delta"}
                     </th>
                   </tr>
                 </thead>
@@ -433,10 +466,23 @@ function ExecuteRebalancePage(): React.ReactElement {
                           : isSell
                             ? "text-red-700 font-medium"
                             : "text-gray-500"
+                    // The sticky Asset cell paints above the rest of the row
+                    // once horizontally scrolled — it needs its own opaque
+                    // background matching the row tint, or content scrolled
+                    // underneath shows through.
+                    const stickyAssetBg = isCash
+                      ? "bg-blue-50"
+                      : item.isExcluded
+                        ? "bg-gray-100"
+                        : isBuy
+                          ? "bg-green-50"
+                          : isSell
+                            ? "bg-red-50"
+                            : "bg-white"
 
                     return (
                       <tr key={item.assetId} className={rowClass}>
-                        <td className="px-2 py-3 text-center">
+                        <td className="px-2 py-2 text-center">
                           {!isCash && (
                             <input
                               type="checkbox"
@@ -453,7 +499,9 @@ function ExecuteRebalancePage(): React.ReactElement {
                             />
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td
+                          className={`sticky left-0 z-10 px-3 py-2 ${stickyAssetBg}`}
+                        >
                           <div
                             className={`font-medium flex items-center gap-1 ${isCash ? "text-blue-900" : "text-gray-900"}`}
                             title={item.rationale || undefined}
@@ -490,65 +538,39 @@ function ExecuteRebalancePage(): React.ReactElement {
                             )}
                           </div>
                           {item.assetName && !isCash && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 truncate">
                               {item.assetName}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
+                        <td className="px-3 py-2 text-right text-gray-700 tabular-nums">
                           {item.snapshotPrice != null
                             ? `${formatCurrency(item.snapshotPrice)} ${item.priceCurrency || ""}`.trim()
                             : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() =>
-                                handlers.setToCurrent(
-                                  item.assetId,
-                                  item.snapshotWeight,
-                                )
-                              }
-                              className="text-gray-400 hover:text-invest-600 p-0.5"
-                              title="Copy to %"
-                            >
-                              <i className="fas fa-arrow-right text-xs"></i>
-                            </button>
-                            <div>
-                              <div
-                                className={
-                                  isCash ? "text-blue-900" : "text-gray-900"
-                                }
-                              >
-                                {formatPercent(item.snapshotWeight)}
-                              </div>
-                              <div
-                                className={`text-xs ${isCash ? "text-blue-600" : "text-gray-500"}`}
-                              >
-                                {formatCurrency(item.snapshotValue)}
-                              </div>
-                            </div>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handlers.setToCurrent(
+                                item.assetId,
+                                item.snapshotWeight,
+                              )
+                            }
+                            title="Set target to current weight"
+                            className={`block w-full text-right hover:underline ${
+                              isCash ? "text-blue-900" : "text-gray-900"
+                            }`}
+                          >
+                            {formatPercent(item.snapshotWeight)}
+                          </button>
+                          <div
+                            className={`text-xs ${isCash ? "text-blue-600" : "text-gray-500"}`}
+                          >
+                            {formatCurrency(item.snapshotValue)}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handlers.setToTarget(item.assetId)}
-                              className="text-gray-400 hover:text-invest-600 p-0.5"
-                              title="Copy to %"
-                            >
-                              <i className="fas fa-arrow-right text-xs"></i>
-                            </button>
-                            <span
-                              className={
-                                isCash ? "text-blue-600" : "text-gray-500"
-                              }
-                            >
-                              {formatPercent(item.planTargetWeight)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-2">
                             <input
                               type="range"
@@ -567,7 +589,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               }}
                               disabled={item.isExcluded}
                               aria-label={`${item.assetCode || item.assetId} target weight`}
-                              className="w-16 sm:w-24 min-w-[60px] h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="w-14 sm:w-20 min-w-[56px] h-2 accent-invest-500 disabled:opacity-40 disabled:cursor-not-allowed"
                             />
                             <input
                               type="number"
@@ -581,7 +603,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               }}
                               disabled={item.isExcluded}
                               aria-label={`${item.assetCode || item.assetId} target weight percent`}
-                              className={`w-20 px-2 py-1 text-right border rounded focus:ring-invest-500 focus:border-invest-500 ${
+                              className={`w-16 px-1.5 py-1 text-right text-sm border rounded focus:ring-invest-500 focus:border-invest-500 tabular-nums ${
                                 isCash
                                   ? "border-blue-300 bg-blue-50"
                                   : item.isExcluded
@@ -590,26 +612,46 @@ function ExecuteRebalancePage(): React.ReactElement {
                               }`}
                             />
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => handlers.setToTarget(item.assetId)}
+                            title="Reset target to plan weight"
+                            className="block w-full text-right text-[11px] text-gray-400 hover:text-invest-600 hover:underline mt-0.5"
+                          >
+                            {"Plan"}: {formatPercent(item.planTargetWeight)}
+                          </button>
                         </td>
                         <td
-                          className={`px-4 py-3 text-right ${isCash ? "text-blue-900" : "text-gray-700"}`}
+                          className={`px-3 py-2 text-right tabular-nums ${isCash ? "text-blue-900" : "text-gray-700"}`}
                         >
                           {item.projectedWeight == null
                             ? "—"
                             : formatPercent(item.projectedWeight)}
+                          {isCash && cashSummary.projectedCash < 0 && (
+                            <div className="text-[11px] text-red-600 font-medium">
+                              {"Deposit"}{" "}
+                              {formatCurrency(
+                                Math.abs(cashSummary.projectedCash),
+                              )}
+                            </div>
+                          )}
                         </td>
-                        <td className={`px-4 py-3 text-right ${quantityClass}`}>
+                        <td className="px-3 py-2 text-right tabular-nums">
                           {isCash ? (
-                            <span>
-                              {item.deltaValue > 0 ? "+" : ""}
-                              {formatCurrency(item.deltaValue)}
+                            <span className={cashDeltaClass}>
+                              {formatSignedNumber(cashSummary.netImpact)}
                             </span>
                           ) : item.isExcluded ? (
                             <span className="text-gray-400">-</span>
                           ) : (
                             <>
-                              {item.deltaQuantity > 0 ? "+" : ""}
-                              {item.deltaQuantity}
+                              <div className={quantityClass}>
+                                {item.deltaQuantity > 0 ? "+" : ""}
+                                {item.deltaQuantity}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatSignedNumber(item.deltaValue)}
+                              </div>
                             </>
                           )}
                         </td>
@@ -619,21 +661,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                 </tbody>
                 <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                   <tr>
-                    <td className="px-2 py-3"></td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">
+                    <td className="px-2 py-2"></td>
+                    <td className="sticky left-0 z-10 bg-gray-100 px-3 py-2 font-semibold text-gray-900">
                       {"Total"}
                     </td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-700">
-                      {formatPercent(
-                        displayItems.reduce(
-                          (sum, item) => sum + item.planTargetWeight,
-                          0,
-                        ),
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                    <td className="px-3 py-2"></td>
+                    <td className="px-3 py-2"></td>
+                    <td className="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">
                       {formatPercent(
                         displayItems.reduce(
                           (sum, item) => sum + item.effectiveTarget,
@@ -641,7 +675,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         ),
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                    <td className="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">
                       {formatPercent(
                         displayItems.reduce(
                           (sum, item) => sum + (item.projectedWeight ?? 0),
@@ -649,7 +683,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         ),
                       )}
                     </td>
-                    <td className="px-4 py-3"></td>
+                    <td className="px-3 py-2"></td>
                   </tr>
                 </tfoot>
               </table>
@@ -809,9 +843,10 @@ function ExecuteRebalancePage(): React.ReactElement {
             <CashSummaryPanel
               currentMarketValue={cashSummary.currentMarketValue}
               currentCash={cashSummary.currentCash}
-              targetCash={cashSummary.targetCash}
               cashFromSales={cashSummary.cashFromSales}
               cashForPurchases={cashSummary.cashForPurchases}
+              netImpact={cashSummary.netImpact}
+              projectedCash={cashSummary.projectedCash}
               currency={execution.currency}
             />
           </div>
