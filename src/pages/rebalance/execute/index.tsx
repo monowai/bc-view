@@ -346,6 +346,16 @@ function ExecuteRebalancePage(): React.ReactElement {
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       %
                     </th>
+                    <th
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+                      title={
+                        cashSummary.projectedCash < 0
+                          ? "Assumes required cash is funded"
+                          : "Resulting weight once all target changes are applied"
+                      }
+                    >
+                      {"After %"}
+                    </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       {"Quantity"}
                     </th>
@@ -537,6 +547,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                             />
                           </div>
                         </td>
+                        <td
+                          className={`px-4 py-3 text-right ${isCash ? "text-blue-900" : "text-gray-700"}`}
+                        >
+                          {item.projectedWeight == null
+                            ? "—"
+                            : formatPercent(item.projectedWeight)}
+                        </td>
                         <td className={`px-4 py-3 text-right ${quantityClass}`}>
                           {isCash ? (
                             <span>
@@ -591,11 +608,26 @@ function ExecuteRebalancePage(): React.ReactElement {
                         ),
                       )}
                     </td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                      {formatPercent(
+                        displayItems.reduce(
+                          (sum, item) => sum + (item.projectedWeight ?? 0),
+                          0,
+                        ),
+                      )}
+                    </td>
                     <td className="px-4 py-3"></td>
                   </tr>
                 </tfoot>
               </table>
             </div>
+            {cashSummary.projectedCash < 0 && (
+              <p className="px-4 py-2 text-xs text-amber-700 bg-amber-50 border-t border-amber-200">
+                {
+                  "After % assumes required cash is funded — the projected cash shortfall shown above is treated as a deposit."
+                }
+              </p>
+            )}
           </div>
 
           {/* Navigation */}

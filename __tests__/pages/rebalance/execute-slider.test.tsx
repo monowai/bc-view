@@ -98,6 +98,8 @@ const executionState: {
     targetCash: number
     cashFromSales: number
     cashForPurchases: number
+    netImpact: number
+    projectedCash: number
   }
   brokers: unknown[]
   selectedBrokerId: string | undefined
@@ -122,6 +124,8 @@ const executionState: {
     targetCash: 0,
     cashFromSales: 0,
     cashForPurchases: 0,
+    netImpact: 0,
+    projectedCash: 0,
   },
   brokers: [],
   selectedBrokerId: undefined,
@@ -157,16 +161,27 @@ jest.mock("@hooks/useRebalanceExecution", () => ({
 
 import ExecuteRebalancePage from "@pages/rebalance/execute"
 
-// Build displayItems the way useRebalanceExecution would (adds isExcluded/isCash).
+// Build displayItems the way useRebalanceExecution would (adds isExcluded/isCash
+// and the projected After-% fields). Non-cash rows here have zero delta, so
+// projectedValue == snapshotValue and the total is just the portfolio value.
 function displayItemsFor(execution: ExecutionDto): unknown[] {
-  return execution.items.map((item) => ({
-    ...item,
-    effectiveTarget: item.effectiveTarget,
-    deltaValue: item.deltaValue,
-    deltaQuantity: item.deltaQuantity,
-    isExcluded: item.excluded,
-    isCash: item.isCash ?? false,
-  }))
+  const total = execution.totalPortfolioValue
+  return execution.items.map((item) => {
+    const isCash = item.isCash ?? false
+    const projectedValue = isCash
+      ? execution.snapshotCashValue
+      : item.snapshotValue + item.deltaValue
+    return {
+      ...item,
+      effectiveTarget: item.effectiveTarget,
+      deltaValue: item.deltaValue,
+      deltaQuantity: item.deltaQuantity,
+      isExcluded: item.excluded,
+      isCash,
+      projectedValue,
+      projectedWeight: item.excluded ? null : projectedValue / total,
+    }
+  })
 }
 
 describe("ExecuteRebalancePage — slider weight editing", () => {
@@ -177,6 +192,15 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     executionState.execution = execution
     executionState.displayItems = displayItemsFor(execution)
     executionState.activeItems = executionState.displayItems
+    executionState.cashSummary = {
+      currentMarketValue: 0,
+      currentCash: 0,
+      targetCash: 0,
+      cashFromSales: 0,
+      cashForPurchases: 0,
+      netImpact: 0,
+      projectedCash: 0,
+    }
   })
 
   it("renders the step toggle defaulting to 5% and sliders at 5% step", () => {
@@ -270,5 +294,121 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
       "asset-qual",
       0.1234,
     )
+  })
+
+  // --- After % column ---
+
+  it("renders the After % column with projected weights, dash for excluded rows, and a 100% total", () => {
+    const execution: ExecutionDto = {
+      ...makeExecution(),
+      totalPortfolioValue: 10000,
+      snapshotCashValue: 3000,
+      items: [
+        {
+          id: "item-1",
+          assetId: "asset-qual",
+          assetCode: "QUAL",
+          assetName: "Quality ETF",
+          snapshotWeight: 0.5,
+          snapshotValue: 5000,
+          snapshotQuantity: 50,
+          snapshotPrice: 100,
+          priceCurrency: "USD",
+          planTargetWeight: 0.5,
+          effectiveTarget: 0.52,
+          hasOverride: true,
+          deltaValue: 200,
+          deltaQuantity: 2,
+          action: "BUY",
+          excluded: false,
+          locked: false,
+          sortOrder: 0,
+          isCash: false,
+        },
+        {
+          id: "item-2",
+          assetId: "asset-excluded",
+          assetCode: "EXCL",
+          assetName: "Excluded Co",
+          snapshotWeight: 0.2,
+          snapshotValue: 2000,
+          snapshotQuantity: 20,
+          snapshotPrice: 100,
+          priceCurrency: "USD",
+          planTargetWeight: 0.2,
+          effectiveTarget: 0.2,
+          hasOverride: false,
+          deltaValue: 0,
+          deltaQuantity: 0,
+          action: "HOLD",
+          excluded: true,
+          locked: false,
+          sortOrder: 1,
+          isCash: false,
+        },
+        {
+          id: "item-cash",
+          assetId: "cash-usd",
+          assetCode: "USD",
+          assetName: "US Dollar",
+          snapshotWeight: 0.3,
+          snapshotValue: 3000,
+          snapshotQuantity: 3000,
+          snapshotPrice: 1,
+          priceCurrency: "USD",
+          planTargetWeight: 0.3,
+          effectiveTarget: 0.3,
+          hasOverride: false,
+          deltaValue: 0,
+          deltaQuantity: 0,
+          action: "HOLD",
+          excluded: false,
+          locked: false,
+          sortOrder: 2,
+          isCash: true,
+        },
+      ],
+    }
+    executionState.execution = execution
+    executionState.displayItems = displayItemsFor(execution)
+    executionState.activeItems = executionState.displayItems
+
+    const { container } = render(<ExecuteRebalancePage />)
+
+    const headerCells = Array.from(container.querySelectorAll("thead th"))
+    const afterIdx = headerCells.findIndex(
+      (th) => th.textContent?.trim() === "After %",
+    )
+    expect(afterIdx).toBeGreaterThan(-1)
+
+    const bodyRows = Array.from(container.querySelectorAll("tbody tr"))
+    const afterValues = bodyRows.map((row) =>
+      row.children[afterIdx]?.textContent?.trim(),
+    )
+    // QUAL: 5200/10000, EXCL: excluded -> dash, cash: 3000/10000
+    expect(afterValues).toEqual(["52.00%", "—", "30.00%"])
+
+    const footerRow = container.querySelector("tfoot tr")!
+    expect(footerRow.children[afterIdx]?.textContent?.trim()).toBe("82.00%")
+  })
+
+  it("shows the funded-by-deposit footnote when projected cash is negative", () => {
+    executionState.cashSummary.projectedCash = -500
+
+    render(<ExecuteRebalancePage />)
+
+    expect(
+      screen.getByText(/Assumes required cash is funded/i),
+    ).toBeInTheDocument()
+  })
+
+  it("hides the funded-by-deposit footnote when projected cash is non-negative", () => {
+    executionState.cashSummary.projectedCash = 100
+
+    render(<ExecuteRebalancePage />)
+
+    expect(
+      screen.queryByText(/Assumes required cash is funded/i),
+    ).not.toBeInTheDocument()
   })
 })
