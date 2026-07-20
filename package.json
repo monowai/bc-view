@@ -121,6 +121,7 @@
     "@types/node": "^25.9.4",
     "@types/papaparse": "^5.5.2",
     "js-yaml": "^4.3.0",
-    "baseline-browser-mapping": "^2.10.42"
+    "baseline-browser-mapping": "^2.10.42",
+    "postcss": "^8.5.10"
   }
 }
