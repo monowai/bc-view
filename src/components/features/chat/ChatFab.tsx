@@ -11,6 +11,7 @@ import {
   saveChatCorner,
 } from "@components/features/chat/chatPosition"
 import { onChatOpen } from "@components/features/chat/chatBus"
+import { onPageContextChange } from "@components/features/chat/pageContextBus"
 
 export default function ChatFab(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,11 +33,19 @@ export default function ChatFab(): React.ReactElement {
   const router = useRouter()
   const pageContext = getPageContext(router.pathname)
   const routeParams = router.query
+
+  // Live, page-published context (e.g. the current in-progress draft
+  // rebalance) — see pageContextBus.ts. Generic: any page can publish, this
+  // component just folds whatever is current into the outgoing payload.
+  const [livePageContext, setLivePageContext] = useState<string | null>(null)
+  useEffect(() => onPageContextChange(setLivePageContext), [])
+
   const context = useMemo(() => {
     const ctx: Record<string, unknown> = {
       page: pageContext.page,
       description: pageContext.description,
     }
+    if (livePageContext) ctx.currentState = livePageContext
     // Include dynamic route params for specificity. Managed (shared)
     // portfolios are routed as /holdings/{portfolio.id}?byId=1 — in that
     // case the dynamic [code] segment is actually the portfolio id, so
@@ -52,7 +61,7 @@ export default function ChatFab(): React.ReactElement {
     if (routeParams.id) ctx.entityId = routeParams.id
     if (routeParams.modelId) ctx.modelId = routeParams.modelId
     return ctx
-  }, [pageContext.page, pageContext.description, routeParams])
+  }, [pageContext.page, pageContext.description, routeParams, livePageContext])
   const { messages, isLoading, sendMessage, clearMessages, cancel } =
     useChat(context)
 
