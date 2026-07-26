@@ -20,6 +20,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   cashDelta,
   planCurrency,
 }) => {
+  const hasApprovedPlan = Boolean(selectedModel?.currentPlanId)
+
   return (
     <div className="space-y-6">
       <div>
@@ -93,9 +95,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
           <div className="text-sm text-blue-700">
             <p>
-              {
-                "After creating the plan, you can review the calculated items, adjust exclusions, set execution prices, and execute when ready."
-              }
+              {hasApprovedPlan
+                ? "This will start an execution against the model's approved plan for the selected portfolios and scenario."
+                : "This model has no approved plan yet, so a draft plan will be created first. Your selected portfolios, scenario and cash settings aren't stored on the plan — they'll apply later when you run an execution against it."}
             </p>
           </div>
         </div>

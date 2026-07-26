@@ -7,7 +7,12 @@ import SelectModelStep from "./steps/SelectModelStep"
 import SelectPortfoliosStep from "./steps/SelectPortfoliosStep"
 import ConfigureScenarioStep from "./steps/ConfigureScenarioStep"
 import ReviewStep from "./steps/ReviewStep"
-import { ModelDto, RebalanceScenario, CreatePlanRequest } from "types/rebalance"
+import {
+  ModelDto,
+  RebalanceScenario,
+  CreatePlanRequest,
+  CreateExecutionRequest,
+} from "types/rebalance"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface RebalanceWizardContainerProps {
@@ -32,7 +37,12 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
     isSubmitting,
     submitError: error,
     handleSubmit: dialogSubmit,
-  } = useDialogSubmit({ fallbackError: "Failed to create plan" })
+  } = useDialogSubmit({ fallbackError: "Failed to complete wizard" })
+
+  // A model with an approved plan (currentPlanId) can go straight to an
+  // execution against it; one without needs a draft plan created first (see
+  // handleSubmit below for why the two paths differ).
+  const hasApprovedPlan = Boolean(selectedModel?.currentPlanId)
 
   // Steps configuration
   const steps = useMemo(
@@ -83,12 +93,51 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
     }
 
     await dialogSubmit(async () => {
+      if (selectedModel.currentPlanId) {
+        // The model already has an approved plan — skip plan creation
+        // entirely and go straight to an execution against it, carrying the
+        // portfolios/scenario/cashDelta collected in steps 2-3. (A
+        // wizard-created plan would be DRAFT and empty, and an empty plan
+        // can't be approved, so this path only applies when a plan is
+        // already approved.)
+        const payload: CreateExecutionRequest = {
+          planId: selectedModel.currentPlanId,
+          portfolioIds: selectedPortfolioIds,
+          name: planName.trim(),
+          mode: scenario,
+          cashDelta:
+            scenario === "REBALANCE" && cashDelta ? cashDelta : undefined,
+          investmentAmount:
+            scenario === "INVEST_CASH" && cashDelta ? cashDelta : undefined,
+        }
+
+        const response = await fetch("/api/rebalance/executions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(
+            errorData.detail ||
+              errorData.message ||
+              "Failed to start execution",
+          )
+        }
+
+        const result = await response.json()
+        await router.push(`/rebalance/execute?executionId=${result.data.id}`)
+        return
+      }
+
       // svc-rebalance only creates plans nested under a model
       // (POST /models/{modelId}/plans) — there is no top-level "bind this
       // plan to these portfolios with a scenario" endpoint. CreatePlanRequest
       // only accepts description/sourcePlanId/assets, so the portfolios,
       // scenario and cashDelta collected in steps 2-3 have no home here; they
-      // apply later, at execution time (see /rebalance/execute).
+      // apply later, at execution time (see /rebalance/execute), once this
+      // draft plan has assets and is approved.
       const payload: CreatePlanRequest = {
         description: planName.trim(),
       }
@@ -198,8 +247,10 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             {isSubmitting ? (
               <span className="flex items-center">
                 <Spinner className="mr-2" />
-                {"Creating..."}
+                {hasApprovedPlan ? "Starting..." : "Creating..."}
               </span>
+            ) : hasApprovedPlan ? (
+              "Start Execution"
             ) : (
               "Create Plan"
             )}
