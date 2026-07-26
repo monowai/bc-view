@@ -32,7 +32,7 @@ test.describe("Asset Search in Trade Entry", () => {
     await page.goto(PAGES.holdings(portfolioCode))
     await page.waitForLoadState("domcontentloaded")
     // Wait for the holdings page to load (Trade button appears when page is ready)
-    await expect(page.locator("button:has-text('Trade')").first()).toBeVisible({
+    await expect(page.getByLabel("Trade", { exact: true })).toBeVisible({
       timeout: 15000,
     })
   }
@@ -45,7 +45,7 @@ test.describe("Asset Search in Trade Entry", () => {
     page: import("@playwright/test").Page,
   ): Promise<void> {
     // Click the "Trade" dropdown button
-    await page.locator("button:has-text('Trade')").first().click()
+    await page.getByLabel("Trade", { exact: true }).click()
     // Click "Asset Trade" from the dropdown
     await page.locator("text=Asset Trade").click()
     // Verify modal opened

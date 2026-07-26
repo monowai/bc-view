@@ -267,7 +267,7 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
     }
   })
 
-  test("warning path: BUY skipped when master has no cash history", async ({
+  test("warning path: BUY against master with no cash history warns but still settles", async ({
     page,
   }) => {
     const helpers = createTestHelpers(page)
@@ -295,7 +295,9 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
         return json.data.MSFT.id as string
       })
 
-      // No DEPOSIT in master — auto-settle must skip and warn.
+      // No DEPOSIT in master — auto-settle warns about the overdraw but still
+      // emits the W+D pair (dropping the leg would leave the trade portfolio
+      // silently unbalanced — see CashAutoSettleService).
       const buyResponse = await postTrn(page, invest.id, {
         assetId,
         cashAssetId,
@@ -318,7 +320,15 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
       const autoLegs = investTrns.filter(
         (t: any) => t.callerRef?.provider === "BC-AUTO",
       )
-      expect(autoLegs).toHaveLength(0)
+      expect(autoLegs).toHaveLength(1)
+      expect(autoLegs[0].trnType).toBe("DEPOSIT")
+
+      const masterTrns = await fetchCashLadder(page, master.id, cashAssetId)
+      const masterAuto = masterTrns.filter(
+        (t: any) => t.callerRef?.provider === "BC-AUTO",
+      )
+      expect(masterAuto).toHaveLength(1)
+      expect(masterAuto[0].trnType).toBe("WITHDRAWAL")
       await clearCashFunding(page, invest)
     } finally {
       await helpers.cleanupTestData()

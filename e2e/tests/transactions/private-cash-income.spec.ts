@@ -64,12 +64,12 @@ test.describe("Private Cash Income", () => {
       await page.waitForLoadState("domcontentloaded")
 
       // Wait for the Trade button to appear (indicates page is ready)
-      await expect(
-        page.locator("button:has-text('Trade')").first(),
-      ).toBeVisible({ timeout: 15000 })
+      await expect(page.getByLabel("Trade", { exact: true })).toBeVisible({
+        timeout: 15000,
+      })
 
       // 4. Open Trade dropdown and click "Cash Transaction"
-      await page.locator("button:has-text('Trade')").first().click()
+      await page.getByLabel("Trade", { exact: true }).click()
       await page.locator("text=Cash Transaction").click()
 
       // Wait for the CashInputForm modal to appear

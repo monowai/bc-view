@@ -207,7 +207,7 @@ export async function waitForHoldings(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const ok = await page.evaluate(async (code) => {
-      const response = await fetch(`/api/holdings/${code}`)
+      const response = await fetch(`/api/holdings/${code}?asAt=today`)
       return response.ok
     }, portfolioCode)
 

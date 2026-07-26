@@ -78,7 +78,9 @@ test.describe("Plan Export / Import Round-Trip", () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
 
-      const createLink = page.getByRole("link", { name: /create.*plan/i })
+      // Header link is labelled "Create Phase"; the empty state has its own
+      // wizard CTA — match by target so either works.
+      const createLink = page.locator('a[href="/independence/wizard"]')
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
