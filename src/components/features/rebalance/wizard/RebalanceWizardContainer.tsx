@@ -39,9 +39,6 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
     handleSubmit: dialogSubmit,
   } = useDialogSubmit({ fallbackError: "Failed to complete wizard" })
 
-  // A model with an approved plan (currentPlanId) can go straight to an
-  // execution against it; one without needs a draft plan created first (see
-  // handleSubmit below for why the two paths differ).
   const hasApprovedPlan = Boolean(selectedModel?.currentPlanId)
 
   // Steps configuration
@@ -92,76 +89,52 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       return
     }
 
+    // A model with an approved plan goes straight to an execution carrying
+    // the portfolios/scenario/cashDelta from steps 2-3. Without one, only a
+    // draft plan can be created — CreatePlanRequest has no home for those
+    // values; they apply at execution time, once the plan is approved.
+    const { currentPlanId, id: modelId } = selectedModel
+    const target: {
+      url: string
+      payload: CreateExecutionRequest | CreatePlanRequest
+      route: (id: string) => string
+    } = currentPlanId
+      ? {
+          url: "/api/rebalance/executions",
+          payload: {
+            planId: currentPlanId,
+            portfolioIds: selectedPortfolioIds,
+            name: planName.trim(),
+            mode: scenario,
+            cashDelta:
+              scenario === "REBALANCE" ? cashDelta || undefined : undefined,
+            investmentAmount:
+              scenario === "INVEST_CASH" ? cashDelta || undefined : undefined,
+          },
+          route: (id) => `/rebalance/execute?executionId=${id}`,
+        }
+      : {
+          url: `/api/rebalance/models/${modelId}/plans`,
+          payload: { description: planName.trim() },
+          route: (id) => `/rebalance/models/${modelId}/plans/${id}`,
+        }
+
     await dialogSubmit(async () => {
-      if (selectedModel.currentPlanId) {
-        // The model already has an approved plan — skip plan creation
-        // entirely and go straight to an execution against it, carrying the
-        // portfolios/scenario/cashDelta collected in steps 2-3. (A
-        // wizard-created plan would be DRAFT and empty, and an empty plan
-        // can't be approved, so this path only applies when a plan is
-        // already approved.)
-        const payload: CreateExecutionRequest = {
-          planId: selectedModel.currentPlanId,
-          portfolioIds: selectedPortfolioIds,
-          name: planName.trim(),
-          mode: scenario,
-          cashDelta:
-            scenario === "REBALANCE" && cashDelta ? cashDelta : undefined,
-          investmentAmount:
-            scenario === "INVEST_CASH" && cashDelta ? cashDelta : undefined,
-        }
-
-        const response = await fetch("/api/rebalance/executions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(
-            errorData.detail ||
-              errorData.message ||
-              "Failed to start execution",
-          )
-        }
-
-        const result = await response.json()
-        await router.push(`/rebalance/execute?executionId=${result.data.id}`)
-        return
-      }
-
-      // svc-rebalance only creates plans nested under a model
-      // (POST /models/{modelId}/plans) — there is no top-level "bind this
-      // plan to these portfolios with a scenario" endpoint. CreatePlanRequest
-      // only accepts description/sourcePlanId/assets, so the portfolios,
-      // scenario and cashDelta collected in steps 2-3 have no home here; they
-      // apply later, at execution time (see /rebalance/execute), once this
-      // draft plan has assets and is approved.
-      const payload: CreatePlanRequest = {
-        description: planName.trim(),
-      }
-
-      const response = await fetch(
-        `/api/rebalance/models/${selectedModel.id}/plans`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      )
+      const response = await fetch(target.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(target.payload),
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(
-          errorData.detail || errorData.message || "Failed to create plan",
+          errorData.detail || errorData.message || "Failed to complete wizard",
         )
       }
 
       const result = await response.json()
-      await router.push(
-        `/rebalance/models/${selectedModel.id}/plans/${result.data.id}`,
-      )
+      await router.push(target.route(result.data.id))
     })
   }
 
