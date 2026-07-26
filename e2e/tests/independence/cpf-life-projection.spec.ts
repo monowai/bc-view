@@ -112,7 +112,12 @@ test.describe("CPF LIFE Projection Flow", () => {
       await expect(continueBtn).toBeVisible({ timeout: 5_000 })
       await continueBtn.click()
 
-      // Step 6 - Independence: complete setup
+      // Step 5 - Independence: skip (settings seeded via API in Phase 1;
+      // the CPF plan is created through the independence wizard in Phase 3)
+      await page.getByRole("button", { name: /skip for now/i }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
+
+      // Step 6 - Brokerage: complete setup
       const completeBtn = page.getByRole("button", {
         name: /complete setup/i,
       })
@@ -132,7 +137,9 @@ test.describe("CPF LIFE Projection Flow", () => {
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
-      const createLink = page.getByRole("link", { name: /create.*plan/i })
+      // Header link is labelled "Create Phase"; the empty state has its own
+      // wizard CTA — match by target so either works.
+      const createLink = page.locator('a[href="/independence/wizard"]')
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
@@ -166,12 +173,11 @@ test.describe("CPF LIFE Projection Flow", () => {
         .filter({ hasText: /none.*simple/i })
       await policySelect.selectOption("CPF")
 
-      // Apply CPF template
-      const applyTemplate = page.getByRole("button", {
-        name: /apply cpf template/i,
+      // CPF template auto-applies when the CPF policy type is selected —
+      // sub-account rows render immediately with labelled balance inputs.
+      await expect(page.getByLabel("OA balance")).toBeVisible({
+        timeout: 5_000,
       })
-      await expect(applyTemplate).toBeVisible({ timeout: 5_000 })
-      await applyTemplate.click()
 
       // Set CPF LIFE Plan to Standard
       const cpfLifeSection = page.getByText("CPF LIFE Settings")
@@ -185,15 +191,17 @@ test.describe("CPF LIFE Projection Flow", () => {
 
       // Fill sub-account balances: OA=50000, SA=80000, MA=20000, RA=0
       // Use higher SA balance to get meaningful RA at 55 and visible payouts
-      const balanceInputs = page.locator(
-        'table input[type="number"][step="100"]',
-      )
-      await expect(balanceInputs.first()).toBeVisible({ timeout: 5_000 })
-
-      const balances = [50000, 80000, 20000, 0]
-      const count = await balanceInputs.count()
-      for (let i = 0; i < Math.min(count, balances.length); i++) {
-        await balanceInputs.nth(i).fill(String(balances[i]))
+      const balances: Array<[string, number]> = [
+        ["OA balance", 50000],
+        ["SA balance", 80000],
+        ["MA balance", 20000],
+        ["RA balance", 0],
+      ]
+      for (const [label, value] of balances) {
+        const input = page.getByLabel(label)
+        if ((await input.count()) > 0) {
+          await input.fill(String(value))
+        }
       }
 
       // Select portfolio for balance transaction
@@ -231,9 +239,7 @@ test.describe("CPF LIFE Projection Flow", () => {
     })
 
     await test.step("Step 5 - Retirement Expenses", async () => {
-      const expenseInputs = page.locator(
-        'input[type="number"][min="0"][step="50"]',
-      )
+      const expenseInputs = page.locator('input[min="0"][step="50"]')
       await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
       await expenseInputs.nth(0).fill("1500")
       await page.getByRole("button", { name: "Next", exact: true }).click()

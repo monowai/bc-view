@@ -121,7 +121,14 @@ test.describe("CPF Onboarding Flow", () => {
       await continueBtn.click()
     })
 
-    await test.step("Step 6 - Independence: complete setup", async () => {
+    await test.step("Step 5 - Independence: skip", async () => {
+      // Independence defaults ON; the CPF plan is created via the
+      // independence wizard later in this test, so opt out here.
+      await page.getByRole("button", { name: /skip for now/i }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
+    })
+
+    await test.step("Step 6 - Brokerage: complete setup", async () => {
       const completeBtn = page.getByRole("button", {
         name: /complete setup/i,
       })
@@ -146,7 +153,7 @@ test.describe("CPF Onboarding Flow", () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
       // Click "Create Your First Plan" or "Create Plan"
-      const createLink = page.getByRole("link", { name: /create.*plan/i })
+      const createLink = page.locator('a[href="/independence/wizard"]')
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
@@ -183,25 +190,22 @@ test.describe("CPF Onboarding Flow", () => {
         .filter({ hasText: /none.*simple/i })
       await policySelect.selectOption("CPF")
 
-      // Apply CPF template
-      const applyTemplate = page.getByRole("button", {
-        name: /apply cpf template/i,
+      // CPF template auto-applies when the CPF policy type is selected —
+      // sub-account rows render immediately with labelled balance inputs.
+      await expect(page.getByLabel("OA balance")).toBeVisible({
+        timeout: 5_000,
       })
-      await expect(applyTemplate).toBeVisible({ timeout: 5_000 })
-      await applyTemplate.click()
-
-      // Fill sub-account balances (OA, SA, MA, RA)
-      // The sub-accounts table has rows with code labels and balance inputs
-      const balanceInputs = page.locator(
-        'table input[type="number"][step="100"]',
-      )
-      await expect(balanceInputs.first()).toBeVisible({ timeout: 5_000 })
-
-      // OA = 50000, SA = 30000, MA = 20000, RA = 10000
-      const balances = [50000, 30000, 20000, 10000]
-      const count = await balanceInputs.count()
-      for (let i = 0; i < Math.min(count, balances.length); i++) {
-        await balanceInputs.nth(i).fill(String(balances[i]))
+      const balances: Array<[string, number]> = [
+        ["OA balance", 50000],
+        ["SA balance", 30000],
+        ["MA balance", 20000],
+        ["RA balance", 10000],
+      ]
+      for (const [label, value] of balances) {
+        const input = page.getByLabel(label)
+        if ((await input.count()) > 0) {
+          await input.fill(String(value))
+        }
       }
 
       // Select portfolio for balance transaction
@@ -245,9 +249,7 @@ test.describe("CPF Onboarding Flow", () => {
 
     await test.step("Independence Step 5 - Retirement Expenses: enter values", async () => {
       // Wait for system categories to load
-      const expenseInputs = page.locator(
-        'input[type="number"][min="0"][step="50"]',
-      )
+      const expenseInputs = page.locator('input[min="0"][step="50"]')
       await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
 
       // Fill first category with known value
@@ -287,9 +289,12 @@ test.describe("CPF Onboarding Flow", () => {
       })
       await expect(newPage.getByText("SGD").first()).toBeVisible()
 
-      // Default card view groups by Asset Class; the first group is expanded
-      // by default, so the CPF asset card should be visible without a toggle.
-      await expect(newPage.getByText("Policies").first()).toBeVisible()
+      // Card view groups by Asset Class; retirement policies now group under
+      // "Retirement Fund" (formerly "Policies") and start collapsed — expand
+      // to reveal the CPF asset card.
+      const group = newPage.getByRole("button", { name: /Retirement Fund/ })
+      await expect(group.first()).toBeVisible()
+      await group.first().click()
 
       // Verify the CPF asset name appears
       await expect(newPage.getByText("Central Provident Fund")).toBeVisible({
@@ -324,18 +329,26 @@ test.describe("CPF Onboarding Flow", () => {
       await stepButtons.nth(4).click()
 
       // Wait for expense category inputs to appear.
-      const retExpInputs = page.locator(
-        'input[type="number"][min="0"][step="50"]',
-      )
+      const retExpInputs = page.locator('input[min="0"][step="50"]')
       await expect(retExpInputs.first()).toBeVisible({ timeout: 10_000 })
 
       // Saved expense values hydrate asynchronously (plan + expenses endpoints
       // are separate). On slower runners the saved category may not be the
       // first input, so assert that SOME input carries the saved amount, and
       // that the total reflects the saved value.
-      await expect(
-        page.locator('input[name^="expenses."][value="2000"]'),
-      ).toBeVisible({ timeout: 10_000 })
+      // Expense inputs are MathInputs (no name attribute; controlled value) —
+      // poll until some input carries the saved amount.
+      await expect
+        .poll(
+          () =>
+            page
+              .locator('input[min="0"][step="50"]')
+              .evaluateAll((els) =>
+                els.some((el) => (el as HTMLInputElement).value === "2000"),
+              ),
+          { timeout: 10_000 },
+        )
+        .toBe(true)
       await expect(page.getByText("$2,000")).toBeVisible({ timeout: 5_000 })
     })
   })

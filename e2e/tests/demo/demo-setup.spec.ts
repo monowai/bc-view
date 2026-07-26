@@ -153,7 +153,14 @@ test.describe("Demo User Setup", () => {
       await continueBtn.click()
     })
 
-    await test.step("Step 6 - Independence: complete setup", async () => {
+    await test.step("Step 5 - Independence: skip", async () => {
+      // Independence defaults ON; an onboarding-created plan would break the
+      // later redirect-to-wizard assertion, so opt out and continue.
+      await page.getByRole("button", { name: /skip for now/i }).click()
+      await page.getByRole("button", { name: "Continue" }).click()
+    })
+
+    await test.step("Step 6 - Brokerage: complete setup", async () => {
       const completeBtn = page.getByRole("button", {
         name: /complete setup/i,
       })
@@ -295,7 +302,7 @@ test.describe("Demo User Setup", () => {
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
-      const createLink = page.getByRole("link", { name: /create.*plan/i })
+      const createLink = page.locator('a[href="/independence/wizard"]')
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
@@ -329,23 +336,22 @@ test.describe("Demo User Setup", () => {
         .filter({ hasText: /none.*simple/i })
       await policySelect.selectOption("CPF")
 
-      // Apply CPF template
-      const applyTemplate = page.getByRole("button", {
-        name: /apply cpf template/i,
+      // CPF template auto-applies when the CPF policy type is selected —
+      // sub-account rows render immediately with labelled balance inputs.
+      await expect(page.getByLabel("OA balance")).toBeVisible({
+        timeout: 5_000,
       })
-      await expect(applyTemplate).toBeVisible({ timeout: 5_000 })
-      await applyTemplate.click()
-
-      // Fill sub-account balances: OA=80000, SA=50000, MA=30000, RA=15000
-      const balanceInputs = page.locator(
-        'table input[type="number"][step="100"]',
-      )
-      await expect(balanceInputs.first()).toBeVisible({ timeout: 5_000 })
-
-      const balances = [80000, 50000, 30000, 15000]
-      const count = await balanceInputs.count()
-      for (let i = 0; i < Math.min(count, balances.length); i++) {
-        await balanceInputs.nth(i).fill(String(balances[i]))
+      const balances: Array<[string, number]> = [
+        ["OA balance", 80000],
+        ["SA balance", 50000],
+        ["MA balance", 30000],
+        ["RA balance", 15000],
+      ]
+      for (const [label, value] of balances) {
+        const input = page.getByLabel(label)
+        if ((await input.count()) > 0) {
+          await input.fill(String(value))
+        }
       }
 
       // Select SGD portfolio for balance transaction
@@ -464,8 +470,9 @@ test.describe("Demo User Setup", () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
 
-      // Landing page now defaults to Work Scenarios — switch to Plans
-      await page.getByRole("button", { name: "Plans", exact: true }).click()
+      // Landing page now defaults to Work Scenarios — switch to Phases
+      // (tab formerly labelled "Plans")
+      await page.getByRole("button", { name: "Phases", exact: true }).click()
 
       await expect(
         page.getByText("Financial Independence").first(),
