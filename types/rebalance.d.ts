@@ -190,7 +190,10 @@ export interface RebalanceCalculationResponse {
 // === Execution Types (persisted rebalance configurations) ===
 
 export type ExecutionPlanStatus =
-  "DRAFT" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
 
 export type ExecutionMode = "REBALANCE" | "INVEST_CASH" | "AD_HOC"
 
@@ -291,6 +294,8 @@ export interface CreateExecutionRequest {
   mode?: ExecutionMode
   /** Amount of cash to invest (only used in INVEST_CASH mode) */
   investmentAmount?: number
+  /** Cash to deploy/remove (only used in REBALANCE mode; defaults to 0) */
+  cashDelta?: number
   /** When true, only consider positions from transactions tagged with this model's ID */
   filterByModel?: boolean
   /** Required for AD_HOC mode — the portfolio's report currency */
