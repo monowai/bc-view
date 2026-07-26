@@ -1,29 +1,37 @@
 import React, { useState } from "react"
 import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
-import { usePlans } from "../hooks/usePlans"
+import { useAllPlans } from "../hooks/useAllPlans"
+import { PlanDto } from "types/rebalance"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import StatusBadge from "../common/StatusBadge"
-import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
-import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
+import { tableBase, theadBase, thBase, tbodyBase } from "@utils/tableStyles"
 import Spinner from "@components/ui/Spinner"
 
 const RebalancePlanList: React.FC = () => {
   const router = useRouter()
-  const { plans, isLoading, error, deletePlan } = usePlans()
+  const { plans, isLoading, error, mutate } = useAllPlans()
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<PlanDto | null>(null)
 
   const handleDeleteConfirm = async (): Promise<void> => {
-    if (!deletePlanId) return
-    setDeletingId(deletePlanId)
+    if (!deleteTarget) return
+    setDeletingId(deleteTarget.id)
     try {
-      await deletePlan(deletePlanId)
+      const response = await fetch(
+        `/api/rebalance/models/${deleteTarget.modelId}/plans/${deleteTarget.id}`,
+        { method: "DELETE" },
+      )
+      if (response.ok || response.status === 204) {
+        await mutate()
+      }
+    } catch (err) {
+      console.error("Failed to delete plan:", err)
     } finally {
       setDeletingId(null)
-      setDeletePlanId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -32,7 +40,7 @@ const RebalancePlanList: React.FC = () => {
   }
 
   if (error) {
-    return <Alert variant="error">{"Failed to load plan"}</Alert>
+    return <Alert variant="error">{"Failed to load plans"}</Alert>
   }
 
   if (plans.length === 0) {
@@ -52,79 +60,58 @@ const RebalancePlanList: React.FC = () => {
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-      <table className="min-w-full">
-        <thead className="bg-gray-100">
-          <tr className="border-b border-gray-200">
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              {"Plan Name"}
-            </th>
-            <th
-              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}
-            >
-              {"Model"}
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Portfolios"}
-            </th>
-            <th
-              className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}
-            >
-              {"Current Value"}
-            </th>
-            <th
-              className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}
-            >
-              {"Target Value"}
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Status"}
-            </th>
-            <th
-              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenLg}`}
-            >
-              {"Created"}
-            </th>
+      <table className={tableBase}>
+        <thead className={theadBase}>
+          <tr>
+            <th className={thBase}>{"Model"}</th>
+            <th className={thBase}>{"Version"}</th>
+            <th className={thBase}>{"Status"}</th>
+            <th className={thBase}>{"Assets"}</th>
+            <th className={thBase}>{"Created"}</th>
+            <th className={thBase}>{"Approved"}</th>
             <th className="px-4 py-3 w-12"></th>
           </tr>
         </thead>
-        <tbody className={tbodyBase}>
+        <tbody className={`bg-white ${tbodyBase}`}>
           {plans.map((plan) => (
             <tr
               key={plan.id}
-              onClick={() => router.push(`/rebalance/plans/${plan.id}`)}
+              onClick={() =>
+                router.push(
+                  `/rebalance/models/${plan.modelId}/plans/${plan.id}`,
+                )
+              }
               className="hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <td className="px-4 py-3">
-                <span className="font-medium text-blue-600">{plan.name}</span>
-              </td>
-              <td className={`px-4 py-3 text-gray-600 ${hiddenSm}`}>
-                {plan.modelPortfolioName}
-              </td>
-              <td className="px-4 py-3 text-center">
-                <span className="bg-gray-100 px-2 py-1 rounded text-sm">
-                  {plan.portfolioCount}
+                <span className="font-medium text-blue-600">
+                  {plan.modelName}
                 </span>
+                {plan.description && (
+                  <span className="text-sm text-gray-500 ml-2">
+                    {plan.description}
+                  </span>
+                )}
               </td>
-              <td className={`px-4 py-3 text-right ${hiddenMd}`}>
-                <FormatValue value={plan.totalCurrentValue} />
-              </td>
-              <td className={`px-4 py-3 text-right ${hiddenMd}`}>
-                <FormatValue value={plan.totalTargetValue} />
-              </td>
+              <td className="px-4 py-3 whitespace-nowrap">v{plan.version}</td>
               <td className="px-4 py-3 text-center">
                 <StatusBadge
                   status={plan.status}
                   i18nPrefix="rebalance.plans.status"
                 />
               </td>
-              <td className={`px-4 py-3 text-gray-500 text-sm ${hiddenLg}`}>
+              <td className="px-4 py-3 text-center">{plan.assets.length}</td>
+              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
                 {formatDate(plan.createdAt)}
+              </td>
+              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+                {plan.approvedAt ? formatDate(plan.approvedAt) : "-"}
               </td>
               <td className="px-4 py-3">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    setDeletePlanId(plan.id)
+                    setDeleteTarget(plan)
                   }}
                   disabled={deletingId === plan.id}
                   className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
@@ -141,7 +128,7 @@ const RebalancePlanList: React.FC = () => {
           ))}
         </tbody>
       </table>
-      {deletePlanId && (
+      {deleteTarget && (
         <ConfirmDialog
           title={"Delete Plan"}
           message={"Delete this plan?"}
@@ -149,7 +136,7 @@ const RebalancePlanList: React.FC = () => {
           cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeletePlanId(null)}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>
