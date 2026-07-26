@@ -5,11 +5,6 @@ export type RebalanceScenario = "INVEST_CASH" | "REBALANCE"
 export type ModelPlanStatus = "DRAFT" | "APPROVED"
 /** Allocation method for distributing cash investments */
 export type AllocationMethod = "TARGET_WEIGHT" | "RETURN_ADJUSTED"
-export type ExecutionStatus =
-  "EXECUTED" | "SKIPPED" | "FAILED" | "ALREADY_LOCKED"
-export type TransactionStatus = "UNSETTLED" | "SETTLED"
-export type PlanStatus =
-  "DRAFT" | "CALCULATING" | "READY" | "EXECUTING" | "COMPLETED" | "CANCELLED"
 
 // Model Types (new structure - Model is metadata only, weights are in Plans)
 export interface ModelDto {
@@ -109,126 +104,6 @@ export interface UpdatePricesRequest {
   prices: PriceInput[]
 }
 
-// Exclusion Types
-export interface ExclusionInput {
-  assetId: string
-  allowSell?: boolean
-}
-
-export interface ExclusionDto {
-  id: string
-  assetId: string
-  allowSell: boolean
-}
-
-// Plan Price Types
-export interface SetPlanPriceRequest {
-  assetId: string
-  price: number
-  currency: string
-}
-
-export interface PlanPriceDto {
-  id: string
-  assetId: string
-  price: number
-  currency: string
-}
-
-// Plan Item Types
-export interface PlanItemDto {
-  id: string
-  assetId: string
-  assetCode?: string
-  assetName?: string
-  portfolioId: string
-  currentQuantity: number
-  currentValue: number
-  currentWeight: number
-  targetWeight: number
-  targetValue: number
-  deltaValue: number
-  deltaQuantity: number
-  locked: boolean
-  transactionId?: string
-  excluded: boolean
-  action: "BUY" | "SELL" | "HOLD"
-}
-
-// Rebalance Plan Types
-export interface RebalancePlanDto {
-  id: string
-  name: string
-  modelPortfolioId: string
-  modelPortfolioName: string
-  portfolioIds: string[]
-  planCurrency: string
-  scenario: RebalanceScenario
-  cashDelta: number
-  status: PlanStatus
-  items: PlanItemDto[]
-  prices: PlanPriceDto[]
-  exclusions: ExclusionDto[]
-  totalCurrentValue: number
-  totalTargetValue: number
-  unallocatedCash: number
-  valuationTimestamp: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface RebalancePlanSummaryDto {
-  id: string
-  name: string
-  modelPortfolioName: string
-  portfolioCount: number
-  planCurrency: string
-  scenario: RebalanceScenario
-  status: PlanStatus
-  totalCurrentValue: number
-  totalTargetValue: number
-  createdAt: string
-}
-
-export interface CreateRebalancePlanRequest {
-  name: string
-  modelPortfolioId: string
-  portfolioIds: string[]
-  planCurrency: string
-  scenario?: RebalanceScenario
-  cashDelta?: number
-  exclusions?: ExclusionInput[]
-}
-
-export interface UpdateRebalancePlanRequest {
-  name?: string
-  cashDelta?: number
-  exclusions?: ExclusionInput[]
-}
-
-// Execution Types
-export interface ExecutePlanRequest {
-  itemIds?: string[]
-  transactionStatus?: TransactionStatus
-}
-
-export interface ItemExecutionResultDto {
-  itemId: string
-  assetId: string
-  portfolioId: string
-  status: ExecutionStatus
-  transactionId?: string
-  message?: string
-}
-
-export interface ExecutionResultDto {
-  planId: string
-  executedCount: number
-  skippedCount: number
-  failedCount: number
-  results: ItemExecutionResultDto[]
-}
-
 // API Response Wrappers (new structure)
 export interface ModelResponse {
   data: ModelDto
@@ -244,10 +119,6 @@ export interface PlanResponse {
 
 export interface PlansResponse {
   data: PlanDto[]
-}
-
-export interface ExecutionResponse {
-  data: ExecutionResultDto
 }
 
 // UI-specific Types
@@ -452,11 +323,6 @@ export interface ExecutionItemUpdate {
   assetId: string
   effectiveTargetOverride?: number
   excluded?: boolean
-}
-
-export interface ExecuteItemsRequest {
-  itemIds?: string[]
-  transactionStatus?: TransactionStatus
 }
 
 export interface ExecutionApiResponse {

@@ -121,11 +121,9 @@ export const corporateEventsKey = (
 
 // Rebalance API keys
 export const modelsKey = `${apiRoot}/rebalance/models`
-export const plansKey = `${apiRoot}/rebalance/plans`
 export const executionsKey = `${apiRoot}/rebalance/executions`
 
 export const modelKey = (id: string): string => `${modelsKey}/${id}`
-export const planKey = (id: string): string => `${plansKey}/${id}`
 export const executionKey = (id: string): string => `${executionsKey}/${id}`
 
 // Shares API keys

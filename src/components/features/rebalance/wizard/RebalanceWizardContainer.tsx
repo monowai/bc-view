@@ -7,11 +7,7 @@ import SelectModelStep from "./steps/SelectModelStep"
 import SelectPortfoliosStep from "./steps/SelectPortfoliosStep"
 import ConfigureScenarioStep from "./steps/ConfigureScenarioStep"
 import ReviewStep from "./steps/ReviewStep"
-import {
-  ModelDto,
-  RebalanceScenario,
-  CreateRebalancePlanRequest,
-} from "types/rebalance"
+import { ModelDto, RebalanceScenario, CreatePlanRequest } from "types/rebalance"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface RebalanceWizardContainerProps {
@@ -87,20 +83,24 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
     }
 
     await dialogSubmit(async () => {
-      const payload: CreateRebalancePlanRequest = {
-        name: planName.trim(),
-        modelPortfolioId: selectedModel.id,
-        portfolioIds: selectedPortfolioIds,
-        planCurrency: selectedModel.baseCurrency,
-        scenario,
-        cashDelta: cashDelta || undefined,
+      // svc-rebalance only creates plans nested under a model
+      // (POST /models/{modelId}/plans) — there is no top-level "bind this
+      // plan to these portfolios with a scenario" endpoint. CreatePlanRequest
+      // only accepts description/sourcePlanId/assets, so the portfolios,
+      // scenario and cashDelta collected in steps 2-3 have no home here; they
+      // apply later, at execution time (see /rebalance/execute).
+      const payload: CreatePlanRequest = {
+        description: planName.trim(),
       }
 
-      const response = await fetch("/api/rebalance/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      const response = await fetch(
+        `/api/rebalance/models/${selectedModel.id}/plans`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      )
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -110,7 +110,9 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       }
 
       const result = await response.json()
-      await router.push(`/rebalance/plans/${result.data.id}`)
+      await router.push(
+        `/rebalance/models/${selectedModel.id}/plans/${result.data.id}`,
+      )
     })
   }
 
