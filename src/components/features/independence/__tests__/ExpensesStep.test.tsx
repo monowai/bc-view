@@ -146,15 +146,28 @@ describe("ExpensesStep", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows total monthly expenses", () => {
+  it("shows total monthly expenses hero on the Detailed tab", () => {
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
+    )
+    goToDetailedTab()
+
+    expect(screen.getByText(/total monthly expenses/i)).toBeInTheDocument()
+    expect(screen.getByText("$0")).toBeInTheDocument()
+  })
+
+  it("hides the total monthly expenses hero on the Mood Board tab — the board header is the single total", () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    expect(screen.getByText(/total monthly expenses/i)).toBeInTheDocument()
-    expect(screen.getByText("$0")).toBeInTheDocument()
+    expect(
+      screen.queryByText(/total monthly expenses/i),
+    ).not.toBeInTheDocument()
   })
 
   describe("Tab defaults", () => {
@@ -411,9 +424,9 @@ describe("ExpensesStep", () => {
         screen.getByRole("button", { name: /Comfortable.*2,200/i }),
       )
 
-      // Total monthly expenses hero should reflect the picked tier
+      // Board header total should reflect the picked tier
       await waitFor(() => {
-        expect(screen.getAllByText("$2,200").length).toBeGreaterThan(0)
+        expect(screen.getAllByText(/\$2,200/).length).toBeGreaterThan(0)
       })
     })
 
@@ -435,7 +448,7 @@ describe("ExpensesStep", () => {
       fireEvent.click(screen.getByRole("button", { name: /mood board/i }))
 
       await waitFor(() => {
-        expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+        expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
       })
 
       fireEvent.click(
@@ -443,12 +456,12 @@ describe("ExpensesStep", () => {
       )
 
       await waitFor(() => {
-        expect(screen.getAllByText("$2,200").length).toBeGreaterThan(0)
+        expect(screen.getAllByText(/\$2,200/).length).toBeGreaterThan(0)
       })
 
-      // "you today" must still show the original 1,500 snapshot, not the
-      // freshly-seeded 2,200 board value.
-      expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+      // The "now" anchor must still show the original 1,500 snapshot, not
+      // the freshly-seeded 2,200 board value.
+      expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
     })
   })
 })

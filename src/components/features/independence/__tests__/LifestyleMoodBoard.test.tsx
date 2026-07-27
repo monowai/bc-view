@@ -75,7 +75,7 @@ describe("LifestyleMoodBoard", () => {
     expect(upgradedCount).toBeGreaterThan(0)
   })
 
-  it("shows a 'you today' chip and highlights the nearest tier on initial mount", () => {
+  it("shows a quiet 'now $X' chip and highlights the nearest tier on initial mount", () => {
     renderBoard([
       {
         categoryLabelId: "cat-housing",
@@ -84,7 +84,9 @@ describe("LifestyleMoodBoard", () => {
       },
     ])
 
-    expect(screen.getByText(/you today.*2,100.*\/mo/i)).toBeInTheDocument()
+    const nowChip = screen.getByText(/now.*2,100/i)
+    expect(nowChip).toBeInTheDocument()
+    expect(nowChip).toHaveClass("text-[11px]", "text-gray-400")
     // 2100 is nearest to Comfortable (2200)
     const nearest = screen.getByTestId("lifestyle-tier-nearest-housing-1")
     expect(nearest).toBeInTheDocument()
@@ -154,7 +156,7 @@ describe("LifestyleMoodBoard", () => {
       />,
     )
 
-    expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+    expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
 
     // Simulate the board writing a picked tier's amount (2,200) back into
     // the live `expenses` prop, while the frozen snapshot stays behind.
@@ -180,10 +182,8 @@ describe("LifestyleMoodBoard", () => {
       />,
     )
 
-    expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
-    expect(
-      screen.queryByText(/you today.*2,200.*\/mo/i),
-    ).not.toBeInTheDocument()
+    expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
+    expect(screen.queryByText(/now.*2,200/i)).not.toBeInTheDocument()
   })
 
   it("marks a category's chip as custom once its picked amount is edited away from the tier anchor", () => {
@@ -209,6 +209,37 @@ describe("LifestyleMoodBoard", () => {
 
     expect(
       screen.getByTestId("lifestyle-chip-custom-housing"),
+    ).toBeInTheDocument()
+  })
+
+  it("renders each tier chip as a single line combining emoji, label and price", () => {
+    renderBoard()
+
+    const chip = screen.getByTestId("lifestyle-tier-housing-0")
+    expect(chip).toHaveClass("whitespace-nowrap")
+    expect(chip.textContent).toBe("🏢Modest·$1,200")
+    expect(chip.children.length).toBeLessThanOrEqual(4)
+  })
+
+  it("renders the reserve tier chip inline in the same wrap container as regular tiers", () => {
+    renderBoard()
+
+    const reserveChip = screen.getAllByTestId("lifestyle-tier-reserve")[0]
+    const regularChip = screen.getByTestId("lifestyle-tier-health-0")
+    expect(reserveChip.parentElement).toBe(regularChip.parentElement)
+  })
+
+  it("shows no per-card description until a tier is actively picked", () => {
+    renderBoard()
+
+    expect(
+      screen.queryByText(/family home kept, garden, spare room/i),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /Comfortable.*2,200/i }))
+
+    expect(
+      screen.getByText(/family home kept, garden, spare room/i),
     ).toBeInTheDocument()
   })
 })

@@ -224,82 +224,86 @@ export default function ExpensesStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
-      {/* Hero: Total monthly expenses */}
-      <div className="rounded-xl border border-independence-200 bg-independence-50 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-independence-700">
-              {msg.totalLabel}
-            </p>
-            <p className="mt-0.5 text-xs text-independence-500 max-w-xs leading-relaxed">
-              {msg.totalHelper}
-            </p>
+      {/* Hero: Total monthly expenses — Detailed tab only. On the Mood
+          Board tab, the board header's own total is the single focal
+          number for that view. */}
+      {activeTab === "detailed" && (
+        <div className="rounded-xl border border-independence-200 bg-independence-50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-independence-700">
+                {msg.totalLabel}
+              </p>
+              <p className="mt-0.5 text-xs text-independence-500 max-w-xs leading-relaxed">
+                {msg.totalHelper}
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-3xl font-bold tabular-nums text-independence-800">
+                ${totalMonthlyExpenses.toLocaleString()}
+              </p>
+              <p className="text-xs text-independence-500 mt-0.5">per month</p>
+            </div>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="text-3xl font-bold tabular-nums text-independence-800">
-              ${totalMonthlyExpenses.toLocaleString()}
-            </p>
-            <p className="text-xs text-independence-500 mt-0.5">per month</p>
-          </div>
-        </div>
 
-        {/* Copy from working — surfaced when relevant */}
-        {canCopyFromWorking && (
-          <div className="mt-4 pt-4 border-t border-independence-200">
-            <p className="text-xs text-independence-600 mb-2.5 font-medium">
-              <i className="fas fa-copy mr-1.5"></i>
-              You have working expenses on file — pre-fill from those?
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-independence-700">Apply at</span>
-              <div className="flex items-center gap-1">
-                <MathInput
-                  value={copyPercent}
-                  onChange={setCopyPercent}
-                  min={10}
-                  max={100}
-                  placeholder="80"
-                  aria-label="Copy percentage"
-                  className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                />
-                <span className="text-sm text-independence-700">%</span>
+          {/* Copy from working — surfaced when relevant */}
+          {canCopyFromWorking && (
+            <div className="mt-4 pt-4 border-t border-independence-200">
+              <p className="text-xs text-independence-600 mb-2.5 font-medium">
+                <i className="fas fa-copy mr-1.5"></i>
+                You have working expenses on file — pre-fill from those?
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-independence-700">Apply at</span>
+                <div className="flex items-center gap-1">
+                  <MathInput
+                    value={copyPercent}
+                    onChange={setCopyPercent}
+                    min={10}
+                    max={100}
+                    placeholder="80"
+                    aria-label="Copy percentage"
+                    className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+                  />
+                  <span className="text-sm text-independence-700">%</span>
+                </div>
+                <span className="text-sm text-independence-500">
+                  of working expenses
+                </span>
+                <button
+                  type="button"
+                  onClick={() => applyCopyFromWorking(copyPercent)}
+                  className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium transition-colors"
+                >
+                  Apply
+                </button>
               </div>
-              <span className="text-sm text-independence-500">
-                of working expenses
-              </span>
+            </div>
+          )}
+
+          {/* Copy success flash */}
+          {copyApplied && (
+            <div className="mt-3 flex items-center gap-1.5 text-sm text-independence-700">
+              <i className="fas fa-check-circle"></i>
+              <span>Working expenses applied at {copyPercent}%</span>
+            </div>
+          )}
+
+          {/* Repeat copy trigger when already applied */}
+          {hasWorkingExpenses && !canCopyFromWorking && (
+            <div className="mt-4 pt-3 border-t border-independence-200">
               <button
                 type="button"
                 onClick={() => applyCopyFromWorking(copyPercent)}
-                className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium transition-colors"
+                className="text-xs text-independence-600 hover:text-independence-800 flex items-center gap-1.5"
               >
-                Apply
+                <i className="fas fa-copy"></i>
+                Re-apply working expenses at {copyPercent}%
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Copy success flash */}
-        {copyApplied && (
-          <div className="mt-3 flex items-center gap-1.5 text-sm text-independence-700">
-            <i className="fas fa-check-circle"></i>
-            <span>Working expenses applied at {copyPercent}%</span>
-          </div>
-        )}
-
-        {/* Repeat copy trigger when already applied */}
-        {hasWorkingExpenses && !canCopyFromWorking && (
-          <div className="mt-4 pt-3 border-t border-independence-200">
-            <button
-              type="button"
-              onClick={() => applyCopyFromWorking(copyPercent)}
-              className="text-xs text-independence-600 hover:text-independence-800 flex items-center gap-1.5"
-            >
-              <i className="fas fa-copy"></i>
-              Re-apply working expenses at {copyPercent}%
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs: Mood Board (default for new plans) | Detailed (tune-at-the-end rows) */}
       <div className="flex rounded-lg bg-gray-100 p-0.5 w-fit">

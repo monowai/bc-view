@@ -262,9 +262,9 @@ export default function LifestyleMoodBoard({
                 </span>
                 <div className="flex items-center gap-1.5">
                   {anchorAmount > 0 && (
-                    <span className="text-xs text-gray-500">
-                      you today: {symbol}
-                      {anchorAmount.toLocaleString()}/mo
+                    <span className="text-[11px] text-gray-400">
+                      now {symbol}
+                      {anchorAmount.toLocaleString()}
                     </span>
                   )}
                   {isCustom && (
@@ -292,7 +292,7 @@ export default function LifestyleMoodBoard({
                           : `lifestyle-tier-${category.key}-${idx}`
                       }
                       onClick={() => handleTierClick(category, idx)}
-                      className={`flex-1 min-w-[64px] rounded-lg border px-1.5 py-1.5 text-center text-[11px] transition-colors ${
+                      className={`flex items-center gap-1 whitespace-nowrap rounded-lg border px-2 py-1.5 text-xs transition-colors ${
                         active
                           ? "border-independence-500 bg-independence-50 text-independence-800"
                           : nearest
@@ -300,19 +300,16 @@ export default function LifestyleMoodBoard({
                             : "border-gray-200 text-gray-500 hover:bg-gray-50"
                       } ${tier.reserve ? "border-dashed border-amber-300" : ""}`}
                     >
-                      <span className="block text-base leading-none">
-                        {tier.emoji}
-                      </span>
-                      <span className="block mt-1 font-medium">
-                        {tier.label}
-                        {tier.reserve && (
-                          <span className="text-amber-500"> ✦</span>
-                        )}
-                      </span>
-                      <span className="block text-gray-400">
+                      <span>{tier.emoji}</span>
+                      <span className="font-medium">{tier.label}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="text-gray-600">
                         {symbol}
                         {tier.monthlyAmount.toLocaleString()}
                       </span>
+                      {tier.reserve && (
+                        <span className="text-amber-500">✦</span>
+                      )}
                       {nearest && (
                         <span
                           data-testid={`lifestyle-tier-nearest-${category.key}-${idx}`}
@@ -326,9 +323,11 @@ export default function LifestyleMoodBoard({
                 })}
               </div>
 
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                {category.tiers[selectedIdx].description}
-              </p>
+              {picked && mode === "board" && (
+                <p className="text-xs text-gray-500">
+                  {category.tiers[selectedIdx].description}
+                </p>
+              )}
             </div>
           )
         })}
