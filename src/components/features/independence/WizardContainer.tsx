@@ -25,8 +25,9 @@ import { toDecimal } from "@lib/independence/conversions"
 import {
   serializeAssetDisposals,
   serializeLifeEvents,
+  toPlanRequestPayload,
 } from "@lib/independence/planHelpers"
-import { WizardFormData, PlanRequest } from "types/independence"
+import { WizardFormData, RetirementPlan } from "types/independence"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
@@ -34,11 +35,87 @@ import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 interface WizardContainerProps {
   planId?: string
   initialData?: Partial<WizardFormData>
+  /**
+   * Full backend plan record, edit mode only. svc-retire's PATCH
+   * /plans/{id} consumes a full PlanRequest — see {@link buildWizardPlanRequest}.
+   */
+  plan?: RetirementPlan | null
+}
+
+/**
+ * Builds the PlanRequest body the wizard submits on Save.
+ *
+ * In edit mode, svc-retire's PATCH /plans/{id} replaces every field it
+ * receives and defaults the ones it doesn't. The wizard never surfaces
+ * feeRate, investmentTaxRate, investmentAllocationPercent or the
+ * working-phase fields (workingIncomeMonthly/workingExpensesMonthly/
+ * taxesMonthly/bonusMonthly — managed via work scenarios) as overrides, so
+ * omitting them from the body silently reset them to backend defaults (0 /
+ * 0.80) on every wizard save. Spread the full-plan echo first (edit mode
+ * only — there's no stored plan yet on create), then layer the wizard's
+ * own fields on top.
+ */
+export function buildWizardPlanRequest(
+  formData: WizardFormData,
+  ctx: {
+    isEditMode: boolean
+    plan?: RetirementPlan | null
+    planningHorizonYears: number
+    clientId?: string
+  },
+): Record<string, unknown> {
+  const monthlyExpenses = formData.expenses.reduce(
+    (sum, expense) => sum + expense.monthlyAmount,
+    0,
+  )
+
+  // Filter out zero-value manual assets before sending. An empty object
+  // is sent explicitly (not null) so the backend distinguishes "user
+  // cleared all categories" from "field omitted" and wipes the stored
+  // value — see PlanService.updatePlan PATCH semantics.
+  const manualAssets = formData.manualAssets
+    ? Object.fromEntries(
+        Object.entries(formData.manualAssets).filter(([, value]) => value > 0),
+      )
+    : {}
+
+  return {
+    ...(ctx.isEditMode && ctx.plan ? toPlanRequestPayload(ctx.plan) : {}),
+    name: formData.planName,
+    planningHorizonYears: ctx.planningHorizonYears,
+    monthlyExpenses,
+    expensesCurrency: formData.expensesCurrency,
+    targetBalance: formData.targetBalance ?? null,
+    cashReturnRate: toDecimal(formData.cashReturnRate),
+    equityReturnRate: toDecimal(formData.equityReturnRate),
+    housingReturnRate: toDecimal(formData.housingReturnRate),
+    inflationRate: toDecimal(formData.inflationRate),
+    cashAllocation: toDecimal(formData.cashAllocation),
+    equityAllocation: toDecimal(formData.equityAllocation),
+    housingAllocation: toDecimal(formData.housingAllocation),
+    pensionMonthly: formData.pensionMonthly,
+    socialSecurityMonthly: formData.socialSecurityMonthly,
+    benefitsStartAge: formData.benefitsStartAge,
+    otherIncomeMonthly: formData.otherIncomeMonthly,
+    // Always send the JSON-serialised array (incl. "[]") so the
+    // backend distinguishes "list cleared" from "field omitted".
+    lifeEvents: serializeLifeEvents(formData.lifeEvents),
+    assetDisposals: serializeAssetDisposals(formData.assetDisposals),
+    manualAssets,
+    excludedPortfolioIds: formData.excludedPortfolioIds || [],
+    excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
+    country: formData.country?.trim() || undefined,
+    narrative: formData.narrative?.trim() || undefined,
+    primaryStrategy: formData.primaryStrategy || undefined,
+    headlineMetric: formData.headlineMetric || undefined,
+    ...(!ctx.isEditMode && { clientId: ctx.clientId?.trim() || undefined }),
+  }
 }
 
 export default function WizardContainer({
   planId,
   initialData,
+  plan,
 }: WizardContainerProps): React.ReactElement {
   const isEditMode = Boolean(planId)
   const router = useRouter()
@@ -177,57 +254,14 @@ export default function WizardContainer({
       const settingsTargetAge = settings?.targetIndependenceAge ?? 65
       const planningHorizonYears = settingsLifeExpectancy - settingsTargetAge
 
-      // Calculate total monthly expenses
-      const monthlyExpenses = formData.expenses.reduce(
-        (sum, expense) => sum + expense.monthlyAmount,
-        0,
-      )
-
-      // Filter out zero-value manual assets before sending. An empty object
-      // is sent explicitly (not null) so the backend distinguishes "user
-      // cleared all categories" from "field omitted" and wipes the stored
-      // value — see PlanService.updatePlan PATCH semantics.
-      const manualAssets = formData.manualAssets
-        ? Object.fromEntries(
-            Object.entries(formData.manualAssets).filter(
-              ([, value]) => value > 0,
-            ),
-          )
-        : {}
-
       // Backend stores decimals (0.07 for 7%), so convert from percentage
       // yearOfBirth and lifeExpectancy are now user-level settings, not plan-level
-      // Working-phase fields are managed via work scenarios, not the plan wizard
-      const planRequest: PlanRequest = {
-        name: formData.planName,
+      const planRequest = buildWizardPlanRequest(formData, {
+        isEditMode,
+        plan,
         planningHorizonYears,
-        monthlyExpenses,
-        expensesCurrency: formData.expensesCurrency,
-        targetBalance: formData.targetBalance ?? null,
-        cashReturnRate: toDecimal(formData.cashReturnRate),
-        equityReturnRate: toDecimal(formData.equityReturnRate),
-        housingReturnRate: toDecimal(formData.housingReturnRate),
-        inflationRate: toDecimal(formData.inflationRate),
-        cashAllocation: toDecimal(formData.cashAllocation),
-        equityAllocation: toDecimal(formData.equityAllocation),
-        housingAllocation: toDecimal(formData.housingAllocation),
-        pensionMonthly: formData.pensionMonthly,
-        socialSecurityMonthly: formData.socialSecurityMonthly,
-        benefitsStartAge: formData.benefitsStartAge,
-        otherIncomeMonthly: formData.otherIncomeMonthly,
-        // Always send the JSON-serialised array (incl. "[]") so the
-        // backend distinguishes "list cleared" from "field omitted".
-        lifeEvents: serializeLifeEvents(formData.lifeEvents),
-        assetDisposals: serializeAssetDisposals(formData.assetDisposals),
-        manualAssets,
-        excludedPortfolioIds: formData.excludedPortfolioIds || [],
-        excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
-        country: formData.country?.trim() || undefined,
-        narrative: formData.narrative?.trim() || undefined,
-        primaryStrategy: formData.primaryStrategy || undefined,
-        headlineMetric: formData.headlineMetric || undefined,
-        ...(!isEditMode && { clientId: clientId.trim() || undefined }),
-      }
+        clientId,
+      })
 
       const url = isEditMode
         ? `/api/independence/plans/${planId}`

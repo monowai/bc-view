@@ -29,7 +29,10 @@ import {
   ScenarioBar,
 } from "@components/features/independence"
 import { useScenario } from "@components/features/independence/scenario/useScenario"
-import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
+import {
+  applyRealReturn,
+  scenarioToPlanUpdatePayload,
+} from "@components/features/independence/scenario/scenarioToPayload"
 import {
   defaultStrategyView,
   type StrategyView,
@@ -49,8 +52,6 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import {
   parseManualAssets,
-  parseExcludedPortfolioIds,
-  parseExcludedRentalAssetIds,
   hasManualAssets,
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
@@ -775,35 +776,18 @@ function PlanView(): React.ReactElement {
     if (!plan) return
     setIsSaving(true)
     try {
-      const rates = applyRealReturn(scenario, plan)
-      // Allocations come from `plan` (not scenario) because they're not
-      // slider-controlled — the Real Return slider adjusts per-asset return
-      // rates via applyRealReturn, but the cash/equity/housing mix stays
-      // as the user configured it in the plan settings. Exclusions take
-      // pendingExclusions (set by the modal) when present, otherwise carry
-      // forward whatever the plan already has.
-      const updates = {
-        name: plan.name,
-        monthlyExpenses: scenario.monthlyExpenses,
-        pensionMonthly: scenario.pensionMonthly,
-        socialSecurityMonthly: scenario.socialSecurityMonthly,
-        benefitsStartAge: plan.benefitsStartAge,
-        otherIncomeMonthly: scenario.otherIncomeMonthly,
-        inflationRate: scenario.inflation,
-        targetBalance: plan.targetBalance,
-        equityReturnRate: rates.equityReturnRate,
-        cashReturnRate: rates.cashReturnRate,
-        housingReturnRate: rates.housingReturnRate,
-        equityAllocation: plan.equityAllocation,
-        cashAllocation: plan.cashAllocation,
-        housingAllocation: plan.housingAllocation,
-        excludedPortfolioIds:
-          pendingExclusions?.excludedPortfolioIds ??
-          parseExcludedPortfolioIds(plan.excludedPortfolioIds),
-        excludedRentalAssetIds:
-          pendingExclusions?.excludedRentalAssetIds ??
-          parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
-      }
+      // Full-plan echo: svc-retire's PATCH replaces every field it receives
+      // and defaults the ones it doesn't, so a partial body silently resets
+      // settings like planningHorizonYears/expensesCurrency/feeRate. Only
+      // name, the income/expense sliders, inflation, applyRealReturn's
+      // derived rates and pending exclusions are overridden here — every
+      // other field (including allocations, which aren't slider-controlled)
+      // is echoed straight back from `plan`.
+      const updates = scenarioToPlanUpdatePayload(
+        scenario,
+        plan,
+        pendingExclusions,
+      )
 
       if (mode === "update") {
         const response = await fetch(`/api/independence/plans/${plan.id}`, {
