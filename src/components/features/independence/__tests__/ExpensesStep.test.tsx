@@ -35,6 +35,13 @@ const mockCategories = {
       sortOrder: 3,
       description: "Car, public transport",
     },
+    {
+      id: "cat-housing",
+      ownerId: "SYSTEM",
+      name: "Home Base",
+      sortOrder: 4,
+      description: "Lifestyle board housing category",
+    },
   ],
 }
 
@@ -51,9 +58,12 @@ let catalogSwrReturn = {
   isLoading: true,
 }
 
+const swrKeySpy = jest.fn()
+
 jest.mock("swr", () => ({
   __esModule: true,
   default: (key: string) => {
+    swrKeySpy(key)
     if (typeof key === "string" && key.includes("lifestyle-catalog")) {
       return catalogSwrReturn
     }
@@ -65,11 +75,13 @@ interface TestWrapperProps {
   children: React.ReactNode
   workingExpenses?: WizardFormData["workingExpenses"]
   expenses?: WizardFormData["expenses"]
+  expensesCurrency?: string
 }
 
 const TestWrapper: React.FC<TestWrapperProps> = ({
   workingExpenses = [],
   expenses = [],
+  expensesCurrency = "NZD",
 }) => {
   const methods = useForm<WizardFormData>({
     resolver: yupResolver(expensesStepSchema) as any,
@@ -77,6 +89,7 @@ const TestWrapper: React.FC<TestWrapperProps> = ({
       ...defaultWizardValues,
       expenses,
       workingExpenses,
+      expensesCurrency,
     },
     mode: "onBlur",
   })
@@ -103,6 +116,22 @@ describe("ExpensesStep", () => {
   beforeEach(() => {
     categoriesSwrReturn = { data: null, error: null, isLoading: true }
     catalogSwrReturn = { data: null, error: null, isLoading: true }
+    swrKeySpy.mockClear()
+  })
+
+  it("fetches the lifestyle catalog scoped to the plan's expenses currency", () => {
+    render(
+      <TestWrapper expensesCurrency="SGD">
+        <div />
+      </TestWrapper>,
+    )
+
+    const catalogKeyCall = swrKeySpy.mock.calls.find(
+      ([key]) => typeof key === "string" && key.includes("lifestyle-catalog"),
+    )
+    expect(catalogKeyCall?.[0]).toBe(
+      "/api/independence/lifestyle-catalog?currency=SGD",
+    )
   })
 
   it("renders the expenses step header", () => {
@@ -386,6 +415,40 @@ describe("ExpensesStep", () => {
       await waitFor(() => {
         expect(screen.getAllByText("$2,200").length).toBeGreaterThan(0)
       })
+    })
+
+    it("keeps the 'you today' anchor fixed after a tier click seeds mood-board rows", async () => {
+      render(
+        <TestWrapper
+          expenses={[
+            {
+              categoryLabelId: "cat-housing",
+              categoryName: "Home Base",
+              monthlyAmount: 1500,
+            },
+          ]}
+        >
+          <div />
+        </TestWrapper>,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /mood board/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+      })
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Comfortable.*2,200/i }),
+      )
+
+      await waitFor(() => {
+        expect(screen.getAllByText("$2,200").length).toBeGreaterThan(0)
+      })
+
+      // "you today" must still show the original 1,500 snapshot, not the
+      // freshly-seeded 2,200 board value.
+      expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
     })
   })
 })

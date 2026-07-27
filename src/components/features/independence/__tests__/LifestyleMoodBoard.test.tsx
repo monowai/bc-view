@@ -102,6 +102,90 @@ describe("LifestyleMoodBoard", () => {
     expect(screen.getByText(/current spend/i)).toBeInTheDocument()
   })
 
+  it("renders amounts using the currency echoed back by the catalog response, not a hardcoded one", () => {
+    render(
+      <LifestyleMoodBoard
+        categories={catalog.categories}
+        currency="SGD"
+        expenses={[]}
+        onSelectionChange={jest.fn()}
+      />,
+    )
+
+    expect(screen.getAllByText(/S\$1,200/).length).toBeGreaterThan(0)
+  })
+
+  it("has a tooltip near the header delta explaining what it's compared against", () => {
+    renderBoard([
+      {
+        categoryLabelId: "cat-housing",
+        categoryName: "Home Base",
+        monthlyAmount: 1200,
+      },
+    ])
+
+    fireEvent.mouseEnter(screen.getByText(/what is this delta/i))
+
+    expect(
+      screen.getByText(/board categories only.*excludes utilities/i),
+    ).toBeInTheDocument()
+  })
+
+  it("keeps the 'you today' chip and nearest-tier highlight pinned to the initial snapshot, not live expenses", () => {
+    const { rerender } = render(
+      <LifestyleMoodBoard
+        categories={catalog.categories}
+        currency={catalog.currency}
+        expenses={[
+          {
+            categoryLabelId: "cat-housing",
+            categoryName: "Home Base",
+            monthlyAmount: 1500,
+          },
+        ]}
+        expensesSnapshot={[
+          {
+            categoryLabelId: "cat-housing",
+            categoryName: "Home Base",
+            monthlyAmount: 1500,
+          },
+        ]}
+        onSelectionChange={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+
+    // Simulate the board writing a picked tier's amount (2,200) back into
+    // the live `expenses` prop, while the frozen snapshot stays behind.
+    rerender(
+      <LifestyleMoodBoard
+        categories={catalog.categories}
+        currency={catalog.currency}
+        expenses={[
+          {
+            categoryLabelId: "cat-housing",
+            categoryName: "Home Base",
+            monthlyAmount: 2200,
+          },
+        ]}
+        expensesSnapshot={[
+          {
+            categoryLabelId: "cat-housing",
+            categoryName: "Home Base",
+            monthlyAmount: 1500,
+          },
+        ]}
+        onSelectionChange={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/you today.*1,500.*\/mo/i)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/you today.*2,200.*\/mo/i),
+    ).not.toBeInTheDocument()
+  })
+
   it("marks a category's chip as custom once its picked amount is edited away from the tier anchor", () => {
     const onSelectionChange = jest.fn()
     const { rerender } = renderBoard([], onSelectionChange)

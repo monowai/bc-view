@@ -50,12 +50,15 @@ const mockFetch = jest
   .mockResolvedValue({ status: 200, ok: true, json: () => Promise.resolve({}) })
 global.fetch = mockFetch as unknown as typeof fetch
 
-function makeReq(method: string): {
+function makeReq(
+  method: string,
+  query: Record<string, string> = {},
+): {
   method: string
   query: Record<string, string>
   headers: Record<string, string>
 } {
-  return { method, query: {}, headers: {} }
+  return { method, query, headers: {} }
 }
 
 function makeRes(): {
@@ -88,6 +91,23 @@ describe("/api/independence/lifestyle-catalog route", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://retire.test/lifestyle/catalog",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    )
+  })
+
+  it("forwards the currency query param to the backend catalog URL", async () => {
+    const req = makeReq("GET", { currency: "SGD" })
+    const res = makeRes()
+
+    await lifestyleCatalogHandler(
+      req as unknown as Parameters<typeof lifestyleCatalogHandler>[0],
+      res as unknown as Parameters<typeof lifestyleCatalogHandler>[1],
+    )
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://retire.test/lifestyle/catalog?currency=SGD",
       expect.objectContaining({
         method: "GET",
       }),

@@ -11,11 +11,21 @@ import {
   lifestyleHeadline,
   nearestTierIndex,
 } from "@lib/independence/lifestyleBoard"
+import InfoTooltip from "@components/ui/Tooltip"
 
 interface LifestyleMoodBoardProps {
   categories: LifestyleCategory[]
   currency: string
   expenses: ExpenseFormEntry[]
+  /**
+   * Expense rows snapshotted once, at Expenses-step mount, before the
+   * board seeds any rows back into the form. Powers the "you today" chip,
+   * the nearest-tier highlight and the header delta so they stay fixed
+   * for the rest of the session instead of drifting once the board writes
+   * its own picks into the live `expenses` prop. Falls back to `expenses`
+   * when the caller doesn't supply one (e.g. standalone component tests).
+   */
+  expensesSnapshot?: ExpenseFormEntry[]
   onSelectionChange: (change: TierSelectionChange) => void
 }
 
@@ -52,8 +62,11 @@ export default function LifestyleMoodBoard({
   categories,
   currency,
   expenses,
+  expensesSnapshot,
   onSelectionChange,
 }: LifestyleMoodBoardProps): React.ReactElement {
+  const anchorExpenses = expensesSnapshot ?? expenses
+
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
     [categories],
@@ -122,7 +135,7 @@ export default function LifestyleMoodBoard({
 
   const boardTotal = boardMonthlyTotal(sortedCategories, selection)
   const existingTotal = sortedCategories.reduce(
-    (sum, c) => sum + existingAmountFor(c.categoryLabelId, expenses),
+    (sum, c) => sum + existingAmountFor(c.categoryLabelId, anchorExpenses),
     0,
   )
   const hasExisting = existingTotal > 0
@@ -142,7 +155,10 @@ export default function LifestyleMoodBoard({
               <p className="mt-1 text-xs text-independence-600">
                 Board is {symbol}
                 {Math.abs(delta).toLocaleString()}/mo{" "}
-                {delta >= 0 ? "above" : "below"} your current spend
+                {delta >= 0 ? "above" : "below"} your current spend{" "}
+                <InfoTooltip text="Compared against your current spend in board categories only — excludes Utilities and custom rows.">
+                  <span className="sr-only">What is this delta?</span>
+                </InfoTooltip>
               </p>
             )}
           </div>
@@ -212,17 +228,25 @@ export default function LifestyleMoodBoard({
         {sortedCategories.map((category) => {
           const selectedIdx = selection[category.key] ?? 0
           const picked = pickedKeys.has(category.key)
-          const existingAmount = existingAmountFor(
+          // "You today" chip + nearest-tier highlight read the frozen
+          // snapshot so they don't drift once the board seeds its own
+          // picks back into the live `expenses` prop.
+          const anchorAmount = existingAmountFor(
+            category.categoryLabelId,
+            anchorExpenses,
+          )
+          const nearestIdx =
+            anchorAmount > 0
+              ? nearestTierIndex(anchorAmount, category.tiers)
+              : null
+          // Custom-chip detection stays on the live value — it reflects a
+          // hand-edit made via the Detailed tab after a tier was picked.
+          const liveAmount = existingAmountFor(
             category.categoryLabelId,
             expenses,
           )
-          const nearestIdx =
-            existingAmount > 0
-              ? nearestTierIndex(existingAmount, category.tiers)
-              : null
           const isCustom =
-            picked &&
-            isCustomAmount(existingAmount, category.tiers[selectedIdx])
+            picked && isCustomAmount(liveAmount, category.tiers[selectedIdx])
 
           return (
             <div
@@ -237,10 +261,10 @@ export default function LifestyleMoodBoard({
                   {category.emoji} {category.displayName}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  {existingAmount > 0 && (
+                  {anchorAmount > 0 && (
                     <span className="text-xs text-gray-500">
                       you today: {symbol}
-                      {existingAmount.toLocaleString()}/mo
+                      {anchorAmount.toLocaleString()}/mo
                     </span>
                   )}
                   {isCustom && (

@@ -13,6 +13,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import {
   WizardFormData,
   CategoryLabelsResponse,
+  ExpenseFormEntry,
   LifestyleCatalogResponse,
   TierSelectionChange,
 } from "types/independence"
@@ -34,7 +35,7 @@ interface ExpensesStepProps {
 type ExpensesTab = "board" | "detailed"
 
 const categoriesKey = "/api/independence/categories"
-const lifestyleCatalogKey = "/api/independence/lifestyle-catalog"
+const lifestyleCatalogBaseKey = "/api/independence/lifestyle-catalog"
 
 export default function ExpensesStep({
   control,
@@ -48,6 +49,14 @@ export default function ExpensesStep({
     name: "expenses",
   })
   const hasInitialized = useRef(false)
+  // "You today" anchor: frozen once, on mount, before any mood-board
+  // seeding writes rows back into the shared `expenses` field array. The
+  // mood board reads this instead of live field values so its chips,
+  // nearest-tier highlight and header delta don't drift once the board
+  // starts writing its own picks into the form.
+  const [expensesSnapshot] = useState<ExpenseFormEntry[]>(
+    () => getValues("expenses") || [],
+  )
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState("")
   const [copyPercent, setCopyPercent] = useState(80)
@@ -65,6 +74,16 @@ export default function ExpensesStep({
     categoriesKey,
     simpleFetcher(categoriesKey),
   )
+
+  // Scope the catalog to the plan's own currency — svc-retire converts and
+  // rounds the tier amounts server-side and echoes back the `currency` it
+  // used; the mood board only ever renders that echoed value, it never
+  // converts or reformats amounts itself.
+  const expensesCurrency =
+    useWatch({ control, name: "expensesCurrency" }) || "USD"
+  const lifestyleCatalogKey = `${lifestyleCatalogBaseKey}?currency=${encodeURIComponent(
+    expensesCurrency,
+  )}`
   const { data: catalogData } = useSwr<LifestyleCatalogResponse>(
     lifestyleCatalogKey,
     simpleFetcher(lifestyleCatalogKey),
@@ -316,6 +335,7 @@ export default function ExpensesStep({
             categories={lifestyleCategories}
             currency={catalogData?.currency || "USD"}
             expenses={expenses}
+            expensesSnapshot={expensesSnapshot}
             onSelectionChange={handleBoardSelectionChange}
           />
         ) : (
