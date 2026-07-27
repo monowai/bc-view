@@ -165,6 +165,7 @@ function EditPlanWizard(): React.ReactElement {
             key={`${planId}-${plan.updatedDate}`}
             planId={planId as string}
             initialData={initialData}
+            plan={plan}
           />
         </div>
       </div>

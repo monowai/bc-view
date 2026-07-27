@@ -1,4 +1,9 @@
 import type { RetirementPlan } from "types/independence"
+import {
+  parseExcludedPortfolioIds,
+  parseExcludedRentalAssetIds,
+  toPlanRequestPayload,
+} from "@lib/independence/planHelpers"
 import type { RentalIncomeData } from "../useUnifiedProjection"
 import type { ScenarioState } from "./types"
 
@@ -161,6 +166,57 @@ export function applyRealReturn(
     cashReturnRate: plan.cashReturnRate + delta,
     equityReturnRate: plan.equityReturnRate + delta,
     housingReturnRate: plan.housingReturnRate,
+  }
+}
+
+/**
+ * Optional exclusion overrides pending in the Edit Plan Details modal — not
+ * part of ScenarioState (they're plan-level filters, not what-if levers).
+ * When a field is absent/undefined here, the plan's own stored value carries
+ * forward; pass `null`/omit entirely when there are no pending edits.
+ */
+export interface PendingPlanExclusions {
+  excludedPortfolioIds?: string[]
+  excludedRentalAssetIds?: string[]
+}
+
+/**
+ * Translates a ScenarioState + plan into the JSON body for the plan-root
+ * PATCH (`/api/independence/plans/{id}`) issued by the scenario Save flow.
+ *
+ * svc-retire's PATCH /plans/{id} consumes a full PlanRequest: every field
+ * absent from the body falls back to backend defaults (planningHorizonYears
+ * 25, expensesCurrency "USD", feeRate 0, investmentTaxRate 0,
+ * investmentAllocationPercent 0.80, working income/expenses/taxes/bonus 0)
+ * and REPLACES the
+ * stored value — see toPlanRequestPayload. This spreads that full-plan echo
+ * and layers only the fields the scenario save actually intends to change:
+ * name, the income/expense sliders, inflation, applyRealReturn's derived
+ * rates, and pending exclusion edits.
+ */
+export function scenarioToPlanUpdatePayload(
+  scenario: ScenarioState,
+  plan: RetirementPlan,
+  pendingExclusions?: PendingPlanExclusions | null,
+): Record<string, unknown> {
+  const rates = applyRealReturn(scenario, plan)
+  return {
+    ...toPlanRequestPayload(plan),
+    name: plan.name,
+    monthlyExpenses: scenario.monthlyExpenses,
+    pensionMonthly: scenario.pensionMonthly,
+    socialSecurityMonthly: scenario.socialSecurityMonthly,
+    otherIncomeMonthly: scenario.otherIncomeMonthly,
+    inflationRate: scenario.inflation,
+    equityReturnRate: rates.equityReturnRate,
+    cashReturnRate: rates.cashReturnRate,
+    housingReturnRate: rates.housingReturnRate,
+    excludedPortfolioIds:
+      pendingExclusions?.excludedPortfolioIds ??
+      parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+    excludedRentalAssetIds:
+      pendingExclusions?.excludedRentalAssetIds ??
+      parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
   }
 }
 

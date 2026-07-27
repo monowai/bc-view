@@ -3,6 +3,7 @@ import {
   applyRealReturn,
   blendedReturnRate,
   scenarioToPayload,
+  scenarioToPlanUpdatePayload,
   type ScenarioPayloadCtx,
 } from "../scenarioToPayload"
 import type { ScenarioState } from "../types"
@@ -20,6 +21,8 @@ const plan: RetirementPlan = {
   equityReturnRate: 0.07,
   housingReturnRate: 0.04,
   inflationRate: 0.025,
+  feeRate: 0.001,
+  investmentTaxRate: 0.28,
   cashAllocation: 0.3,
   equityAllocation: 0.7,
   housingAllocation: 0,
@@ -243,5 +246,87 @@ describe("applyRealReturn", () => {
     expect(r.cashReturnRate).toBeCloseTo(0.037, 5)
     expect(r.equityReturnRate).toBeCloseTo(0.077, 5)
     expect(r.housingReturnRate).toBe(0.04)
+  })
+})
+
+describe("scenarioToPlanUpdatePayload", () => {
+  // Regression #1118: svc-retire's PATCH /plans/{id} consumes a full
+  // PlanRequest — any field absent from the body falls back to backend
+  // defaults (planningHorizonYears 25, expensesCurrency "USD", feeRate 0,
+  // investmentTaxRate 0, investmentAllocationPercent 0.80) and REPLACES the
+  // stored value. The plan-save path must echo every unrelated field
+  // alongside its intended overrides.
+  it("echoes full plan settings the scenario save doesn't intend to change", () => {
+    const payload = scenarioToPlanUpdatePayload(scenario, plan, null)
+    expect(payload.planningHorizonYears).toBe(30)
+    expect(payload.expensesCurrency).toBe("SGD")
+    expect(payload.feeRate).toBe(0.001)
+    expect(payload.investmentTaxRate).toBe(0.28)
+    expect(payload.investmentAllocationPercent).toBe(0.8)
+  })
+
+  it("overrides name, income fields and inflation from the scenario / plan", () => {
+    const payload = scenarioToPlanUpdatePayload(
+      { ...scenario, monthlyExpenses: 6000, otherIncomeMonthly: 150 },
+      plan,
+      null,
+    )
+    expect(payload.name).toBe("Test plan")
+    expect(payload.monthlyExpenses).toBe(6000)
+    expect(payload.pensionMonthly).toBe(800)
+    expect(payload.socialSecurityMonthly).toBe(200)
+    expect(payload.otherIncomeMonthly).toBe(150)
+    expect(payload.inflationRate).toBe(0.025)
+  })
+
+  it("threads applyRealReturn's rates rather than the raw plan rates", () => {
+    const payload = scenarioToPlanUpdatePayload(
+      { ...scenario, realReturn: 0.04 },
+      plan,
+      null,
+    )
+    expect(payload.cashReturnRate).toBeCloseTo(0.037, 5)
+    expect(payload.equityReturnRate).toBeCloseTo(0.077, 5)
+    expect(payload.housingReturnRate).toBe(0.04)
+  })
+
+  it("carries plan allocations through unchanged (not scenario-controlled)", () => {
+    const payload = scenarioToPlanUpdatePayload(scenario, plan, null)
+    expect(payload.cashAllocation).toBe(0.3)
+    expect(payload.equityAllocation).toBe(0.7)
+    expect(payload.housingAllocation).toBe(0)
+  })
+
+  it("falls back to the plan's own exclusions when pendingExclusions is null", () => {
+    const payload = scenarioToPlanUpdatePayload(scenario, {
+      ...plan,
+      excludedPortfolioIds: ["pf-1"],
+      excludedRentalAssetIds: ["ra-1"],
+    })
+    expect(payload.excludedPortfolioIds).toEqual(["pf-1"])
+    expect(payload.excludedRentalAssetIds).toEqual(["ra-1"])
+  })
+
+  it("prefers pendingExclusions over the plan's stored exclusions", () => {
+    const payload = scenarioToPlanUpdatePayload(
+      scenario,
+      { ...plan, excludedPortfolioIds: ["pf-1"] },
+      {
+        excludedPortfolioIds: ["pf-2"],
+        excludedRentalAssetIds: ["ra-2"],
+      },
+    )
+    expect(payload.excludedPortfolioIds).toEqual(["pf-2"])
+    expect(payload.excludedRentalAssetIds).toEqual(["ra-2"])
+  })
+
+  it("partially applies pendingExclusions, falling back per-field to the plan", () => {
+    const payload = scenarioToPlanUpdatePayload(
+      scenario,
+      { ...plan, excludedRentalAssetIds: ["ra-1"] },
+      { excludedPortfolioIds: ["pf-2"] },
+    )
+    expect(payload.excludedPortfolioIds).toEqual(["pf-2"])
+    expect(payload.excludedRentalAssetIds).toEqual(["ra-1"])
   })
 })
