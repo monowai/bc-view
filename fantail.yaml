@@ -1,0 +1,22 @@
+# fantail service definition — discovered by `fantail` (see monowai/fantail)
+description: Next.js frontend
+command: ["yarn", "dev"]
+profile: local                   # env from .env.local (next dev)
+# .env.e2e holds TEST-RUNNER vars only (E2E_BASE_URL, E2E_API_BASE, test-user
+# creds). playwright.config.ts loads it itself via dotenv; `next dev` ignores
+# it and reads .env.local for server config. Injecting it here just keeps
+# bcc-launched child tooling (agent-driven runs etc.) on the same e2e config.
+# For a true e2e SERVER profile (different backend URLs for the dev server),
+# create a separate file and point --set env_file= at it.
+env_file: .env.e2e
+env:
+  PORT: "${self.port}"        # next dev honours PORT — instance offsets apply
+port: 3000
+# no health url: TCP check on port 3000
+wants:
+  - service: svc-data            # peer check at the instance's effective port
+  - tcp: localhost:5672          # rabbit — CSV imports (shared infra, static)
+
+# untracked runtime files copied into worktrees on start (fantail worktree fallback)
+runtime_config:
+  - ".env*"
