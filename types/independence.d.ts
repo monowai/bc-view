@@ -81,6 +81,10 @@ export interface RetirementPlan {
   equityReturnRate: number
   housingReturnRate: number
   inflationRate: number
+  /** Always serialized by svc-retire; optional only to spare legacy fixtures. */
+  feeRate?: number
+  /** Always serialized by svc-retire; optional only to spare legacy fixtures. */
+  investmentTaxRate?: number
   cashAllocation: number
   equityAllocation: number
   housingAllocation: number
@@ -1016,6 +1020,12 @@ export interface PlanPropertyIncome {
   rentalCurrency: string
   isPrimaryResidence: boolean
   liquidationPriority: number
+  /**
+   * Age from which the owner occupies this property (owner-occupy from this
+   * retirement phase onward). Rental income is suppressed in projections
+   * from this age. Undefined/null means the property is rented throughout.
+   */
+  occupiedFromAge?: number
   createdDate: string
   updatedDate: string
 }
@@ -1027,6 +1037,12 @@ export interface PropertyIncomeRequest {
   rentalCurrency?: string
   isPrimaryResidence?: boolean
   liquidationPriority?: number
+  /**
+   * Age from which the owner occupies this property (owner-occupy from this
+   * retirement phase onward). Rental income is suppressed in projections
+   * from this age. Omitting this field clears it to null (rented throughout).
+   */
+  occupiedFromAge?: number
 }
 
 export interface PropertyIncomeResponse {

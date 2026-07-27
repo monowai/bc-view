@@ -32,6 +32,26 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
 }))
 
+// Stub ResidencePhasePicker — its own hook wiring is covered by
+// ResidencePhasePicker.test.tsx; here we only assert PhasesTab renders it.
+jest.mock("../ResidencePhasePicker", () => ({
+  __esModule: true,
+  default: (): React.ReactElement => (
+    <div data-testid="residence-phase-picker">ResidencePhasePicker stub</div>
+  ),
+}))
+
+// Stub BenefitsStartPhasePicker — its own hook wiring is covered by
+// BenefitsStartPhasePicker.test.tsx; here we only assert PhasesTab renders it.
+jest.mock("../BenefitsStartPhasePicker", () => ({
+  __esModule: true,
+  default: (): React.ReactElement => (
+    <div data-testid="benefits-start-phase-picker">
+      BenefitsStartPhasePicker stub
+    </div>
+  ),
+}))
+
 import PhasesTab from "../tabs/PhasesTab"
 
 const defaultPhases: CompositePhase[] = [
@@ -128,6 +148,20 @@ describe("PhasesTab", () => {
   it("renders PhaseConfigList in both desktop and mobile layouts", () => {
     renderWithCtx()
     const stubs = screen.getAllByTestId("phase-config-list")
+    // desktop layout + mobile flip card (front face)
+    expect(stubs.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("renders ResidencePhasePicker below the phase list in both layouts", () => {
+    renderWithCtx()
+    const stubs = screen.getAllByTestId("residence-phase-picker")
+    // desktop layout + mobile flip card (front face)
+    expect(stubs.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("renders BenefitsStartPhasePicker below ResidencePhasePicker in both layouts", () => {
+    renderWithCtx()
+    const stubs = screen.getAllByTestId("benefits-start-phase-picker")
     // desktop layout + mobile flip card (front face)
     expect(stubs.length).toBeGreaterThanOrEqual(2)
   })
