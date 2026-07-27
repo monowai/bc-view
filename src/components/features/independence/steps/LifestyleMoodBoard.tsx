@@ -1,0 +1,314 @@
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import {
+  ExpenseFormEntry,
+  LifestyleCategory,
+  TierSelectionChange,
+} from "types/independence"
+import {
+  boardMonthlyTotal,
+  fitToBudget,
+  isCustomAmount,
+  lifestyleHeadline,
+  nearestTierIndex,
+} from "@lib/independence/lifestyleBoard"
+
+interface LifestyleMoodBoardProps {
+  categories: LifestyleCategory[]
+  currency: string
+  expenses: ExpenseFormEntry[]
+  onSelectionChange: (change: TierSelectionChange) => void
+}
+
+type Mode = "budget" | "board"
+
+const MIN_BUDGET = 1000
+const MAX_BUDGET = 32000
+const BUDGET_STEP = 100
+
+const currencySymbol = (currency: string): string => {
+  switch (currency) {
+    case "USD":
+      return "$"
+    case "SGD":
+      return "S$"
+    case "EUR":
+      return "€"
+    default:
+      return "$"
+  }
+}
+
+/** Sum of monthlyAmount across all rows matching a categoryLabelId. */
+function existingAmountFor(
+  categoryLabelId: string,
+  expenses: ExpenseFormEntry[],
+): number {
+  return expenses
+    .filter((e) => e.categoryLabelId === categoryLabelId)
+    .reduce((sum, e) => sum + (e.monthlyAmount || 0), 0)
+}
+
+export default function LifestyleMoodBoard({
+  categories,
+  currency,
+  expenses,
+  onSelectionChange,
+}: LifestyleMoodBoardProps): React.ReactElement {
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
+    [categories],
+  )
+
+  const hasInitialized = useRef(false)
+
+  const [mode, setMode] = useState<Mode>("budget")
+  const [budget, setBudget] = useState<number>(8000)
+  const [selection, setSelection] = useState<Record<string, number>>({})
+  const [pickedKeys, setPickedKeys] = useState<Set<string>>(new Set())
+
+  const symbol = currencySymbol(currency)
+
+  // Seed the board from existing expense values on mount: each category
+  // starts at its nearest tier match to the existing amount (if any),
+  // without marking it "picked" — that only happens on explicit board
+  // interaction.
+  useEffect(() => {
+    if (hasInitialized.current || sortedCategories.length === 0) return
+    hasInitialized.current = true
+
+    const seeded: Record<string, number> = {}
+    sortedCategories.forEach((c) => {
+      const existing = existingAmountFor(c.categoryLabelId, expenses)
+      seeded[c.key] = existing > 0 ? nearestTierIndex(existing, c.tiers) : 0
+    })
+    setSelection(seeded)
+    const total = boardMonthlyTotal(sortedCategories, seeded)
+    setBudget(Math.max(MIN_BUDGET, Math.min(MAX_BUDGET, total || 8000)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedCategories])
+
+  const emitChange = (
+    nextSelection: Record<string, number>,
+    nextPicked: Set<string>,
+  ): void => {
+    onSelectionChange({
+      selection: nextSelection,
+      pickedKeys: Array.from(nextPicked),
+    })
+  }
+
+  const handleBudgetChange = (value: number): void => {
+    setBudget(value)
+    setMode("budget")
+    const fitted = fitToBudget(sortedCategories, value)
+    setSelection(fitted)
+    const nextPicked = new Set(sortedCategories.map((c) => c.key))
+    setPickedKeys(nextPicked)
+    emitChange(fitted, nextPicked)
+  }
+
+  const handleTierClick = (
+    category: LifestyleCategory,
+    tierIndex: number,
+  ): void => {
+    setMode("board")
+    const nextSelection = { ...selection, [category.key]: tierIndex }
+    const nextPicked = new Set(pickedKeys)
+    nextPicked.add(category.key)
+    setSelection(nextSelection)
+    setPickedKeys(nextPicked)
+    emitChange(nextSelection, nextPicked)
+  }
+
+  const boardTotal = boardMonthlyTotal(sortedCategories, selection)
+  const existingTotal = sortedCategories.reduce(
+    (sum, c) => sum + existingAmountFor(c.categoryLabelId, expenses),
+    0,
+  )
+  const hasExisting = existingTotal > 0
+  const delta = boardTotal - existingTotal
+  const headline = lifestyleHeadline(boardTotal)
+
+  return (
+    <div className="space-y-5" data-testid="lifestyle-mood-board">
+      <div className="rounded-xl border border-independence-200 bg-independence-50 p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-independence-700">
+              This board reads as a{" "}
+              <span className="font-bold">{headline}</span> retirement
+            </p>
+            {hasExisting && (
+              <p className="mt-1 text-xs text-independence-600">
+                Board is {symbol}
+                {Math.abs(delta).toLocaleString()}/mo{" "}
+                {delta >= 0 ? "above" : "below"} your current spend
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-2xl font-bold tabular-nums text-independence-800">
+              {symbol}
+              {boardTotal.toLocaleString()}
+              <span className="text-sm font-normal text-independence-500">
+                {" "}
+                /mo
+              </span>
+            </p>
+            <p className="text-xs text-independence-500">
+              {symbol}
+              {(boardTotal * 12).toLocaleString()} /yr
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex rounded-lg bg-white border border-independence-200 p-0.5">
+            <button
+              type="button"
+              onClick={() => setMode("budget")}
+              className={`px-3 py-1.5 text-xs rounded-md font-medium ${
+                mode === "budget"
+                  ? "bg-independence-600 text-white"
+                  : "text-independence-600"
+              }`}
+            >
+              Budget → Board
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("board")}
+              className={`px-3 py-1.5 text-xs rounded-md font-medium ${
+                mode === "board"
+                  ? "bg-independence-600 text-white"
+                  : "text-independence-600"
+              }`}
+            >
+              Board → Budget
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-[200px] flex items-center gap-2">
+            <input
+              type="range"
+              aria-label="Monthly budget"
+              min={MIN_BUDGET}
+              max={MAX_BUDGET}
+              step={BUDGET_STEP}
+              value={budget}
+              disabled={mode === "board"}
+              onChange={(e) => handleBudgetChange(Number(e.target.value))}
+              className="w-full"
+            />
+            <span className="text-xs tabular-nums text-independence-600 w-20 text-right">
+              {symbol}
+              {budget.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {sortedCategories.map((category) => {
+          const selectedIdx = selection[category.key] ?? 0
+          const picked = pickedKeys.has(category.key)
+          const existingAmount = existingAmountFor(
+            category.categoryLabelId,
+            expenses,
+          )
+          const nearestIdx =
+            existingAmount > 0
+              ? nearestTierIndex(existingAmount, category.tiers)
+              : null
+          const isCustom =
+            picked &&
+            isCustomAmount(existingAmount, category.tiers[selectedIdx])
+
+          return (
+            <div
+              key={category.key}
+              className="rounded-lg border border-gray-200 bg-white p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-sm font-semibold text-gray-900"
+                  data-testid="lifestyle-category-name"
+                >
+                  {category.emoji} {category.displayName}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {existingAmount > 0 && (
+                    <span className="text-xs text-gray-500">
+                      you today: {symbol}
+                      {existingAmount.toLocaleString()}/mo
+                    </span>
+                  )}
+                  {isCustom && (
+                    <span
+                      data-testid={`lifestyle-chip-custom-${category.key}`}
+                      className="text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded-full"
+                    >
+                      Custom
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-1.5 flex-wrap">
+                {category.tiers.map((tier, idx) => {
+                  const active = idx === selectedIdx
+                  const nearest = !picked && idx === nearestIdx
+                  return (
+                    <button
+                      key={tier.label}
+                      type="button"
+                      data-testid={
+                        tier.reserve
+                          ? "lifestyle-tier-reserve"
+                          : `lifestyle-tier-${category.key}-${idx}`
+                      }
+                      onClick={() => handleTierClick(category, idx)}
+                      className={`flex-1 min-w-[64px] rounded-lg border px-1.5 py-1.5 text-center text-[11px] transition-colors ${
+                        active
+                          ? "border-independence-500 bg-independence-50 text-independence-800"
+                          : nearest
+                            ? "border-dashed border-independence-300 bg-independence-50/50 text-gray-600"
+                            : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      } ${tier.reserve ? "border-dashed border-amber-300" : ""}`}
+                    >
+                      <span className="block text-base leading-none">
+                        {tier.emoji}
+                      </span>
+                      <span className="block mt-1 font-medium">
+                        {tier.label}
+                        {tier.reserve && (
+                          <span className="text-amber-500"> ✦</span>
+                        )}
+                      </span>
+                      <span className="block text-gray-400">
+                        {symbol}
+                        {tier.monthlyAmount.toLocaleString()}
+                      </span>
+                      {nearest && (
+                        <span
+                          data-testid={`lifestyle-tier-nearest-${category.key}-${idx}`}
+                          className="sr-only"
+                        >
+                          nearest
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                {category.tiers[selectedIdx].description}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
