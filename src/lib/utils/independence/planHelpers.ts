@@ -3,7 +3,57 @@ import {
   AssetDisposal,
   LifeEvent,
   ManualAssetCategory,
+  RetirementPlan,
 } from "types/independence"
+
+/**
+ * Echo a plan's full mutable state as a PlanRequest payload.
+ *
+ * svc-retire's PATCH /plans/{id} consumes a full PlanRequest: every
+ * non-null field REPLACES the stored value and absent fields fall back to
+ * request defaults (e.g. planningHorizonYears 25, expensesCurrency "USD",
+ * feeRate 0) — a partial body silently clobbers plan settings. Any caller
+ * updating a single field must spread this payload and override just the
+ * fields it means to change.
+ */
+export function toPlanRequestPayload(
+  plan: RetirementPlan,
+): Record<string, unknown> {
+  return {
+    name: plan.name,
+    planningHorizonYears: plan.planningHorizonYears,
+    monthlyExpenses: plan.monthlyExpenses,
+    expensesCurrency: plan.expensesCurrency,
+    targetBalance: plan.targetBalance ?? null,
+    cashReturnRate: plan.cashReturnRate,
+    equityReturnRate: plan.equityReturnRate,
+    housingReturnRate: plan.housingReturnRate,
+    inflationRate: plan.inflationRate,
+    feeRate: plan.feeRate ?? 0,
+    investmentTaxRate: plan.investmentTaxRate ?? 0,
+    cashAllocation: plan.cashAllocation,
+    equityAllocation: plan.equityAllocation,
+    housingAllocation: plan.housingAllocation,
+    pensionMonthly: plan.pensionMonthly,
+    socialSecurityMonthly: plan.socialSecurityMonthly,
+    benefitsStartAge: plan.benefitsStartAge ?? null,
+    otherIncomeMonthly: plan.otherIncomeMonthly,
+    workingIncomeMonthly: plan.workingIncomeMonthly,
+    workingExpensesMonthly: plan.workingExpensesMonthly,
+    taxesMonthly: plan.taxesMonthly,
+    bonusMonthly: plan.bonusMonthly,
+    investmentAllocationPercent: plan.investmentAllocationPercent,
+    lifeEvents: plan.lifeEvents ?? null,
+    excludedPortfolioIds: parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+    excludedRentalAssetIds: parseExcludedRentalAssetIds(
+      plan.excludedRentalAssetIds,
+    ),
+    country: plan.country ?? null,
+    narrative: plan.narrative ?? null,
+    primaryStrategy: plan.primaryStrategy ?? null,
+    headlineMetric: plan.headlineMetric ?? null,
+  }
+}
 
 /**
  * Serialise the wizard's life-events array for the plan-update payload.

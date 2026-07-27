@@ -1,5 +1,7 @@
 import React from "react"
 import PhaseConfigList from "../../PhaseConfigList"
+import ResidencePhasePicker from "../ResidencePhasePicker"
+import BenefitsStartPhasePicker from "../BenefitsStartPhasePicker"
 import FlipCard from "@components/ui/FlipCard"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
@@ -75,7 +77,7 @@ export default function PhasesTab(): React.ReactElement {
           className="hidden lg:flex gap-6"
           data-testid="phases-desktop-layout"
         >
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 space-y-4">
             <PhaseConfigList
               plans={plans}
               phases={phases}
@@ -83,6 +85,8 @@ export default function PhasesTab(): React.ReactElement {
               onExclude={toggleExclusion}
               excludedPlanIds={excludedPlanIds}
             />
+            <ResidencePhasePicker />
+            <BenefitsStartPhasePicker />
           </div>
           <div className="w-72 shrink-0">
             <NarrativeField
@@ -99,13 +103,17 @@ export default function PhasesTab(): React.ReactElement {
             frontLabel="Phases"
             backLabel="Narrative"
             front={
-              <PhaseConfigList
-                plans={plans}
-                phases={phases}
-                onPhaseChange={setPhases}
-                onExclude={toggleExclusion}
-                excludedPlanIds={excludedPlanIds}
-              />
+              <div className="space-y-4">
+                <PhaseConfigList
+                  plans={plans}
+                  phases={phases}
+                  onPhaseChange={setPhases}
+                  onExclude={toggleExclusion}
+                  excludedPlanIds={excludedPlanIds}
+                />
+                <ResidencePhasePicker />
+                <BenefitsStartPhasePicker />
+              </div>
             }
             back={
               <NarrativeField
