@@ -21,34 +21,20 @@ import type { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
 import KpiCard from "@components/ui/KpiCard"
 import CollapsibleSection from "@components/ui/CollapsibleSection"
+import { currencySymbolFor } from "@lib/formatters"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
 
 function fmtShort(v: number, currency: string): string {
-  const sym =
-    currency === "USD"
-      ? "$"
-      : currency === "NZD"
-        ? "NZ$"
-        : currency === "SGD"
-          ? "S$"
-          : "$"
+  const sym = currencySymbolFor(currency)
   if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}M`
   if (v >= 1_000) return `${sym}${(v / 1_000).toFixed(0)}K`
   return `${sym}${v.toLocaleString()}`
 }
 
 function fmtFull(v: number, currency: string): string {
-  const sym =
-    currency === "USD"
-      ? "$"
-      : currency === "NZD"
-        ? "NZ$"
-        : currency === "SGD"
-          ? "S$"
-          : "$"
-  return `${sym}${Math.round(v).toLocaleString()}`
+  return `${currencySymbolFor(currency)}${Math.round(v).toLocaleString()}`
 }
 
 function fmtAxis(v: number): string {
@@ -135,7 +121,6 @@ export default function PlanFiOverviewTab({
   onOpenStressTest,
 }: PlanFiOverviewTabProps): React.ReactElement | null {
   const [mcIterations, setMcIterations] = useState(1000)
-
   const {
     result: mcResult,
     isRunning,

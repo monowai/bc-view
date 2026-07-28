@@ -86,6 +86,19 @@ export const formatCurrencySymbol = (value: number, symbol = "$"): string =>
   `${symbol}${value.toLocaleString()}`
 
 /**
+ * Display symbol for a currency code. Disambiguates the dollar currencies the
+ * product actually plans in; anything else falls back to a bare "$" rather
+ * than pretending to be a full currency table.
+ * @param currency - ISO currency code (e.g. "NZD")
+ * @returns Symbol prefix (e.g. "NZ$")
+ */
+export const currencySymbolFor = (currency: string | undefined): string => {
+  if (currency === "NZD") return "NZ$"
+  if (currency === "SGD") return "S$"
+  return "$"
+}
+
+/**
  * Format a number with sign prefix for display.
  * @param value - Numeric value
  * @param fractionDigits - Number of decimal places (default: 2)

@@ -80,6 +80,45 @@
   }
 }
 
+/* Lifestyle summary bars grow out from the axis on first paint.
+   scaleX rather than width: if the animation never runs — headless render,
+   background tab, animations disabled — the bar still sits at its true
+   length. The reveal enhances a correct default instead of gating it. */
+.animate-bar-grow {
+  animation: bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: left center;
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Mood-board tiles settle in on the payoff screen. Like the bars, the
+   animation only ever enhances a correct default: no fill-mode holding them
+   invisible if it never runs. */
+.animate-tile-in {
+  animation: tile-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bar-grow,
+  .animate-tile-in {
+    animation: none;
+  }
+}
+
 html,
 body {
   padding: 0;

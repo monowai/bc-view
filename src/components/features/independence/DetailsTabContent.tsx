@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useMemo } from "react"
 import InfoTooltip from "@components/ui/Tooltip"
 import KpiCard from "@components/ui/KpiCard"
 import { RetirementPlan, RetirementProjection } from "types/independence"
@@ -9,6 +9,11 @@ import {
   PlanFindingsCard,
 } from "@components/features/independence"
 import VerdictBanner from "./VerdictBanner"
+import LifestyleSummary from "./LifestyleSummary"
+import { usePlanExpenses } from "./usePlanExpenses"
+import { useExpenseCategories } from "./useExpenseCategories"
+import { useLifestyleCatalog } from "./useLifestyleCatalog"
+import { buildLifestyleSummary } from "@lib/independence/lifestyleSummary"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -50,6 +55,19 @@ export default function DetailsTabContent({
   includedPensionFvDifferential,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
+  const { expenses, isLoading: expensesLoading } = usePlanExpenses(plan.id)
+  const { labels } = useExpenseCategories()
+  const { catalog } = useLifestyleCatalog(planCurrency)
+  const lifestyle = useMemo(
+    () =>
+      buildLifestyleSummary({
+        expenses,
+        projection,
+        labels,
+        catalog,
+      }),
+    [expenses, projection, labels, catalog],
+  )
 
   // Pull effective values from the unified scenario state. realReturn is
   // distributed across cash + equity rates via applyRealReturn.
@@ -188,6 +206,18 @@ export default function DetailsTabContent({
             />
           </div>
         </div>
+      )}
+
+      {/* The "Sustainable spending" tile above says how much. This says what
+          it buys — the same backend figure, spread across the categories the
+          user actually described. */}
+      {(lifestyle || expensesLoading) && (
+        <LifestyleSummary
+          model={lifestyle}
+          currencySymbol={effectiveCurrency}
+          hideValues={hideValues}
+          isLoading={expensesLoading && !lifestyle}
+        />
       )}
 
       {/* Two-column: inputs-only Plan Details | Plan Insights (findings) */}
