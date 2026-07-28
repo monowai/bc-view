@@ -156,6 +156,10 @@ const OnboardingWizard: React.FC = () => {
     useState(0)
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
   const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
+  // Kept so the final step can project the plan and show what it supports.
+  const [independencePlanId, setIndependencePlanId] = useState<string | null>(
+    null,
+  )
 
   // Work plan state (collected in the Independence step)
   const [workingIncomeMonthly, setWorkingIncomeMonthly] = useState(0)
@@ -751,6 +755,7 @@ const OnboardingWizard: React.FC = () => {
               const planBody = await planResponse.json()
               const planId = planBody?.data?.id
               if (planId) {
+                setIndependencePlanId(planId)
                 await saveOnboardingExpenses(
                   planId,
                   independenceMonthlyExpenses,
@@ -988,6 +993,8 @@ const OnboardingWizard: React.FC = () => {
             insuranceCount={insurances.length}
             portfolioId={createdPortfolioId}
             independencePlanCreated={independencePlanCreated}
+            independencePlanId={independencePlanId}
+            independenceCurrency={baseCurrency}
             brokerageCreated={brokerageCreated}
           />
         )

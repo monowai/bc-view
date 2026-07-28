@@ -15,6 +15,8 @@ import StressTestTab from "./composite/tabs/StressTestTab"
 import YearByYearTab from "./composite/tabs/YearByYearTab"
 import FiOverviewTab from "./composite/tabs/FiOverviewTab"
 import NetWorthTab from "./composite/tabs/NetWorthTab"
+import SummaryTab from "./composite/tabs/SummaryTab"
+import { compositeOutlook } from "@lib/independence/compositeOutlook"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -22,7 +24,13 @@ interface CompositeTabProps {
 }
 
 type CompositeSubTabId =
-  "overview" | "phases" | "wealth" | "networth" | "stress" | "timeline"
+  | "summary"
+  | "overview"
+  | "phases"
+  | "wealth"
+  | "networth"
+  | "stress"
+  | "timeline"
 
 interface CompositeSubTabConfig {
   id: CompositeSubTabId
@@ -31,6 +39,7 @@ interface CompositeSubTabConfig {
 }
 
 const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
+  { id: "summary", label: "Summary", icon: "fa-list-ul" },
   { id: "phases", label: "Phases", icon: "fa-clipboard-list" },
   { id: "networth", label: "Net Worth", icon: "fa-wallet" },
   { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
@@ -54,11 +63,7 @@ function CompositeSubTabNavigation({
 }: CompositeSubTabNavigationProps): React.ReactElement {
   const { projection } = useCompositeProjectionContext()
 
-  const sustainabilityText = projection
-    ? projection.isSustainable
-      ? `Sustainable to age ${projection.yearlyProjections[projection.yearlyProjections.length - 1]?.age ?? "?"}`
-      : `Savings deplete at age ${projection.depletionAge ?? "?"}`
-    : null
+  const sustainabilityText = compositeOutlook(projection)?.badge ?? null
 
   return (
     <div className="border-b border-gray-200 mb-4">
@@ -128,6 +133,8 @@ export default function CompositeTab({
   settings,
 }: CompositeTabProps): React.ReactElement {
   const projectionState = useCompositeProjection(plans, settings)
+  // Summary sits first in the bar but Phases stays the landing tab — that's
+  // where the user configures, and an explicit test asserts it.
   const [activeTab, setActiveTab] = useState<CompositeSubTabId>("phases")
 
   const contextValue: CompositeProjectionValue = {
@@ -142,6 +149,7 @@ export default function CompositeTab({
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
+        {activeTab === "summary" && <SummaryTab />}
         {activeTab === "overview" && <FiOverviewTab />}
         {activeTab === "phases" && <PhasesTab />}
         {activeTab === "wealth" && <WealthJourneyTab />}

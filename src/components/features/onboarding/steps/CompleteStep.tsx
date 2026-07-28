@@ -1,5 +1,9 @@
 import React from "react"
 import Link from "next/link"
+import LifestyleSummary from "@components/features/independence/LifestyleSummary"
+import { useLifestyleOutlook } from "../useLifestyleOutlook"
+import { currencySymbolFor } from "@lib/formatters"
+
 interface CompleteStepProps {
   portfolioName: string
   bankAccountCount: number
@@ -8,6 +12,9 @@ interface CompleteStepProps {
   insuranceCount: number
   portfolioId: string | null
   independencePlanCreated?: boolean
+  /** Set when a plan was created — lets this step show what it supports. */
+  independencePlanId?: string | null
+  independenceCurrency?: string
   brokerageCreated?: boolean
 }
 
@@ -20,8 +27,16 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   pensionCount,
   insuranceCount,
   independencePlanCreated,
+  independencePlanId,
+  independenceCurrency = "USD",
   brokerageCreated,
 }) => {
+  // The payoff: everything above is a receipt for work done, this is the one
+  // thing the user actually came for.
+  const { model: lifestyle, isLoading: lifestyleLoading } = useLifestyleOutlook(
+    independencePlanId,
+    independenceCurrency,
+  )
   const chips: Array<{ icon: string; color: string; label: string }> = [
     { icon: "fa-folder", color: "text-blue-500", label: portfolioName },
     ...(bankAccountCount > 0
@@ -101,6 +116,18 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
           </Link>
         )}
       </div>
+
+      {/* The payoff — what all of that data entry was actually for. */}
+      {independencePlanId && (lifestyle || lifestyleLoading) && (
+        <div className="mb-5">
+          <LifestyleSummary
+            variant="payoff"
+            model={lifestyle}
+            isLoading={lifestyleLoading && !lifestyle}
+            currencySymbol={currencySymbolFor(independenceCurrency)}
+          />
+        </div>
+      )}
 
       {/* Next-step pointers — side-by-side, compact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
