@@ -9,8 +9,9 @@ import {
   defaultWizardValues,
 } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
+import { makeLifestyleCatalog } from "../__fixtures__/lifestyleCatalog"
 
-// Mock SWR for categories
+// Mock SWR for categories + lifestyle catalog, keyed by request key
 const mockCategories = {
   data: [
     {
@@ -34,32 +35,61 @@ const mockCategories = {
       sortOrder: 3,
       description: "Car, public transport",
     },
+    {
+      id: "cat-housing",
+      ownerId: "SYSTEM",
+      name: "Home Base",
+      sortOrder: 4,
+      description: "Lifestyle board housing category",
+    },
   ],
 }
 
-let swrMockReturn = {
+const mockCatalog = makeLifestyleCatalog()
+
+let categoriesSwrReturn = {
   data: null as typeof mockCategories | null,
   error: null,
   isLoading: true,
 }
+let catalogSwrReturn = {
+  data: null as typeof mockCatalog | null,
+  error: null,
+  isLoading: true,
+}
+
+const swrKeySpy = jest.fn()
 
 jest.mock("swr", () => ({
   __esModule: true,
-  default: () => swrMockReturn,
+  default: (key: string) => {
+    swrKeySpy(key)
+    if (typeof key === "string" && key.includes("lifestyle-catalog")) {
+      return catalogSwrReturn
+    }
+    return categoriesSwrReturn
+  },
 }))
 
 interface TestWrapperProps {
   children: React.ReactNode
   workingExpenses?: WizardFormData["workingExpenses"]
+  expenses?: WizardFormData["expenses"]
+  expensesCurrency?: string
 }
 
-const TestWrapper: React.FC<TestWrapperProps> = ({ workingExpenses = [] }) => {
+const TestWrapper: React.FC<TestWrapperProps> = ({
+  workingExpenses = [],
+  expenses = [],
+  expensesCurrency = "NZD",
+}) => {
   const methods = useForm<WizardFormData>({
     resolver: yupResolver(expensesStepSchema) as any,
     defaultValues: {
       ...defaultWizardValues,
-      expenses: [],
+      expenses,
       workingExpenses,
+      expensesCurrency,
     },
     mode: "onBlur",
   })
@@ -78,9 +108,30 @@ const TestWrapper: React.FC<TestWrapperProps> = ({ workingExpenses = [] }) => {
   )
 }
 
+const goToDetailedTab = (): void => {
+  fireEvent.click(screen.getByRole("button", { name: /detailed/i }))
+}
+
 describe("ExpensesStep", () => {
   beforeEach(() => {
-    swrMockReturn = { data: null, error: null, isLoading: true }
+    categoriesSwrReturn = { data: null, error: null, isLoading: true }
+    catalogSwrReturn = { data: null, error: null, isLoading: true }
+    swrKeySpy.mockClear()
+  })
+
+  it("fetches the lifestyle catalog scoped to the plan's expenses currency", () => {
+    render(
+      <TestWrapper expensesCurrency="SGD">
+        <div />
+      </TestWrapper>,
+    )
+
+    const catalogKeyCall = swrKeySpy.mock.calls.find(
+      ([key]) => typeof key === "string" && key.includes("lifestyle-catalog"),
+    )
+    expect(catalogKeyCall?.[0]).toBe(
+      "/api/independence/lifestyle-catalog?currency=SGD",
+    )
   })
 
   it("renders the expenses step header", () => {
@@ -95,17 +146,19 @@ describe("ExpensesStep", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows loading state initially when no categories loaded", () => {
+  it("shows total monthly expenses hero on the Detailed tab", () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
+    goToDetailedTab()
 
-    expect(screen.getByText(/loading categories/i)).toBeInTheDocument()
+    expect(screen.getByText(/total monthly expenses/i)).toBeInTheDocument()
+    expect(screen.getByText("$0")).toBeInTheDocument()
   })
 
-  it("shows add custom category button", () => {
+  it("hides the total monthly expenses hero on the Mood Board tab — the board header is the single total", () => {
     render(
       <TestWrapper>
         <div />
@@ -113,178 +166,302 @@ describe("ExpensesStep", () => {
     )
 
     expect(
-      screen.getByRole("button", { name: /add custom category/i }),
-    ).toBeInTheDocument()
+      screen.queryByText(/total monthly expenses/i),
+    ).not.toBeInTheDocument()
   })
 
-  it("shows custom category input when button clicked", async () => {
-    render(
-      <TestWrapper>
-        <div />
-      </TestWrapper>,
-    )
-
-    const addButton = screen.getByRole("button", {
-      name: /add custom category/i,
-    })
-    fireEvent.click(addButton)
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/category name/i)).toBeInTheDocument()
-    })
-  })
-
-  it("shows total monthly expenses", () => {
-    render(
-      <TestWrapper>
-        <div />
-      </TestWrapper>,
-    )
-
-    expect(screen.getByText(/total monthly expenses/i)).toBeInTheDocument()
-    expect(screen.getByText("$0")).toBeInTheDocument()
-  })
-
-  describe("Copy from working expenses", () => {
-    const workingExpenses = [
-      {
-        categoryLabelId: "cat-1",
-        categoryName: "Housing",
-        monthlyAmount: 2500,
-      },
-      { categoryLabelId: "cat-2", categoryName: "Food", monthlyAmount: 800 },
-      {
-        categoryLabelId: "cat-3",
-        categoryName: "Transport",
-        monthlyAmount: 500,
-      },
-    ]
-
-    beforeEach(() => {
-      swrMockReturn = { data: mockCategories, error: null, isLoading: false }
-    })
-
-    it("copies working expenses at default 80%", async () => {
-      render(
-        <TestWrapper workingExpenses={workingExpenses}>
-          <div />
-        </TestWrapper>,
-      )
-
-      // Categories load synchronously via mock, fields should appear
-      await waitFor(() => {
-        expect(screen.getByText("Housing")).toBeInTheDocument()
-      })
-
-      // Banner should be visible
-      expect(screen.getByText(/working expenses on file/i)).toBeInTheDocument()
-
-      // Default is 80% (MathInput is textbox)
-      const percentInput = screen.getByLabelText(/copy percentage/i)
-      expect(percentInput).toHaveValue("80")
-
-      // Click Apply
-      fireEvent.click(screen.getByRole("button", { name: /apply/i }))
-
-      // Housing: round(2500*80/100)=2000, Food: round(800*80/100)=640, Transport: round(500*80/100)=400
-      // Total = 3040
-      await waitFor(() => {
-        expect(screen.getByText("$3,040")).toBeInTheDocument()
-      })
-    })
-
-    it("copies working expenses at custom percentage", async () => {
-      render(
-        <TestWrapper workingExpenses={workingExpenses}>
-          <div />
-        </TestWrapper>,
-      )
-
-      // Wait for categories to load
-      await waitFor(() => {
-        expect(screen.getByText("Housing")).toBeInTheDocument()
-      })
-
-      // Change to 70% (MathInput fires onChange with parsed number on change)
-      const percentInput = screen.getByLabelText(/copy percentage/i)
-      fireEvent.change(percentInput, { target: { value: "70" } })
-      fireEvent.blur(percentInput)
-
-      fireEvent.click(screen.getByRole("button", { name: /apply/i }))
-
-      // Housing: round(2500*70/100)=1750, Food: round(800*70/100)=560, Transport: round(500*70/100)=350
-      // Total = 2660
-      await waitFor(() => {
-        expect(screen.getByText("$2,660")).toBeInTheDocument()
-      })
-    })
-
-    it("hides banner when no working expenses exist", async () => {
+  describe("Tab defaults", () => {
+    it("defaults to the Mood Board tab for a plan with no retirement expenses yet", () => {
       render(
         <TestWrapper>
           <div />
         </TestWrapper>,
       )
 
-      // Wait for categories to load
-      await waitFor(() => {
-        expect(screen.getByText("Housing")).toBeInTheDocument()
-      })
-
+      expect(screen.getByRole("button", { name: /mood board/i })).toHaveClass(
+        "bg-white",
+      )
       expect(
-        screen.queryByText(/working expenses on file/i),
+        screen.queryByRole("button", { name: /add custom category/i }),
       ).not.toBeInTheDocument()
     })
 
-    it("shows re-apply button after initial apply and re-applies at same percent", async () => {
+    it("defaults to the Detailed tab when the plan already has expense amounts", () => {
       render(
-        <TestWrapper workingExpenses={workingExpenses}>
+        <TestWrapper
+          expenses={[
+            {
+              categoryLabelId: "cat-1",
+              categoryName: "Housing",
+              monthlyAmount: 2000,
+            },
+          ]}
+        >
           <div />
         </TestWrapper>,
       )
 
-      // Wait for categories to load
-      await waitFor(() => {
-        expect(screen.getByText("Housing")).toBeInTheDocument()
-      })
+      expect(screen.getByRole("button", { name: /detailed/i })).toHaveClass(
+        "bg-white",
+      )
+    })
+  })
 
-      // Apply at 80% via banner
-      fireEvent.click(screen.getByRole("button", { name: /^apply$/i }))
-      await waitFor(() => {
-        expect(screen.getByText("$3,040")).toBeInTheDocument()
-      })
+  describe("Detailed tab (existing rows behaviour, unchanged)", () => {
+    it("shows add custom category button", () => {
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
 
-      // Banner copy section is gone (expenses no longer all zero), re-apply button appears
       expect(
-        screen.queryByText(/working expenses on file/i),
-      ).not.toBeInTheDocument()
-      expect(
-        screen.getByRole("button", { name: /re-apply working expenses/i }),
+        screen.getByRole("button", { name: /add custom category/i }),
       ).toBeInTheDocument()
+    })
 
-      // Re-apply at same 80% keeps same total
-      fireEvent.click(
-        screen.getByRole("button", { name: /re-apply working expenses/i }),
+    it("shows loading state initially when no categories loaded", () => {
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
       )
+      goToDetailedTab()
+
+      expect(screen.getByText(/loading categories/i)).toBeInTheDocument()
+    })
+
+    it("shows custom category input when button clicked", async () => {
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      const addButton = screen.getByRole("button", {
+        name: /add custom category/i,
+      })
+      fireEvent.click(addButton)
+
       await waitFor(() => {
-        expect(screen.getByText("$3,040")).toBeInTheDocument()
+        expect(
+          screen.getByPlaceholderText(/category name/i),
+        ).toBeInTheDocument()
       })
     })
 
-    it("hides re-apply button when no working expenses", async () => {
+    describe("Copy from working expenses", () => {
+      const workingExpenses = [
+        {
+          categoryLabelId: "cat-1",
+          categoryName: "Housing",
+          monthlyAmount: 2500,
+        },
+        { categoryLabelId: "cat-2", categoryName: "Food", monthlyAmount: 800 },
+        {
+          categoryLabelId: "cat-3",
+          categoryName: "Transport",
+          monthlyAmount: 500,
+        },
+      ]
+
+      beforeEach(() => {
+        categoriesSwrReturn = {
+          data: mockCategories,
+          error: null,
+          isLoading: false,
+        }
+      })
+
+      it("copies working expenses at default 80%", async () => {
+        render(
+          <TestWrapper workingExpenses={workingExpenses}>
+            <div />
+          </TestWrapper>,
+        )
+        goToDetailedTab()
+
+        await waitFor(() => {
+          expect(screen.getByText("Housing")).toBeInTheDocument()
+        })
+
+        expect(
+          screen.getByText(/working expenses on file/i),
+        ).toBeInTheDocument()
+
+        const percentInput = screen.getByLabelText(/copy percentage/i)
+        expect(percentInput).toHaveValue("80")
+
+        fireEvent.click(screen.getByRole("button", { name: /apply/i }))
+
+        await waitFor(() => {
+          expect(screen.getByText("$3,040")).toBeInTheDocument()
+        })
+      })
+
+      it("copies working expenses at custom percentage", async () => {
+        render(
+          <TestWrapper workingExpenses={workingExpenses}>
+            <div />
+          </TestWrapper>,
+        )
+        goToDetailedTab()
+
+        await waitFor(() => {
+          expect(screen.getByText("Housing")).toBeInTheDocument()
+        })
+
+        const percentInput = screen.getByLabelText(/copy percentage/i)
+        fireEvent.change(percentInput, { target: { value: "70" } })
+        fireEvent.blur(percentInput)
+
+        fireEvent.click(screen.getByRole("button", { name: /apply/i }))
+
+        await waitFor(() => {
+          expect(screen.getByText("$2,660")).toBeInTheDocument()
+        })
+      })
+
+      it("hides banner when no working expenses exist", async () => {
+        render(
+          <TestWrapper>
+            <div />
+          </TestWrapper>,
+        )
+        goToDetailedTab()
+
+        await waitFor(() => {
+          expect(screen.getByText("Housing")).toBeInTheDocument()
+        })
+
+        expect(
+          screen.queryByText(/working expenses on file/i),
+        ).not.toBeInTheDocument()
+      })
+
+      it("shows re-apply button after initial apply and re-applies at same percent", async () => {
+        render(
+          <TestWrapper workingExpenses={workingExpenses}>
+            <div />
+          </TestWrapper>,
+        )
+        goToDetailedTab()
+
+        await waitFor(() => {
+          expect(screen.getByText("Housing")).toBeInTheDocument()
+        })
+
+        fireEvent.click(screen.getByRole("button", { name: /^apply$/i }))
+        await waitFor(() => {
+          expect(screen.getByText("$3,040")).toBeInTheDocument()
+        })
+
+        expect(
+          screen.queryByText(/working expenses on file/i),
+        ).not.toBeInTheDocument()
+        expect(
+          screen.getByRole("button", { name: /re-apply working expenses/i }),
+        ).toBeInTheDocument()
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /re-apply working expenses/i }),
+        )
+        await waitFor(() => {
+          expect(screen.getByText("$3,040")).toBeInTheDocument()
+        })
+      })
+
+      it("hides re-apply button when no working expenses", async () => {
+        render(
+          <TestWrapper>
+            <div />
+          </TestWrapper>,
+        )
+        goToDetailedTab()
+
+        await waitFor(() => {
+          expect(screen.getByText("Housing")).toBeInTheDocument()
+        })
+
+        expect(
+          screen.queryByRole("button", { name: /re-apply working expenses/i }),
+        ).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe("Mood Board tab", () => {
+    beforeEach(() => {
+      categoriesSwrReturn = {
+        data: mockCategories,
+        error: null,
+        isLoading: false,
+      }
+      catalogSwrReturn = { data: mockCatalog, error: null, isLoading: false }
+    })
+
+    it("renders the lifestyle catalog categories", () => {
       render(
         <TestWrapper>
           <div />
         </TestWrapper>,
       )
 
+      expect(screen.getByTestId("lifestyle-mood-board")).toBeInTheDocument()
+      expect(screen.getAllByTestId("lifestyle-category-name").length).toBe(8)
+    })
+
+    it("clicking a tier seeds the shared expenses field array", async () => {
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Comfortable.*2,200/i }),
+      )
+
+      // Board header total should reflect the picked tier
       await waitFor(() => {
-        expect(screen.getByText("Housing")).toBeInTheDocument()
+        expect(screen.getAllByText(/\$2,200/).length).toBeGreaterThan(0)
+      })
+    })
+
+    it("keeps the 'you today' anchor fixed after a tier click seeds mood-board rows", async () => {
+      render(
+        <TestWrapper
+          expenses={[
+            {
+              categoryLabelId: "cat-housing",
+              categoryName: "Home Base",
+              monthlyAmount: 1500,
+            },
+          ]}
+        >
+          <div />
+        </TestWrapper>,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /mood board/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
       })
 
-      expect(
-        screen.queryByRole("button", { name: /re-apply working expenses/i }),
-      ).not.toBeInTheDocument()
+      fireEvent.click(
+        screen.getByRole("button", { name: /Comfortable.*2,200/i }),
+      )
+
+      await waitFor(() => {
+        expect(screen.getAllByText(/\$2,200/).length).toBeGreaterThan(0)
+      })
+
+      // The "now" anchor must still show the original 1,500 snapshot, not
+      // the freshly-seeded 2,200 board value.
+      expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
     })
   })
 })

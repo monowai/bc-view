@@ -81,6 +81,10 @@ describe("ExpensesStep - Custom Category", () => {
       />,
     )
 
+    // New plan (no expenses yet) defaults to the Mood Board tab; switch to
+    // Detailed to exercise the custom-category rows workflow.
+    fireEvent.click(screen.getByRole("button", { name: /detailed/i }))
+
     // Wait for categories to load and Housing to appear
     await waitFor(() => {
       expect(screen.getByText("Housing")).toBeInTheDocument()
