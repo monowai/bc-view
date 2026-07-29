@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @tailwind utilities;
 
+/* Tailwind v4 registers plugins from CSS, not a JS config. Without this the
+   `prose*` classes used by every markdown surface (chat bubbles, News &
+   Sentiment, Portfolio Review) are silently no-ops — which is why LLM tables
+   rendered with browser-default zero padding and no borders. */
+@plugin "@tailwindcss/typography";
+
 /* Dark mode: opt-in via `dark` class on <html>. Pair with a future theme
    toggle that flips the class. `prefers-color-scheme` not used so the user's
    choice always wins over OS setting. */
