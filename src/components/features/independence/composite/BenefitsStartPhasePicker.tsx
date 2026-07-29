@@ -3,6 +3,7 @@ import { mutate } from "swr"
 import type { RetirementPlan } from "types/independence"
 import { toPlanRequestPayload } from "@utils/independence/planHelpers"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+import LeverRow, { LEVER_SELECT_CLASS } from "./LeverRow"
 
 /** Same SWR key the Independence page uses to list plans (src/pages/independence/index.tsx). */
 const PLANS_KEY = "/api/independence/plans"
@@ -48,8 +49,8 @@ async function updateBenefitsStartAge(
 export default function BenefitsStartPhasePicker(): React.ReactElement | null {
   const { plans, phases } = useCompositeProjectionContext()
   const [saving, setSaving] = useState(false)
-  // Rendered twice per page (desktop + mobile FlipCard) — a static id would
-  // duplicate in the DOM, so derive a unique one per instance.
+  // Derived per instance so the label/select association stays unique even if
+  // the picker is ever rendered more than once on a page.
   const selectId = useId()
 
   if (phases.length === 0) {
@@ -106,34 +107,34 @@ export default function BenefitsStartPhasePicker(): React.ReactElement | null {
   }
 
   return (
-    <div className="space-y-2">
-      <label
-        htmlFor={selectId}
-        className="block text-sm font-medium text-gray-700"
-      >
-        NZ Super / benefits start
-      </label>
-      <select
-        id={selectId}
-        aria-label="NZ Super / benefits start"
-        value={selectedValue}
-        disabled={saving}
-        onChange={(e) => {
-          void handleChange(e.target.value)
-        }}
-        className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500 disabled:opacity-50"
-      >
-        {disabledOptionValue && (
-          <option value={disabledOptionValue} disabled>
-            {disabledOptionLabel}
-          </option>
-        )}
-        {phases.map((phase) => (
-          <option key={phase.planId} value={String(phase.fromAge)}>
-            {getPlanName(plans, phase.planId)} — from age {phase.fromAge}
-          </option>
-        ))}
-      </select>
-    </div>
+    <LeverRow
+      label={
+        <label htmlFor={selectId}>NZ Super / government benefits start</label>
+      }
+      hint="Applied to every plan in the timeline, so the projection gates them the same way."
+      control={
+        <select
+          id={selectId}
+          aria-label="NZ Super / benefits start"
+          value={selectedValue}
+          disabled={saving}
+          onChange={(e) => {
+            void handleChange(e.target.value)
+          }}
+          className={LEVER_SELECT_CLASS}
+        >
+          {disabledOptionValue && (
+            <option value={disabledOptionValue} disabled>
+              {disabledOptionLabel}
+            </option>
+          )}
+          {phases.map((phase) => (
+            <option key={phase.planId} value={String(phase.fromAge)}>
+              {getPlanName(plans, phase.planId)} — from age {phase.fromAge}
+            </option>
+          ))}
+        </select>
+      }
+    />
   )
 }

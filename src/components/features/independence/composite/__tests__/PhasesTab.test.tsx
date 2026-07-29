@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import type { CompositePhase } from "types/independence"
+import type { CompositePhase, RetirementPlan } from "types/independence"
 import {
   CompositeProjectionProvider,
   type CompositeProjectionValue,
@@ -55,22 +55,26 @@ jest.mock("../BenefitsStartPhasePicker", () => ({
 import PhasesTab from "../tabs/PhasesTab"
 
 const defaultPhases: CompositePhase[] = [
-  { planId: "p1", fromAge: 65, toAge: 90 },
+  { planId: "p1", fromAge: 65, toAge: 75 },
+  { planId: "p2", fromAge: 75 },
 ]
+
+const defaultPlans = [
+  { id: "p1", name: "Go-Go" },
+  { id: "p2", name: "Slow Go" },
+] as RetirementPlan[]
 
 function makeCtx(
   overrides: Partial<CompositeProjectionValue> = {},
 ): CompositeProjectionValue {
   return {
-    plans: [],
+    plans: defaultPlans,
     phases: defaultPhases,
     setPhases: jest.fn(),
     displayCurrency: "USD",
     setDisplayCurrency: jest.fn(),
     excludedPlanIds: new Set<string>(),
     toggleExclusion: jest.fn(),
-    compositeNarrative: "My plan narrative",
-    setCompositeNarrative: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
     projection: undefined,
@@ -93,96 +97,69 @@ function renderWithCtx(
 }
 
 describe("PhasesTab", () => {
-  it("renders the desktop layout container", () => {
+  it("renders one responsive layout, not duplicated desktop/mobile copies", () => {
     renderWithCtx()
-    expect(screen.getByTestId("phases-desktop-layout")).toBeInTheDocument()
+    expect(screen.getAllByTestId("phases-layout")).toHaveLength(1)
+    expect(screen.getAllByTestId("phase-config-list")).toHaveLength(1)
   })
 
-  it("desktop layout contains the narrative textarea with id=composite-narrative", () => {
+  it("carries no composite narrative field — narrative lives on each phase plan", () => {
     renderWithCtx()
-    const desktopLayout = screen.getByTestId("phases-desktop-layout")
-    // The desktop textarea sits inside the desktop layout div.
-    const desktopTextarea = desktopLayout.querySelector(
-      "textarea#composite-narrative",
-    )
-    expect(desktopTextarea).toBeInTheDocument()
+    expect(document.querySelector("textarea")).toBeNull()
+    expect(screen.queryByText(/Plan narrative/i)).not.toBeInTheDocument()
   })
 
-  it("renders the mobile layout container", () => {
+  it("renders the timeline band with each phase's span", () => {
     renderWithCtx()
-    expect(screen.getByTestId("phases-mobile-layout")).toBeInTheDocument()
+    expect(screen.getByText("Timeline")).toBeInTheDocument()
+    expect(screen.getByText(/65–75 · 10 yr/)).toBeInTheDocument()
   })
 
-  it("mobile layout contains its own narrative textarea with unique id", () => {
-    renderWithCtx()
-    const mobileLayout = screen.getByTestId("phases-mobile-layout")
-    const mobileTextarea = mobileLayout.querySelector(
-      "textarea#composite-narrative-mobile",
-    )
-    expect(mobileTextarea).toBeInTheDocument()
-  })
-
-  it("both textarea ids are present in the document and are different", () => {
-    renderWithCtx()
-    const desktopTextarea = document.getElementById("composite-narrative")
-    const mobileTextarea = document.getElementById("composite-narrative-mobile")
-
-    expect(desktopTextarea).toBeInTheDocument()
-    expect(mobileTextarea).toBeInTheDocument()
-    expect(desktopTextarea?.id).not.toBe(mobileTextarea?.id)
-  })
-
-  it("both textareas reflect the compositeNarrative value from context", () => {
-    renderWithCtx({ compositeNarrative: "Phase narrative text" })
-
-    const allTextareas = screen.getAllByPlaceholderText(
-      /Overarching goal across all phases/i,
-    )
-    // One from desktop layout, one from mobile flip card
-    expect(allTextareas).toHaveLength(2)
-    allTextareas.forEach((ta) => {
-      expect(ta).toHaveValue("Phase narrative text")
+  it("resolves the open-ended last phase from the projection horizon", () => {
+    renderWithCtx({
+      projection: {
+        phases: [
+          {
+            planId: "p1",
+            planName: "Go-Go",
+            fromAge: 65,
+            toAge: 75,
+            expensesCurrency: "USD",
+          },
+          {
+            planId: "p2",
+            planName: "Slow Go",
+            fromAge: 75,
+            toAge: 90,
+            expensesCurrency: "USD",
+          },
+        ],
+      } as CompositeProjectionValue["projection"],
     })
+    expect(screen.getByText(/age 65 → 90 · 25 years/)).toBeInTheDocument()
   })
 
-  it("renders PhaseConfigList in both desktop and mobile layouts", () => {
+  it("groups both phase levers in a single panel", () => {
     renderWithCtx()
-    const stubs = screen.getAllByTestId("phase-config-list")
-    // desktop layout + mobile flip card (front face)
-    expect(stubs.length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByTestId("phase-levers")).toBeInTheDocument()
+    expect(screen.getAllByTestId("residence-phase-picker")).toHaveLength(1)
+    expect(screen.getAllByTestId("benefits-start-phase-picker")).toHaveLength(1)
   })
 
-  it("renders ResidencePhasePicker below the phase list in both layouts", () => {
-    renderWithCtx()
-    const stubs = screen.getAllByTestId("residence-phase-picker")
-    // desktop layout + mobile flip card (front face)
-    expect(stubs.length).toBeGreaterThanOrEqual(2)
+  it("hides the levers panel when there are no phases to hang them off", () => {
+    renderWithCtx({ phases: [] })
+    expect(screen.queryByTestId("phase-levers")).not.toBeInTheDocument()
   })
 
-  it("renders BenefitsStartPhasePicker below ResidencePhasePicker in both layouts", () => {
-    renderWithCtx()
-    const stubs = screen.getAllByTestId("benefits-start-phase-picker")
-    // desktop layout + mobile flip card (front face)
-    expect(stubs.length).toBeGreaterThanOrEqual(2)
-  })
-
-  it("mobile layout contains a FlipCard flip-card-inner element", () => {
-    renderWithCtx()
-    const mobileLayout = screen.getByTestId("phases-mobile-layout")
-    const inner = mobileLayout.querySelector("[data-testid='flip-card-inner']")
-    expect(inner).toBeInTheDocument()
+  it("shows a spinner while the projection is calculating", () => {
+    renderWithCtx({ isLoading: true })
+    expect(
+      screen.getByText(/Calculating composite projection/i),
+    ).toBeInTheDocument()
   })
 
   it("shows an error alert when error is set", () => {
     renderWithCtx({ error: "Something went wrong" })
     expect(screen.getByText("Something went wrong")).toBeInTheDocument()
-  })
-
-  it("shows a spinner when isLoading is true", () => {
-    renderWithCtx({ isLoading: true })
-    // Spinner renders a visually-hidden label; check for it
-    expect(
-      screen.getByText(/Calculating composite projection/i),
-    ).toBeInTheDocument()
   })
 })

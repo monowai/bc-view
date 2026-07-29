@@ -128,8 +128,6 @@ function makeCtx(
     setDisplayCurrency: jest.fn(),
     excludedPlanIds: new Set<string>(),
     toggleExclusion: jest.fn(),
-    compositeNarrative: "",
-    setCompositeNarrative: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
     projection: undefined,

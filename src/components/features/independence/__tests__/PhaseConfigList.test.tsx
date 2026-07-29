@@ -61,19 +61,15 @@ describe("PhaseConfigList", () => {
   it("renders phase rows with plan names", () => {
     render(<PhaseConfigList {...defaultProps} />)
 
-    // Plan name appears in checkbox and as row label (with colon)
-    expect(screen.getByText("Asia Plan")).toBeInTheDocument()
-    expect(screen.getByText("Asia Plan:")).toBeInTheDocument()
-    expect(screen.getByText("Europe Plan")).toBeInTheDocument()
-    expect(screen.getByText("Europe Plan:")).toBeInTheDocument()
+    // Plan name appears on the inclusion chip and as the row label.
+    expect(screen.getAllByText("Asia Plan")).toHaveLength(2)
+    expect(screen.getAllByText("Europe Plan")).toHaveLength(2)
   })
 
   it("uses plan names as row labels instead of generic phase numbers", () => {
     render(<PhaseConfigList {...defaultProps} />)
 
-    expect(screen.getByText("Asia Plan:")).toBeInTheDocument()
-    expect(screen.getByText("Europe Plan:")).toBeInTheDocument()
-    expect(screen.queryByText("Phase 1:")).not.toBeInTheDocument()
+    expect(screen.queryByText("Phase 1")).not.toBeInTheDocument()
   })
 
   it("renders age inputs for each phase", () => {
@@ -165,14 +161,15 @@ describe("PhaseConfigList", () => {
   it("shows message when no phases", () => {
     render(<PhaseConfigList {...defaultProps} phases={[]} />)
 
+    expect(screen.getByText("No phases yet")).toBeInTheDocument()
     expect(
-      screen.getByText("Select at least one plan to configure phases."),
+      screen.getByText(/Include at least one plan above/),
     ).toBeInTheDocument()
   })
 
   it("renders duration for non-last phases", () => {
     render(<PhaseConfigList {...defaultProps} />)
 
-    expect(screen.getByText("(15 yr)")).toBeInTheDocument()
+    expect(screen.getByText("15 yr")).toBeInTheDocument()
   })
 })
