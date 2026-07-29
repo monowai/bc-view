@@ -128,8 +128,8 @@ export default withPageAuthRequired(
 
     const brokers: Broker[] = brokersData.data || []
     const holdings:
-      | (BrokerHoldingsResponse & { totalHoldings: number })
-      | null = mergedHoldings
+      (BrokerHoldingsResponse & { totalHoldings: number }) | null =
+      mergedHoldings
     // Sell proposes SELL trns against a real broker; NO_BROKER is a UI
     // sentinel grouping unassigned transactions, not a real broker id.
     const canSell = brokerId !== "NO_BROKER"
