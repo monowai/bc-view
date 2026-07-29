@@ -65,7 +65,7 @@ export default function ChatBubble({
   return (
     <div className="group flex justify-start">
       <div
-        className={`max-w-[92%] sm:max-w-[80%] px-4 py-2 rounded-lg text-sm border ${
+        className={`w-full max-w-full px-4 py-2 rounded-lg text-sm border ${
           message.error
             ? "bg-red-50 border-red-200"
             : "bg-white border-gray-200"

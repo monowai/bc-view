@@ -61,15 +61,15 @@ describe("ChatFab", () => {
     render(<ChatFab />)
     fireEvent.click(screen.getByLabelText("Chat"))
     const panel = screen.getByTestId("chat-panel-container")
-    expect(panel.className).toContain("w-96")
+    expect(panel.className).toContain("w-[60vw]")
 
     fireEvent.click(screen.getByLabelText("Expand chat"))
-    expect(panel.className).toContain("w-[48rem]")
+    expect(panel.className).toContain("w-[80vw]")
     expect(mockPush).not.toHaveBeenCalled()
 
     // Toggle back to compact
     fireEvent.click(screen.getByLabelText("Expand chat"))
-    expect(panel.className).toContain("w-96")
+    expect(panel.className).toContain("w-[60vw]")
   })
 
   // --- Live page-context injection (pageContextBus) ---
