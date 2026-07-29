@@ -92,10 +92,16 @@ describe("SummaryTab", () => {
     renderWithCtx()
 
     const goGo = screen.getByRole("link", { name: /Edit Go-Go/i })
-    expect(goGo).toHaveAttribute("href", "/independence/wizard/p1")
+    expect(goGo).toHaveAttribute(
+      "href",
+      "/independence/wizard/p1?step=expenses",
+    )
 
     const slowGo = screen.getByRole("link", { name: /Edit Slow Go/i })
-    expect(slowGo).toHaveAttribute("href", "/independence/wizard/p2")
+    expect(slowGo).toHaveAttribute(
+      "href",
+      "/independence/wizard/p2?step=expenses",
+    )
   })
 
   it("renders one board per phase, titled with its age window", () => {

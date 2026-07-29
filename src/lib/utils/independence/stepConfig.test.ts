@@ -1,4 +1,9 @@
-import { WIZARD_STEPS, TOTAL_STEPS, getStepFields } from "./stepConfig"
+import {
+  WIZARD_STEPS,
+  TOTAL_STEPS,
+  getStepFields,
+  stepIdForSlug,
+} from "./stepConfig"
 
 describe("WIZARD_STEPS", () => {
   it("should have 6 steps", () => {
@@ -121,5 +126,35 @@ describe("getStepFields", () => {
     expect(getStepFields(4)).toHaveLength(3) // Income
     expect(getStepFields(5)).toHaveLength(1) // Expenses
     expect(getStepFields(6)).toHaveLength(1) // Life Events
+  })
+})
+
+describe("stepIdForSlug", () => {
+  it("maps every step's slug back to its id", () => {
+    WIZARD_STEPS.forEach((step) => {
+      expect(stepIdForSlug(step.slug)).toBe(step.id)
+    })
+  })
+
+  it("deep-links the expenses step, which is what a spend board links to", () => {
+    expect(stepIdForSlug("expenses")).toBe(5)
+  })
+
+  it("is case-insensitive and tolerates surrounding whitespace", () => {
+    expect(stepIdForSlug(" Expenses ")).toBe(5)
+  })
+
+  it("returns undefined for anything it doesn't recognise", () => {
+    expect(stepIdForSlug("nope")).toBeUndefined()
+    expect(stepIdForSlug("")).toBeUndefined()
+    expect(stepIdForSlug(undefined)).toBeUndefined()
+    // A query param can arrive as string[] when repeated; not a slug.
+    expect(stepIdForSlug(["expenses"] as unknown as string)).toBeUndefined()
+  })
+
+  it("gives every step a unique, url-safe slug", () => {
+    const slugs = WIZARD_STEPS.map((s) => s.slug)
+    expect(new Set(slugs).size).toBe(slugs.length)
+    slugs.forEach((slug) => expect(slug).toMatch(/^[a-z][a-z-]*$/))
   })
 })

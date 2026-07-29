@@ -40,6 +40,14 @@ interface WizardContainerProps {
    * /plans/{id} consumes a full PlanRequest — see {@link buildWizardPlanRequest}.
    */
   plan?: RetirementPlan | null
+  /**
+   * Step to open on, 1-indexed. Lets a caller deep-link straight to the part
+   * of the plan it was talking about (the Summary tab's spend board links to
+   * Expenses). Edit mode only — a new plan has to start at step 1, since the
+   * later steps validate against fields step 1 collects. Out-of-range values
+   * fall back to 1.
+   */
+  initialStep?: number
 }
 
 /**
@@ -116,10 +124,15 @@ export default function WizardContainer({
   planId,
   initialData,
   plan,
+  initialStep,
 }: WizardContainerProps): React.ReactElement {
   const isEditMode = Boolean(planId)
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(() =>
+    isEditMode && initialStep && initialStep >= 1 && initialStep <= TOTAL_STEPS
+      ? initialStep
+      : 1,
+  )
   const [clientId, setClientId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
