@@ -1,4 +1,4 @@
-import React, { useId } from "react"
+import React, { ReactNode, useId } from "react"
 import { formatCurrency } from "@lib/independence/formatters"
 import {
   COMFORT_SCALE_MAX,
@@ -34,6 +34,10 @@ export interface LifestyleSummaryProps {
   title?: string
   /** Shown in place of the board when there is no model. */
   emptyMessage?: string
+  /** Optional control rendered beside the heading — e.g. an edit link for the
+   *  plan this board describes. Kept out of the heading text so the accessible
+   *  name stays the phase, not the phase plus a verb. */
+  action?: ReactNode
 }
 
 export default function LifestyleSummary({
@@ -44,6 +48,7 @@ export default function LifestyleSummary({
   isLoading = false,
   title,
   emptyMessage = "Add what you expect to spend and we'll show the lifestyle your plan supports.",
+  action,
 }: LifestyleSummaryProps): React.ReactElement {
   const isPayoff = variant === "payoff"
   const headingId = useId()
@@ -62,11 +67,14 @@ export default function LifestyleSummary({
           : "rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
       }
     >
-      <Heading
-        id={headingId}
-        isPayoff={isPayoff}
-        text={headingText(model, title)}
-      />
+      <div className="flex items-start justify-between gap-3">
+        <Heading
+          id={headingId}
+          isPayoff={isPayoff}
+          text={headingText(model, title)}
+        />
+        {action}
+      </div>
 
       {isLoading ? (
         <Skeleton isPayoff={isPayoff} />
