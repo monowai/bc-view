@@ -1,4 +1,5 @@
 import React from "react"
+import Link from "next/link"
 import LifestyleSummary from "@components/features/independence/LifestyleSummary"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { useExpenseCategories } from "@components/features/independence/useExpenseCategories"
@@ -85,7 +86,7 @@ function PhaseSpend({
   phase,
 }: {
   phase: CompositePhaseInfo
-}): React.ReactElement | null {
+}): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const { expenses, isLoading } = usePlanExpenses(phase.planId)
   const { labels } = useExpenseCategories()
@@ -96,8 +97,9 @@ function PhaseSpend({
     catalog,
   })
 
-  if (!mix && !isLoading) return null
-
+  // A phase with no expenses still renders: it's in the timeline, so it belongs
+  // in the summary, and its empty board is exactly where the edit link needs to
+  // be reachable. LifestyleSummary carries the teaching empty message.
   return (
     <LifestyleSummary
       model={mix}
@@ -105,6 +107,17 @@ function PhaseSpend({
       currencySymbol={currencySymbolFor(phase.expensesCurrency)}
       hideValues={hideValues}
       isLoading={isLoading && !mix}
+      emptyMessage={`Add what you expect to spend from age ${phase.fromAge} and we'll show the life this phase supports.`}
+      action={
+        <Link
+          href={`/independence/wizard/${phase.planId}`}
+          aria-label={`Edit ${phase.planName}`}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          <i aria-hidden="true" className="fas fa-pen text-[10px]" />
+          Edit
+        </Link>
+      }
     />
   )
 }
