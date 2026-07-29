@@ -108,8 +108,8 @@ export default function ChatFab(): React.ReactElement {
         data-testid="chat-panel-container"
         className={`fixed z-40 transition-all duration-300 ease-in-out ${
           isExpanded
-            ? `${layout.panelExpanded} w-[48rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]`
-            : `${layout.panel} w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]`
+            ? `${layout.panelExpanded} w-[80vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]`
+            : `${layout.panel} w-[60vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]`
         } ${
           isOpen
             ? "translate-x-0"
