@@ -19,10 +19,15 @@ import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
 } from "@lib/independence/planHelpers"
+import { stepIdForSlug } from "@lib/independence/stepConfig"
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
-  const { planId } = router.query
+  const { planId, step } = router.query
+  // `?step=expenses` opens the wizard where the caller was looking — the
+  // Summary tab's per-phase spend board links straight to Expenses. Unknown
+  // tokens resolve to undefined and the wizard opens at step 1 as before.
+  const initialStep = stepIdForSlug(typeof step === "string" ? step : undefined)
 
   // Fetch plan with retirement expenses
   const { data, error, isLoading } = useSwr<PlanWithExpensesResponse>(
@@ -166,6 +171,7 @@ function EditPlanWizard(): React.ReactElement {
             planId={planId as string}
             initialData={initialData}
             plan={plan}
+            initialStep={initialStep}
           />
         </div>
       </div>

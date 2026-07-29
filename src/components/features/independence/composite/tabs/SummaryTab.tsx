@@ -110,7 +110,9 @@ function PhaseSpend({
       emptyMessage={`Add what you expect to spend from age ${phase.fromAge} and we'll show the life this phase supports.`}
       action={
         <Link
-          href={`/independence/wizard/${phase.planId}`}
+          // Straight to Expenses: this board is about what the phase spends,
+          // so that's the part of the wizard the user came to change.
+          href={`/independence/wizard/${phase.planId}?step=expenses`}
           aria-label={`Edit ${phase.planName}`}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
         >
