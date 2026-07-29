@@ -3,6 +3,7 @@ import type { PropertyIncomeRequest, RetirementPlan } from "types/independence"
 import { usePropertyIncomes } from "@utils/independence/usePropertyIncomes"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+import LeverRow, { LEVER_SELECT_CLASS } from "./LeverRow"
 
 /** `<select>` value representing "no owner-occupy phase selected". */
 const RENTED_THROUGHOUT = ""
@@ -101,46 +102,39 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
   const isLoading = configsLoading || incomesLoading
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium text-gray-700 mb-2">
-        Residence Phase
-      </h3>
-      <p className="text-xs text-gray-500 mb-2">
-        Choose the phase in which you move into each rental property, or leave
-        it rented throughout.
-      </p>
-      <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-        {rentalProperties.map((config) => {
-          const row = getPropertyIncomeForAsset(config.assetId)
-          const occupiedFromAge = row?.occupiedFromAge
-          const hasOccupiedFromAge =
-            occupiedFromAge !== undefined && occupiedFromAge !== null
-          const matchedPhase = hasOccupiedFromAge
-            ? phases.find((p) => p.fromAge === occupiedFromAge)
-            : undefined
-          const selectedValue = !hasOccupiedFromAge
-            ? RENTED_THROUGHOUT
-            : matchedPhase
-              ? String(occupiedFromAge)
-              : `custom-${occupiedFromAge}`
+    <>
+      {rentalProperties.map((config) => {
+        const row = getPropertyIncomeForAsset(config.assetId)
+        const occupiedFromAge = row?.occupiedFromAge
+        const hasOccupiedFromAge =
+          occupiedFromAge !== undefined && occupiedFromAge !== null
+        const matchedPhase = hasOccupiedFromAge
+          ? phases.find((p) => p.fromAge === occupiedFromAge)
+          : undefined
+        const selectedValue = !hasOccupiedFromAge
+          ? RENTED_THROUGHOUT
+          : matchedPhase
+            ? String(occupiedFromAge)
+            : `custom-${occupiedFromAge}`
 
-          const assetLabel = assetNames[config.assetId] || config.assetId
-          const saving = savingAssetIds.has(config.assetId)
+        const assetLabel = assetNames[config.assetId] || config.assetId
+        const saving = savingAssetIds.has(config.assetId)
 
-          return (
-            <div
-              key={config.assetId}
-              className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm min-w-0"
-            >
-              <div className="min-w-0">
-                <span className="font-medium text-gray-700 truncate">
-                  {assetLabel}
-                </span>
-                <span className="ml-2 text-xs text-gray-500">
+        return (
+          <LeverRow
+            key={config.assetId}
+            label={`Move into ${assetLabel}`}
+            hint={
+              <>
+                Earning{" "}
+                <span className="font-mono tabular-nums">
                   {config.rentalCurrency}{" "}
-                  {config.monthlyRentalIncome.toLocaleString()}/mo
+                  {config.monthlyRentalIncome.toLocaleString()}
                 </span>
-              </div>
+                /mo until you do
+              </>
+            }
+            control={
               <select
                 aria-label={`${assetLabel} residence phase`}
                 value={selectedValue}
@@ -148,7 +142,7 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
                 onChange={(e) => {
                   void handleChange(config.assetId, e.target.value)
                 }}
-                className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500 disabled:opacity-50"
+                className={LEVER_SELECT_CLASS}
               >
                 <option value={RENTED_THROUGHOUT}>Rented throughout</option>
                 {phases.map((phase) => (
@@ -163,10 +157,10 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
                   </option>
                 )}
               </select>
-            </div>
-          )
-        })}
-      </div>
-    </div>
+            }
+          />
+        )
+      })}
+    </>
   )
 }

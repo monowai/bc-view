@@ -181,12 +181,11 @@ describe("CompositeTab", () => {
     })
   })
 
-  it("renders narrative field in Phases tab", () => {
+  it("carries no composite narrative field", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    // Narrative textarea is inside PhasesTab (default tab).
-    // PhasesTab renders desktop + mobile copies so there are two labels.
-    const narrativeLabels = screen.getAllByText(/Plan narrative/)
-    expect(narrativeLabels.length).toBeGreaterThanOrEqual(1)
+    // Narrative belongs to each phase's own plan, not the composite.
+    expect(screen.queryByText(/Plan narrative/)).not.toBeInTheDocument()
+    expect(document.querySelector("textarea")).toBeNull()
   })
 
   it("renders all sub-tabs in the navigation", () => {
@@ -202,10 +201,16 @@ describe("CompositeTab", () => {
     ).toBeInTheDocument()
   })
 
-  it("defaults to the Phases tab", () => {
+  it("defaults to the Summary tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    const phasesTab = screen.getByRole("tab", { name: /Phases/ })
-    expect(phasesTab).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("tab", { name: /Summary/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    expect(screen.getByRole("tab", { name: /Phases/ })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    )
   })
 
   it("switches to the Wealth Journey tab when clicked", async () => {
@@ -266,11 +271,12 @@ describe("CompositeTab", () => {
     expect(screen.getByText(/Savings deplete at age 70/)).toBeInTheDocument()
   })
 
-  it("renders error inside Phases tab when present", () => {
+  it("renders error inside Phases tab when present", async () => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",
     )
-    useCompositeProjection.mockReturnValueOnce({
+    // Not `...Once`: the tab switch re-renders, and the error must survive it.
+    useCompositeProjection.mockReturnValue({
       phases: [],
       setPhases: jest.fn(),
       displayCurrency: "SGD",
@@ -284,6 +290,8 @@ describe("CompositeTab", () => {
     })
 
     render(<CompositeTab plans={plans} settings={settings} />)
+    // Phases is no longer the landing tab — switch to it to read its error.
+    await userEvent.click(screen.getByRole("tab", { name: /Phases/ }))
     expect(screen.getByText("Something went wrong")).toBeInTheDocument()
   })
 

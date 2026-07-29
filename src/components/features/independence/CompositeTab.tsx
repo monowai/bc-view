@@ -133,9 +133,10 @@ export default function CompositeTab({
   settings,
 }: CompositeTabProps): React.ReactElement {
   const projectionState = useCompositeProjection(plans, settings)
-  // Summary sits first in the bar but Phases stays the landing tab — that's
-  // where the user configures, and an explicit test asserts it.
-  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("phases")
+  // Summary is the landing tab: it answers "does this hold together, and what
+  // does each phase cost" without the user touching a control. Phases is one
+  // click away for when they want to change the shape.
+  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("summary")
 
   const contextValue: CompositeProjectionValue = {
     plans,

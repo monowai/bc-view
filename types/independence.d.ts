@@ -45,11 +45,7 @@ export interface WorkScenariosResponse {
 // ============ Manual Asset Categories ============
 // Asset categories for users without portfolios
 export type ManualAssetCategory =
-  | "CASH"
-  | "EQUITY"
-  | "ETF"
-  | "MUTUAL_FUND"
-  | "RE"
+  "CASH" | "EQUITY" | "ETF" | "MUTUAL_FUND" | "RE"
 
 export type ManualAssets = Record<ManualAssetCategory, number>
 
@@ -1190,12 +1186,6 @@ export interface UserIndependenceSettings {
   compositeDisplayCurrency?: string
   compositePhases?: string
   compositeExcludedPlanIds?: string
-  /**
-   * Free-form narrative describing the overarching goal of the composite
-   * plan — applies across ALL phases. Surfaced to svc-agent as shared
-   * cross-plan context.
-   */
-  compositeNarrative?: string
   compositeWorkScenarioId?: string
   /**
    * JSON-serialised string[] of portfolio IDs to exclude from wealth
@@ -1222,8 +1212,6 @@ export interface UpdateSettingsRequest {
   compositeDisplayCurrency?: string
   compositePhases?: string
   compositeExcludedPlanIds?: string
-  /** Free-form composite-level narrative. Empty string clears it. */
-  compositeNarrative?: string
   compositeWorkScenarioId?: string
   /**
    * JSON-serialised string[] of portfolio IDs to exclude from wealth

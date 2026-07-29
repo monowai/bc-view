@@ -22,9 +22,6 @@ export interface UseCompositeProjectionResult {
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>
   toggleExclusion: (planId: string) => void
-  /** Free-form narrative describing the overarching composite-plan goal. */
-  compositeNarrative: string
-  setCompositeNarrative: (narrative: string) => void
   /** Work scenario ID to use for composite projections. */
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
@@ -103,7 +100,6 @@ export function useCompositeProjection(
   const [excludedPlanIds, setExcludedPlanIds] = useState<Set<string>>(new Set())
   const [phases, setPhases] = useState<CompositePhase[]>([])
   const [displayCurrency, setDisplayCurrency] = useState(defaultCurrency)
-  const [compositeNarrative, setCompositeNarrative] = useState<string>("")
   const [compositeWorkScenarioId, setCompositeWorkScenarioId] = useState<
     string | undefined
   >(undefined)
@@ -130,12 +126,10 @@ export function useCompositeProjection(
     )
     const savedPhases = parseSavedPhases(settings.compositePhases)
     const savedCurrency = settings.compositeDisplayCurrency
-    const savedNarrative = settings.compositeNarrative
     const savedWorkScenarioId = settings.compositeWorkScenarioId
 
     if (savedExclusions) setExcludedPlanIds(savedExclusions)
     if (savedCurrency) setDisplayCurrency(savedCurrency)
-    if (savedNarrative != null) setCompositeNarrative(savedNarrative)
     if (savedWorkScenarioId != null)
       setCompositeWorkScenarioId(savedWorkScenarioId)
 
@@ -171,7 +165,6 @@ export function useCompositeProjection(
         compositeDisplayCurrency: displayCurrency,
         compositePhases: JSON.stringify(phases),
         compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
-        compositeNarrative: compositeNarrative,
         compositeWorkScenarioId: compositeWorkScenarioId,
       }).catch(() => {
         // Silent save failure — not critical
@@ -185,7 +178,6 @@ export function useCompositeProjection(
     phases,
     displayCurrency,
     excludedPlanIds,
-    compositeNarrative,
     compositeWorkScenarioId,
     initialized,
     updateSettings,
@@ -302,8 +294,6 @@ export function useCompositeProjection(
     setDisplayCurrency,
     excludedPlanIds,
     toggleExclusion,
-    compositeNarrative,
-    setCompositeNarrative,
     compositeWorkScenarioId,
     setCompositeWorkScenarioId,
     projection,

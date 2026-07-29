@@ -96,8 +96,6 @@ function makeCtx(
     setDisplayCurrency: jest.fn(),
     excludedPlanIds: new Set<string>(),
     toggleExclusion: jest.fn(),
-    compositeNarrative: "",
-    setCompositeNarrative: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
     projection: undefined,
@@ -154,8 +152,8 @@ describe("ResidencePhasePicker", () => {
     renderWithCtx()
 
     expect(screen.getAllByRole("combobox")).toHaveLength(1)
-    expect(screen.getByText("Rental Condo")).toBeInTheDocument()
-    expect(screen.queryByText("Home")).not.toBeInTheDocument()
+    expect(screen.getByText("Move into Rental Condo")).toBeInTheDocument()
+    expect(screen.queryByText(/Move into Home/)).not.toBeInTheDocument()
   })
 
   it("excludes pension configs and zero-rent properties", () => {
@@ -176,9 +174,11 @@ describe("ResidencePhasePicker", () => {
     renderWithCtx()
 
     expect(screen.getAllByRole("combobox")).toHaveLength(1)
-    expect(screen.getByText("Rental Condo")).toBeInTheDocument()
-    expect(screen.queryByText("CPF")).not.toBeInTheDocument()
-    expect(screen.queryByText("Empty Section")).not.toBeInTheDocument()
+    expect(screen.getByText("Move into Rental Condo")).toBeInTheDocument()
+    expect(screen.queryByText(/Move into CPF/)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Move into Empty Section/),
+    ).not.toBeInTheDocument()
   })
 
   it("renders null when there are no phases", () => {
