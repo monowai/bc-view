@@ -190,10 +190,7 @@ export interface RebalanceCalculationResponse {
 // === Execution Types (persisted rebalance configurations) ===
 
 export type ExecutionPlanStatus =
-  | "DRAFT"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED"
+  "DRAFT" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
 
 export type ExecutionMode = "REBALANCE" | "INVEST_CASH" | "AD_HOC"
 
