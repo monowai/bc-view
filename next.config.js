@@ -26,6 +26,15 @@ const nextConfig = {
     includePaths: [path.join(__dirname, "styles")],
   },
   output: "standalone",
+  // @sentry/nextjs is loaded as a server external, and its transitive dep
+  // @sentry/server-utils -> meriyah resolves through the ESM "default"
+  // condition (dist/meriyah.mjs) at runtime. Standalone file tracing only
+  // follows the CJS "require" condition, so it copies dist/meriyah.cjs alone
+  // and every SSR page + API route 500s in the image with
+  // "Cannot find module .../meriyah/dist/meriyah.mjs". Ship the whole dist.
+  outputFileTracingIncludes: {
+    "/**/*": ["./node_modules/meriyah/dist/**"],
+  },
   // Turbopack configuration (for dev mode with --turbopack)
   turbopack: {
     rules: {
