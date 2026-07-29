@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { ChatMessage } from "types/agent"
+import { normalizeMarkdown } from "./normalizeMarkdown"
 
 interface ChatBubbleProps {
   message: ChatMessage
@@ -83,7 +84,7 @@ export default function ChatBubble({
               th: (props) => <th {...props} className="whitespace-nowrap" />,
             }}
           >
-            {message.content}
+            {normalizeMarkdown(message.content)}
           </Markdown>
         </div>
         <div className="flex justify-end mt-1">
