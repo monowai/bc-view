@@ -1,17 +1,24 @@
 # fantail service definition — discovered by `fantail` (see monowai/fantail)
 description: Next.js frontend
 command: ["yarn", "dev"]
-profile: local                   # env from .env.local (next dev)
-# .env.e2e holds TEST-RUNNER vars only (E2E_BASE_URL, E2E_API_BASE, test-user
-# creds). playwright.config.ts loads it itself via dotenv; `next dev` ignores
-# it and reads .env.local for server config. Injecting it here just keeps
-# bcc-launched child tooling (agent-driven runs etc.) on the same e2e config.
-# For a true e2e SERVER profile (different backend URLs for the dev server),
-# create a separate file and point --set env_file= at it.
-env_file: .env.e2e
+# `profile: local` = `.env.local` injected — the same file `next dev` loads,
+# holding the server config (BC_* service URLs, Auth0). One knob, same key the
+# Spring services use for `--spring.profiles.active`.
+#
+# `.env.e2e` is NOT a server profile: it holds test-runner vars only
+# (E2E_BASE_URL, E2E_API_BASE, test-user creds) and playwright.config.ts loads
+# it itself via dotenv. To run the dev server against a different backend,
+# write those URLs into a `.env.<name>` here and start with
+# `fantail --set profile=<name> start bc-view`.
+profile: local
 env:
   PORT: "${self.port}"        # next dev honours PORT — instance offsets apply
 port: 3000
+# Build before launch: a fresh worktree has no node_modules — fantail runs
+# this (once) before spawning the dev server.
+setup:
+  command: ["yarn", "install", "--prefer-offline"]
+  unless: node_modules
 # no health url: TCP check on port 3000
 wants:
   - service: svc-data            # peer check at the instance's effective port
