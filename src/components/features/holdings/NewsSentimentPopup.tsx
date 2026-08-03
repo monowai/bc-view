@@ -40,7 +40,11 @@ async function performFetch(
     `If live news coverage is unavailable for this ticker/exchange, ` +
     `provide a concise general-knowledge summary of the company, its sector, ` +
     `recent themes, and qualitative sentiment — clearly labelled as general ` +
-    `knowledge, not live news.`
+    `knowledge, not live news. ` +
+    `Start the response directly with the markdown heading — no preamble, ` +
+    `no lead-in sentence about coverage availability or what you are about ` +
+    `to do. State the general-knowledge caveat only as a short line directly ` +
+    `under the heading.`
 
   const res = await fetch("/api/agent/query", {
     method: "POST",
