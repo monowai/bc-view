@@ -18,9 +18,37 @@ import {
   formatPercent as independenceFormatPercent,
 } from "@lib/independence/formatters"
 
+import { pinClock, unpinClock } from "../../support/pinClock"
+
 describe("todayIso", () => {
+  afterEach(unpinClock)
+
   it("returns a YYYY-MM-DD string", () => {
     expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  // Zones ahead of UTC (e.g. Asia/Singapore, UTC+8) roll into the next
+  // calendar day before UTC does. The UTC date here is still 2026-08-02, but
+  // the user's today is 2026-08-03 — and the user's today is what a trade or
+  // price date means.
+  it("returns the local calendar date when local is a day ahead of UTC", () => {
+    pinClock("2026-08-02T23:00:00Z", +8)
+
+    expect(todayIso()).toBe("2026-08-03")
+  })
+
+  // Zones behind UTC (e.g. America/New_York) are still on the previous
+  // calendar day after UTC midnight.
+  it("returns the local calendar date when local is a day behind UTC", () => {
+    pinClock("2026-08-03T02:00:00Z", -4)
+
+    expect(todayIso()).toBe("2026-08-02")
+  })
+
+  it("zero-pads single-digit months and days", () => {
+    pinClock("2026-01-04T16:00:00Z", +8)
+
+    expect(todayIso()).toBe("2026-01-05")
   })
 })
 
