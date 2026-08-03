@@ -113,9 +113,21 @@ export const formatSignedNumber = (
 }
 
 /**
- * Returns today's date as a YYYY-MM-DD string (ISO 8601 date part).
+ * Returns today's date as a YYYY-MM-DD string (ISO 8601 date part), in the
+ * *local* calendar, not UTC.
+ *
+ * `toISOString()` would yield the UTC calendar date, which is a day behind for
+ * zones ahead of UTC (Asia/Singapore, UTC+8, between 00:00 and 08:00 local) and
+ * a day ahead for zones behind it. Callers use this to seed trade/price dates,
+ * which the backend resolves against its own configured zone — so an off-by-one
+ * lands the row on the wrong day.
  */
-export const todayIso = (): string => new Date().toISOString().split("T")[0]
+export const todayIso = (): string => {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  return `${now.getFullYear()}-${month}-${day}`
+}
 
 /**
  * Extracts a readable message from an unknown error value.
