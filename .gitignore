@@ -77,8 +77,10 @@ test-results/
 # Claude Code & AI tools
 .claude/
 
-# Husky git hooks
-.husky/
+# NOT .husky/ — hooks are meant to be shared, that is what husky is for.
+# Its generated plumbing ignores itself (.husky/_/.gitignore is `*`), so
+# there is nothing here to exclude. Ignoring the directory left pre-push
+# untracked and this machine the only one that ran tests before a push.
 
 # Code quality tools
 codacy-coverage-reporter

@@ -1,0 +1,5 @@
+echo "🧪 Running tests before push..."
+
+yarn test || exit 1
+
+echo "✅ All tests passed!"
