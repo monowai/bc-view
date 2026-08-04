@@ -780,7 +780,7 @@ const TradeInputForm: React.FC<{
             onClick={handleClose}
           ></div>
           <div
-            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl overflow-hidden"
+            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-3 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <TradeFormHeader
@@ -899,7 +899,7 @@ const TradeInputForm: React.FC<{
                   })
                 }
               })}
-              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 space-y-4"
+              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 space-y-4"
             >
               {/* === Trade Tab === */}
               {activeTab === "trade" && (
@@ -1220,7 +1220,7 @@ const TradeInputForm: React.FC<{
 
               {/* === Invest Tab === */}
               {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {/* Cash, shares and weight are three views of one trade —
                       set any one and the other two follow. The summary strip
                       below the form carries the headline total and direction,
@@ -1279,17 +1279,17 @@ const TradeInputForm: React.FC<{
                   </div>
 
                   {/* What you hold now, and where this trade leaves it. */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                    <div className="grid grid-cols-[1fr_minmax(4.5rem,auto)_minmax(4.5rem,auto)] items-baseline gap-x-3">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
+                    <div className="grid grid-cols-[1fr_minmax(5.5rem,auto)_minmax(5.5rem,auto)] items-baseline gap-x-4 gap-y-1.5">
                       <span />
-                      <span className="text-right text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                      <span className="text-right text-[11px] font-medium uppercase tracking-wide text-gray-500">
                         {"Current"}
                       </span>
-                      <span className="text-right text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                      <span className="text-right text-[11px] font-medium uppercase tracking-wide text-gray-500">
                         {"After"}
                       </span>
 
-                      <span className="text-xs text-gray-500">
+                      <span className="text-sm text-gray-500">
                         {"Value"}
                         <span className="text-gray-400">
                           {" "}
@@ -1298,7 +1298,7 @@ const TradeInputForm: React.FC<{
                       </span>
                       <span
                         data-testid="invest-current-value"
-                        className="text-right font-mono text-xs tabular-nums text-gray-600"
+                        className="text-right font-mono text-sm tabular-nums text-gray-600"
                       >
                         {positionQty > 0 ? (
                           <NumericFormat
@@ -1314,7 +1314,7 @@ const TradeInputForm: React.FC<{
                       </span>
                       <span
                         data-testid="invest-after-value"
-                        className="text-right font-mono text-xs tabular-nums text-gray-900"
+                        className="text-right font-mono text-sm tabular-nums text-gray-900"
                       >
                         <NumericFormat
                           value={resultingPositionQuantity * price * fxRate}
@@ -1325,10 +1325,10 @@ const TradeInputForm: React.FC<{
                         />
                       </span>
 
-                      <span className="text-xs text-gray-500">{"Weight"}</span>
+                      <span className="text-sm text-gray-500">{"Weight"}</span>
                       <span
                         data-testid="invest-current-weight"
-                        className="text-right font-mono text-sm tabular-nums text-gray-600"
+                        className="text-right font-mono text-base tabular-nums text-gray-600"
                       >
                         {currentPositionWeight === null
                           ? "—"
@@ -1336,7 +1336,7 @@ const TradeInputForm: React.FC<{
                       </span>
                       <span
                         data-testid="invest-after-weight"
-                        className="text-right font-mono text-sm font-semibold tabular-nums text-gray-900"
+                        className="text-right font-mono text-base font-semibold tabular-nums text-gray-900"
                       >
                         {resultingPositionWeight === null
                           ? "—"
@@ -1654,14 +1654,37 @@ const TradeInputForm: React.FC<{
                   <span className="text-xs text-gray-500">
                     {tradeCurrency?.value}
                   </span>
+                  {/* How that amount was arrived at — the shares and the price
+                      they were struck at. Reading it back is how you catch a
+                      mis-keyed price before submitting. */}
+                  {!isSimpleAmount && quantity > 0 && price > 0 && (
+                    <span
+                      data-testid="trade-summary-basis"
+                      className="text-xs text-gray-500 tabular-nums"
+                    >
+                      {quantity.toLocaleString()}
+                      {" @ "}
+                      <NumericFormat
+                        value={price}
+                        displayType="text"
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                      />
+                    </span>
+                  )}
                   {!cashImpact && (
                     <span className="text-xs text-gray-400 italic">
                       {"No cash impact"}
                     </span>
                   )}
                   {weightInfo && !isSimpleAmount && (
-                    <span className="text-xs text-blue-600 font-medium">
-                      {weightInfo.value.toFixed(2)}%
+                    <span
+                      data-testid="trade-summary-weight"
+                      className="text-xs text-blue-600 font-medium"
+                    >
+                      {(resultingPositionWeight ?? weightInfo.value).toFixed(2)}
+                      %
                     </span>
                   )}
                 </div>

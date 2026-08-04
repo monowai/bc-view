@@ -597,6 +597,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           // svc-position already weighed this holding; show its answer rather
           // than deriving a second one that can disagree with the row.
           currentWeightOverride={quickSellData?.currentWeight ?? null}
+          // ...and weigh the resulting position against the SAME total it used.
+          // `portfolio.marketValue` is a different valuation, so pairing the two
+          // put the current and resulting weights on different denominators —
+          // a target typed in came back out as something else.
+          weightBasisMarketValue={holdingResults.totals?.PORTFOLIO?.marketValue}
         />
       )}
       {cashModalOpen && (

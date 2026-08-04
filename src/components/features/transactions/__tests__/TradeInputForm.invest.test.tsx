@@ -186,6 +186,44 @@ describe("TradeInputForm — Invest tab", () => {
     expect(screen.queryByLabelText("Price")).not.toBeInTheDocument()
   })
 
+  test("the summary strip shows how the amount was arrived at", () => {
+    renderInvestTab()
+
+    fireEvent.change(sharesField(), { target: { value: "51" } })
+
+    expect(screen.getByTestId("trade-summary-basis")).toHaveTextContent(
+      "51 @ 10.00",
+    )
+  })
+
+  test("a target weight lands on target when the weight comes from the backend", () => {
+    // svc-position weighed this 1,000 holding at 5% — against a 20,000 total,
+    // not the portfolio's own 10,000. Sizing against a DIFFERENT total than the
+    // one it used puts the current and resulting weights on different
+    // denominators, so a target typed in comes back out as something else.
+    render(
+      <TradeInputForm
+        portfolio={portfolio}
+        modalOpen={true}
+        setModalOpen={jest.fn()}
+        initialValues={heldPosition as never}
+        currentWeightOverride={5}
+        weightBasisMarketValue={20000}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Invest" }))
+
+    fireEvent.change(weightField(), { target: { value: "10" } })
+
+    expect(screen.getByTestId("invest-after-weight")).toHaveTextContent(
+      "10.00%",
+    )
+    // ...and the strip agrees with the ledger rather than carrying its own maths.
+    expect(screen.getByTestId("trade-summary-weight")).toHaveTextContent(
+      "10.00%",
+    )
+  })
+
   test("a brand-new position sizes against the post-trade portfolio", () => {
     renderInvestTab({
       asset: "MSFT",
