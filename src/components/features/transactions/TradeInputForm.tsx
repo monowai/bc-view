@@ -447,10 +447,14 @@ const TradeInputForm: React.FC<{
   // Cash amount → the whole shares that amount buys at the current price.
   const handleInvestAmountChange = (newInvestAmount: number): void => {
     const qty = calculateQuantityFromTradeValue(newInvestAmount, price)
-    if (qty !== null) setValue("quantity", Math.max(qty, 0))
+    if (qty !== null && Number.isFinite(qty))
+      setValue("quantity", Math.max(qty, 0))
   }
 
+  // Guarded: a non-finite quantity would propagate NaN through every derived
+  // figure on the tab (amount, weight, the whole ledger).
   const handleTradeQuantityChange = (newQuantity: number): void => {
+    if (!Number.isFinite(newQuantity)) return
     setValue("quantity", Math.max(newQuantity, 0))
   }
 
@@ -521,7 +525,10 @@ const TradeInputForm: React.FC<{
 
   useEffect(() => {
     if (tradeAmountOverriddenRef.current) return
-    if (quantity && price) {
+    // EXPENSE/INCOME carry a hand-entered amount with no quantity behind it —
+    // never derive over the top of it.
+    if (isSimpleAmountType(type.value)) return
+    if (quantity || price) {
       const tradeAmount = calculateTradeAmount(
         quantity,
         price,
@@ -1702,7 +1709,10 @@ const TradeInputForm: React.FC<{
                   >
                     {type?.value || "BUY"}
                   </span>
-                  <span className="font-semibold text-gray-900 tabular-nums">
+                  <span
+                    data-testid="trade-summary-amount"
+                    className="font-semibold text-gray-900 tabular-nums"
+                  >
                     <NumericFormat
                       value={tradeAmount}
                       displayType="text"

@@ -109,6 +109,14 @@ describe("TradeInputForm — Invest tab", () => {
     expect(within(held).getByText("10.00%")).toBeInTheDocument()
   })
 
+  test("the trade summary follows the tab down to nothing-yet-sized", () => {
+    // Opened from a holding the quantity arrives prefilled with the whole
+    // position; the Invest tab clears it, and the summary strip has to agree.
+    renderInvestTab()
+
+    expect(screen.getByTestId("trade-summary-amount")).toHaveTextContent("0.00")
+  })
+
   test("a target weight change flows through to the amount and share count", () => {
     renderInvestTab()
 
