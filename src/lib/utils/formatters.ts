@@ -39,8 +39,18 @@ export const formatPercentValue = (
   return `${value.toFixed(fractionDigits)}%`
 }
 
+/** A date with no time component, e.g. "2026-08-04". */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
 /**
  * Format a date string for display.
+ *
+ * Date-only strings are rendered as the calendar date they name, not shifted into the
+ * viewer's timezone. `new Date("2026-08-04")` is midnight *UTC*, so west of UTC it
+ * renders as the 3rd — a "last checked" or "as at" date silently reported a day early
+ * for anyone in the Americas. Values that carry a time are left alone; converting those
+ * to local time is correct.
+ *
  * @param dateString - ISO date string
  * @param options - Intl.DateTimeFormatOptions (optional)
  * @returns Formatted date string (e.g., "Jan 15, 2024")
@@ -54,9 +64,13 @@ export const formatDate = (
     month: "short",
     day: "numeric",
   }
+  const resolved = options || defaultOptions
+  // Pin only when the caller has not asked for a specific zone - an explicit
+  // timeZone is a deliberate request and must win.
+  const pinToUtc = DATE_ONLY.test(dateString) && !resolved.timeZone
   return new Date(dateString).toLocaleDateString(
     undefined,
-    options || defaultOptions,
+    pinToUtc ? { ...resolved, timeZone: "UTC" } : resolved,
   )
 }
 

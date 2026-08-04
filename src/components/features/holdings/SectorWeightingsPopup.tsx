@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import useSwr from "swr"
 import { Asset, AssetHolding, SectorExposure } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { formatDate } from "@lib/formatters"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 
@@ -27,6 +28,17 @@ const SECTOR_COLORS: Record<string, string> = {
   "Real Estate": "#F97316",
   Materials: "#06B6D4",
 }
+
+/**
+ * The effective "as at" date for a set of exposure/holding rows — the
+ * maximum `asOf` across them. Rows are written in one pass so they normally
+ * share a date, but this doesn't assume that.
+ */
+const maxAsOf = (rows: Array<{ asOf?: string }>): string | undefined =>
+  rows.reduce<string | undefined>((max, row) => {
+    if (!row.asOf) return max
+    return !max || row.asOf > max ? row.asOf : max
+  }, undefined)
 
 const getBarColor = (sectorName: string, index: number): string => {
   const fallbackColors = [
@@ -122,10 +134,14 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
 
   const isLoading = activeTab === "sectors" ? exposuresLoading : holdingsLoading
   const error = activeTab === "sectors" ? exposuresError : holdingsError
-  const hasNoData =
-    activeTab === "sectors"
-      ? exposures.length === 0 && holdings.length === 0
-      : holdings.length === 0 && exposures.length === 0
+
+  const sectorsAsOf = maxAsOf(exposures)
+  const holdingsAsOf = maxAsOf(holdings)
+
+  const sectorsEmpty =
+    activeTab === "sectors" && !isLoading && !error && exposures.length === 0
+  const holdingsEmpty =
+    activeTab === "holdings" && !isLoading && !error && holdings.length === 0
 
   return (
     <Dialog
@@ -184,10 +200,17 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           </div>
         )}
 
-        {!isLoading && !error && hasNoData && (
+        {sectorsEmpty && (
           <div className="py-8 text-center">
             <p className="text-gray-500 mb-4">
-              {"No sector weightings available for this asset"}
+              {asset.classificationCheckedAt
+                ? `No sector data available. Last checked ${formatDate(
+                    asset.classificationCheckedAt,
+                  )}.`
+                : "Sector data has not been collected for this fund yet."}
+              {/* Some funds return holdings but no sector breakdown, so keep
+                  pointing at the tab that does have data. */}
+              {holdings.length > 0 && " The Top Holdings tab has data."}
             </p>
             <button
               onClick={handleRefresh}
@@ -206,6 +229,18 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
             {refreshError && (
               <p className="text-red-500 mt-2 text-sm">{refreshError}</p>
             )}
+          </div>
+        )}
+
+        {holdingsEmpty && (
+          <div className="py-8 text-center">
+            <p className="text-gray-500 mb-4">
+              {asset.classificationCheckedAt
+                ? `No holdings data available. Last checked ${formatDate(
+                    asset.classificationCheckedAt,
+                  )}.`
+                : "Holdings data has not been collected for this fund yet."}
+            </p>
           </div>
         )}
 
@@ -290,40 +325,18 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
             </div>
           )}
 
-        {/* Show message when current tab has no data but other tab does */}
-        {activeTab === "sectors" &&
-          !isLoading &&
-          !error &&
-          exposures.length === 0 &&
-          holdings.length > 0 && (
-            <div className="py-8 text-center text-gray-500">
-              {"No sector data available. Check the Top Holdings tab."}
-            </div>
-          )}
-
-        {activeTab === "holdings" &&
-          !isLoading &&
-          !error &&
-          holdings.length === 0 &&
-          exposures.length > 0 && (
-            <div className="py-8 text-center text-gray-500">
-              {"No holdings data available. Check the Sectors tab."}
-            </div>
-          )}
-      </div>
-
-      {!isLoading &&
-        ((activeTab === "sectors" &&
-          exposures.length > 0 &&
-          exposures[0].asOf) ||
-          (activeTab === "holdings" &&
-            holdings.length > 0 &&
-            holdings[0].asOf)) && (
-          <div className="mt-4 pt-4 border-t text-xs text-gray-400 text-center">
-            {"Data as of"}:{" "}
-            {activeTab === "sectors" ? exposures[0].asOf : holdings[0].asOf}
-          </div>
+        {/* As-at caption for whichever tab has data */}
+        {activeTab === "sectors" && !isLoading && !error && sectorsAsOf && (
+          <p className="text-xs text-gray-400 mt-3">
+            {`As at ${formatDate(sectorsAsOf)}`}
+          </p>
         )}
+        {activeTab === "holdings" && !isLoading && !error && holdingsAsOf && (
+          <p className="text-xs text-gray-400 mt-3">
+            {`As at ${formatDate(holdingsAsOf)}`}
+          </p>
+        )}
+      </div>
     </Dialog>
   )
 }

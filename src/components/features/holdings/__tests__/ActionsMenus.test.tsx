@@ -47,6 +47,52 @@ describe("ActionsMenu", () => {
       screen.queryByRole("button", { name: "Go to portfolio" }),
     ).not.toBeInTheDocument()
   })
+
+  it("shows View Sectors for an ETF", () => {
+    const etfAsset = makeAsset({
+      id: "asset-etf",
+      code: "VOO",
+      assetCategory: { id: "ETF", name: "ETF" },
+    })
+    render(
+      <ActionsMenu
+        {...baseProps}
+        asset={etfAsset}
+        onSectorWeightings={jest.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: /Actions VOO/i }))
+    expect(
+      screen.getByRole("button", { name: "View Sectors" }),
+    ).toBeInTheDocument()
+  })
+
+  it("shows View Sectors for a MUTUAL FUND (LSE/LON-listed UCITS funds)", () => {
+    const fundAsset = makeAsset({
+      id: "asset-iuqa",
+      code: "IUQA",
+      assetCategory: { id: "MUTUAL FUND", name: "Mutual Fund" },
+    })
+    render(
+      <ActionsMenu
+        {...baseProps}
+        asset={fundAsset}
+        onSectorWeightings={jest.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: /Actions IUQA/i }))
+    expect(
+      screen.getByRole("button", { name: "View Sectors" }),
+    ).toBeInTheDocument()
+  })
+
+  it("omits View Sectors for a non-fund category such as EQUITY", () => {
+    render(<ActionsMenu {...baseProps} onSectorWeightings={jest.fn()} />)
+    openMenu()
+    expect(
+      screen.queryByRole("button", { name: "View Sectors" }),
+    ).not.toBeInTheDocument()
+  })
 })
 
 describe("CashActionsMenu", () => {

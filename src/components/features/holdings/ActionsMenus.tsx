@@ -20,6 +20,7 @@ import {
   getAssetCurrency,
   isAccount,
   isConstantPrice,
+  isFundLike,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 
@@ -283,7 +284,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                     onClick={handle(() => onSetPrice({ asset }))}
                   />
                 )}
-              {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
+              {onSectorWeightings && isFundLike(asset) && (
                 <MenuItem
                   iconClass="fas fa-chart-pie text-purple-500 w-4"
                   label="View Sectors"
