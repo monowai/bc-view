@@ -32,10 +32,24 @@ const formatAssetCode = (code?: string): string => {
   return colonIndex >= 0 ? code.substring(colonIndex + 1) : code
 }
 
-// Track user edits to qty/price
+// Track user edits to qty/price. Stored as the raw text the user typed so a
+// half-finished number ("0.", "1.2") survives re-render — reformatting the
+// value on every keystroke makes decimals impossible to enter.
 interface ItemEdits {
-  [assetId: string]: { quantity?: number; price?: number }
+  [assetId: string]: { quantity?: string; price?: string }
 }
+
+// A draft becomes a number for maths/submission. Blank or unparseable text
+// counts as 0 so the preview totals match what is on screen.
+const draftToNumber = (raw?: string): number | undefined => {
+  if (raw === undefined) return undefined
+  const parsed = Number.parseFloat(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+// Text inputs (not type=number, which fights decimal entry) so keystrokes are
+// screened here: digits and a single decimal point, any number of places.
+const DECIMAL_DRAFT = /^\d*\.?\d*$/
 
 const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   modalOpen,
@@ -129,11 +143,25 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
   // Get effective qty/price for an item (user edit or original)
   const getItemValues = useCallback(
-    (item: ExecutionItemDto): { qty: number; price: number; value: number } => {
+    (
+      item: ExecutionItemDto,
+    ): {
+      qty: number
+      price: number
+      value: number
+      qtyText: string
+      priceText: string
+    } => {
       const edits = itemEdits[item.assetId] || {}
-      const qty = edits.quantity ?? item.deltaQuantity
-      const price = edits.price ?? item.snapshotPrice ?? 0
-      return { qty, price, value: qty * price }
+      const qty = draftToNumber(edits.quantity) ?? item.deltaQuantity
+      const price = draftToNumber(edits.price) ?? item.snapshotPrice ?? 0
+      return {
+        qty,
+        price,
+        value: qty * price,
+        qtyText: edits.quantity ?? String(qty),
+        priceText: edits.price ?? String(price),
+      }
     },
     [itemEdits],
   )
@@ -153,18 +181,20 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   }, [execution?.snapshotCashValue, buyItems, getItemValues])
 
   // Handle quantity change
-  const handleQuantityChange = (assetId: string, newQty: number): void => {
+  const handleQuantityChange = (assetId: string, newQty: string): void => {
+    if (!DECIMAL_DRAFT.test(newQty)) return
     setItemEdits((prev) => ({
       ...prev,
-      [assetId]: { ...prev[assetId], quantity: Math.max(0, newQty) },
+      [assetId]: { ...prev[assetId], quantity: newQty },
     }))
   }
 
   // Handle price change
-  const handlePriceChange = (assetId: string, newPrice: number): void => {
+  const handlePriceChange = (assetId: string, newPrice: string): void => {
+    if (!DECIMAL_DRAFT.test(newPrice)) return
     setItemEdits((prev) => ({
       ...prev,
-      [assetId]: { ...prev[assetId], price: Math.max(0, newPrice) },
+      [assetId]: { ...prev[assetId], price: newPrice },
     }))
   }
 
@@ -232,8 +262,8 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           .filter((item) => itemEdits[item.assetId])
           .map((item) => ({
             assetId: item.assetId,
-            quantity: itemEdits[item.assetId]?.quantity,
-            price: itemEdits[item.assetId]?.price,
+            quantity: draftToNumber(itemEdits[item.assetId]?.quantity),
+            price: draftToNumber(itemEdits[item.assetId]?.price),
           }))
 
         const updateResponse = await fetch(
@@ -572,7 +602,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           {/* Mobile: card per buy item */}
           <div className="sm:hidden space-y-2">
             {buyItems.map((item) => {
-              const { qty, price, value } = getItemValues(item)
+              const { value, qtyText, priceText } = getItemValues(item)
               const displayCode = formatAssetCode(item.assetCode)
               return (
                 <div
@@ -606,16 +636,12 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                         {"Qty"}
                       </span>
                       <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="numeric"
-                        value={qty}
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={qtyText}
                         onChange={(e) =>
-                          handleQuantityChange(
-                            item.assetId,
-                            parseInt(e.target.value) || 0,
-                          )
+                          handleQuantityChange(item.assetId, e.target.value)
                         }
                         className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                       />
@@ -625,16 +651,12 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                         {"Price"}
                       </span>
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        type="text"
                         inputMode="decimal"
-                        value={price.toFixed(2)}
+                        autoComplete="off"
+                        value={priceText}
                         onChange={(e) =>
-                          handlePriceChange(
-                            item.assetId,
-                            parseFloat(e.target.value) || 0,
-                          )
+                          handlePriceChange(item.assetId, e.target.value)
                         }
                         className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                       />
@@ -666,7 +688,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {buyItems.map((item) => {
-                  const { qty, price, value } = getItemValues(item)
+                  const { value, qtyText, priceText } = getItemValues(item)
                   const displayCode = formatAssetCode(item.assetCode)
                   return (
                     <tr key={item.assetId} className="bg-green-50">
@@ -688,32 +710,26 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                       </td>
                       <td className="px-3 py-2">
                         <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          inputMode="numeric"
-                          value={qty}
+                          type="text"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          aria-label="Qty"
+                          value={qtyText}
                           onChange={(e) =>
-                            handleQuantityChange(
-                              item.assetId,
-                              parseInt(e.target.value) || 0,
-                            )
+                            handleQuantityChange(item.assetId, e.target.value)
                           }
                           className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
                           inputMode="decimal"
-                          value={price.toFixed(2)}
+                          autoComplete="off"
+                          aria-label="Price"
+                          value={priceText}
                           onChange={(e) =>
-                            handlePriceChange(
-                              item.assetId,
-                              parseFloat(e.target.value) || 0,
-                            )
+                            handlePriceChange(item.assetId, e.target.value)
                           }
                           className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                         />
