@@ -1,3 +1,37 @@
+#!/usr/bin/env bash
+# >>> beancounter secret scan >>>
+# Blocks a commit that stages a literal secret. See bc-claude/security/.
+# Bypass (only when you are certain): git commit --no-verify
+#
+# The config is found at RUN time rather than baked in, because bc-view's copy
+# of this block lives in TRACKED .husky/pre-commit. A path from this machine
+# travels to every other clone, where -c points at nothing, gitleaks errors,
+# and every commit is refused under a message about staged secrets.
+# Order: an explicit override, then bc-claude beside this repo, then the
+# checkout this was installed from (still right for a worktree on this
+# machine). None of them found is a warning, never a blocked commit.
+if command -v gitleaks >/dev/null 2>&1; then
+  bc_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  for bc_cfg in "${BC_GITLEAKS_CONFIG:-}" \
+                "$bc_root/../bc-claude/security/gitleaks.toml" \
+                "/Users/mikeh/IdeaProjects/monowai/bc-claude/security/gitleaks.toml"; do
+    [ -n "$bc_cfg" ] && [ -f "$bc_cfg" ] && break || bc_cfg=""
+  done
+  if [ -z "$bc_cfg" ]; then
+    echo "gitleaks.toml not found — secret scan SKIPPED" >&2
+    echo "  put bc-claude beside this repo, or set BC_GITLEAKS_CONFIG" >&2
+  elif ! gitleaks protect --staged --redact --no-banner -c "$bc_cfg"; then
+    echo ""
+    echo "  A staged change looks like a literal secret."
+    echo "  Use an env var instead:  SOME_SECRET: \${SOME_SECRET}"
+    echo "  False positive? Add an allowlist entry to:"
+    echo "    $bc_cfg"
+    exit 1
+  fi
+else
+  echo "gitleaks not installed — secret scan SKIPPED (brew install gitleaks)" >&2
+fi
+# <<< beancounter secret scan <<<
 echo "🔧 Running pre-commit checks..."
 
 # 1. Import path regression check
