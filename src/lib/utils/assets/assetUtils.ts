@@ -36,6 +36,19 @@ export function isPolicy(asset: Asset): boolean {
   return asset.assetCategory.id === "POLICY"
 }
 
+// Fund-like assets carry pooled sector/holdings exposure data from the
+// classification provider. Both ETFs and (non-US) mutual funds — e.g.
+// LSE/LON-listed UCITS funds, which the backend categorises MUTUAL FUND
+// rather than ETF — can surface a "View Sectors" action.
+// Optional-chained deliberately: the type declares assetCategory as required, but
+// positions arriving from svc-position have been observed without it, which is why
+// call sites across the app defensively use `assetCategory?.id`. This helper replaces
+// one of those, so it must not be the thing that starts throwing.
+export function isFundLike(asset: Asset): boolean {
+  const category = asset.assetCategory?.id
+  return category === "ETF" || category === "MUTUAL FUND"
+}
+
 // Assets with constant price of 1 - don't require external market data pricing
 export function isConstantPrice(asset: Asset): boolean {
   return isCash(asset) || isAccount(asset) || isPolicy(asset)

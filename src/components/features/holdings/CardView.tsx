@@ -26,6 +26,7 @@ import {
   getPositionDisplayName,
   isCashRelated,
   isConstantPrice,
+  isFundLike,
   isNonTradeable,
   stripOwnerPrefix,
   supportsBalanceSetting,
@@ -350,7 +351,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       (!!onSetBalance &&
         asset.market?.code === "PRIVATE" &&
         isConstantPrice(asset)) ||
-      (!!onSectorWeightings && asset.assetCategory?.id === "ETF") ||
+      (!!onSectorWeightings && isFundLike(asset)) ||
       (asset.assetCategory?.id === "RE" &&
         (!!onRecordIncome || !!onRecordExpense)) ||
       !!onEditAsset ||
