@@ -29,10 +29,13 @@ export interface QuickSellData {
   type?: "BUY" | "SELL" | "INCOME" | "EXPENSE"
   currentPositionQuantity?: number // For rebalance: the current position size
   held?: Record<string, number> // Broker name -> quantity for broker selection
-  // Trade-currency -> portfolio base-currency rate, so the trade dialog can
-  // weigh a trade-currency price against the base-currency portfolio value.
-  // Omitted for same-currency holdings (treated as 1).
+  // Displayed-currency -> portfolio-currency rate, so the trade dialog can
+  // weigh the price the row displayed against the portfolio value. Omitted
+  // when the row already displays portfolio currency (treated as 1).
   fxRate?: number
+  // The position's weight in percent, as svc-position computed it. The dialog
+  // displays this rather than re-deriving one, so the two agree.
+  currentWeight?: number
 }
 
 export interface RebalanceData {

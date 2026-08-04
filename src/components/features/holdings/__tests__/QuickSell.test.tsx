@@ -110,6 +110,9 @@ describe("Quick Sell Feature via Actions Menu", () => {
         price: 150,
         held: undefined,
         fxRate: 1,
+        // svc-position's own weight (0.5), forwarded as a percentage so the
+        // trade dialog shows the figure the row shows.
+        currentWeight: 50,
       })
     })
 
@@ -197,6 +200,9 @@ describe("Quick Sell Feature via Actions Menu", () => {
         price: 150,
         held: undefined,
         fxRate: 1,
+        // svc-position's own weight (0.5), forwarded as a percentage so the
+        // trade dialog shows the figure the row shows.
+        currentWeight: 50,
       })
     })
 

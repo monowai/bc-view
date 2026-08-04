@@ -99,20 +99,28 @@ export const computeWeightInfo = (
 }
 
 /**
- * Derive the trade-currency -> portfolio base-currency FX rate for a position
- * from its already-valued money buckets: base marketValue / trade marketValue.
- * Both buckets value the same holding, so their ratio is the FX rate. Falls
- * back to 1 (same currency / insufficient data) when either bucket is missing
- * or the trade value is zero.
+ * The FX rate from an asset's trade currency to the portfolio's reporting
+ * currency — the currency the weight basis (`portfolio.marketValue`) is quoted
+ * in. Both buckets value the same holding, so their ratio is the rate.
+ *
+ * A trade is denominated in the asset's own currency, so the dialog is handed
+ * the trade-currency price and converts once, here, to weigh it against the
+ * portfolio. Handing it a price that a holdings row had already converted for
+ * display and then applying this rate would count the FX twice and inflate
+ * every weight by it.
+ *
+ * Falls back to 1 (same currency / insufficient data) when either bucket is
+ * missing or the trade value is zero.
  */
-export const deriveTradeToBaseFxRate = (moneyValues: {
+export const deriveTradeToPortfolioFxRate = (moneyValues: {
   TRADE?: { marketValue?: number }
-  BASE?: { marketValue?: number }
+  PORTFOLIO?: { marketValue?: number }
 }): number => {
   const tradeValue = moneyValues.TRADE?.marketValue
-  const baseValue = moneyValues.BASE?.marketValue
-  if (!tradeValue || baseValue === undefined || baseValue === null) return 1
-  return baseValue / tradeValue
+  const portfolioValue = moneyValues.PORTFOLIO?.marketValue
+  if (!tradeValue || portfolioValue === undefined || portfolioValue === null)
+    return 1
+  return portfolioValue / tradeValue
 }
 
 /**

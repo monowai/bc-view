@@ -18,7 +18,7 @@ import {
   resolveSellableQuantity,
   heldQuantityForBroker,
   singleHeldBrokerId,
-  deriveTradeToBaseFxRate,
+  deriveTradeToPortfolioFxRate,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -179,32 +179,35 @@ describe("tradeFormHelpers", () => {
     })
   })
 
-  describe("deriveTradeToBaseFxRate", () => {
-    test("returns base/trade market value ratio", () => {
-      expect(
-        deriveTradeToBaseFxRate({
-          TRADE: { marketValue: 8860.25 },
-          BASE: { marketValue: 11451.98 },
-        }),
-      ).toBeCloseTo(1.2925, 4)
-    })
+  describe("deriveTradeToPortfolioFxRate", () => {
+    // One holding, two buckets: USD 3,482 == SGD 4,462.53.
+    const voo = {
+      TRADE: { marketValue: 3482 },
+      PORTFOLIO: { marketValue: 4462.53 },
+    }
 
-    test("returns 1 when trade market value is zero or missing", () => {
-      expect(
-        deriveTradeToBaseFxRate({
-          TRADE: { marketValue: 0 },
-          BASE: { marketValue: 100 },
-        }),
-      ).toBe(1)
-      expect(deriveTradeToBaseFxRate({ BASE: { marketValue: 100 } })).toBe(1)
+    test("converts the trade-currency price to the portfolio currency", () => {
+      expect(deriveTradeToPortfolioFxRate(voo)).toBeCloseTo(1.2816, 4)
     })
 
     test("returns 1 for same-currency holdings (equal values)", () => {
       expect(
-        deriveTradeToBaseFxRate({
+        deriveTradeToPortfolioFxRate({
           TRADE: { marketValue: 5000 },
-          BASE: { marketValue: 5000 },
+          PORTFOLIO: { marketValue: 5000 },
         }),
+      ).toBe(1)
+    })
+
+    test("returns 1 when the trade market value is zero or missing", () => {
+      expect(
+        deriveTradeToPortfolioFxRate({
+          TRADE: { marketValue: 0 },
+          PORTFOLIO: { marketValue: 100 },
+        }),
+      ).toBe(1)
+      expect(
+        deriveTradeToPortfolioFxRate({ PORTFOLIO: { marketValue: 100 } }),
       ).toBe(1)
     })
   })

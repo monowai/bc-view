@@ -396,7 +396,6 @@ const TradeInputForm: React.FC<{
     positionQty + (isSellSide(type?.value) ? -quantity : quantity),
     0,
   )
-  const deltaShares = resultingPositionQuantity - positionQty
   const resultingPositionWeight = useMemo(
     () =>
       computeResultingPositionWeight({
@@ -821,10 +820,13 @@ const TradeInputForm: React.FC<{
                   {!isSimpleAmount && !isEditMode && (
                     <button
                       type="button"
+                      disabled={needsPrice}
                       className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        activeTab === "invest"
-                          ? "border-b-2 border-blue-500 text-blue-600"
-                          : "text-gray-500 hover:text-gray-700"
+                        needsPrice
+                          ? "text-gray-300 cursor-not-allowed"
+                          : activeTab === "invest"
+                            ? "border-b-2 border-blue-500 text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
                       }`}
                       onClick={openInvestTab}
                     >
@@ -1075,7 +1077,10 @@ const TradeInputForm: React.FC<{
                     <div
                       className={`rounded-lg p-3 ${getQtyPriceTint(type?.value)}`}
                     >
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {/* Three across at every width — wrapping Fees onto its
+                          own row is what pushes Broker below the fold on a
+                          phone. */}
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
                         <div>
                           <label className={labelClass}>
                             {actualPositionQuantity > 0 ? (
@@ -1128,7 +1133,7 @@ const TradeInputForm: React.FC<{
                             )}
                           />
                         </div>
-                        <div className="col-span-2 sm:col-span-1">
+                        <div>
                           <label className={labelClass}>{"Fees"}</label>
                           <Controller
                             name="fees"
@@ -1215,232 +1220,156 @@ const TradeInputForm: React.FC<{
 
               {/* === Invest Tab === */}
               {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
-                <div className="space-y-4">
-                  {/* Sizing — cash, shares and weight are three views of one
-                      trade. Editing any one moves the other two. */}
-                  <section className="rounded-lg border border-gray-200 p-3 space-y-3">
-                    <div className="flex items-baseline justify-between gap-2">
+                <div className="space-y-3">
+                  {/* Cash, shares and weight are three views of one trade —
+                      set any one and the other two follow. The summary strip
+                      below the form carries the headline total and direction,
+                      so nothing here restates them. */}
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div>
                       <label htmlFor="invest-amount" className={labelClass}>
-                        {isSellSide(type?.value)
-                          ? "Amount to raise"
-                          : "Amount to invest"}
+                        {isSellSide(type?.value) ? "Raise" : "Invest"}
                       </label>
-                      <span
-                        data-testid="invest-direction"
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${getTradeColorScheme(type?.value).bg} ${getTradeColorScheme(type?.value).text}`}
-                      >
-                        {type?.value || "BUY"}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <MathInput
-                        id="invest-amount"
-                        value={investAmount}
-                        onChange={handleInvestAmountChange}
-                        placeholder={price > 0 ? "0.00" : "Set a price first"}
-                        disabled={!price || price <= 0}
-                        className={`${inputClass} pr-16 text-lg font-medium text-gray-900 disabled:bg-gray-100 disabled:text-gray-500`}
-                      />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500">
-                        {currentTradeCurrency}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="invest-shares" className={labelClass}>
-                          {"Shares to trade"}
-                        </label>
+                      <div className="relative">
                         <MathInput
-                          id="invest-shares"
-                          value={quantity}
-                          onChange={handleTradeQuantityChange}
-                          placeholder="0"
-                          className={inputClass}
+                          id="invest-amount"
+                          value={investAmount}
+                          onChange={handleInvestAmountChange}
+                          placeholder="0.00"
+                          className={`${inputClass} pr-11`}
                         />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="invest-target-weight"
-                          className={labelClass}
-                        >
-                          {"Target weight"}
-                        </label>
-                        <div className="relative">
-                          <MathInput
-                            id="invest-target-weight"
-                            value={targetWeightValue}
-                            onChange={handleTargetWeightChange}
-                            placeholder={canSizeByWeight ? "0.0" : "—"}
-                            disabled={!canSizeByWeight}
-                            className={`${inputClass} pr-7 disabled:bg-gray-100 disabled:text-gray-500`}
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                            {"%"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-gray-500">
-                      {canSizeByWeight
-                        ? "Set any one — the other two follow."
-                        : "Target weight needs a price and a portfolio value to weigh against."}
-                    </p>
-
-                    {fees > 0 && price > 0 && (
-                      <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-xs">
-                        <span className="text-gray-500">
-                          {isSellSide(type?.value)
-                            ? "Net proceeds after fees"
-                            : "Cash required including fees"}
-                        </span>
-                        <span className="font-mono tabular-nums text-gray-900">
-                          <NumericFormat
-                            value={Math.abs(tradeAmount)}
-                            displayType="text"
-                            thousandSeparator
-                            decimalScale={2}
-                            fixedDecimalScale
-                          />{" "}
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500">
                           {currentTradeCurrency}
                         </span>
                       </div>
-                    )}
-                  </section>
+                    </div>
+                    <div>
+                      <label htmlFor="invest-shares" className={labelClass}>
+                        {"Shares"}
+                      </label>
+                      <MathInput
+                        id="invest-shares"
+                        value={quantity}
+                        onChange={handleTradeQuantityChange}
+                        placeholder="0"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="invest-target-weight"
+                        className={labelClass}
+                      >
+                        {"Target"}
+                      </label>
+                      <div className="relative">
+                        <MathInput
+                          id="invest-target-weight"
+                          value={targetWeightValue}
+                          onChange={handleTargetWeightChange}
+                          placeholder={canSizeByWeight ? "0.0" : "—"}
+                          disabled={!canSizeByWeight}
+                          className={`${inputClass} pr-7 disabled:bg-gray-100 disabled:text-gray-500`}
+                        />
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                          {"%"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* What you hold now, and where this trade leaves it. */}
-                  <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        data-testid="invest-current-position"
-                        className="min-w-0 flex-1"
-                      >
-                        <p className="text-[11px] font-medium text-gray-500">
-                          {"Currently held"}
-                        </p>
-                        {currentPositionWeight === null ? (
-                          <>
-                            <p className="mt-1 font-mono text-base text-gray-400">
-                              {"—"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {"New position"}
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="mt-1 font-mono tabular-nums text-base text-gray-900">
-                              {positionQty.toLocaleString()}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              <NumericFormat
-                                value={positionQty * price}
-                                displayType="text"
-                                thousandSeparator
-                                decimalScale={2}
-                                fixedDecimalScale
-                              />{" "}
-                              {currentTradeCurrency}
-                            </p>
-                            <p className="mt-0.5 font-mono tabular-nums text-sm font-semibold text-gray-700">
-                              {currentPositionWeight.toFixed(2)}%
-                            </p>
-                          </>
-                        )}
-                      </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <div className="grid grid-cols-[1fr_minmax(4.5rem,auto)_minmax(4.5rem,auto)] items-baseline gap-x-3">
+                      <span />
+                      <span className="text-right text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                        {"Current"}
+                      </span>
+                      <span className="text-right text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                        {"After"}
+                      </span>
 
-                      <i
-                        className="fas fa-arrow-right shrink-0 text-gray-300"
-                        aria-hidden="true"
-                      ></i>
-
-                      <div
-                        data-testid="invest-resulting-position"
-                        className="min-w-0 flex-1 text-right"
+                      <span className="text-xs text-gray-500">
+                        {"Value"}
+                        <span className="text-gray-400">
+                          {" "}
+                          {portfolio.currency.code}
+                        </span>
+                      </span>
+                      <span
+                        data-testid="invest-current-value"
+                        className="text-right font-mono text-xs tabular-nums text-gray-600"
                       >
-                        <p className="text-[11px] font-medium text-gray-500">
-                          {"After this trade"}
-                        </p>
-                        <p className="mt-1 font-mono tabular-nums text-base text-gray-900">
-                          {resultingPositionQuantity.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500">
+                        {positionQty > 0 ? (
                           <NumericFormat
-                            value={resultingPositionQuantity * price}
+                            value={positionQty * price * fxRate}
                             displayType="text"
                             thousandSeparator
                             decimalScale={2}
                             fixedDecimalScale
-                          />{" "}
-                          {currentTradeCurrency}
-                        </p>
-                        {resultingPositionWeight !== null && (
-                          <p className="mt-0.5 font-mono tabular-nums text-sm font-semibold text-gray-900">
-                            {resultingPositionWeight.toFixed(2)}%
-                          </p>
+                          />
+                        ) : (
+                          "—"
                         )}
-                        {deltaShares !== 0 && (
-                          <p
-                            className={`font-mono tabular-nums text-xs font-medium ${
-                              deltaShares > 0
-                                ? "text-emerald-700"
-                                : "text-red-700"
-                            }`}
-                          >
-                            {deltaShares > 0 ? "+" : "-"}
-                            {Math.abs(deltaShares).toLocaleString()}
-                            {" shares"}
-                          </p>
+                      </span>
+                      <span
+                        data-testid="invest-after-value"
+                        className="text-right font-mono text-xs tabular-nums text-gray-900"
+                      >
+                        <NumericFormat
+                          value={resultingPositionQuantity * price * fxRate}
+                          displayType="text"
+                          thousandSeparator
+                          decimalScale={2}
+                          fixedDecimalScale
+                        />
+                      </span>
+
+                      <span className="text-xs text-gray-500">{"Weight"}</span>
+                      <span
+                        data-testid="invest-current-weight"
+                        className="text-right font-mono text-sm tabular-nums text-gray-600"
+                      >
+                        {currentPositionWeight === null
+                          ? "—"
+                          : `${currentPositionWeight.toFixed(2)}%`}
+                      </span>
+                      <span
+                        data-testid="invest-after-weight"
+                        className="text-right font-mono text-sm font-semibold tabular-nums text-gray-900"
+                      >
+                        {resultingPositionWeight === null
+                          ? "—"
+                          : `${resultingPositionWeight.toFixed(2)}%`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fees and where the trade executes. Price stays on the
+                      Trade tab — it describes the asset, not the sizing. */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div
+                      className={acceptsBroker(type?.value) ? "" : "col-span-2"}
+                    >
+                      <label htmlFor="invest-fees" className={labelClass}>
+                        {"Fees"}
+                      </label>
+                      <Controller
+                        name="fees"
+                        control={control as any}
+                        render={({ field }) => (
+                          <MathInput
+                            id="invest-fees"
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={inputClass}
+                          />
                         )}
-                      </div>
+                      />
                     </div>
-                  </section>
-
-                  {/* Execution — the price the sizing divides by, what it
-                      costs, and which brokerage it goes through. */}
-                  <section className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="invest-price" className={labelClass}>
-                          {isFetchingPrice ? `${"Price"} ...` : "Price"}
-                        </label>
-                        <Controller
-                          name="price"
-                          control={control as any}
-                          render={({ field }) => (
-                            <MathInput
-                              id="invest-price"
-                              value={field.value}
-                              onChange={field.onChange}
-                              step="0.01"
-                              className={inputClass}
-                            />
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="invest-fees" className={labelClass}>
-                          {"Fees"}
-                        </label>
-                        <Controller
-                          name="fees"
-                          control={control as any}
-                          render={({ field }) => (
-                            <MathInput
-                              id="invest-fees"
-                              value={field.value}
-                              onChange={field.onChange}
-                              className={inputClass}
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-
                     {acceptsBroker(type?.value) && (
                       <div>
-                        <div className="mb-1 flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                           <label htmlFor="invest-broker" className={labelClass}>
                             {"Broker"}
                           </label>
@@ -1476,7 +1405,7 @@ const TradeInputForm: React.FC<{
                         />
                       </div>
                     )}
-                  </section>
+                  </div>
                 </div>
               )}
 
@@ -1705,6 +1634,7 @@ const TradeInputForm: React.FC<{
                   className={`shrink-0 rounded-lg px-3 py-2 flex items-center justify-center gap-3 text-sm ${colors.bg} border ${colors.border}`}
                 >
                   <span
+                    data-testid="trade-summary-type"
                     className={`text-[10px] font-semibold uppercase tracking-wider ${colors.text}`}
                   >
                     {type?.value || "BUY"}

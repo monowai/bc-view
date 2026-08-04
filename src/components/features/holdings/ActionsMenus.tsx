@@ -145,9 +145,13 @@ export interface ActionsMenuProps {
   tradeCurrency: { code: string; symbol: string; name: string }
   valueIn: string
   held?: Record<string, number>
-  /** Trade-currency -> portfolio base-currency rate for the trade dialog's
-   * weight/target-sizing maths. Omitted for same-currency holdings. */
+  /** Displayed-currency -> portfolio-currency rate for the trade dialog's
+   * target-sizing maths. 1 when the row already shows portfolio currency. */
   fxRate?: number
+  /** The position's weight as svc-position computed it, in percent. Passed
+   * through so the dialog shows the same figure as the row rather than
+   * re-deriving one. */
+  currentWeight?: number
   onTrade?: (data: QuickSellData) => void
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
@@ -175,6 +179,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   tradeCurrency,
   held,
   fxRate,
+  currentWeight,
   onTrade,
   onQuickSell,
   onCorporateActions,
@@ -200,6 +205,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     price,
     held,
     fxRate,
+    currentWeight,
   })
 
   const handle =

@@ -43,7 +43,7 @@ import {
   CorporateActionsData,
   SectorWeightingsData,
 } from "./ActionsMenus"
-import { deriveTradeToBaseFxRate } from "@lib/trns/tradeFormHelpers"
+import { deriveTradeToPortfolioFxRate } from "@lib/trns/tradeFormHelpers"
 import { COPYABLE_HOLDING_COLUMNS } from "./constants"
 
 export type { CorporateActionsData, SectorWeightingsData }
@@ -211,14 +211,22 @@ export default function Rows({
                       fromDate={dateValues?.opened}
                       closedDate={dateValues?.closed}
                       quantity={quantityValues.total}
-                      price={moneyValues[valueIn].priceData?.close || 0}
+                      price={
+                        // A trade is denominated in the asset's own currency,
+                        // so the dialog gets the trade-currency price — not
+                        // the row's display-converted one.
+                        moneyValues["TRADE"]?.priceData?.close ||
+                        moneyValues[valueIn].priceData?.close ||
+                        0
+                      }
                       costBasis={moneyValues["TRADE"]?.costBasis || 0}
                       tradeCurrency={
                         moneyValues["TRADE"]?.currency || portfolio.currency
                       }
                       valueIn={valueIn}
                       held={held}
-                      fxRate={deriveTradeToBaseFxRate(moneyValues)}
+                      fxRate={deriveTradeToPortfolioFxRate(moneyValues)}
+                      currentWeight={moneyValues[valueIn].weight * 100}
                       onTrade={isCashRelated(asset) ? undefined : onTrade}
                       onQuickSell={
                         isCashRelated(asset) ? undefined : onQuickSell

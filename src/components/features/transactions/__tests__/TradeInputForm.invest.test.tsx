@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent, within } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import TradeInputForm from "../TradeInputForm"
 import { makePortfolio, USD } from "@test-fixtures/beancounter"
@@ -93,20 +93,23 @@ const renderInvestTab = (
 }
 
 const amountField = (): HTMLInputElement =>
-  screen.getByLabelText("Amount to invest") as HTMLInputElement
+  screen.getByLabelText(/^(Invest|Raise)$/) as HTMLInputElement
 const sharesField = (): HTMLInputElement =>
-  screen.getByLabelText("Shares to trade") as HTMLInputElement
+  screen.getByLabelText("Shares") as HTMLInputElement
 const weightField = (): HTMLInputElement =>
-  screen.getByLabelText("Target weight") as HTMLInputElement
+  screen.getByLabelText("Target") as HTMLInputElement
 
 describe("TradeInputForm — Invest tab", () => {
   test("labels the current holding rather than leaving its figures unexplained", () => {
     renderInvestTab()
 
-    const held = screen.getByTestId("invest-current-position")
-    expect(within(held).getByText(/Currently held/i)).toBeInTheDocument()
-    expect(within(held).getByText("100")).toBeInTheDocument()
-    expect(within(held).getByText("10.00%")).toBeInTheDocument()
+    expect(screen.getByText("Current")).toBeInTheDocument()
+    expect(screen.getByTestId("invest-current-value")).toHaveTextContent(
+      "1,000.00",
+    )
+    expect(screen.getByTestId("invest-current-weight")).toHaveTextContent(
+      "10.00%",
+    )
   })
 
   test("the trade summary follows the tab down to nothing-yet-sized", () => {
@@ -152,7 +155,8 @@ describe("TradeInputForm — Invest tab", () => {
     fireEvent.change(weightField(), { target: { value: "4" } })
 
     expect(sharesField()).toHaveValue("60")
-    expect(screen.getByTestId("invest-direction")).toHaveTextContent("SELL")
+    // Direction lives in the summary strip only — the tab does not restate it.
+    expect(screen.getByTestId("trade-summary-type")).toHaveTextContent("SELL")
   })
 
   test("shows the resulting position beside the current one", () => {
@@ -160,9 +164,12 @@ describe("TradeInputForm — Invest tab", () => {
 
     fireEvent.change(weightField(), { target: { value: "15" } })
 
-    const after = screen.getByTestId("invest-resulting-position")
-    expect(within(after).getByText("150")).toBeInTheDocument()
-    expect(within(after).getByText("15.00%")).toBeInTheDocument()
+    expect(screen.getByTestId("invest-after-value")).toHaveTextContent(
+      "1,500.00",
+    )
+    expect(screen.getByTestId("invest-after-weight")).toHaveTextContent(
+      "15.00%",
+    )
   })
 
   test("the broker can be changed without leaving the tab", () => {
@@ -173,16 +180,10 @@ describe("TradeInputForm — Invest tab", () => {
     expect(broker.value).toBe("asb")
   })
 
-  test("price is editable on the tab that divides by it", () => {
+  test("price stays on the Trade tab — it describes the asset, not the sizing", () => {
     renderInvestTab()
 
-    fireEvent.change(sharesField(), { target: { value: "10" } })
-    expect(amountField()).toHaveValue("100")
-
-    fireEvent.change(screen.getByLabelText("Price"), {
-      target: { value: "20" },
-    })
-    expect(amountField()).toHaveValue("200")
+    expect(screen.queryByLabelText("Price")).not.toBeInTheDocument()
   })
 
   test("a brand-new position sizes against the post-trade portfolio", () => {
@@ -196,9 +197,8 @@ describe("TradeInputForm — Invest tab", () => {
       type: "BUY",
     })
 
-    expect(screen.getByTestId("invest-current-position")).toHaveTextContent(
-      /New position/i,
-    )
+    expect(screen.getByTestId("invest-current-weight")).toHaveTextContent("—")
+    expect(screen.getByTestId("invest-current-value")).toHaveTextContent("—")
 
     fireEvent.change(weightField(), { target: { value: "50" } })
     // V / (10,000 + V) = 50% → V = 10,000 → 1,000 shares.
