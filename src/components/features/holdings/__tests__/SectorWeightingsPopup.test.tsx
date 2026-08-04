@@ -88,7 +88,9 @@ describe("SectorWeightingsPopup", () => {
       />,
     )
 
-    expect(screen.getByText(/As at 4 Aug 2026/)).toBeInTheDocument()
+    // Tolerant of locale ordering: formatDate uses toLocaleDateString(undefined, ...),
+    // so the runner's locale decides "4 Aug 2026" vs "Aug 4, 2026".
+    expect(screen.getByText(/As at .*Aug.*2026/)).toBeInTheDocument()
   })
 
   it("shows an honest empty state with last-checked date when classificationCheckedAt is present", () => {
@@ -108,7 +110,7 @@ describe("SectorWeightingsPopup", () => {
     )
 
     expect(
-      screen.getByText(/No sector data available\. Last checked 4 Aug 2026\./),
+      screen.getByText(/No sector data available\. Last checked .*Aug.*2026\./),
     ).toBeInTheDocument()
   })
 
