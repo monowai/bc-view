@@ -3,12 +3,50 @@ import {
   getDisplayCode,
   isCashRelated,
   isNonTradeable,
+  isFundLike,
   getPositionDisplayName,
   buildTradesHref,
   buildAggregatedTradesHref,
   buildNewsAsset,
 } from "../assetUtils"
 import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
+
+describe("isFundLike", () => {
+  it("is true for ETF", () => {
+    expect(
+      isFundLike(makeAsset({ assetCategory: { id: "ETF", name: "ETF" } })),
+    ).toBe(true)
+  })
+
+  it("is true for MUTUAL FUND (e.g. LSE/LON-listed UCITS funds)", () => {
+    expect(
+      isFundLike(
+        makeAsset({
+          assetCategory: { id: "MUTUAL FUND", name: "Mutual Fund" },
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it("is false for a plain equity", () => {
+    expect(
+      isFundLike(
+        makeAsset({ assetCategory: { id: "EQUITY", name: "Equity" } }),
+      ),
+    ).toBe(false)
+  })
+
+  // The call sites this helper replaced used `assetCategory?.id`, so positions
+  // arriving without a category must not throw.
+  it("is false, not throwing, when the asset carries no category", () => {
+    const asset = makeAsset({})
+    // @ts-expect-error - the type says required, runtime data disagrees
+    delete asset.assetCategory
+
+    expect(() => isFundLike(asset)).not.toThrow()
+    expect(isFundLike(asset)).toBe(false)
+  })
+})
 
 describe("stripOwnerPrefix", () => {
   const USER_ID = "148_OBRVTziEJUdnLKsSlA" // realistic 22-char base64 userId

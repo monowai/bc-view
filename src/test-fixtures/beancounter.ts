@@ -11,6 +11,7 @@
  */
 import {
   Asset,
+  AssetHolding,
   Currency,
   Holdings,
   HoldingGroup,
@@ -19,6 +20,7 @@ import {
   PortfolioBreakdown,
   Position,
   QuantityValues,
+  SectorExposure,
   SubAccountRequest,
 } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
@@ -63,6 +65,29 @@ export function makeCashAsset(currency: Currency = USD): Asset {
     assetCategory: { id: "CASH", name: "Cash" },
     market: { code: "CASH", name: "Cash", currency },
   })
+}
+
+export function makeSectorExposure(
+  overrides: Partial<SectorExposure> = {},
+): SectorExposure {
+  return {
+    item: { name: "Information Technology", code: "INFORMATION_TECHNOLOGY" },
+    weight: 0.372,
+    asOf: "2026-08-04",
+    ...overrides,
+  }
+}
+
+export function makeAssetHolding(
+  overrides: Partial<AssetHolding> = {},
+): AssetHolding {
+  return {
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    weight: 0.072,
+    asOf: "2026-08-04",
+    ...overrides,
+  }
 }
 
 export function makeMoneyValues(overrides: Partial<Money> = {}): Money {

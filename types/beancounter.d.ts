@@ -613,6 +613,7 @@ export interface Asset {
   sector?: string // Sector classification (e.g., "Technology", "Health Care")
   industry?: string // Industry classification (more granular than sector)
   expectedReturnRate?: number // Expected annual return rate (decimal, e.g., 0.03 for 3%)
+  classificationCheckedAt?: string // ISO date: last time a classification provider was checked for this asset, even when it returned nothing
 }
 
 export interface AssetCategory {
