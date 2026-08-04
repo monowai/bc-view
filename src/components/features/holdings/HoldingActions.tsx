@@ -594,6 +594,9 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           modalOpen={tradeModalOpen}
           setModalOpen={handleTradeModalClose}
           initialValues={quickSellData}
+          // svc-position already weighed this holding; show its answer rather
+          // than deriving a second one that can disagree with the row.
+          currentWeightOverride={quickSellData?.currentWeight ?? null}
         />
       )}
       {cashModalOpen && (

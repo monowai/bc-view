@@ -1,6 +1,7 @@
 import {
   computeWeightInfo,
   computeCurrentPositionWeight,
+  computeResultingPositionWeight,
   calculateQuantityFromTargetWeight,
   calculateNewPositionQuantityFromTargetWeight,
   calculateQuantityFromTradeValue,
@@ -17,7 +18,7 @@ import {
   resolveSellableQuantity,
   heldQuantityForBroker,
   singleHeldBrokerId,
-  deriveTradeToBaseFxRate,
+  deriveTradeToPortfolioFxRate,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -178,32 +179,35 @@ describe("tradeFormHelpers", () => {
     })
   })
 
-  describe("deriveTradeToBaseFxRate", () => {
-    test("returns base/trade market value ratio", () => {
-      expect(
-        deriveTradeToBaseFxRate({
-          TRADE: { marketValue: 8860.25 },
-          BASE: { marketValue: 11451.98 },
-        }),
-      ).toBeCloseTo(1.2925, 4)
-    })
+  describe("deriveTradeToPortfolioFxRate", () => {
+    // One holding, two buckets: USD 3,482 == SGD 4,462.53.
+    const voo = {
+      TRADE: { marketValue: 3482 },
+      PORTFOLIO: { marketValue: 4462.53 },
+    }
 
-    test("returns 1 when trade market value is zero or missing", () => {
-      expect(
-        deriveTradeToBaseFxRate({
-          TRADE: { marketValue: 0 },
-          BASE: { marketValue: 100 },
-        }),
-      ).toBe(1)
-      expect(deriveTradeToBaseFxRate({ BASE: { marketValue: 100 } })).toBe(1)
+    test("converts the trade-currency price to the portfolio currency", () => {
+      expect(deriveTradeToPortfolioFxRate(voo)).toBeCloseTo(1.2816, 4)
     })
 
     test("returns 1 for same-currency holdings (equal values)", () => {
       expect(
-        deriveTradeToBaseFxRate({
+        deriveTradeToPortfolioFxRate({
           TRADE: { marketValue: 5000 },
-          BASE: { marketValue: 5000 },
+          PORTFOLIO: { marketValue: 5000 },
         }),
+      ).toBe(1)
+    })
+
+    test("returns 1 when the trade market value is zero or missing", () => {
+      expect(
+        deriveTradeToPortfolioFxRate({
+          TRADE: { marketValue: 0 },
+          PORTFOLIO: { marketValue: 100 },
+        }),
+      ).toBe(1)
+      expect(
+        deriveTradeToPortfolioFxRate({ PORTFOLIO: { marketValue: 100 } }),
       ).toBe(1)
     })
   })
@@ -1003,6 +1007,134 @@ describe("tradeFormHelpers", () => {
           quantity: 50,
         }),
       ).toBe(25)
+    })
+  })
+
+  describe("computeResultingPositionWeight", () => {
+    test("adds a BUY to an existing holding against a fixed portfolio value", () => {
+      // 100 held @ 10 in a 10,000 portfolio = 10%. Buying 50 more takes the
+      // position to 150 * 10 = 1,500 of the same 10,000 = 15%.
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 50,
+          tradeType: "BUY",
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeCloseTo(15, 6)
+    })
+
+    test("subtracts a SELL from an existing holding", () => {
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 50,
+          tradeType: "SELL",
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeCloseTo(5, 6)
+    })
+
+    test("selling the whole holding lands on 0%", () => {
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 100,
+          tradeType: "SELL",
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBe(0)
+    })
+
+    test("a new position grows the portfolio it is weighed against", () => {
+      // No holding yet: the buy is funded from outside, so 1,000 of new value
+      // in a 10,000 portfolio is 1000/11000 — matching the sizing helper.
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 0,
+          tradeQuantity: 100,
+          tradeType: "BUY",
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeCloseTo((1000 / 11000) * 100, 6)
+    })
+
+    test("converts the trade-currency price to base via fxRate", () => {
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 0,
+          tradeType: "BUY",
+          price: 10,
+          portfolioMarketValue: 10000,
+          fxRate: 2,
+        }),
+      ).toBeCloseTo(20, 6)
+    })
+
+    test("returns null without a price or a portfolio to weigh against", () => {
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 10,
+          tradeType: "BUY",
+          price: 0,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeNull()
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: 10,
+          tradeType: "BUY",
+          price: 10,
+          portfolioMarketValue: 0,
+        }),
+      ).toBeNull()
+    })
+
+    test("round-trips the existing-holding target weight it was sized from", () => {
+      const sized = calculateQuantityFromTargetWeight(15, 10, 10, 10000)!
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: sized.quantity,
+          tradeType: sized.tradeType,
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeCloseTo(15, 6)
+    })
+
+    test("round-trips a SELL-side target weight", () => {
+      const sized = calculateQuantityFromTargetWeight(4, 10, 10, 10000)!
+      expect(sized.tradeType).toBe("SELL")
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 100,
+          tradeQuantity: sized.quantity,
+          tradeType: sized.tradeType,
+          price: 10,
+          portfolioMarketValue: 10000,
+        }),
+      ).toBeCloseTo(4, 6)
+    })
+
+    test("round-trips the new-position target weight it was sized from", () => {
+      const sized = calculateNewPositionQuantityFromTargetWeight(70, 10, 30000)!
+      expect(
+        computeResultingPositionWeight({
+          currentPositionQuantity: 0,
+          tradeQuantity: sized.quantity,
+          tradeType: sized.tradeType,
+          price: 10,
+          portfolioMarketValue: 30000,
+        }),
+      ).toBeCloseTo(70, 6)
     })
   })
 })

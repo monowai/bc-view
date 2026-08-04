@@ -9,6 +9,7 @@ import {
   calculateTradeWeight,
   calculateNewPositionWeight,
   getAssetCurrency,
+  isSellSide,
 } from "./tradeUtils"
 import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
@@ -98,20 +99,28 @@ export const computeWeightInfo = (
 }
 
 /**
- * Derive the trade-currency -> portfolio base-currency FX rate for a position
- * from its already-valued money buckets: base marketValue / trade marketValue.
- * Both buckets value the same holding, so their ratio is the FX rate. Falls
- * back to 1 (same currency / insufficient data) when either bucket is missing
- * or the trade value is zero.
+ * The FX rate from an asset's trade currency to the portfolio's reporting
+ * currency — the currency the weight basis (`portfolio.marketValue`) is quoted
+ * in. Both buckets value the same holding, so their ratio is the rate.
+ *
+ * A trade is denominated in the asset's own currency, so the dialog is handed
+ * the trade-currency price and converts once, here, to weigh it against the
+ * portfolio. Handing it a price that a holdings row had already converted for
+ * display and then applying this rate would count the FX twice and inflate
+ * every weight by it.
+ *
+ * Falls back to 1 (same currency / insufficient data) when either bucket is
+ * missing or the trade value is zero.
  */
-export const deriveTradeToBaseFxRate = (moneyValues: {
+export const deriveTradeToPortfolioFxRate = (moneyValues: {
   TRADE?: { marketValue?: number }
-  BASE?: { marketValue?: number }
+  PORTFOLIO?: { marketValue?: number }
 }): number => {
   const tradeValue = moneyValues.TRADE?.marketValue
-  const baseValue = moneyValues.BASE?.marketValue
-  if (!tradeValue || baseValue === undefined || baseValue === null) return 1
-  return baseValue / tradeValue
+  const portfolioValue = moneyValues.PORTFOLIO?.marketValue
+  if (!tradeValue || portfolioValue === undefined || portfolioValue === null)
+    return 1
+  return portfolioValue / tradeValue
 }
 
 /**
@@ -198,6 +207,58 @@ export const calculateNewPositionQuantityFromTargetWeight = (
     tradeType: "BUY",
     nominalPortfolioValue: portfolioMarketValue + quantity * priceInBase,
   }
+}
+
+/**
+ * The weight the position lands on once this trade settles — the inverse of
+ * the two target-weight sizing helpers above, so a weight typed in comes back
+ * out unchanged.
+ *
+ * Mirrors each helper's basis exactly:
+ * - an existing holding is re-weighed against the SAME portfolio value
+ *   (the trade is funded from inside the portfolio), matching
+ *   `calculateQuantityFromTargetWeight`;
+ * - a brand-new position grows the portfolio it is weighed against
+ *   (funded from outside), matching
+ *   `calculateNewPositionQuantityFromTargetWeight`.
+ *
+ * Returns null when there is no price or no portfolio value to weigh against.
+ */
+export const computeResultingPositionWeight = (params: {
+  currentPositionQuantity: number
+  tradeQuantity: number
+  tradeType: string
+  price: number
+  portfolioMarketValue: number
+  fxRate?: number
+}): number | null => {
+  const {
+    currentPositionQuantity,
+    tradeQuantity,
+    tradeType,
+    price,
+    portfolioMarketValue,
+    fxRate = 1,
+  } = params
+
+  if (!price || price <= 0) return null
+  if (!portfolioMarketValue || portfolioMarketValue <= 0) return null
+
+  // `price` is trade currency; the portfolio value is base currency.
+  const priceInBase = price * fxRate
+  const signedQuantity = isSellSide(tradeType) ? -tradeQuantity : tradeQuantity
+
+  if (currentPositionQuantity > 0) {
+    const resultingQuantity = Math.max(
+      currentPositionQuantity + signedQuantity,
+      0,
+    )
+    return ((resultingQuantity * priceInBase) / portfolioMarketValue) * 100
+  }
+
+  const addedValue = Math.max(signedQuantity, 0) * priceInBase
+  if (addedValue <= 0) return 0
+  return (addedValue / (portfolioMarketValue + addedValue)) * 100
 }
 
 /**
