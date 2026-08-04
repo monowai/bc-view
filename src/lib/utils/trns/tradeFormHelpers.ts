@@ -9,6 +9,7 @@ import {
   calculateTradeWeight,
   calculateNewPositionWeight,
   getAssetCurrency,
+  isSellSide,
 } from "./tradeUtils"
 import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
@@ -198,6 +199,58 @@ export const calculateNewPositionQuantityFromTargetWeight = (
     tradeType: "BUY",
     nominalPortfolioValue: portfolioMarketValue + quantity * priceInBase,
   }
+}
+
+/**
+ * The weight the position lands on once this trade settles — the inverse of
+ * the two target-weight sizing helpers above, so a weight typed in comes back
+ * out unchanged.
+ *
+ * Mirrors each helper's basis exactly:
+ * - an existing holding is re-weighed against the SAME portfolio value
+ *   (the trade is funded from inside the portfolio), matching
+ *   `calculateQuantityFromTargetWeight`;
+ * - a brand-new position grows the portfolio it is weighed against
+ *   (funded from outside), matching
+ *   `calculateNewPositionQuantityFromTargetWeight`.
+ *
+ * Returns null when there is no price or no portfolio value to weigh against.
+ */
+export const computeResultingPositionWeight = (params: {
+  currentPositionQuantity: number
+  tradeQuantity: number
+  tradeType: string
+  price: number
+  portfolioMarketValue: number
+  fxRate?: number
+}): number | null => {
+  const {
+    currentPositionQuantity,
+    tradeQuantity,
+    tradeType,
+    price,
+    portfolioMarketValue,
+    fxRate = 1,
+  } = params
+
+  if (!price || price <= 0) return null
+  if (!portfolioMarketValue || portfolioMarketValue <= 0) return null
+
+  // `price` is trade currency; the portfolio value is base currency.
+  const priceInBase = price * fxRate
+  const signedQuantity = isSellSide(tradeType) ? -tradeQuantity : tradeQuantity
+
+  if (currentPositionQuantity > 0) {
+    const resultingQuantity = Math.max(
+      currentPositionQuantity + signedQuantity,
+      0,
+    )
+    return ((resultingQuantity * priceInBase) / portfolioMarketValue) * 100
+  }
+
+  const addedValue = Math.max(signedQuantity, 0) * priceInBase
+  if (addedValue <= 0) return 0
+  return (addedValue / (portfolioMarketValue + addedValue)) * 100
 }
 
 /**
