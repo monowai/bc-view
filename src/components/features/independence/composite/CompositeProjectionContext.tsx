@@ -27,6 +27,12 @@ export interface CompositeProjectionValue {
   /** Work scenario ID selected for composite projections. */
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
+  /**
+   * Current age to display — prefers the backend-echoed
+   * `CompositeProjectionResult.currentAge` once a projection has landed,
+   * falling back to a local derivation for first paint (bc-view #1144).
+   */
+  currentAge?: number
 
   // Results
   projection: CompositeProjectionResult | undefined

@@ -16,13 +16,11 @@ import { deriveFiStack } from "@lib/independence/fiStack"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import useCompositeMonteCarloSimulation from "@hooks/useCompositeMonteCarloSimulation"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
-const CURRENT_YEAR = new Date().getFullYear()
 
 function fmtShort(v: number): string {
   if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`
@@ -113,8 +111,15 @@ function IncomeRow({
 }
 
 export default function FiOverviewTab(): React.ReactElement | null {
-  const { projection, plans, phases, displayCurrency, isLoading, error } =
-    useCompositeProjectionContext()
+  const {
+    projection,
+    plans,
+    phases,
+    displayCurrency,
+    isLoading,
+    error,
+    currentAge,
+  } = useCompositeProjectionContext()
   const { hideValues } = usePrivacyMode()
   const {
     result: mcResult,
@@ -122,7 +127,6 @@ export default function FiOverviewTab(): React.ReactElement | null {
     error: mcError,
     runSimulation,
   } = useCompositeMonteCarloSimulation()
-  const { settings } = useIndependenceSettings()
   const [mcIterations, setMcIterations] = useState(1000)
 
   // Primary plan for income/expense breakdown
@@ -130,12 +134,6 @@ export default function FiOverviewTab(): React.ReactElement | null {
     () => plans.find((p) => p.isPrimary) ?? plans[0],
     [plans],
   )
-
-  // Current age from independence settings, falling back to plan
-  const currentAge = useMemo(() => {
-    const yob = settings?.yearOfBirth ?? primaryPlan?.yearOfBirth
-    return yob ? CURRENT_YEAR - yob : undefined
-  }, [settings, primaryPlan])
 
   // Net monthly retirement expenses — for the income breakdown display only
   const netMonthlyExpenses = primaryPlan

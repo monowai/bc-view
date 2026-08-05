@@ -1327,6 +1327,13 @@ export interface CompositeProjectionResult {
   retirementAgeFiProgress?: number
   /** Present value today of the Social Security stream (first non-zero-SS phase). Null when no SS. */
   pvGuaranteedIncomeToday?: number
+  /**
+   * Current age used to build this projection, resolved server-side from
+   * the plan owner's settings (year + month of birth aware). Authoritative
+   * echo — bc-view must prefer this over any client-derived age once a
+   * projection has landed (bc-view #1144).
+   */
+  currentAge?: number
 }
 
 export interface CompositeScenarioResult {

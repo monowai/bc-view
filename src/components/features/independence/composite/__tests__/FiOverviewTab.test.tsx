@@ -130,6 +130,7 @@ function makeCtx(
     toggleExclusion: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
+    currentAge: undefined,
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
@@ -193,6 +194,31 @@ describe("FiOverviewTab — backend-echo fiNumber/fiProgress", () => {
     expect(
       screen.getByText(/Portfolio covers your FI target/i),
     ).toBeInTheDocument()
+  })
+})
+
+// =====================================================================
+// Test — currentAge must come from context (hook's backend-echo-preferred
+// value), not be re-derived locally from settings/plan.yearOfBirth
+// (bc-view #1144).
+// =====================================================================
+
+describe("FiOverviewTab — currentAge from context", () => {
+  it("uses the context's currentAge (not a local settings/plan derivation) for years-to-FI", () => {
+    const projection = makeProjection({
+      fiNumber: 1_313_100,
+      fiProgress: 103.6,
+      liquidAssets: 1_360_893,
+    })
+    // ctx.plans is empty and useIndependenceSettings is mocked to return no
+    // settings, so any local re-derivation (settings/plan.yearOfBirth) would
+    // yield `undefined` here. The component must still show "15 years away"
+    // by reading currentAge straight off the context.
+    renderWithCtx({ projection, currentAge: 50 })
+
+    // fiCrossingAge is 65 (first row whose endingBalance >= fiNumber);
+    // 65 - 50 = 15.
+    expect(screen.getByText("15 years away")).toBeInTheDocument()
   })
 })
 
