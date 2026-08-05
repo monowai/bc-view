@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from "react"
 import { Portfolio } from "types/beancounter"
-import { postData } from "@components/ui/DropZone"
 import {
-  buildCashRow,
   calculateCashAdjustment,
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
@@ -16,7 +14,7 @@ interface SetCashBalanceDialogProps {
   portfolio: Portfolio
   currency: string
   currentBalance: number
-  market?: string // "CASH" for currencies, "PRIVATE" for bank accounts
+  assetId: string // The cash asset being adjusted; also the settlement account
   assetCode?: string // Asset code for bank accounts
   assetName?: string // Asset name for display
 }
@@ -27,7 +25,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
   portfolio,
   currency,
   currentBalance,
-  market = "CASH",
+  assetId,
   assetCode,
   assetName,
 }) => {
@@ -60,19 +58,48 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
     return calculateCashAdjustment(currentBalance, target)
   }, [targetBalance, currentBalance])
 
+  /**
+   * Writes the adjustment through the synchronous trn endpoint.
+   *
+   * This used to publish a row to the async CSV import topic, where a server-side
+   * rejection was retried, acked away and never seen — the dialog reported success
+   * and no transaction existed (#1067). The cash asset settles against itself, so
+   * cashAssetId is the asset being adjusted. tradeDate is left to the server, which
+   * resolves "today" in the configured zone rather than the browser's.
+   */
   const handleProceed = async (): Promise<void> => {
     if (calculation.amount === 0) return
     await handleSubmit(async () => {
       const displayName = assetName || assetCode || currency
-      const row = buildCashRow({
-        type: calculation.type,
-        currency,
-        amount: calculation.amount,
-        comments: `Set ${displayName} balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
-        market,
-        assetCode,
+      const response = await fetch("/api/trns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portfolioId: portfolio.id,
+          data: [
+            {
+              assetId,
+              cashAssetId: assetId,
+              trnType: calculation.type,
+              quantity: calculation.amount,
+              // The import path set both; cashAmount is what the cash ladder reads,
+              // and the backend signs it from the trn type.
+              cashAmount: calculation.amount,
+              tradeCurrency: currency,
+              cashCurrency: currency,
+              status: "SETTLED",
+              comments: `Set ${displayName} balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
+            },
+          ],
+        }),
       })
-      await postData(portfolio, false, row)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.message || errorData.detail || "Failed to set balance",
+        )
+      }
     })
   }
 

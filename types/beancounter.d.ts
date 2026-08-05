@@ -66,10 +66,10 @@ export interface WeightClickData {
 export interface SetCashBalanceData {
   currency: string // Currency code (e.g., "USD", "NZD")
   currentBalance: number // Current cash balance
-  market?: string // Market code: "CASH" for currencies, "PRIVATE" for bank accounts
   assetCode?: string // Asset code for bank accounts (e.g., "WISE", "USD-SAVINGS")
   assetName?: string // Asset name for display
-  assetId?: string // Asset id — lets aggregated holdings resolve the target portfolio
+  market?: string // Market code: "CASH" for currencies, "PRIVATE" for bank accounts
+  assetId: string // Asset id — the write target, and the settlement account for the adjustment
 }
 
 export interface CashTransferData {
