@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type {
   RetirementPlan,
   UserIndependenceSettings,
@@ -9,6 +9,7 @@ import type {
 } from "types/independence"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { toErrorMessage } from "@lib/formatters"
+import { currentAgeFromSettings } from "@lib/independence/age"
 
 const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
 const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
@@ -25,6 +26,14 @@ export interface UseCompositeProjectionResult {
   /** Work scenario ID to use for composite projections. */
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
+  /**
+   * Current age to display. Prefers the backend-echoed
+   * `CompositeProjectionResult.currentAge` once a projection has landed
+   * (svc-retire resolves it from the plan owner's settings, year + month
+   * of birth aware — bc-view #1144); falls back to a local, month-aware
+   * derivation for first paint before any projection response exists.
+   */
+  currentAge: number | undefined
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
@@ -88,11 +97,31 @@ export function useCompositeProjection(
   plans: RetirementPlan[],
   settings: UserIndependenceSettings | undefined,
 ): UseCompositeProjectionResult {
-  const currentYear = new Date().getFullYear()
   const primaryPlan = plans.find((p) => p.isPrimary) || plans[0]
   const defaultCurrency = primaryPlan?.expensesCurrency || "USD"
-  const yearOfBirth = settings?.yearOfBirth ?? primaryPlan?.yearOfBirth
-  const currentAge = yearOfBirth ? currentYear - yearOfBirth : 60
+  // Month-of-birth aware local derivation (settings first, plan as
+  // fallback — plans don't carry monthOfBirth, only yearOfBirth). Used
+  // only until a projection lands; see `currentAge` below. Memoized
+  // (rather than a bare const) so the React Compiler can see a stable,
+  // trackable dependency for `toggleExclusion` below — an inline call
+  // chain through the currentAgeFromSettings helper otherwise reads as
+  // opaque to the compiler's memoization-preservation check. `new Date()`
+  // stays inside the memo callback (defaulted by currentAgeFromSettings)
+  // rather than hoisted as its own dependency, since a fresh Date on every
+  // render would defeat the memoization and re-trigger the same warning.
+  const localCurrentAge = useMemo(
+    () =>
+      currentAgeFromSettings(settings) ?? currentAgeFromSettings(primaryPlan),
+    [settings, primaryPlan],
+  )
+  // Phase distribution (buildInitialPhases) needs a concrete number to do
+  // arithmetic with and runs BEFORE any projection exists, so it can't use
+  // the backend echo — it keeps its own fallback here. 60 is an arbitrary
+  // "reasonable default" only reachable when neither settings nor any plan
+  // carries a yearOfBirth at all (e.g. a brand-new profile); it never
+  // affects the age actually *displayed* (see `currentAge` below, which
+  // has no such fallback).
+  const phaseSeedAge = localCurrentAge ?? 60
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
   const { updateSettings } = useIndependenceSettings()
@@ -119,7 +148,7 @@ export function useCompositeProjection(
   // pattern: `initialized` is the latch, so we perform the one-time seeding
   // during render (guarded by !initialized) instead of in an effect, avoiding
   // a cascading render. Behaviour matches the prior effect keyed on
-  // [plans, settings, currentAge, lifeExpectancy, initialized].
+  // [plans, settings, phaseSeedAge, lifeExpectancy, initialized].
   if (!initialized && plans.length > 0 && settings) {
     const savedExclusions = parseSavedExclusions(
       settings.compositeExcludedPlanIds,
@@ -145,7 +174,7 @@ export function useCompositeProjection(
       const initial = buildInitialPhases(
         plans,
         exclusions,
-        currentAge,
+        phaseSeedAge,
         lifeExpectancy,
       )
       setPhases(initial)
@@ -196,14 +225,14 @@ export function useCompositeProjection(
         const rebuilt = buildInitialPhases(
           plans,
           next,
-          currentAge,
+          phaseSeedAge,
           lifeExpectancy,
         )
         setPhases(rebuilt)
         return next
       })
     },
-    [plans, currentAge, lifeExpectancy],
+    [plans, phaseSeedAge, lifeExpectancy],
   )
 
   // Fetch projection when phases or currency change (debounced)
@@ -287,6 +316,12 @@ export function useCompositeProjection(
     }
   }, [phases, displayCurrency, compositeWorkScenarioId])
 
+  // Display age: the backend echo is authoritative once a projection has
+  // landed (svc-retire resolves it from the plan owner's settings — bc-view
+  // #1144); no further fallback beyond the local derivation, since callers
+  // already null-guard the "no yearOfBirth anywhere" case.
+  const currentAge = projection?.currentAge ?? localCurrentAge
+
   return {
     phases,
     setPhases,
@@ -296,6 +331,7 @@ export function useCompositeProjection(
     toggleExclusion,
     compositeWorkScenarioId,
     setCompositeWorkScenarioId,
+    currentAge,
     projection,
     scenarios,
     isLoading,
