@@ -56,6 +56,7 @@ import {
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
 import { buildCpfSubAccountRows } from "@lib/independence/cpfSubAccountTags"
+import { resolveDisplayAges } from "@lib/independence/age"
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -534,33 +535,23 @@ function PlanView(): React.ReactElement {
     enabled: isSharedPlanResolved,
   })
 
-  // For shared plans, demographics + retirement age MUST come from the
-  // projection's planInputs echo (server resolves them from the plan
-  // OWNER's settings via the M2M path). Falling through to
-  // independenceSettings here renders the VIEWER's age + "Independence
-  // (60)" marker on someone else's plan. Owned plans keep the existing
-  // settings-driven path so pre-projection rendering still works.
-  const planInputsAges = (
-    adjustedProjection as unknown as
-      | {
-          planInputs?: {
-            currentAge?: number
-            retirementAge?: number
-            lifeExpectancy?: number
-          }
-        }
-      | null
-      | undefined
-  )?.planInputs
-  const displayCurrentAge = isSharedPlan
-    ? (planInputsAges?.currentAge ?? currentAge)
-    : currentAge
-  const displayRetirementAge = isSharedPlan
-    ? (planInputsAges?.retirementAge ?? retirementAge)
-    : retirementAge
-  const displayLifeExpectancy = isSharedPlan
-    ? (planInputsAges?.lifeExpectancy ?? lifeExpectancy)
-    : lifeExpectancy
+  // The backend (svc-retire) is authoritative for age: every projection
+  // response echoes the demographics it actually used via
+  // `RetirementProjection.planInputs` (resolved from the plan OWNER's
+  // settings — critical for shared plans, since falling through to
+  // independenceSettings would render the VIEWER's age + "Independence
+  // (60)" marker on someone else's plan; but also the single source of
+  // truth for owned plans — see bc-view #1144). Prefer the echo for
+  // every plan; the locally-derived values remain only as a fallback for
+  // first paint, before any projection has landed.
+  const displayAges = resolveDisplayAges(adjustedProjection?.planInputs, {
+    currentAge,
+    retirementAge,
+    lifeExpectancy,
+  })
+  const displayCurrentAge = displayAges.currentAge
+  const displayRetirementAge = displayAges.retirementAge
+  const displayLifeExpectancy = displayAges.lifeExpectancy
 
   // Display totals: prefer the server's authoritative numbers from the
   // projection echo so composite assets (CPF sub-accounts, future ILP/
