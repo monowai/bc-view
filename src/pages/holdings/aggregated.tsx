@@ -786,9 +786,9 @@ function AggregatedHoldingsPage(): React.ReactElement {
             portfolio={cashPortfolio}
             currency={cashBalanceData.currency}
             currentBalance={cashBalanceData.currentBalance}
-            market={cashBalanceData.market}
             assetCode={cashBalanceData.assetCode}
             assetName={cashBalanceData.assetName}
+            assetId={cashBalanceData.assetId}
           />
         )}
         {editAsset && (
