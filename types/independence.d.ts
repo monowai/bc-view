@@ -502,6 +502,8 @@ export interface IncomeBreakdown {
   otherIncome: number
   /** Property rental income (stops if liquidated) */
   rentalIncome: number
+  /** Salary earned this year, while age is below the working-income age */
+  workingIncome?: number
   /** One-off life event income at this age */
   lifeEventIncome?: number
   /** One-off life event expense at this age */
