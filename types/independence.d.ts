@@ -13,6 +13,13 @@ export interface WorkScenario {
   createdDate: string
   updatedDate: string
   computedMonthlyContribution: number
+  /**
+   * Logical-delete stamp (svc-retire #229). Absent/null on live scenarios.
+   * Deleted scenarios are excluded from /scenarios and appear only under
+   * /scenarios/deleted, where they can be restored with their expenses and
+   * contributions intact.
+   */
+  deletedDate?: string | null
 }
 
 export interface WorkScenarioRequest {

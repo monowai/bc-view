@@ -14,6 +14,7 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const scenariosKey = "/api/independence/work-scenarios"
+const deletedKey = "/api/independence/work-scenarios/deleted"
 
 interface ScenarioListProps {
   /** Plan currency used to default a NEW scenario. */
@@ -28,14 +29,25 @@ export default function ScenarioList({
     null,
   )
   const [deleteTarget, setDeleteTarget] = useState<WorkScenario | null>(null)
+  // Delete and restore both mutate the overlay that drives every projection, so
+  // a failure has to be visible rather than logged to the console.
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const { data, error, isLoading, mutate } = useSwr<WorkScenariosResponse>(
     scenariosKey,
     simpleFetcher(scenariosKey),
   )
 
+  // Logically deleted scenarios, restorable with their expenses and
+  // contributions intact (svc-retire #229).
+  const {
+    data: deletedData,
+    error: deletedError,
+    mutate: mutateDeleted,
+  } = useSwr<WorkScenariosResponse>(deletedKey, simpleFetcher(deletedKey))
+
   const scenarios = data?.data || []
-  const currentCount = scenarios.filter((s) => s.isCurrent).length
+  const deletedScenarios = deletedData?.data || []
 
   const handleCreate = useCallback(() => {
     setEditingScenario(null)
@@ -81,15 +93,47 @@ export default function ScenarioList({
 
   const handleDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!deleteTarget) return
+    setActionError(null)
     try {
-      await fetch(`${scenariosKey}/${deleteTarget.id}`, { method: "DELETE" })
+      const response = await fetch(`${scenariosKey}/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        setActionError(
+          `Failed to delete "${deleteTarget.name}". Please try again.`,
+        )
+        return
+      }
       mutate()
-    } catch (err) {
-      console.error("Failed to delete scenario:", err)
+      mutateDeleted()
+    } catch {
+      setActionError(
+        `Failed to delete "${deleteTarget.name}". Please try again.`,
+      )
     } finally {
       setDeleteTarget(null)
     }
-  }, [deleteTarget, mutate])
+  }, [deleteTarget, mutate, mutateDeleted])
+
+  const handleRestore = useCallback(
+    async (scenarioId: string): Promise<void> => {
+      setActionError(null)
+      try {
+        const response = await fetch(`${scenariosKey}/${scenarioId}/restore`, {
+          method: "POST",
+        })
+        if (!response.ok) {
+          setActionError("Failed to restore scenario. Please try again.")
+          return
+        }
+        mutate()
+        mutateDeleted()
+      } catch {
+        setActionError("Failed to restore scenario. Please try again.")
+      }
+    },
+    [mutate, mutateDeleted],
+  )
 
   const handleSetCurrent = useCallback(
     async (scenarioId: string): Promise<void> => {
@@ -140,6 +184,8 @@ export default function ScenarioList({
         </button>
       </div>
 
+      {actionError && <Alert>{actionError}</Alert>}
+
       {scenarios.length === 0 ? (
         <EmptyState
           icon="fas fa-briefcase"
@@ -161,12 +207,55 @@ export default function ScenarioList({
             <ScenarioCard
               key={scenario.id}
               scenario={scenario}
-              currentCount={currentCount}
               onEdit={handleEdit}
               onDelete={setDeleteTarget}
               onSetCurrent={handleSetCurrent}
             />
           ))}
+        </div>
+      )}
+
+      {(deletedScenarios.length > 0 || deletedError) && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-1">
+            <i className="fas fa-trash-can-arrow-up text-gray-400 mr-2"></i>
+            Recently deleted
+          </h3>
+          <p className="text-xs text-gray-500 mb-3">
+            Restoring brings a scenario back with its expenses and
+            contributions. It won&apos;t become current until you choose it.
+          </p>
+          {deletedError && (
+            <p className="text-xs text-red-600 mb-3">
+              Couldn&apos;t load deleted scenarios. Refresh to try again.
+            </p>
+          )}
+          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+            {deletedScenarios.map((scenario) => (
+              <li
+                key={scenario.id}
+                className="flex items-center justify-between px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {scenario.name}
+                  </p>
+                  {scenario.deletedDate && (
+                    <p className="text-xs text-gray-500">
+                      Deleted {scenario.deletedDate}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleRestore(scenario.id)}
+                  className="text-sm font-medium text-independence-600 hover:text-independence-800"
+                >
+                  <i className="fas fa-rotate-left mr-1.5 text-xs"></i>
+                  Restore
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -182,7 +271,11 @@ export default function ScenarioList({
       {deleteTarget && (
         <ConfirmDialog
           title="Delete Scenario"
-          message={`Are you sure you want to delete "${deleteTarget.name}"?`}
+          message={
+            deleteTarget.isCurrent
+              ? `Delete "${deleteTarget.name}"? It is your current scenario, so projections will go back to plan-driven income. You can restore it from Recently deleted.`
+              : `Delete "${deleteTarget.name}"? You can restore it from Recently deleted.`
+          }
           confirmLabel="Delete"
           cancelLabel="Cancel"
           variant="red"
