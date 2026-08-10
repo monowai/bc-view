@@ -53,6 +53,7 @@ export default function IncomeBreakdownTable({
   const columnVisibility = useMemo(() => {
     const hasData = {
       investment: false,
+      workingIncome: false,
       pension: false,
       assetPensions: false,
       lumpSum: false,
@@ -67,6 +68,7 @@ export default function IncomeBreakdownTable({
       if (!breakdown) continue
 
       if (breakdown.investmentReturns > 0) hasData.investment = true
+      if ((breakdown.workingIncome ?? 0) > 0) hasData.workingIncome = true
       if (breakdown.pension > 0) hasData.pension = true
       if ((breakdown.assetPensions ?? 0) > 0) hasData.assetPensions = true
       if ((breakdown.lumpSumPayout ?? 0) > 0) hasData.lumpSum = true
@@ -87,6 +89,7 @@ export default function IncomeBreakdownTable({
   const visibleIncomeColumns =
     1 + // Age (always visible)
     (columnVisibility.investment ? 1 : 0) +
+    (columnVisibility.workingIncome ? 1 : 0) +
     (columnVisibility.pension ? 1 : 0) +
     (columnVisibility.assetPensions ? 1 : 0) +
     (columnVisibility.lumpSum ? 1 : 0) +
@@ -166,6 +169,16 @@ export default function IncomeBreakdownTable({
                     title="Net-of-fee return your investment portfolio (cash + equities) earns each year. Compounds every year, including in independence — while you also draw down capital (see Withdrawals). CPF, pensions and property grow separately in their own columns."
                   >
                     Investment Growth
+                  </span>
+                </th>
+              )}
+              {columnVisibility.workingIncome && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span
+                    className="text-sky-600 cursor-help"
+                    title="Salary you are still earning in this year — credited until the age you stop working."
+                  >
+                    Salary
                   </span>
                 </th>
               )}
@@ -300,6 +313,13 @@ export default function IncomeBreakdownTable({
                     <td className="text-right py-2 px-2 text-green-600">
                       {breakdown
                         ? formatCurrency(breakdown.investmentReturns)
+                        : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.workingIncome && (
+                    <td className="text-right py-2 px-2 text-sky-600">
+                      {breakdown?.workingIncome
+                        ? formatCurrency(breakdown.workingIncome)
                         : "-"}
                     </td>
                   )}

@@ -62,3 +62,37 @@ describe("IncomeBreakdownTable value basis", () => {
     expect(pensionHeader).toHaveTextContent("stays same")
   })
 })
+
+// svc-retire #221: salary credited during working years flows into the
+// backend's totalIncome, so it needs a column of its own — otherwise the
+// visible components fall short of the Total Income beside them.
+describe("IncomeBreakdownTable salary column", () => {
+  const workingYear = makeYear({
+    incomeBreakdown: {
+      investmentReturns: 4000,
+      pension: 0,
+      socialSecurity: 0,
+      otherIncome: 0,
+      rentalIncome: 0,
+      workingIncome: 60000,
+      totalIncome: 64000,
+    },
+  })
+
+  it("shows salary earned in a working year", () => {
+    render(<IncomeBreakdownTable projections={[workingYear]} />)
+    expect(screen.getByText("Salary")).toBeInTheDocument()
+    expect(screen.getAllByText("$60,000").length).toBeGreaterThan(0)
+  })
+
+  it("reported components add up to the total income on the row", () => {
+    render(<IncomeBreakdownTable projections={[workingYear]} />)
+    // 4,000 investment + 60,000 salary — nothing unaccounted for.
+    expect(screen.getAllByText("$64,000").length).toBeGreaterThan(0)
+  })
+
+  it("hides the column for a plan with no working years", () => {
+    render(<IncomeBreakdownTable projections={[makeYear()]} />)
+    expect(screen.queryByText("Salary")).not.toBeInTheDocument()
+  })
+})
