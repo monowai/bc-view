@@ -29,6 +29,9 @@ export default function ScenarioList({
     null,
   )
   const [deleteTarget, setDeleteTarget] = useState<WorkScenario | null>(null)
+  // Delete and restore both mutate the overlay that drives every projection, so
+  // a failure has to be visible rather than logged to the console.
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const { data, error, isLoading, mutate } = useSwr<WorkScenariosResponse>(
     scenariosKey,
@@ -37,8 +40,11 @@ export default function ScenarioList({
 
   // Logically deleted scenarios, restorable with their expenses and
   // contributions intact (svc-retire #229).
-  const { data: deletedData, mutate: mutateDeleted } =
-    useSwr<WorkScenariosResponse>(deletedKey, simpleFetcher(deletedKey))
+  const {
+    data: deletedData,
+    error: deletedError,
+    mutate: mutateDeleted,
+  } = useSwr<WorkScenariosResponse>(deletedKey, simpleFetcher(deletedKey))
 
   const scenarios = data?.data || []
   const deletedScenarios = deletedData?.data || []
@@ -87,12 +93,23 @@ export default function ScenarioList({
 
   const handleDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!deleteTarget) return
+    setActionError(null)
     try {
-      await fetch(`${scenariosKey}/${deleteTarget.id}`, { method: "DELETE" })
+      const response = await fetch(`${scenariosKey}/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        setActionError(
+          `Failed to delete "${deleteTarget.name}". Please try again.`,
+        )
+        return
+      }
       mutate()
       mutateDeleted()
-    } catch (err) {
-      console.error("Failed to delete scenario:", err)
+    } catch {
+      setActionError(
+        `Failed to delete "${deleteTarget.name}". Please try again.`,
+      )
     } finally {
       setDeleteTarget(null)
     }
@@ -100,16 +117,19 @@ export default function ScenarioList({
 
   const handleRestore = useCallback(
     async (scenarioId: string): Promise<void> => {
+      setActionError(null)
       try {
         const response = await fetch(`${scenariosKey}/${scenarioId}/restore`, {
           method: "POST",
         })
-        if (response.ok) {
-          mutate()
-          mutateDeleted()
+        if (!response.ok) {
+          setActionError("Failed to restore scenario. Please try again.")
+          return
         }
-      } catch (err) {
-        console.error("Failed to restore scenario:", err)
+        mutate()
+        mutateDeleted()
+      } catch {
+        setActionError("Failed to restore scenario. Please try again.")
       }
     },
     [mutate, mutateDeleted],
@@ -164,6 +184,8 @@ export default function ScenarioList({
         </button>
       </div>
 
+      {actionError && <Alert>{actionError}</Alert>}
+
       {scenarios.length === 0 ? (
         <EmptyState
           icon="fas fa-briefcase"
@@ -193,7 +215,7 @@ export default function ScenarioList({
         </div>
       )}
 
-      {deletedScenarios.length > 0 && (
+      {(deletedScenarios.length > 0 || deletedError) && (
         <div className="mt-8 border-t border-gray-200 pt-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-1">
             <i className="fas fa-trash-can-arrow-up text-gray-400 mr-2"></i>
@@ -203,6 +225,11 @@ export default function ScenarioList({
             Restoring brings a scenario back with its expenses and
             contributions. It won&apos;t become current until you choose it.
           </p>
+          {deletedError && (
+            <p className="text-xs text-red-600 mb-3">
+              Couldn&apos;t load deleted scenarios. Refresh to try again.
+            </p>
+          )}
           <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
             {deletedScenarios.map((scenario) => (
               <li

@@ -132,6 +132,43 @@ describe("ScenarioList delete + restore", () => {
     })
   })
 
+  it("surfaces a failed restore instead of doing nothing", async () => {
+    deletedScenarios = [
+      makeScenario({
+        id: "ws-old",
+        name: "Old Contract",
+        isCurrent: false,
+        deletedDate: "2026-01-01",
+      }),
+    ]
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    }) as unknown as typeof fetch
+    const user = userEvent.setup()
+    render(<ScenarioList />)
+
+    await user.click(screen.getByRole("button", { name: /restore/i }))
+
+    expect(await screen.findByText(/failed to restore/i)).toBeInTheDocument()
+  })
+
+  it("surfaces a failed delete instead of doing nothing", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    }) as unknown as typeof fetch
+    const user = userEvent.setup()
+    render(<ScenarioList />)
+
+    await user.click(screen.getByTitle("Delete scenario"))
+    await user.click(screen.getByRole("button", { name: "Delete" }))
+
+    expect(await screen.findByText(/failed to delete/i)).toBeInTheDocument()
+  })
+
   it("hides the recovery section when nothing is deleted", () => {
     render(<ScenarioList />)
 
