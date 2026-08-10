@@ -6,7 +6,6 @@ const HIDDEN_VALUE = "****"
 
 interface ScenarioCardProps {
   scenario: WorkScenario
-  currentCount: number
   onEdit: (scenario: WorkScenario) => void
   onDelete: (scenario: WorkScenario) => void
   onSetCurrent: (scenarioId: string) => void
@@ -14,7 +13,6 @@ interface ScenarioCardProps {
 
 export default function ScenarioCard({
   scenario,
-  currentCount,
   onEdit,
   onDelete,
   onSetCurrent,
@@ -58,15 +56,16 @@ export default function ScenarioCard({
           >
             <i className="fas fa-edit text-xs"></i>
           </button>
-          {(!scenario.isCurrent || currentCount > 1) && (
-            <button
-              onClick={() => onDelete(scenario)}
-              className="text-red-600 hover:text-red-900 p-1.5"
-              title="Delete scenario"
-            >
-              <i className="fas fa-trash text-xs"></i>
-            </button>
-          )}
+          {/* svc-retire #229: the current scenario is deletable too — that is the
+              only way back to plan-driven income. The delete is logical, so it
+              can be restored from the recovery list. */}
+          <button
+            onClick={() => onDelete(scenario)}
+            className="text-red-600 hover:text-red-900 p-1.5"
+            title="Delete scenario"
+          >
+            <i className="fas fa-trash text-xs"></i>
+          </button>
           {!scenario.isCurrent && (
             <button
               onClick={() => onSetCurrent(scenario.id)}
