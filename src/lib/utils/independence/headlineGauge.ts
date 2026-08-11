@@ -15,8 +15,11 @@ export interface HeadlineGauge {
 /**
  * Picks which metric to feature based on the plan's effective headline metric.
  * Falls back to Early Retirement Progress when the selected metric has no data.
- * Shared by the projection header (FiSummaryBar) and the Wealth tab card
- * (IndependenceMetrics) so both stay in sync.
+ * Shared by the plans-list card and the Wealth tab card (IndependenceMetrics).
+ *
+ * The projection header renders gauges through StrategyGaugesStrip instead —
+ * it takes the same `effectiveHeadlineMetric` and features the matching gauge,
+ * so one plan reports one headline percentage everywhere.
  */
 export function pickHeadlineGauge(
   metric: HeadlineMetric | undefined,

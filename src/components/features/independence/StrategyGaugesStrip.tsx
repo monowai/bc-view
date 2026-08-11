@@ -1,5 +1,5 @@
 import React from "react"
-import type { FiMetrics } from "types/independence"
+import type { FiMetrics, HeadlineMetric } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import PensionGauge, { type PensionGaugeProps } from "./PensionGauge"
 import type { StrategyView } from "./strategyView"
@@ -28,6 +28,14 @@ export interface StrategyGaugesStripProps {
    */
   singleHeadline?: boolean
   /**
+   * The plan's effective headline metric from the projection. When its gauge
+   * has data it wins the headline slot, so this strip reports the same
+   * percentage as the plans-list card and the Wealth tab (both of which pick
+   * via `pickHeadlineGauge`). Omit it to let `view` alone drive the headline —
+   * the page does that once the user picks a view explicitly.
+   */
+  headlineMetric?: HeadlineMetric
+  /**
    * Backend says the plan depletes before life expectancy. When set, the
    * Retirement-Age FI gauge is caveated ("based on the 4% rule") so a high %
    * can't read as success while the off-track header carries the real
@@ -48,12 +56,14 @@ export default function StrategyGaugesStrip({
   compact = false,
   view = "ALL",
   singleHeadline = false,
+  headlineMetric,
   offTrack = false,
 }: StrategyGaugesStripProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const ordered = orderGauges(
     buildGauges(fiMetrics, hideValues, offTrack, view),
     view,
+    headlineMetric,
   )
   const gauges = singleHeadline ? ordered.slice(0, 1) : ordered
 
@@ -86,18 +96,32 @@ const VIEW_HEADLINE_KEYS: Record<StrategyView, string[]> = {
   ALL: ["coast-fi", "fire"],
 }
 
+/** Gauge that carries each backend headline metric. */
+const METRIC_GAUGE_KEYS: Record<HeadlineMetric, string> = {
+  EARLY_RETIREMENT_PROGRESS: "fire",
+  RETIREMENT_AGE_FI: "retirement-age-fi",
+  INCOME_COVERAGE: "income-coverage",
+  BRIDGE_PROGRESS: "bridge",
+}
+
 /**
- * Promotes the view-matching gauge to position 0 so it stays visible if
- * the strip is truncated. When view = ALL, returns gauges in their
- * natural order.
+ * Promotes the headline gauge to position 0 so it stays visible if the strip
+ * is truncated. The plan's own headline metric wins when its gauge has data —
+ * that keeps this strip agreeing with the plans-list card and the Wealth tab.
+ * Otherwise the view's priority list decides; with view = ALL and no metric,
+ * gauges keep their natural order.
  */
 function orderGauges(
   gauges: PensionGaugeProps[],
   view: StrategyView,
+  headlineMetric?: HeadlineMetric,
 ): PensionGaugeProps[] {
-  const headline = VIEW_HEADLINE_KEYS[view]
-    .map((key) => gauges.find((g) => g.key === key))
-    .find((g): g is PensionGaugeProps => g != null)
+  const pinnedKey = headlineMetric ? METRIC_GAUGE_KEYS[headlineMetric] : null
+  const headline =
+    (pinnedKey ? gauges.find((g) => g.key === pinnedKey) : undefined) ??
+    VIEW_HEADLINE_KEYS[view]
+      .map((key) => gauges.find((g) => g.key === key))
+      .find((g): g is PensionGaugeProps => g != null)
   if (!headline) return gauges
   const rest = gauges.filter((g) => g.key !== headline.key)
   return [headline, ...rest]
