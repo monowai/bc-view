@@ -29,6 +29,56 @@ describe("StrategyGaugesStrip headline", () => {
   })
 })
 
+describe("StrategyGaugesStrip plan headline metric", () => {
+  // The plans-list card and the Wealth tab both feature the plan's
+  // effectiveHeadlineMetric. The projection header has to agree with them,
+  // otherwise the same plan reports two different progress percentages.
+  it("features the pinned Early Retirement gauge ahead of Coast FI", () => {
+    render(
+      <StrategyGaugesStrip
+        fiMetrics={baseFi}
+        view="FIRE"
+        headlineMetric="EARLY_RETIREMENT_PROGRESS"
+        singleHeadline
+      />,
+    )
+    expect(screen.getByText("FIRE Progress")).toBeInTheDocument()
+    expect(screen.getByText("106.3%")).toBeInTheDocument()
+    expect(screen.queryByText("Coast FI Progress")).not.toBeInTheDocument()
+  })
+
+  it("features the pinned Retirement-Age gauge in the FIRE view", () => {
+    render(
+      <StrategyGaugesStrip
+        fiMetrics={
+          {
+            fiProgress: 106.3,
+            coastFiProgress: 84.2,
+            retirementAgeFiProgress: 71.4,
+          } as unknown as FiMetrics
+        }
+        view="FIRE"
+        headlineMetric="RETIREMENT_AGE_FI"
+        singleHeadline
+      />,
+    )
+    expect(screen.getByText("Retirement-Age Progress")).toBeInTheDocument()
+    expect(screen.getByText("71.4%")).toBeInTheDocument()
+  })
+
+  it("falls back to the view ordering when the pinned metric has no data", () => {
+    render(
+      <StrategyGaugesStrip
+        fiMetrics={baseFi}
+        view="FIRE"
+        headlineMetric="BRIDGE_PROGRESS"
+        singleHeadline
+      />,
+    )
+    expect(screen.getByText("Coast FI Progress")).toBeInTheDocument()
+  })
+})
+
 describe("StrategyGaugesStrip Pension headline", () => {
   const pensionFi = {
     fiProgress: 80,

@@ -1,5 +1,9 @@
 import React, { useState } from "react"
-import type { FiMetrics, PathToHorizon } from "types/independence"
+import type {
+  FiMetrics,
+  HeadlineMetric,
+  PathToHorizon,
+} from "types/independence"
 import InfoTooltip from "@components/ui/Tooltip"
 import type { ScenarioState } from "./scenario/types"
 import StrategyGaugesStrip from "./StrategyGaugesStrip"
@@ -23,6 +27,13 @@ export interface ScenarioBarProps {
   /** Active strategy view — drives the headline gauge + FiMetrics sections. */
   view: StrategyView
   onViewChange: (next: StrategyView) => void
+  /**
+   * The plan's effective headline metric. Features the same gauge the
+   * plans-list card and the Wealth tab feature, so one plan can't report two
+   * different progress percentages. The page drops it once the user picks a
+   * view explicitly — their lens choice then owns the headline slot.
+   */
+  headlineMetric?: HeadlineMetric
   /**
    * Live derived liquid assets from holdings. Acts as the slider default
    * (when `scenario.liquidAssets` is null) and as the upper anchor for the
@@ -67,6 +78,7 @@ export default function ScenarioBar({
   fiMetrics,
   view,
   onViewChange,
+  headlineMetric,
   derivedLiquidAssets,
   planInflation,
   planCashRate,
@@ -119,6 +131,7 @@ export default function ScenarioBar({
               compact
               view={view}
               singleHeadline
+              headlineMetric={headlineMetric}
               offTrack={offTrack}
             />
           </div>

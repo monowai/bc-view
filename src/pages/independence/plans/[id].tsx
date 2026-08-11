@@ -948,6 +948,11 @@ function PlanView(): React.ReactElement {
                 defaultStrategyView(adjustedProjection?.effectiveStrategy)
               }
               onViewChange={setStrategyView}
+              headlineMetric={
+                strategyView === null
+                  ? adjustedProjection?.effectiveHeadlineMetric
+                  : undefined
+              }
               derivedLiquidAssets={liquidAssets}
               planInflation={plan.inflationRate}
               planCashRate={plan.cashReturnRate}

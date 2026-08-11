@@ -235,6 +235,21 @@ describe("ScenarioBar", () => {
     })
   })
 
+  describe("headline metric", () => {
+    it("features the plan's headline metric instead of Coast FI", () => {
+      render(
+        <ScenarioBar
+          {...baseProps}
+          view="FIRE"
+          fiMetrics={{ fiProgress: 82.3, coastFiProgress: 102.5 } as never}
+          headlineMetric="EARLY_RETIREMENT_PROGRESS"
+        />,
+      )
+      expect(screen.getByText("82.3%")).toBeInTheDocument()
+      expect(screen.queryByText("Coast FI Progress")).not.toBeInTheDocument()
+    })
+  })
+
   describe("Cash → Investments education line", () => {
     it("shows blended return at 0% shift (motivates moving cash to investments)", () => {
       render(<ScenarioBar {...baseProps} />)
