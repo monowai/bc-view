@@ -7,7 +7,13 @@ import { PlanDto } from "types/rebalance"
 import StatusBadge from "../common/StatusBadge"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
-import { tableBase, theadBase, thBase, tbodyBase } from "@utils/tableStyles"
+import {
+  tableBase,
+  theadBase,
+  thBase,
+  thRight,
+  tbodyBase,
+} from "@utils/tableStyles"
 
 interface ModelPlansProps {
   modelId: string
@@ -39,13 +45,21 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
     }
   }
 
+  // Seed new plans from the latest approved version — iterating on the
+  // current allocations is the normal flow; an empty plan is the fallback.
+  const latestApproved = plans
+    .filter((p) => p.status === "APPROVED")
+    .sort((a, b) => b.version - a.version)[0]
+
   const handleCreatePlan = async (): Promise<void> => {
     setCreating(true)
     try {
       const response = await fetch(`/api/rebalance/models/${modelId}/plans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(
+          latestApproved ? { sourcePlanId: latestApproved.id } : {},
+        ),
       })
       if (response.ok) {
         const result = await response.json()
@@ -74,28 +88,35 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium text-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900">
           {"Rebalance Plans"}
         </h2>
         <button
           onClick={handleCreatePlan}
           disabled={creating}
-          className="bg-violet-600 text-white px-3 py-1.5 rounded text-sm hover:bg-violet-700 transition-colors flex items-center disabled:opacity-50"
+          title={
+            latestApproved
+              ? `Copies allocations from v${latestApproved.version}`
+              : "Start with an empty plan"
+          }
+          className="bg-invest-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
         >
           {creating ? (
             <Spinner className="mr-2" />
           ) : (
             <i className="fas fa-plus mr-2"></i>
           )}
-          {"Create Plan"}
+          {latestApproved
+            ? `New Plan from v${latestApproved.version}`
+            : "Create Plan"}
         </button>
       </div>
 
       {plans.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-          <i className="fas fa-clipboard-list text-gray-300 text-3xl mb-3"></i>
-          <p className="text-gray-600 mb-4">{"No rebalance plans yet"}</p>
-          <p className="text-sm text-gray-500">
+        <div className="border border-gray-200 rounded-lg py-10 text-center">
+          <i className="fas fa-clipboard-list text-gray-300 text-4xl mb-3"></i>
+          <p className="text-gray-600">{"No rebalance plans yet"}</p>
+          <p className="text-sm text-gray-400 mt-1">
             {"Create a plan to define target allocations for rebalancing."}
           </p>
         </div>
@@ -108,7 +129,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                 <th className={thBase}>{"Status"}</th>
                 <th className={thBase}>{"Created"}</th>
                 <th className={thBase}>{"Approved"}</th>
-                <th className={thBase}>{"Assets"}</th>
+                <th className={thRight}>{"Assets"}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -143,7 +164,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                     {plan.approvedAt ? formatDate(plan.approvedAt) : "-"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-mono tabular-nums text-gray-500">
                     {plan.assets.length}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
