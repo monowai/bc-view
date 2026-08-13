@@ -15,6 +15,7 @@ import CopyFieldsDialog, {
   DEFAULT_COPY_FIELDS,
 } from "@components/features/rebalance/models/CopyFieldsDialog"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import StatusBadge from "@components/features/rebalance/common/StatusBadge"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
@@ -573,7 +574,9 @@ function PlanDetailPage(): React.ReactElement {
   if (!router.isReady || isLoading) {
     return (
       <div className="w-full py-4">
-        <TableSkeletonLoader rows={5} />
+        <div className="max-w-5xl mx-auto">
+          <TableSkeletonLoader rows={5} />
+        </div>
       </div>
     )
   }
@@ -592,408 +595,428 @@ function PlanDetailPage(): React.ReactElement {
 
   return (
     <div className="w-full py-4">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-4 max-w-5xl mx-auto">
-        <Link href="/rebalance/models" className="hover:text-invest-600">
-          {"Model Portfolios"}
-        </Link>
-        <span className="mx-2">/</span>
-        <Link
-          href={`/rebalance/models/${modelId}`}
-          className="hover:text-invest-600"
-        >
-          {model?.name || "..."}
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-900">
-          {"Plan"} v{plan.version}
-        </span>
-      </nav>
-
-      {/* Action error banner */}
-      {actionError && (
-        <Alert
-          variant="error"
-          className="mb-4 max-w-5xl mx-auto flex items-center justify-between"
-        >
-          <span>
-            <i className="fas fa-exclamation-circle mr-2"></i>
-            {actionError}
-          </span>
-          <button
-            onClick={() => setActionError(null)}
-            className="ml-4 text-red-500 hover:text-red-700"
+      <div className="max-w-5xl mx-auto">
+        {/* Breadcrumb */}
+        <nav className="text-sm text-gray-500 mb-4">
+          <Link href="/rebalance/models" className="hover:text-invest-600">
+            {"Model Portfolios"}
+          </Link>
+          <span className="mx-2">/</span>
+          <Link
+            href={`/rebalance/models/${modelId}`}
+            className="hover:text-invest-600"
           >
-            <i className="fas fa-times"></i>
-          </button>
-        </Alert>
-      )}
+            {model?.name || "..."}
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">
+            {"Plan"} v{plan.version}
+          </span>
+        </nav>
 
-      {/* Header */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-5xl mx-auto mb-6">
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        {/* Action error banner */}
+        {actionError && (
+          <Alert
+            variant="error"
+            className="mb-4 flex items-center justify-between"
+          >
+            <span>
+              <i className="fas fa-exclamation-circle mr-2"></i>
+              {actionError}
+            </span>
+            <button
+              onClick={() => setActionError(null)}
+              className="ml-4 text-red-500 hover:text-red-700"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </Alert>
+        )}
+
+        {/* Header */}
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">
                 {"Plan"} v{plan.version}
               </h1>
-              <span
-                className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
-                  plan.status === "APPROVED"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {plan.status}
-              </span>
+              <StatusBadge
+                status={plan.status}
+                i18nPrefix="rebalance.plans.status"
+              />
             </div>
             {plan.description && (
               <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
             )}
-          </div>
-          <button
-            onClick={handleCreateNewVersion}
-            disabled={creatingVersion}
-            className="ml-4 text-sm text-invest-600 hover:text-invest-700 transition-colors flex items-center disabled:opacity-50 shrink-0"
-          >
-            {creatingVersion ? (
-              <Spinner className="mr-2" />
-            ) : (
-              <i className="fas fa-code-branch mr-2"></i>
-            )}
-            {"New Version"}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">{"Created"}:</span>
-            <span className="ml-2 text-gray-900">
-              {formatDate(plan.createdAt)}
-            </span>
-          </div>
-          {plan.approvedAt && (
-            <div>
-              <span className="text-gray-500">{"Approved"}:</span>
-              <span className="ml-2 text-gray-900">
-                {formatDate(plan.approvedAt)}
+            <p className="text-sm text-gray-500 mt-2">
+              <span>
+                {"Created"} {formatDate(plan.createdAt)}
               </span>
+              {plan.approvedAt && (
+                <>
+                  <span className="mx-2 text-gray-300">{"·"}</span>
+                  <span>
+                    {"Approved"} {formatDate(plan.approvedAt)}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Actions — one filled CTA that tracks intent: Save while dirty,
+              Approve once clean. Delete stays a ghost, pushed to the far edge. */}
+          {isDraft && (
+            <div className="flex items-center gap-3 flex-wrap mt-6 pt-4 border-t border-gray-200">
+              {hasChanges && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Spinner className="mr-2" />
+                  ) : (
+                    <i className="fas fa-save mr-2"></i>
+                  )}
+                  {"Save"}
+                </button>
+              )}
+              <button
+                onClick={() => setShowApproveConfirm(true)}
+                disabled={approving || weights.length === 0}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center disabled:opacity-50 ${
+                  hasChanges
+                    ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "bg-invest-600 text-white hover:bg-invest-700"
+                }`}
+              >
+                {approving ? (
+                  <Spinner className="mr-2" />
+                ) : (
+                  <i className="fas fa-check mr-2"></i>
+                )}
+                {"Approve Plan"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleting}
+                className="ml-auto text-sm text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors flex items-center disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Spinner className="mr-2" />
+                ) : (
+                  <i className="fas fa-trash mr-2"></i>
+                )}
+                {"Delete"}
+              </button>
+            </div>
+          )}
+
+          {/* An approved plan is locked; the one forward action is drafting
+              the next version, so it gets the region's single filled CTA. */}
+          {!isDraft && (
+            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={handleCreateNewVersion}
+                disabled={creatingVersion}
+                className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
+              >
+                {creatingVersion ? (
+                  <Spinner className="mr-2" />
+                ) : (
+                  <i className="fas fa-code-branch mr-2"></i>
+                )}
+                {`New Draft from v${plan.version}`}
+              </button>
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        {isDraft && (
-          <div className="flex gap-3 mt-6 pt-4 border-t">
-            {hasChanges && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
-              >
-                {saving ? (
-                  <Spinner className="mr-2" />
-                ) : (
-                  <i className="fas fa-save mr-2"></i>
-                )}
-                {"Save"}
-              </button>
-            )}
-            <button
-              onClick={() => setShowApproveConfirm(true)}
-              disabled={approving || weights.length === 0}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
-            >
-              {approving ? (
-                <Spinner className="mr-2" />
-              ) : (
-                <i className="fas fa-check mr-2"></i>
-              )}
-              {"Approve Plan"}
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={deleting}
-              className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors flex items-center disabled:opacity-50"
-            >
-              {deleting ? (
-                <Spinner className="mr-2" />
-              ) : (
-                <i className="fas fa-trash mr-2"></i>
-              )}
-              {"Delete"}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Assets Editor/Table */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
-            {"Target Allocations"}
-          </h2>
-          <div className="flex gap-2">
-            {/* Export / Copy buttons - available for both draft and approved plans */}
-            {weights.length > 0 && (
-              <>
-                <button
-                  onClick={handleCopyCSV}
-                  aria-label="Copy target allocations"
-                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <i
-                    className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
-                  ></i>
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-                <button
-                  onClick={handleExportCSV}
-                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <i className="fas fa-download mr-1.5"></i>
-                  {"Export"}
-                </button>
-              </>
-            )}
-            {/* Import dropdown - only for draft plans */}
-            {isDraft && (
-              <>
-                <div className="relative" ref={importDropdownRef}>
-                  <button
-                    onClick={() => setShowImportDropdown(!showImportDropdown)}
-                    className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-                  >
-                    <i className="fas fa-upload mr-1.5"></i>
-                    {"Import"}
-                    <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
-                  </button>
-                  {showImportDropdown && (
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            setShowImportDropdown(false)
-                            setShowImportHoldingsDialog(true)
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                        >
-                          <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
-                          {"Holdings"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowImportDropdown(false)
-                            csvInputRef.current?.click()
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                        >
-                          <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
-                          {"CSV"}
-                        </button>
-                        {previousPlan && (
+        {/* Assets Editor/Table */}
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
+          {isDraft ? (
+            <ModelWeightsEditor
+              title={"Target Allocations"}
+              weights={weights}
+              onChange={handleWeightsChange}
+              onFetchPrices={handleFetchPrices}
+              fetchingPrices={fetchingPrices}
+              showPrice={true}
+              onShowPriceChart={handleShowPriceChart}
+              onShowAssetInsight={(w) => setInsightAsset(w)}
+              extraActions={
+                <>
+                  {weights.length > 0 && (
+                    <>
+                      <button
+                        onClick={handleCopyCSV}
+                        aria-label="Copy target allocations"
+                        className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                      >
+                        <i
+                          className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                        ></i>
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                      <button
+                        onClick={handleExportCSV}
+                        className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                      >
+                        <i className="fas fa-download mr-1.5"></i>
+                        {"Export"}
+                      </button>
+                    </>
+                  )}
+                  <div className="relative" ref={importDropdownRef}>
+                    <button
+                      onClick={() => setShowImportDropdown(!showImportDropdown)}
+                      className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                    >
+                      <i className="fas fa-upload mr-1.5"></i>
+                      {"Import"}
+                      <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
+                    </button>
+                    {showImportDropdown && (
+                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <div className="py-1">
                           <button
-                            onClick={() =>
-                              handleImportFromPlan(previousPlan.id)
-                            }
+                            onClick={() => {
+                              setShowImportDropdown(false)
+                              setShowImportHoldingsDialog(true)
+                            }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                           >
-                            <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
-                            {`Plan v${previousPlan.version}`}
+                            <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
+                            {"Holdings"}
                           </button>
-                        )}
+                          <button
+                            onClick={() => {
+                              setShowImportDropdown(false)
+                              csvInputRef.current?.click()
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          >
+                            <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
+                            {"CSV"}
+                          </button>
+                          {previousPlan && (
+                            <button
+                              onClick={() =>
+                                handleImportFromPlan(previousPlan.id)
+                              }
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            >
+                              <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
+                              {`Plan v${previousPlan.version}`}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <input
+                    ref={csvInputRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleImportCSV}
+                    className="hidden"
+                  />
+                </>
+              }
+            />
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-y-2 mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap mr-4">
+                  {"Target Allocations"}
+                </h2>
+                {weights.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={handleCopyCSV}
+                      aria-label="Copy target allocations"
+                      className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                    >
+                      <i
+                        className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                      ></i>
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                    <button
+                      onClick={handleExportCSV}
+                      className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                    >
+                      <i className="fas fa-download mr-1.5"></i>
+                      {"Export"}
+                    </button>
+                  </div>
+                )}
+              </div>
+              {plan.assets.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                  {"No assets in this plan"}
                 </div>
-                <input
-                  ref={csvInputRef}
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={handleImportCSV}
-                  className="hidden"
-                />
-              </>
-            )}
-          </div>
+              ) : (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {"Asset"}
+                        </th>
+                        <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {"Weight"}
+                        </th>
+                        <th className="hidden sm:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {"Price"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {plan.assets.map((asset: PlanAssetDto) => (
+                        <tr key={asset.id}>
+                          <td className="px-3 sm:px-4 py-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-900">
+                                  {asset.assetCode || asset.assetId}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleShowPriceChart({
+                                      assetId: asset.assetId,
+                                      assetCode: asset.assetCode,
+                                      assetName: asset.assetName,
+                                      weight: Number(asset.weight) * 100,
+                                    })
+                                  }
+                                  className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                  title={"Price history chart"}
+                                >
+                                  <i className="fas fa-chart-line text-xs"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setInsightAsset({
+                                      assetId: asset.assetId,
+                                      assetCode: asset.assetCode,
+                                      assetName: asset.assetName,
+                                      weight: Number(asset.weight) * 100,
+                                    })
+                                  }
+                                  className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                  title={"AI asset insight"}
+                                >
+                                  <i className="fas fa-robot text-xs"></i>
+                                </button>
+                              </div>
+                              {asset.assetName && (
+                                <div className="text-xs text-gray-500">
+                                  {asset.assetName}
+                                </div>
+                              )}
+                              {/* Show price on mobile below asset name */}
+                              {asset.capturedPrice && (
+                                <div className="text-xs text-gray-400 font-mono tabular-nums sm:hidden">
+                                  {asset.capturedPrice.toFixed(2)}{" "}
+                                  {asset.priceCurrency || ""}
+                                </div>
+                              )}
+                              {asset.rationale && (
+                                <div className="text-xs text-invest-600 italic mt-1">
+                                  <i className="fas fa-comment-alt mr-1"></i>
+                                  {asset.rationale}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 text-right text-sm text-gray-900 font-mono tabular-nums whitespace-nowrap">
+                            {formatWeight(asset.weight)}
+                          </td>
+                          <td className="hidden sm:table-cell px-4 py-3 text-right text-sm text-gray-500 font-mono tabular-nums whitespace-nowrap">
+                            {asset.capturedPrice
+                              ? `${asset.capturedPrice.toFixed(2)} ${asset.priceCurrency || ""}`
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Cash row */}
+                      {plan.cashWeight > 0 && (
+                        <tr className="bg-gray-50">
+                          <td className="px-3 sm:px-4 py-3">
+                            <span className="font-medium text-gray-700">
+                              <i className="fas fa-coins mr-2 text-gray-400"></i>
+                              {"Cash"}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 text-right text-sm text-gray-700 font-mono tabular-nums">
+                            {formatWeight(plan.cashWeight)}
+                          </td>
+                          <td className="hidden sm:table-cell px-4 py-3 text-right text-sm text-gray-500">
+                            -
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {isDraft ? (
-          <ModelWeightsEditor
-            weights={weights}
-            onChange={handleWeightsChange}
-            onFetchPrices={handleFetchPrices}
-            fetchingPrices={fetchingPrices}
-            showPrice={true}
-            onShowPriceChart={handleShowPriceChart}
-            onShowAssetInsight={(w) => setInsightAsset(w)}
+        {/* Import from Holdings Dialog */}
+        <ImportHoldingsDialog
+          modalOpen={showImportHoldingsDialog}
+          modelId={modelId as string}
+          onClose={() => setShowImportHoldingsDialog(false)}
+          onImport={handleImportHoldings}
+        />
+        {showCopyFieldsDialog && (
+          <CopyFieldsDialog
+            initialFields={copyFields}
+            onCopy={handleConfirmCopy}
+            onCancel={() => setShowCopyFieldsDialog(false)}
           />
-        ) : (
-          <>
-            {plan.assets.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-                {"No assets in this plan"}
-              </div>
-            ) : (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {"Asset"}
-                      </th>
-                      <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {"Weight"}
-                      </th>
-                      <th className="hidden sm:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {"Price"}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {plan.assets.map((asset: PlanAssetDto) => (
-                      <tr key={asset.id}>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
-                                {asset.assetCode || asset.assetId}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleShowPriceChart({
-                                    assetId: asset.assetId,
-                                    assetCode: asset.assetCode,
-                                    assetName: asset.assetName,
-                                    weight: Number(asset.weight) * 100,
-                                  })
-                                }
-                                className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
-                                title={"Price history chart"}
-                              >
-                                <i className="fas fa-chart-line text-xs"></i>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setInsightAsset({
-                                    assetId: asset.assetId,
-                                    assetCode: asset.assetCode,
-                                    assetName: asset.assetName,
-                                    weight: Number(asset.weight) * 100,
-                                  })
-                                }
-                                className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
-                                title={"AI asset insight"}
-                              >
-                                <i className="fas fa-robot text-xs"></i>
-                              </button>
-                            </div>
-                            {asset.assetName && (
-                              <div className="text-xs text-gray-500">
-                                {asset.assetName}
-                              </div>
-                            )}
-                            {/* Show price on mobile below asset name */}
-                            {asset.capturedPrice && (
-                              <div className="text-xs text-gray-400 sm:hidden">
-                                {asset.capturedPrice.toFixed(2)}{" "}
-                                {asset.priceCurrency || ""}
-                              </div>
-                            )}
-                            {asset.rationale && (
-                              <div className="text-xs text-invest-600 italic mt-1">
-                                <i className="fas fa-comment-alt mr-1"></i>
-                                {asset.rationale}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-right text-gray-900 whitespace-nowrap">
-                          {formatWeight(asset.weight)}
-                        </td>
-                        <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-500">
-                          {asset.capturedPrice
-                            ? `${asset.capturedPrice.toFixed(2)} ${asset.priceCurrency || ""}`
-                            : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Cash row */}
-                    {plan.cashWeight > 0 && (
-                      <tr className="bg-gray-50">
-                        <td className="px-3 sm:px-4 py-3">
-                          <span className="font-medium text-gray-700">
-                            <i className="fas fa-coins mr-2 text-gray-400"></i>
-                            {"Cash"}
-                          </span>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-right text-gray-700">
-                          {formatWeight(plan.cashWeight)}
-                        </td>
-                        <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-500">
-                          -
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
+        )}
+        {showApproveConfirm && (
+          <ConfirmDialog
+            title={"Approve Plan"}
+            message={"Approve this plan? This will lock the allocations."}
+            confirmLabel={"Approve"}
+            cancelLabel={"Cancel"}
+            variant="blue"
+            onConfirm={handleApprove}
+            onCancel={() => setShowApproveConfirm(false)}
+          />
+        )}
+        {showDeleteConfirm && (
+          <ConfirmDialog
+            title={"Delete Plan"}
+            message={"Delete this draft plan?"}
+            confirmLabel={"Delete"}
+            cancelLabel={"Cancel"}
+            variant="red"
+            onConfirm={handleDelete}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+        {chartAsset && (
+          <PriceChartPopup
+            asset={chartAsset}
+            onClose={() => setChartAsset(null)}
+          />
+        )}
+        {insightAsset && (
+          <AssetInsightPopup
+            asset={insightAsset}
+            modelName={model?.name || ""}
+            onClose={() => setInsightAsset(null)}
+          />
         )}
       </div>
-
-      {/* Import from Holdings Dialog */}
-      <ImportHoldingsDialog
-        modalOpen={showImportHoldingsDialog}
-        modelId={modelId as string}
-        onClose={() => setShowImportHoldingsDialog(false)}
-        onImport={handleImportHoldings}
-      />
-      {showCopyFieldsDialog && (
-        <CopyFieldsDialog
-          initialFields={copyFields}
-          onCopy={handleConfirmCopy}
-          onCancel={() => setShowCopyFieldsDialog(false)}
-        />
-      )}
-      {showApproveConfirm && (
-        <ConfirmDialog
-          title={"Approve Plan"}
-          message={"Approve this plan? This will lock the allocations."}
-          confirmLabel={"Approve"}
-          cancelLabel={"Cancel"}
-          variant="blue"
-          onConfirm={handleApprove}
-          onCancel={() => setShowApproveConfirm(false)}
-        />
-      )}
-      {showDeleteConfirm && (
-        <ConfirmDialog
-          title={"Delete Plan"}
-          message={"Delete this draft plan?"}
-          confirmLabel={"Delete"}
-          cancelLabel={"Cancel"}
-          variant="red"
-          onConfirm={handleDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-      {chartAsset && (
-        <PriceChartPopup
-          asset={chartAsset}
-          onClose={() => setChartAsset(null)}
-        />
-      )}
-      {insightAsset && (
-        <AssetInsightPopup
-          asset={insightAsset}
-          modelName={model?.name || ""}
-          onClose={() => setInsightAsset(null)}
-        />
-      )}
     </div>
   )
 }

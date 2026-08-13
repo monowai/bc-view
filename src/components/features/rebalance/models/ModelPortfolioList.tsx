@@ -5,7 +5,13 @@ import { ModelDto } from "types/rebalance"
 import { useModels } from "../hooks/useModels"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
-import { tbodyBase, hiddenSm } from "@utils/tableStyles"
+import {
+  tbodyBase,
+  theadBase,
+  thBase,
+  thCenter,
+  hiddenSm,
+} from "@utils/tableStyles"
 
 interface ModelListProps {
   onSelect?: (model: ModelDto) => void
@@ -92,33 +98,17 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   }
 
   return (
-    <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-x-auto">
       <table className="min-w-full">
-        <thead className="bg-gray-50">
+        <thead className={theadBase}>
           <tr className="border-b border-gray-200">
             {selectable && <th className="px-4 py-3 w-10"></th>}
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              {"Model Name"}
-            </th>
-            <th
-              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}
-            >
-              {"Objective"}
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Risk"}
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Current Plan"}
-            </th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Base Currency"}
-            </th>
-            {!selectable && (
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                {"Actions"}
-              </th>
-            )}
+            <th className={thBase}>{"Model Name"}</th>
+            <th className={`${thBase} ${hiddenSm}`}>{"Objective"}</th>
+            <th className={thCenter}>{"Risk"}</th>
+            <th className={thCenter}>{"Plan"}</th>
+            <th className={thCenter}>{"Currency"}</th>
+            {!selectable && <th className={thCenter}>{"Actions"}</th>}
           </tr>
         </thead>
         <tbody className={tbodyBase}>

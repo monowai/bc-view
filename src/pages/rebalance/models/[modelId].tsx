@@ -56,100 +56,105 @@ function ModelDetailPage(): React.ReactElement {
 
   return (
     <div className="w-full py-4">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-4 max-w-4xl mx-auto">
-        <Link href="/rebalance/models" className="hover:text-invest-600">
-          {"Model Portfolios"}
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-900">
-          {isNew ? "Create Model" : model?.name || "..."}
-        </span>
-      </nav>
+      <div className="max-w-5xl mx-auto">
+        {/* Breadcrumb */}
+        <nav className="text-sm text-gray-500 mb-4">
+          <Link href="/rebalance/models" className="hover:text-invest-600">
+            {"Model Portfolios"}
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">
+            {isNew ? "Create Model" : model?.name || "..."}
+          </span>
+        </nav>
 
-      {/* Model Summary/Edit Section */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg max-w-4xl mx-auto mb-6">
-        {isNew ? (
-          /* New Model - Show full form */
-          <div className="p-6">
-            <h1 className="text-xl font-bold text-gray-900 mb-4">
-              {"Create Model"}
-            </h1>
-            <ModelPortfolioForm
-              onSuccess={() => router.push("/rebalance/models")}
-            />
-          </div>
-        ) : isEditing ? (
-          /* Editing Existing Model */
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
-                {"Edit Model Details"}
-              </h2>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                <i className="fas fa-times mr-1"></i>
-                {"Cancel"}
-              </button>
+        {/* Model Summary/Edit Section */}
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg mb-6">
+          {isNew ? (
+            /* New Model - Show full form */
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                {"Create Model"}
+              </h1>
+              <ModelPortfolioForm
+                onSuccess={() => router.push("/rebalance/models")}
+              />
             </div>
-            <ModelPortfolioForm
-              model={model}
-              onSuccess={() => {
-                mutate()
-                setIsEditing(false)
-              }}
-            />
-          </div>
-        ) : (
-          /* Collapsed Summary View */
-          <div className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 truncate">
-                  {model?.name}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
-                  {model?.objective && (
-                    <span className="truncate max-w-xs" title={model.objective}>
-                      {model.objective}
+          ) : isEditing ? (
+            /* Editing Existing Model */
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {"Edit Model Details"}
+                </h2>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  <i className="fas fa-times mr-1"></i>
+                  {"Cancel"}
+                </button>
+              </div>
+              <ModelPortfolioForm
+                model={model}
+                onSuccess={() => {
+                  mutate()
+                  setIsEditing(false)
+                }}
+              />
+            </div>
+          ) : (
+            /* Collapsed Summary View */
+            <div className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-bold text-gray-900 truncate">
+                    {model?.name}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
+                    {model?.objective && (
+                      <span
+                        className="truncate max-w-xs"
+                        title={model.objective}
+                      >
+                        {model.objective}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                      {model?.baseCurrency}
                     </span>
-                  )}
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                    {model?.baseCurrency}
-                  </span>
-                  {model?.currentPlanVersion && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                      <i className="fas fa-check-circle mr-1"></i>v
-                      {model.currentPlanVersion}
-                    </span>
+                    {model?.currentPlanVersion && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        <i className="fas fa-check-circle mr-1"></i>v
+                        {model.currentPlanVersion}
+                      </span>
+                    )}
+                  </div>
+                  {model?.description && (
+                    <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+                      {model.description}
+                    </p>
                   )}
                 </div>
-                {model?.description && (
-                  <p className="mt-2 text-sm text-gray-500 line-clamp-2">
-                    {model.description}
-                  </p>
-                )}
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="ml-4 text-sm text-invest-600 hover:text-invest-700 flex items-center"
+                >
+                  <i className="fas fa-edit mr-1"></i>
+                  {"Edit"}
+                </button>
               </div>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="ml-4 text-sm text-invest-600 hover:text-invest-700 flex items-center"
-              >
-                <i className="fas fa-edit mr-1"></i>
-                {"Edit"}
-              </button>
             </div>
+          )}
+        </div>
+
+        {/* Plans Section (for existing models) */}
+        {!isNew && model && (
+          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
+            <ModelPlans modelId={model.id} />
           </div>
         )}
       </div>
-
-      {/* Plans Section (for existing models) */}
-      {!isNew && model && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-4xl mx-auto">
-          <ModelPlans modelId={model.id} />
-        </div>
-      )}
     </div>
   )
 }
