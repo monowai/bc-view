@@ -11,7 +11,7 @@ import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
 
 const ExecutionList: React.FC = () => {
   const router = useRouter()
-  const { executions, isLoading, error } = useExecutions()
+  const { executions, isLoading, error, mutate } = useExecutions()
   const [deleteExecutionId, setDeleteExecutionId] = useState<string | null>(
     null,
   )
@@ -50,7 +50,7 @@ const ExecutionList: React.FC = () => {
         { method: "DELETE" },
       )
       if (response.ok) {
-        window.location.reload()
+        mutate()
       }
     } catch (err) {
       console.error("Failed to delete execution:", err)

@@ -1,12 +1,8 @@
-import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import { PlanResponse, PlanDto } from "types/rebalance"
+import { PlanDto } from "types/rebalance"
+import { useRebalanceItem, UseDataResult } from "./useRebalanceData"
 
-export interface UseModelPlanResult {
+export interface UseModelPlanResult extends UseDataResult<PlanDto> {
   plan: PlanDto | undefined
-  error: Error | undefined
-  isLoading: boolean
-  mutate: () => void
 }
 
 export function useModelPlan(
@@ -17,14 +13,9 @@ export function useModelPlan(
     modelId && planId
       ? `/api/rebalance/models/${modelId}/plans/${planId}`
       : null
-  const { data, error, isLoading, mutate } = useSwr<PlanResponse>(
-    key,
-    key ? simpleFetcher(key) : null,
-  )
+  const result = useRebalanceItem<PlanDto>(key)
   return {
-    plan: data?.data,
-    error,
-    isLoading,
-    mutate,
+    ...result,
+    plan: result.data,
   }
 }

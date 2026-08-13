@@ -4,6 +4,11 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { fetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import WeightsSummary from "../common/WeightsSummary"
+import {
+  normalizeWeights,
+  weightsSumValid,
+  toWeightPercent,
+} from "@lib/rebalance/weights"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { Portfolio } from "types/beancounter"
 
@@ -82,7 +87,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
             assetId: w.assetId,
             assetCode: w.assetCode,
             assetName: w.assetName || undefined,
-            weight: Math.round(w.weight * 10000) / 100, // Convert from decimal to percentage
+            weight: toWeightPercent(w.weight),
             currentValue: w.marketValue,
             currentWeight: w.weight * 100,
             capturedPrice: w.price,
@@ -106,12 +111,8 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
 
   const handleNormalize = (): void => {
-    if (totalWeight === 0) return
-    const factor = 100 / totalWeight
-    const normalized = weights.map((w) => ({
-      ...w,
-      weight: Math.round(w.weight * factor * 100) / 100,
-    }))
+    const normalized = normalizeWeights(weights, totalWeight)
+    if (!normalized) return
     setWeights(normalized)
   }
 
@@ -184,7 +185,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
             <label className="block text-sm font-medium text-gray-700">
               {"Target Allocations"}
             </label>
-            {weights.length > 0 && Math.abs(totalWeight - 100) > 0.01 && (
+            {weights.length > 0 && !weightsSumValid(totalWeight) && (
               <button
                 type="button"
                 onClick={handleNormalize}

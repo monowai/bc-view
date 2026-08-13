@@ -6,6 +6,11 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { simpleFetcher, accountsKey } from "@utils/api/fetchHelper"
 import { resolveBrokerCashAssetId } from "@utils/trns/tradeFormHelpers"
+import BrokerSelect, {
+  confirmBrokerSelection,
+} from "@components/features/rebalance/common/BrokerSelect"
+import ModelCard from "@components/features/rebalance/common/ModelCard"
+import { useApprovedModels } from "@components/features/rebalance/hooks/useApprovedModels"
 import {
   parseShorthandAmount,
   hasShorthandSuffix,
@@ -74,11 +79,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   const [committing, setCommitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch models
-  const { data: modelsData, isLoading: loadingModels } = useSWR(
-    modalOpen ? "/api/rebalance/models" : null,
-    simpleFetcher("/api/rebalance/models"),
-  )
+  // Fetch models with an approved current plan
+  const { approvedModels: modelsWithApprovedPlans, isLoading: loadingModels } =
+    useApprovedModels(modalOpen)
 
   const router = useRouter()
 
@@ -115,11 +118,6 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
       setSelectedBrokerId(brokers[0].id)
     }
   }
-
-  const models: ModelDto[] = modelsData?.data || []
-  const modelsWithApprovedPlans = models.filter(
-    (m) => m.currentPlanId && m.currentPlanVersion,
-  )
 
   // Fetch plan details when a model is selected
   const { data: planData, isLoading: loadingPlan } = useSWR<{ data: PlanDto }>(
@@ -240,12 +238,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
     // Warn (but don't block) when the user has more than one broker but
     // hasn't tagged the orders. They can still proceed if they meant to.
-    if (brokers.length > 1 && !selectedBrokerId) {
-      const ok = window.confirm(
-        "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
-      )
-      if (!ok) return
-    }
+    if (!confirmBrokerSelection(brokers.length, selectedBrokerId)) return
 
     setCommitting(true)
     setError(null)
@@ -436,85 +429,15 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                {modelsWithApprovedPlans.map((model) => {
-                  const selected = selectedModel?.id === model.id
-                  return (
-                    <button
-                      key={model.id}
-                      type="button"
-                      onClick={() => setSelectedModel(model)}
-                      aria-pressed={selected}
-                      className={`group flex flex-col gap-2 text-left p-3 border rounded-xl transition-all ${
-                        selected
-                          ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50"
-                          : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className={`flex-none flex h-8 w-8 items-center justify-center rounded-lg ${
-                              selected
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
-                            }`}
-                          >
-                            <i className="fas fa-layer-group"></i>
-                          </span>
-                          <span className="font-semibold text-gray-900 truncate">
-                            {model.name}
-                          </span>
-                        </div>
-                        <span className="flex-none inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">
-                          <i className="fas fa-check-circle mr-1"></i>v
-                          {model.currentPlanVersion}
-                        </span>
-                      </div>
-
-                      {model.objective && (
-                        <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 truncate">
-                          {model.objective}
-                        </div>
-                      )}
-
-                      {model.description && (
-                        <p className="text-xs text-gray-500 line-clamp-2">
-                          {model.description}
-                        </p>
-                      )}
-
-                      <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
-                          {model.baseCurrency}
-                        </span>
-                        <span
-                          className="inline-flex items-center gap-1"
-                          title={`Risk ${model.risk ?? 5} of 5`}
-                          aria-label={`Risk ${model.risk ?? 5} of 5`}
-                        >
-                          <span className="text-gray-400">Risk</span>
-                          <span className="inline-flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <i
-                                key={n}
-                                className={`fas fa-star text-[10px] ${
-                                  n <= (model.risk ?? 5)
-                                    ? "text-amber-400"
-                                    : "text-gray-300"
-                                }`}
-                              ></i>
-                            ))}
-                          </span>
-                        </span>
-                        {model.shared && (
-                          <span className="inline-flex items-center gap-1 text-indigo-600">
-                            <i className="fas fa-users"></i>Shared
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
+                {modelsWithApprovedPlans.map((model) => (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    variant="grid"
+                    selected={selectedModel?.id === model.id}
+                    onClick={() => setSelectedModel(model)}
+                  />
+                ))}
               </div>
             )}
 
@@ -783,7 +706,10 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           {/* Broker Selection */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="invest-cash-broker"
+                className="text-sm font-medium text-gray-700"
+              >
                 {"Broker"}
               </label>
               <a
@@ -794,19 +720,13 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 {"Manage"}
               </a>
             </div>
-            <select
-              value={selectedBrokerId || ""}
-              onChange={(e) => setSelectedBrokerId(e.target.value || undefined)}
+            <BrokerSelect
+              id="invest-cash-broker"
+              brokers={brokers}
+              value={selectedBrokerId}
+              onChange={setSelectedBrokerId}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="">{"-- No broker --"}</option>
-              {brokers.map((broker) => (
-                <option key={broker.id} value={broker.id}>
-                  {broker.name}
-                  {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="text-sm text-gray-500 flex items-start gap-2">

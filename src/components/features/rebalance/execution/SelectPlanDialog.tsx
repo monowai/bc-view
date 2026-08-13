@@ -1,8 +1,8 @@
 import React, { useState } from "react"
-import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import ModelCard from "@components/features/rebalance/common/ModelCard"
+import { useApprovedModels } from "@components/features/rebalance/hooks/useApprovedModels"
 import { ModelDto, PlanDto } from "types/rebalance"
 
 interface SelectPlanDialogProps {
@@ -23,18 +23,9 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
   const [loadingPlan, setLoadingPlan] = useState(false)
   const [filterByModel, setFilterByModel] = useState(false)
 
-  // Fetch models
-  const { data: modelsData, isLoading: loadingModels } = useSWR(
-    modalOpen ? "/api/rebalance/models" : null,
-    simpleFetcher("/api/rebalance/models"),
-  )
-
-  const models: ModelDto[] = modelsData?.data || []
-
-  // Filter models that have approved plans
-  const modelsWithApprovedPlans = models.filter(
-    (m) => m.currentPlanId && m.currentPlanVersion,
-  )
+  // Fetch models with an approved current plan
+  const { approvedModels: modelsWithApprovedPlans, isLoading: loadingModels } =
+    useApprovedModels(modalOpen)
 
   const handleSelectModel = async (model: ModelDto): Promise<void> => {
     if (!model.currentPlanId) return
@@ -116,43 +107,15 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
       ) : (
         <div className="space-y-2 mb-4">
           {modelsWithApprovedPlans.map((model) => (
-            <button
+            <ModelCard
               key={model.id}
+              model={model}
+              variant="list"
+              selected={selectedModelId === model.id}
               onClick={() => handleSelectModel(model)}
               disabled={loadingPlan}
-              className={`w-full text-left p-4 border rounded-lg transition-colors ${
-                selectedModelId === model.id
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-              } disabled:opacity-50`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">
-                    {model.name}
-                  </div>
-                  {model.objective && (
-                    <div className="text-sm text-gray-500 truncate">
-                      {model.objective}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                      {model.baseCurrency}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                      <i className="fas fa-check-circle mr-1"></i>v
-                      {model.currentPlanVersion}
-                    </span>
-                  </div>
-                </div>
-                {selectedModelId === model.id && loadingPlan ? (
-                  <Spinner className="text-blue-500 ml-2" />
-                ) : (
-                  <i className="fas fa-chevron-right text-gray-400 ml-2"></i>
-                )}
-              </div>
-            </button>
+              loading={selectedModelId === model.id && loadingPlan}
+            />
           ))}
         </div>
       )}

@@ -1,4 +1,35 @@
 /**
+ * Parse one CSV/TSV line into its fields, honouring quoted fields (commas
+ * or tabs inside quotes don't split) and doubled-quote escaping (`""` -> `"`).
+ * Fields are trimmed. Comma and tab are both treated as delimiters so the
+ * same parser handles copy-pasted spreadsheet rows and exported CSV files.
+ */
+export function parseCsvLine(line: string): string[] {
+  const result: string[] = []
+  let current = ""
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i++ // Skip escaped quote
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if ((char === "," || char === "\t") && !inQuotes) {
+      result.push(current.trim())
+      current = ""
+    } else {
+      current += char
+    }
+  }
+  result.push(current.trim())
+  return result
+}
+
+/**
  * Escape a CSV field value (quote if contains comma, quote, or newline).
  */
 export function escapeCSV(value: string): string {

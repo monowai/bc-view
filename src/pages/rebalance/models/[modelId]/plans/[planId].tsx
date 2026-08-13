@@ -19,6 +19,8 @@ import StatusBadge from "@components/features/rebalance/common/StatusBadge"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
+import { toWeightPercent, buildPlanAssetsPayload } from "@lib/rebalance/weights"
+import { parseWeightsFromCsvText } from "@lib/rebalance/csvImport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@lib/formatters"
@@ -100,7 +102,7 @@ function PlanDetailPage(): React.ReactElement {
       setWeights(
         plan.assets.map((asset) => ({
           assetId: asset.assetId,
-          weight: Math.round(asset.weight * 10000) / 100, // Convert from decimal to percentage, rounded to 2dp
+          weight: toWeightPercent(asset.weight),
           assetCode: asset.assetCode,
           assetName: asset.assetName,
           rationale: asset.rationale,
@@ -125,18 +127,7 @@ function PlanDetailPage(): React.ReactElement {
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            assets: weights.map((w, index) => ({
-              assetId: w.assetId,
-              weight: Math.round(w.weight * 100) / 10000, // Convert from percentage to decimal, rounded to 6dp
-              assetCode: w.assetCode, // MARKET:CODE format (e.g., NASDAQ:VOO)
-              assetName: w.assetName,
-              capturedPrice: w.capturedPrice,
-              priceCurrency: w.priceCurrency,
-              rationale: w.rationale || undefined,
-              sortOrder: w.sortOrder ?? index,
-            })),
-          }),
+          body: JSON.stringify(buildPlanAssetsPayload(weights)),
         },
       )
       if (response.ok) {
@@ -231,7 +222,7 @@ function PlanDetailPage(): React.ReactElement {
           const newWeights: AssetWeightWithDetails[] = sourcePlan.assets.map(
             (asset: PlanAssetDto, index: number) => ({
               assetId: asset.assetId,
-              weight: Math.round(asset.weight * 10000) / 100,
+              weight: toWeightPercent(asset.weight),
               assetCode: asset.assetCode,
               assetName: asset.assetName,
               rationale: asset.rationale,
@@ -331,18 +322,7 @@ function PlanDetailPage(): React.ReactElement {
       await fetch(`/api/rebalance/models/${modelId}/plans/${planId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assets: updatedWeights.map((w, index) => ({
-            assetId: w.assetId,
-            weight: Math.round(w.weight * 100) / 10000,
-            assetCode: w.assetCode,
-            assetName: w.assetName,
-            capturedPrice: w.capturedPrice,
-            priceCurrency: w.priceCurrency,
-            rationale: w.rationale || undefined,
-            sortOrder: w.sortOrder ?? index,
-          })),
-        }),
+        body: JSON.stringify(buildPlanAssetsPayload(updatedWeights)),
       })
 
       // Now fetch prices for all assets
@@ -450,37 +430,9 @@ function PlanDetailPage(): React.ReactElement {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Parse CSV line handling quoted fields
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = []
-    let current = ""
-    let inQuotes = false
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"'
-          i++ // Skip escaped quote
-        } else {
-          inQuotes = !inQuotes
-        }
-      } else if ((char === "," || char === "\t") && !inQuotes) {
-        result.push(current.trim())
-        current = ""
-      } else {
-        current += char
-      }
-    }
-    result.push(current.trim())
-    return result
-  }
-
-  // Import allocations from CSV file
-  // Supports both 5-column (Asset, Weight %, Price, Currency, Description) and
-  // 4-column (Asset, Weight %, Price, Description) formats.
-  // Currency can also be inferred from the price header, e.g. "Price (SGD)".
-  // If prices are missing, automatically fetches them after import.
+  // Import allocations from CSV file. Parsing lives in
+  // @lib/rebalance/csvImport (parseWeightsFromCsvText) — this handler just
+  // wires the FileReader result into it and applies the result to state.
   const handleImportCSV = (
     event: React.ChangeEvent<HTMLInputElement>,
   ): void => {
@@ -492,71 +444,12 @@ function PlanDetailPage(): React.ReactElement {
       const text = e.target?.result as string
       if (!text) return
 
-      const lines = text.trim().split("\n")
-      const headerLine = lines[0].toLowerCase()
-      const hasHeader = headerLine.includes("asset")
-      const dataLines = hasHeader ? lines.slice(1) : lines
-
-      // Detect column layout from header
-      const headerParts = hasHeader ? parseCSVLine(lines[0]) : ([] as string[])
-      // Check if header has a separate currency column (5-column format)
-      const hasCurrencyColumn =
-        headerParts.length >= 5 &&
-        headerParts[3]?.toLowerCase().includes("currency")
-      // Extract currency from price header, e.g. "Price (SGD)" -> "SGD"
-      const priceHeader = headerParts[2] || ""
-      const headerCurrencyMatch = priceHeader.match(/\(([A-Z]{3})\)/i)
-      const headerCurrency = headerCurrencyMatch?.[1]?.toUpperCase()
-
-      const newWeights: AssetWeightWithDetails[] = []
-
-      for (const line of dataLines) {
-        const parts = parseCSVLine(line)
-        if (parts.length >= 2) {
-          const rawAssetCode = parts[0]
-          const weightPercent = parseFloat(parts[1])
-          const price = parts[2] ? parseFloat(parts[2]) : undefined
-
-          let currency: string | undefined
-          let rationale: string | undefined
-
-          if (hasCurrencyColumn) {
-            // 5-column format: Asset, Weight %, Price, Currency, Description
-            currency = parts[3] || undefined
-            rationale = parts[4] || undefined
-          } else {
-            // 4-column format: Asset, Weight %, Price, Description
-            // Use currency from price header if available
-            currency = headerCurrency
-            rationale = parts[3] || undefined
-          }
-
-          if (rawAssetCode && !isNaN(weightPercent)) {
-            // Default to US market if no market code provided
-            const assetCode = rawAssetCode.includes(":")
-              ? rawAssetCode
-              : `US:${rawAssetCode}`
-            // Try to find existing asset to get its UUID
-            const existing = weights.find(
-              (w) => w.assetCode === assetCode || w.assetId === assetCode,
-            )
-            newWeights.push({
-              assetId: existing?.assetId || assetCode,
-              assetCode: assetCode, // MARKET:CODE format
-              weight: weightPercent,
-              capturedPrice: price,
-              priceCurrency: currency,
-              rationale: rationale,
-              sortOrder: newWeights.length,
-            })
-          }
-        }
-      }
+      const { weights: newWeights, missingPrices } = parseWeightsFromCsvText(
+        text,
+        weights,
+      )
 
       if (newWeights.length > 0) {
-        // Check if any assets are missing prices
-        const missingPrices = newWeights.some((w) => !w.capturedPrice)
-
         setWeights(newWeights)
         setHasChanges(true)
 
