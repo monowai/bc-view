@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import AssetWeightInput from "../common/AssetWeightInput"
 import WeightsSummary from "../common/WeightsSummary"
 import AddAssetToModelDialog from "./AddAssetToModelDialog"
+import { normalizeWeights } from "@lib/rebalance/weights"
 import { AssetWeightWithDetails } from "types/rebalance"
 
 interface ModelWeightsEditorProps {
@@ -64,12 +65,8 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
   }
 
   const handleNormalize = (): void => {
-    if (totalWeight === 0) return
-    const factor = 100 / totalWeight
-    const normalized = weights.map((w) => ({
-      ...w,
-      weight: Math.round(w.weight * factor * 100) / 100,
-    }))
+    const normalized = normalizeWeights(weights, totalWeight)
+    if (!normalized) return
     onChange(normalized)
   }
 

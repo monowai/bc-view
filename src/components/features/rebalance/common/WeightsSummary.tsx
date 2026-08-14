@@ -1,4 +1,5 @@
 import React from "react"
+import { weightsSumValid } from "@lib/rebalance/weights"
 interface WeightsSummaryProps {
   totalWeight: number
   assetCount: number
@@ -11,7 +12,7 @@ const WeightsSummary: React.FC<WeightsSummaryProps> = ({
   assetCount,
   onNormalize,
 }) => {
-  const isValid = Math.abs(totalWeight - 100) < 0.01
+  const isValid = weightsSumValid(totalWeight)
 
   return (
     <div

@@ -10,6 +10,9 @@ import { useRouter } from "next/router"
 import Link from "next/link"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
+import BrokerSelect, {
+  confirmBrokerSelection,
+} from "@components/features/rebalance/common/BrokerSelect"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
 import { setPageContext } from "@components/features/chat/pageContextBus"
@@ -1300,21 +1303,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <p className="text-sm text-gray-500 mb-4">
                   {"Select the broker for all proposed transactions"}
                 </p>
-                <select
-                  value={selectedBrokerId || ""}
-                  onChange={(e) =>
-                    setSelectedBrokerId(e.target.value || undefined)
-                  }
+                <BrokerSelect
+                  id="execute-broker"
+                  brokers={brokers}
+                  value={selectedBrokerId}
+                  onChange={setSelectedBrokerId}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
-                >
-                  <option value="">{"-- No broker --"}</option>
-                  {brokers.map((broker) => (
-                    <option key={broker.id} value={broker.id}>
-                      {broker.name}
-                      {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
           </div>
@@ -1332,12 +1327,8 @@ function ExecuteRebalancePage(): React.ReactElement {
                 // Warn (but don't block) when the user has >1 brokers
                 // and didn't tag the orders — saves a "where's the
                 // broker on these trns?" follow-up later.
-                if (brokers.length > 1 && !selectedBrokerId) {
-                  const ok = window.confirm(
-                    "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
-                  )
-                  if (!ok) return
-                }
+                if (!confirmBrokerSelection(brokers.length, selectedBrokerId))
+                  return
                 const result = await handlers.commit()
                 if (!result) return
                 // Only land on /trns/proposed when the orders are

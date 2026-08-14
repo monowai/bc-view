@@ -3,6 +3,11 @@ import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
 import WeightsSummary from "../common/WeightsSummary"
 import ClientSelector from "@components/features/shares/ClientSelector"
+import {
+  normalizeWeights,
+  weightsSumValid,
+  toWeightDecimal,
+} from "@lib/rebalance/weights"
 import { AssetWeightWithDetails, ModelDto } from "types/rebalance"
 import { Holdings, Position } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
@@ -72,15 +77,11 @@ const CreateModelFromHoldingsDialog: React.FC<
   })
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
-  const isValid = name.trim() !== "" && Math.abs(totalWeight - 100) < 0.01
+  const isValid = name.trim() !== "" && weightsSumValid(totalWeight)
 
   const handleNormalize = (): void => {
-    if (totalWeight === 0) return
-    const factor = 100 / totalWeight
-    const normalized = weights.map((w) => ({
-      ...w,
-      weight: Math.round(w.weight * factor * 100) / 100,
-    }))
+    const normalized = normalizeWeights(weights, totalWeight)
+    if (!normalized) return
     setWeights(normalized)
   }
 
@@ -115,7 +116,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         description: `Initial plan from ${portfolioCode} holdings`,
         assets: weights.map((w, index) => ({
           assetId: w.assetId,
-          weight: Math.round(w.weight * 100) / 10000, // Convert from percentage to decimal, rounded
+          weight: toWeightDecimal(w.weight),
           sortOrder: w.sortOrder ?? index,
         })),
       }
@@ -237,7 +238,7 @@ const CreateModelFromHoldingsDialog: React.FC<
           <label className="block text-sm font-medium text-gray-700">
             {"Target Allocations"}
           </label>
-          {weights.length > 0 && Math.abs(totalWeight - 100) > 0.01 && (
+          {weights.length > 0 && !weightsSumValid(totalWeight) && (
             <button
               type="button"
               onClick={handleNormalize}

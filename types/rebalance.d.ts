@@ -113,10 +113,6 @@ export interface ModelsResponse {
   data: ModelDto[]
 }
 
-export interface PlanResponse {
-  data: PlanDto
-}
-
 export interface PlansResponse {
   data: PlanDto[]
 }
@@ -138,54 +134,9 @@ export interface AssetWeightWithDetails {
 export interface CreateModelFromHoldingsData {
   portfolioId: string
   portfolioCode: string
-  positions: Record<string, { assetId: string; weight: number; name: string }>
 }
 
-// Rebalance Calculation Types (server-side calculation)
 export type RebalanceAction = "BUY" | "SELL" | "HOLD"
-
-export interface RebalanceCalculationRequest {
-  portfolioIds: string[]
-  cashDelta?: number
-}
-
-export interface RebalanceItemDto {
-  assetId: string
-  assetCode: string
-  assetName: string
-  currentWeight: number
-  currentValue: number
-  currentPrice?: number
-  currentQuantity: number
-  targetWeight: number
-  /** Return-adjusted target accounting for price movements since model creation */
-  returnAdjustedTarget?: number
-  targetPrice?: number
-  priceCurrency: string
-  deltaWeight: number
-  deltaValue: number
-  deltaQuantity: number
-  action: RebalanceAction
-  /** Optional rationale explaining why this asset is in the model */
-  rationale?: string
-}
-
-export interface RebalanceCalculationDto {
-  planId: string
-  modelId: string
-  modelName: string
-  planVersion: number
-  portfolioIds: string[]
-  totalValue: number
-  adjustedTotalValue: number
-  cashDelta: number
-  currency: string
-  items: RebalanceItemDto[]
-}
-
-export interface RebalanceCalculationResponse {
-  data: RebalanceCalculationDto
-}
 
 // === Execution Types (persisted rebalance configurations) ===
 
