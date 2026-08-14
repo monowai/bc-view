@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 // Controllable router mock — mimics Next.js Pages Router behaviour where, on
@@ -219,5 +219,126 @@ describe("/rebalance/models/[modelId]/plans/[planId] — Copy allocations", () =
 
     expect(writeText).not.toHaveBeenCalled()
     expect(screen.queryByLabelText("Narrative")).not.toBeInTheDocument()
+  })
+})
+
+describe("/rebalance/models/[modelId]/plans/[planId] — Save error surfacing (#1157)", () => {
+  // DRAFT (so the Save/Approve/Delete action row renders at all) and its
+  // weights deliberately don't sum to 100%, so the "Normalize to 100%"
+  // affordance is visible immediately — the simplest UI path to a dirty
+  // (hasChanges=true) plan without driving MathInput keystroke-by-keystroke.
+  const draftPlan = {
+    ...plan,
+    status: "DRAFT",
+    approvedAt: undefined,
+    // 0.5 + 0.465 = 96.5%, not 100%.
+    assets: [
+      { ...plan.assets[0], weight: 0.5 },
+      { ...plan.assets[1], weight: 0.465 },
+    ],
+  }
+
+  function draftSwrByKey(key: unknown): ReturnType<typeof useSwr> {
+    if (!key) return idle as unknown as ReturnType<typeof useSwr>
+    const k = String(key)
+    if (k.endsWith("/plans/plan-1")) {
+      return { ...idle, data: { data: draftPlan } } as unknown as ReturnType<
+        typeof useSwr
+      >
+    }
+    if (k.endsWith("/models/model-1")) {
+      return { ...idle, data: { data: model } } as unknown as ReturnType<
+        typeof useSwr
+      >
+    }
+    if (k.endsWith("/plans")) {
+      return { ...idle, data: { data: [draftPlan] } } as unknown as ReturnType<
+        typeof useSwr
+      >
+    }
+    return idle as unknown as ReturnType<typeof useSwr>
+  }
+
+  beforeEach(() => {
+    mockUseSwr.mockReset()
+    mockUseSwr.mockImplementation((key: unknown) => draftSwrByKey(key))
+    routerState.isReady = true
+    routerState.query = { modelId: "model-1", planId: "plan-1" }
+    global.fetch = jest.fn()
+  })
+
+  const makeDirty = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<void> => {
+    await user.click(screen.getByText("Normalize to 100%"))
+    expect(await screen.findByRole("button", { name: /Save/i })).toBeVisible()
+  }
+
+  test("shows a visible error when the save PUT responds not-ok, instead of silently doing nothing", async () => {
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve("boom"),
+    })
+
+    const user = userEvent.setup()
+    render(<PlanDetailPage />)
+    await screen.findByText("Target Allocations")
+
+    await makeDirty(user)
+    await user.click(screen.getByRole("button", { name: /Save/i }))
+
+    expect(await screen.findByText(/Save failed/i)).toBeInTheDocument()
+  })
+
+  test("clears a previous save error and succeeds on retry", async () => {
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve("boom"),
+      })
+      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve("") })
+
+    const user = userEvent.setup()
+    render(<PlanDetailPage />)
+    await screen.findByText("Target Allocations")
+
+    await makeDirty(user)
+    await user.click(screen.getByRole("button", { name: /Save/i }))
+    expect(await screen.findByText(/Save failed/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /Save/i }))
+
+    await waitFor(() =>
+      expect(screen.queryByText(/Save failed/i)).not.toBeInTheDocument(),
+    )
+  })
+
+  test("success path is unchanged: a successful save clears hasChanges (Save button disappears)", async () => {
+    const { default: PlanDetailPage } =
+      await import("../../../../../../src/pages/rebalance/models/[modelId]/plans/[planId]")
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(""),
+    })
+
+    const user = userEvent.setup()
+    render(<PlanDetailPage />)
+    await screen.findByText("Target Allocations")
+
+    await makeDirty(user)
+    await user.click(screen.getByRole("button", { name: /Save/i }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /Save/i }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByText(/error/i)).not.toBeInTheDocument()
   })
 })

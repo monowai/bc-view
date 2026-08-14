@@ -20,6 +20,14 @@ export interface ModelDto {
   isOwner: boolean
   currentPlanId?: string
   currentPlanVersion?: number
+  /**
+   * Status of the plan `currentPlanId` points to ("DRAFT" | "APPROVED").
+   * `null`/absent on a stale cache predating this field (svc-rebalance #55)
+   * — callers gating on "has an approved plan" should treat that as
+   * approved (backend only ever points `currentPlanId` at an APPROVED plan
+   * today), not as a reason to hide the model.
+   */
+  currentPlanStatus?: ModelPlanStatus | null
   planCount: number
   createdAt: string
   updatedAt: string
@@ -250,6 +258,8 @@ export interface CreateExecutionRequest {
   filterByModel?: boolean
   /** Required for AD_HOC mode — the portfolio's report currency */
   currency?: string
+  /** How to distribute cash across items: TARGET_WEIGHT (default) or RETURN_ADJUSTED. INVEST_CASH mode uses this. */
+  allocationMethod?: AllocationMethod
 }
 
 export interface CommitExecutionRequest {
@@ -259,6 +269,8 @@ export interface CommitExecutionRequest {
   transactionStatus?: "PROPOSED" | "SETTLED"
   /** Optional cash asset ID for settlement (e.g., a brokerage account asset) */
   cashAssetId?: string
+  /** Broker tag applied to the created transactions */
+  brokerId?: string
 }
 
 export interface CommitExecutionResponse {
@@ -271,6 +283,8 @@ export interface CommitExecutionResponse {
 
 export interface UpdateExecutionRequest {
   name?: string
+  /** Cash to deploy/remove, applied on top of the execution's existing items */
+  cashDelta?: number
   itemUpdates?: ExecutionItemUpdate[]
 }
 
@@ -278,6 +292,10 @@ export interface ExecutionItemUpdate {
   assetId: string
   effectiveTargetOverride?: number
   excluded?: boolean
+  /** Explicit share quantity override (e.g. INVEST_CASH preview edits) */
+  quantity?: number
+  /** Explicit price override (e.g. INVEST_CASH preview edits) */
+  price?: number
 }
 
 export interface ExecutionApiResponse {

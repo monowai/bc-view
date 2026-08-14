@@ -11,15 +11,34 @@ import ReviewStep from "./steps/ReviewStep"
 import {
   ModelDto,
   RebalanceScenario,
+  ExecutionMode,
   CreatePlanRequest,
   CreateExecutionRequest,
 } from "types/rebalance"
 import { PortfolioResponses } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { isPlanApproved } from "@components/features/rebalance/hooks/useApprovedModels"
 
 interface RebalanceWizardContainerProps {
   preselectedPortfolioIds?: string[]
+}
+
+// RebalanceScenario ("INVEST_CASH" | "REBALANCE") happens to be a subset of
+// ExecutionMode's members ("REBALANCE" | "INVEST_CASH" | "AD_HOC"), so a bare
+// `mode: scenario` assignment type-checks today — but only because the two
+// unions currently overlap by coincidence. An explicit map means a future
+// change to either type (e.g. ExecutionMode losing a member, or
+// RebalanceScenario gaining one this map doesn't cover) fails to compile
+// here instead of silently relying on structural luck — the `Record<...>`
+// annotation makes TS enforce every RebalanceScenario key is present.
+const SCENARIO_TO_EXECUTION_MODE: Record<RebalanceScenario, ExecutionMode> = {
+  REBALANCE: "REBALANCE",
+  INVEST_CASH: "INVEST_CASH",
+}
+
+function toExecutionMode(scenario: RebalanceScenario): ExecutionMode {
+  return SCENARIO_TO_EXECUTION_MODE[scenario]
 }
 
 const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
@@ -42,7 +61,13 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
     handleSubmit: dialogSubmit,
   } = useDialogSubmit({ fallbackError: "Failed to complete wizard" })
 
-  const hasApprovedPlan = Boolean(selectedModel?.currentPlanId)
+  // Gate on plan *status*, not merely the presence of a currentPlanId
+  // (#1157) — a currentPlanId can point at a DRAFT plan, which isn't yet
+  // executable. Shared predicate (see isPlanApproved's own doc for the
+  // backward-compat/missing-status rationale) so this can never drift from
+  // useApprovedModels' gate.
+  const hasApprovedPlan =
+    selectedModel !== null && isPlanApproved(selectedModel)
 
   // Backs the cash-delta currency label in steps 3-4. The model's
   // baseCurrency is the primary source once one's selected; the fallback (for
@@ -116,23 +141,25 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       return
     }
 
-    // A model with an approved plan goes straight to an execution carrying
-    // the portfolios/scenario/cashDelta from steps 2-3. Without one, only a
-    // draft plan can be created — CreatePlanRequest has no home for those
-    // values; they apply at execution time, once the plan is approved.
+    // A model with an APPROVED current plan goes straight to an execution
+    // carrying the portfolios/scenario/cashDelta from steps 2-3. Without one
+    // (no plan at all, or the current plan is still DRAFT — see
+    // hasApprovedPlan above), only a draft plan can be created —
+    // CreatePlanRequest has no home for those values; they apply at
+    // execution time, once the plan is approved.
     const { currentPlanId, id: modelId } = selectedModel
     const target: {
       url: string
       payload: CreateExecutionRequest | CreatePlanRequest
       route: (id: string) => string
-    } = currentPlanId
+    } = hasApprovedPlan
       ? {
           url: "/api/rebalance/executions",
           payload: {
-            planId: currentPlanId,
+            planId: currentPlanId!,
             portfolioIds: selectedPortfolioIds,
             name: planName.trim(),
-            mode: scenario,
+            mode: toExecutionMode(scenario),
             cashDelta:
               scenario === "REBALANCE" ? cashDelta || undefined : undefined,
             investmentAmount:
