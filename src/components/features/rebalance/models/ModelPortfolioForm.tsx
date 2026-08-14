@@ -4,8 +4,8 @@ import { useRouter } from "next/router"
 import useSWR from "swr"
 import Spinner from "@components/ui/Spinner"
 import { ModelDto, CreateModelRequest } from "types/rebalance"
-import { Currency } from "types/beancounter"
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { Currency, PortfolioResponses } from "types/beancounter"
+import { ccyKey, portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import ClientSelector from "@components/features/shares/ClientSelector"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
@@ -27,10 +27,19 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   }>(ccyKey, simpleFetcher(ccyKey))
   const currencies = ccyResponse?.data || []
 
+  // Fetch the user's portfolios so a brand-new model can default its base
+  // currency to a portfolio the user actually holds, instead of a
+  // hard-coded country default (#1156).
+  const { data: portfoliosResponse } = useSWR<PortfolioResponses>(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
+  const portfolios = portfoliosResponse?.data || []
+
   const [name, setName] = useState(model?.name || "")
   const [objective, setObjective] = useState(model?.objective || "")
   const [description, setDescription] = useState(model?.description || "")
-  const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "NZD")
+  const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "")
   const [risk, setRisk] = useState<number>(model?.risk ?? 5)
   const [clientId, setClientId] = useState(model?.clientId || "")
   const {
@@ -39,7 +48,20 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
     handleSubmit: dialogSubmit,
   } = useDialogSubmit({ fallbackError: "Failed to save model" })
 
-  const isValid = name.trim() !== ""
+  // Resolved at render (not via an effect) since the portfolios list may
+  // still be loading when this form mounts: an explicit pick always wins;
+  // otherwise default to the first portfolio the user actually holds, and
+  // only fall back to empty (nothing to derive from yet) — never a
+  // hard-coded country currency (#1156). Editing an existing model always
+  // keeps its own baseCurrency, since `baseCurrency` state is seeded from it.
+  const resolvedBaseCurrency =
+    baseCurrency || portfolios[0]?.currency.code || ""
+
+  // Empty resolvedBaseCurrency (no portfolios yet, or submitting before the
+  // portfolios SWR resolves) must block submit — the old hard-coded "NZD"
+  // default made this state impossible, so removing it without a matching
+  // gate would let a model persist with baseCurrency: "".
+  const isValid = name.trim() !== "" && resolvedBaseCurrency !== ""
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
@@ -50,7 +72,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         name: name.trim(),
         objective: objective.trim() || undefined,
         description: description.trim() || undefined,
-        baseCurrency,
+        baseCurrency: resolvedBaseCurrency,
         clientId: clientId.trim() || undefined,
         risk,
       }
@@ -145,7 +167,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         </label>
         <select
           id="baseCurrency"
-          value={baseCurrency}
+          value={resolvedBaseCurrency}
           onChange={(e) => setBaseCurrency(e.target.value)}
           disabled={loadingCurrencies}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -153,11 +175,19 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           {loadingCurrencies ? (
             <option value="">{"Loading..."}</option>
           ) : (
-            currencies.map((currency) => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code}
-              </option>
-            ))
+            <>
+              {/* Real placeholder (not a silently-selected first currency)
+                  for the brief window before a default currency has been
+                  resolved from either the model or the portfolios list. */}
+              {!resolvedBaseCurrency && (
+                <option value="">{"Select a currency..."}</option>
+              )}
+              {currencies.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code}
+                </option>
+              ))}
+            </>
           )}
         </select>
       </div>

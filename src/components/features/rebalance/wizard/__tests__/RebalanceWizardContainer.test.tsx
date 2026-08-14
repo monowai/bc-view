@@ -1,12 +1,34 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
+import useSwr from "swr"
 import { ModelDto, RebalanceScenario } from "types/rebalance"
 
 const mockPush = jest.fn()
 jest.mock("next/router", () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }))
+
+// The container fetches the portfolios list itself (for the currency-fallback
+// derivation, #1156) — mock "swr" directly rather than going through
+// global.fetch, so the extra GET can't collide with the ordered
+// mockFetch.mockResolvedValueOnce() queue the POST-related tests below rely
+// on.
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
+const mockedUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
+let mockPortfolios: { id: string; currency: { code: string } }[] = []
+mockedUseSwr.mockImplementation(
+  () =>
+    ({
+      data: { data: mockPortfolios },
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    }) as unknown as ReturnType<typeof useSwr>,
+)
 
 const testModel: ModelDto = {
   id: "model-1",
@@ -49,9 +71,11 @@ jest.mock("../steps/ConfigureScenarioStep", () => ({
   default: ({
     onScenarioChange,
     onCashDeltaChange,
+    planCurrency,
   }: {
     onScenarioChange: (scenario: RebalanceScenario) => void
     onCashDeltaChange: (delta: number) => void
+    planCurrency: string
   }) => (
     <div>
       <button onClick={() => onScenarioChange("REBALANCE")}>
@@ -61,6 +85,7 @@ jest.mock("../steps/ConfigureScenarioStep", () => ({
         set-scenario-invest-cash
       </button>
       <button onClick={() => onCashDeltaChange(5000)}>set-cash-delta</button>
+      <span data-testid="plan-currency">{planCurrency}</span>
     </div>
   ),
 }))
@@ -83,6 +108,7 @@ describe("RebalanceWizardContainer submit", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     modelToSelect = testModel
+    mockPortfolios = []
     global.fetch = mockFetch
   })
 
@@ -255,6 +281,53 @@ describe("RebalanceWizardContainer submit", () => {
       })
 
       expect(mockPush).not.toHaveBeenCalled()
+    })
+  })
+
+  // --- Currency fallback for the Configure step's cash-delta label (#1156) ---
+  //
+  // The wizard's own step gating makes selectedModel non-null (and thus
+  // baseCurrency populated) by the time step 3 renders — so these tests
+  // exercise the fallback with a defensively-malformed model (empty
+  // baseCurrency) to prove it derives from the selected portfolio rather
+  // than silently reaching for a hard-coded country default.
+  describe("planCurrency fallback when the model carries no baseCurrency", () => {
+    const driveToConfigureStep = (): void => {
+      render(<RebalanceWizardContainer />)
+      fireEvent.click(screen.getByText("select-model"))
+      fireEvent.click(screen.getByText("Next")) // -> step 2
+      fireEvent.click(screen.getByText("select-portfolio")) // selects "portfolio-1"
+      fireEvent.click(screen.getByText("Next")) // -> step 3 (Configure)
+    }
+
+    it("uses the selected portfolio's currency, not a hard-coded USD", () => {
+      modelToSelect = { ...testModel, baseCurrency: "" } as ModelDto
+      mockPortfolios = [{ id: "portfolio-1", currency: { code: "SGD" } }]
+
+      driveToConfigureStep()
+
+      expect(screen.getByTestId("plan-currency")).toHaveTextContent("SGD")
+    })
+
+    it("falls back to the first portfolio in the list when the selected id isn't found there yet", () => {
+      modelToSelect = { ...testModel, baseCurrency: "" } as ModelDto
+      mockPortfolios = [
+        { id: "some-other-portfolio", currency: { code: "EUR" } },
+      ]
+
+      driveToConfigureStep()
+
+      expect(screen.getByTestId("plan-currency")).toHaveTextContent("EUR")
+    })
+
+    it("falls back to empty — never a hard-coded currency — when no portfolio data is available", () => {
+      modelToSelect = { ...testModel, baseCurrency: "" } as ModelDto
+      mockPortfolios = []
+
+      driveToConfigureStep()
+
+      expect(screen.getByTestId("plan-currency")).toBeEmptyDOMElement()
+      expect(screen.queryByText("USD")).not.toBeInTheDocument()
     })
   })
 })

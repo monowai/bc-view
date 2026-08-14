@@ -849,6 +849,7 @@ function HoldingsPage(): React.ReactElement {
           currentWeight={weightClickData.currentWeight}
           currentQuantity={weightClickData.currentQuantity}
           currentPrice={weightClickData.currentPrice}
+          fxRate={weightClickData.fxRate}
         />
       )}
       {setCashBalanceData && (

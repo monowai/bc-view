@@ -97,6 +97,26 @@ function formatSignedPp(value: number, fractionDigits: number): string {
   return `${sign}${rounded.toFixed(fractionDigits)}`
 }
 
+/** Pairs an execution item's price with the currency it's actually
+ * denominated in (#1156). `nativePrice` — when the backend has populated it —
+ * is the trade-currency price, so it pairs with `priceCurrency`. Pre-#38 rows
+ * carry only the FX-converted `snapshotPrice`, which is quoted in the
+ * execution's own valuation currency, not the asset's trade currency — the
+ * legacy fallback pairs it with `executionCurrency` instead of the
+ * (mismatched) `priceCurrency` a naive read would reach for. */
+function formatItemPrice(
+  item: Pick<DisplayItem, "nativePrice" | "snapshotPrice" | "priceCurrency">,
+  executionCurrency: string,
+): string {
+  if (item.nativePrice != null) {
+    return `${formatCurrency(item.nativePrice)} ${item.priceCurrency || ""}`.trim()
+  }
+  if (item.snapshotPrice != null) {
+    return `${formatCurrency(item.snapshotPrice)} ${executionCurrency}`.trim()
+  }
+  return "—"
+}
+
 /** Builds a minimal Asset for PriceChartPopup from a rebalance display row.
  * The execution DTO only carries id/code/name/price — market and category
  * are never resolved server-side for this flow, so a placeholder satisfies
@@ -574,9 +594,26 @@ function ExecuteRebalancePage(): React.ReactElement {
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {execution.modelName ? "Rebalance Portfolio" : "Ad-hoc Rebalance"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {execution.modelName
+                  ? "Rebalance Portfolio"
+                  : "Ad-hoc Rebalance"}
+              </h1>
+              {/* Single execution-currency indicator for the whole page (#1156)
+                  — monetary amounts/totals below (snapshot values, deltas,
+                  cash summary) are in this currency; price cells are the
+                  exception, labelled per-row with each asset's own trade
+                  currency (see formatItemPrice). A per-cell code for the
+                  amounts would be noise. */}
+              <span
+                data-testid="execution-currency-badge"
+                title="Monetary amounts and totals are in the execution's valuation currency; prices show each asset's trade currency"
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+              >
+                {execution.currency}
+              </span>
+            </div>
             <p className="text-sm text-gray-600 mt-1">
               {execution.modelName ? (
                 <>
@@ -943,9 +980,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                           )}
                         </td>
                         <td className="px-3 py-2 text-right text-gray-700 tabular-nums">
-                          {item.snapshotPrice != null
-                            ? `${formatCurrency(item.snapshotPrice)} ${item.priceCurrency || ""}`.trim()
-                            : "—"}
+                          {formatItemPrice(item, execution.currency)}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           <button
@@ -1300,9 +1335,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                           {item.deltaQuantity}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-500">
-                          {item.snapshotPrice
-                            ? `${formatCurrency(item.snapshotPrice)} ${item.priceCurrency || ""}`
-                            : "-"}
+                          {formatItemPrice(item, execution.currency)}
                         </td>
                         <td
                           className={`px-4 py-3 text-right font-medium ${valueClass}`}

@@ -525,8 +525,15 @@ export default function Rows({
                           asset,
                           currentWeight: moneyValues[valueIn].weight * 100,
                           currentQuantity: quantityValues.total,
+                          // A trade is denominated in the asset's own
+                          // currency, so the dialog gets the trade-currency
+                          // price — not the row's display-converted one
+                          // (mirrors the ActionsMenu price prop above; #1156).
                           currentPrice:
-                            moneyValues[valueIn].priceData?.close || 0,
+                            moneyValues["TRADE"]?.priceData?.close ||
+                            moneyValues[valueIn].priceData?.close ||
+                            0,
+                          fxRate: deriveTradeToPortfolioFxRate(moneyValues),
                         })
                       }
                     : undefined
