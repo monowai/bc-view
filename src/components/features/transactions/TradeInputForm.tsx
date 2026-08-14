@@ -52,6 +52,7 @@ import {
   buildCreateModeValues,
   buildAllCashBalances,
   buildDefaultCashAsset,
+  resolveSelfSettleAccount,
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
   resolveSellableQuantity,
@@ -617,6 +618,19 @@ const TradeInputForm: React.FC<{
     [filteredCashAssets, currentTradeCurrency],
   )
 
+  // Money recorded against a cash account belongs in that account — interest
+  // paid into IBRK-USD settles there, not in the generic USD balance.
+  const selfSettleAccount = useMemo(
+    () =>
+      resolveSelfSettleAccount({
+        assetId: transaction?.asset.id ?? initialValues?.assetId,
+        accounts: allBankAccounts as any[],
+      }),
+    [transaction?.asset.id, initialValues?.assetId, allBankAccounts],
+  )
+
+  const preferredCashAsset = selfSettleAccount ?? defaultCashAsset
+
   // Cash assets for dropdown - all currency balances are already included
   const cashAssetsForDropdown = useMemo(() => {
     return allCashBalances
@@ -639,13 +653,29 @@ const TradeInputForm: React.FC<{
       return // Don't override broker's settlement account
     }
 
+    // The accounts list arrives after the first render, so the field may already
+    // hold the currency balance this effect seeded a moment ago. That seeded
+    // value has to give way once a better default is known — a value the user
+    // actually chose does not (the effect only re-runs when a default changes).
+    const holdsSeededDefault =
+      currentSettlement?.value === defaultCashAsset.value
+
     if (
       !currentSettlement?.value ||
-      currentSettlement.currency !== currentTradeCurrency
+      currentSettlement.currency !== currentTradeCurrency ||
+      (holdsSeededDefault &&
+        preferredCashAsset.value !== currentSettlement.value)
     ) {
-      setValue("settlementAccount", defaultCashAsset)
+      setValue("settlementAccount", preferredCashAsset)
     }
-  }, [currentTradeCurrency, defaultCashAsset, setValue, watch, brokers])
+  }, [
+    currentTradeCurrency,
+    preferredCashAsset,
+    defaultCashAsset,
+    setValue,
+    watch,
+    brokers,
+  ])
 
   // Watch brokerId for auto-selecting settlement account
   const selectedBrokerId = watch("brokerId")
@@ -1413,7 +1443,7 @@ const TradeInputForm: React.FC<{
               {activeTab === "settlement" && (
                 <div className="space-y-4">
                   {/* Settlement Account */}
-                  <div>
+                  <div data-testid="settlement-account">
                     <label className={labelClass}>
                       {isIncome
                         ? "Credit To Account"
@@ -1435,7 +1465,7 @@ const TradeInputForm: React.FC<{
                       }
                       trnType={type?.value || "BUY"}
                       tradeCurrency={currentTradeCurrency}
-                      defaultValue={defaultCashAsset}
+                      defaultValue={preferredCashAsset}
                     />
                   </div>
 

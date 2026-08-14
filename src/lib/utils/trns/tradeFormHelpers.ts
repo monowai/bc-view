@@ -465,6 +465,31 @@ export const buildDefaultCashAsset = (
 }
 
 /**
+ * A cash movement recorded *against* a cash account — interest into IBRK-USD,
+ * a fee out of it — settles in that account. Returns the trade asset as a
+ * settlement option when it is one of the user's cash accounts, otherwise null
+ * so the caller falls back to the currency's cash balance. svc-data applies the
+ * same rule server-side (`TrnInputMapper.selfSettleAsset`); this keeps the
+ * dialog honest about where the money is going before it is submitted.
+ */
+export const resolveSelfSettleAccount = (params: {
+  assetId?: string
+  accounts: AssetLike[]
+}): SettlementAccountOption | null => {
+  const { assetId, accounts } = params
+  if (!assetId) return null
+  const account = accounts.find((a) => a.id === assetId)
+  if (!account) return null
+  const currency = getAssetCurrency(account)
+  return {
+    value: account.id,
+    label: `${account.name || stripOwnerPrefix(account.code)} (${currency || "?"})`,
+    currency,
+    market: account.market?.code || "PRIVATE",
+  }
+}
+
+/**
  * Resolve the settlement account for a broker and trade currency.
  * Looks up the broker's settlement mapping, then finds the matching bank account.
  * Falls back to the broker's first settlement account if no currency-specific match.
