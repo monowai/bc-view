@@ -7,6 +7,7 @@ import {
   normalizeWeights,
   weightsSumValid,
   toWeightDecimal,
+  clampWeightPercent,
 } from "@lib/rebalance/weights"
 import { AssetWeightWithDetails, ModelDto } from "types/rebalance"
 import { Holdings, Position } from "types/beancounter"
@@ -282,7 +283,9 @@ const CreateModelFromHoldingsDialog: React.FC<
                     step="0.01"
                     value={weight.weight}
                     onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0
+                      const value = clampWeightPercent(
+                        parseFloat(e.target.value) || 0,
+                      )
                       const updated = [...weights]
                       updated[index] = {
                         ...updated[index],

@@ -1,9 +1,19 @@
 import { AssetWeightWithDetails } from "types/rebalance"
 
 /**
- * Scale every item's `weight` proportionally so the set sums to 100,
- * rounded to 2dp. Mirrors the "Normalize to 100%" affordance shared by
+ * Scale every item's `weight` proportionally so the set sums to EXACTLY
+ * 100.00. Mirrors the "Normalize to 100%" affordance shared by
  * ModelWeightsEditor, ImportHoldingsDialog, and CreateModelFromHoldingsDialog.
+ *
+ * Rounding each item's scaled weight independently (naive `Math.round`) can
+ * leave the set a hundredth or two short of 100 — e.g. three items at
+ * 33.33/33.33/33.33 round to themselves and sum to 99.99, which trips
+ * `weightsSumValid` and makes "Normalize to 100%" a no-op. Instead this uses
+ * largest-remainder allocation (a.k.a. Hamilton's method): scale every
+ * weight, floor each to 2dp (hundredths), then hand the few 0.01-sized
+ * hundredths still owed out to the items whose floor discarded the largest
+ * fractional remainder — ties broken by original array index — until the
+ * set sums to exactly 100.00.
  *
  * Returns `null` when `totalWeight` is 0 — callers must treat that as a
  * no-op (do not call onChange/setState), matching the original inline
@@ -16,10 +26,38 @@ export function normalizeWeights<T extends { weight: number }>(
   totalWeight: number,
 ): T[] | null {
   if (!Number.isFinite(totalWeight) || totalWeight === 0) return null
+  if (items.length === 0) return []
   const factor = 100 / totalWeight
-  return items.map((item) => ({
+
+  // Work in hundredths (integer cents-of-a-percent) so "the two leftover
+  // hundredths" is an exact integer distribution, not more floating-point
+  // rounding on top of floating-point rounding.
+  const scaled = items.map((item, index) => {
+    const exactCents = item.weight * factor * 100
+    // The tiny epsilon only corrects float representation noise (e.g.
+    // 6666.999999999999 for a true 6667) — far smaller than any genuine
+    // fractional remainder, so it never bumps a real fraction up early.
+    const flooredCents = Math.floor(exactCents + 1e-9)
+    return { index, flooredCents, remainder: exactCents - flooredCents }
+  })
+
+  const totalFlooredCents = scaled.reduce((sum, s) => sum + s.flooredCents, 0)
+  let remainingCents = 10000 - totalFlooredCents
+
+  const byRemainderDesc = [...scaled].sort((a, b) =>
+    b.remainder !== a.remainder ? b.remainder - a.remainder : a.index - b.index,
+  )
+
+  const cents = scaled.map((s) => s.flooredCents)
+  for (const s of byRemainderDesc) {
+    if (remainingCents <= 0) break
+    cents[s.index] += 1
+    remainingCents -= 1
+  }
+
+  return items.map((item, index) => ({
     ...item,
-    weight: Math.round(item.weight * factor * 100) / 100,
+    weight: cents[index] / 100,
   }))
 }
 
@@ -29,6 +67,18 @@ export function normalizeWeights<T extends { weight: number }>(
  */
 export function weightsSumValid(totalWeight: number): boolean {
   return Math.abs(totalWeight - 100) < 0.01
+}
+
+/**
+ * Clamps a typed weight-percent entry to the valid [0, 100] range. A
+ * non-finite input (NaN from an empty/invalid parse, or +-Infinity) clamps
+ * to 0 rather than propagating — mirrors the `|| 0` fallback already used
+ * at every typed-weight call site, just without letting an out-of-range
+ * number (e.g. typing "500") slip through unclamped.
+ */
+export function clampWeightPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(100, Math.max(0, value))
 }
 
 /** Converts a decimal ratio (0-1, as stored server-side) to a percentage

@@ -1,5 +1,12 @@
 import React from "react"
-import { render, screen, fireEvent, within, act } from "@testing-library/react"
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  act,
+  waitFor,
+} from "@testing-library/react"
 import ExecuteRebalancePage, {
   buildDraftContext,
 } from "@pages/rebalance/execute/index"
@@ -827,6 +834,176 @@ describe("ExecuteRebalancePage", () => {
       const finalCall =
         mockSetPageContext.mock.calls[mockSetPageContext.mock.calls.length - 1]
       expect(finalCall[0]).toBeNull()
+    })
+  })
+
+  // --- Footer truthfulness (#1155) ---
+
+  describe("configuration table footer", () => {
+    it("colours the Target-total footer cell red once it drifts more than 0.01 off 100%", () => {
+      mockHookResult([
+        makeItem({
+          assetId: "cash",
+          isCash: true,
+          effectiveTarget: 0.1,
+        }),
+        makeItem({ assetId: "a1", assetCode: "AAPL", effectiveTarget: 0.5 }),
+        // Deliberately unbalanced: 0.1 + 0.5 + 0.365 = 0.965 (96.50%).
+        makeItem({ assetId: "a2", assetCode: "MSFT", effectiveTarget: 0.365 }),
+      ])
+      render(<ExecuteRebalancePage />)
+
+      const targetTotalCell = screen.getByText("96.50%")
+      expect(targetTotalCell.className).toContain("text-red-700")
+    })
+
+    it("leaves the Target-total footer cell in the neutral tone when it sums to exactly 100%", () => {
+      mockHookResult([
+        makeItem({ assetId: "cash", isCash: true, effectiveTarget: 0.1 }),
+        makeItem({ assetId: "a1", assetCode: "AAPL", effectiveTarget: 0.5 }),
+        makeItem({ assetId: "a2", assetCode: "MSFT", effectiveTarget: 0.4 }),
+      ])
+      render(<ExecuteRebalancePage />)
+
+      const targetTotalCell = screen.getByText("100.00%")
+      expect(targetTotalCell.className).not.toContain("text-red-700")
+    })
+
+    it("shows the included After-% total plus the excluded portion, instead of a self-referential 100% that omits the excluded row's real value", () => {
+      mockHookResult([
+        makeItem({
+          assetId: "cash",
+          isCash: true,
+          projectedValue: 1500,
+          projectedWeight: 0.25,
+        }),
+        makeItem({
+          assetId: "a1",
+          assetCode: "AAPL",
+          projectedValue: 4500,
+          projectedWeight: 0.75,
+        }),
+        // Excluded: still worth 4000 (its unchanged snapshot value), but
+        // projectedWeight is null — the naive `?? 0` sum still reads
+        // 100.00% (0.25+0.75) even though 4000 of the 10000 portfolio is
+        // sitting outside that total entirely.
+        makeItem({
+          assetId: "a2",
+          assetCode: "MSFT",
+          excluded: true,
+          isExcluded: true,
+          snapshotValue: 4000,
+          projectedWeight: null,
+        }),
+      ])
+      render(<ExecuteRebalancePage />)
+
+      expect(screen.getByText("60.0%")).toBeInTheDocument()
+      expect(screen.getByText(/\+40\.0% excluded/)).toBeInTheDocument()
+    })
+
+    it("does not render an excluded annotation when nothing is excluded", () => {
+      mockHookResult([
+        makeItem({
+          assetId: "cash",
+          isCash: true,
+          projectedValue: 2500,
+          projectedWeight: 0.25,
+        }),
+        makeItem({
+          assetId: "a1",
+          assetCode: "AAPL",
+          projectedValue: 7500,
+          projectedWeight: 0.75,
+        }),
+      ])
+      render(<ExecuteRebalancePage />)
+
+      expect(screen.queryByText(/excluded/)).not.toBeInTheDocument()
+    })
+  })
+
+  // --- Commit confirmation when targets are off (#1155) ---
+
+  describe("commit confirmation", () => {
+    function goToPreviewStep(): void {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Next.*Review Transactions/i }),
+      )
+    }
+
+    it("requires an explicit confirm stating the total before committing when included targets don't sum to 100%", async () => {
+      const commit = jest.fn().mockResolvedValue({
+        portfolioId: "portfolio-1",
+        transactionStatus: "PROPOSED",
+      })
+      mockHookResult(
+        [
+          makeItem({ assetId: "cash", isCash: true, effectiveTarget: 0.1 }),
+          makeItem({
+            assetId: "a1",
+            assetCode: "AAPL",
+            effectiveTarget: 0.5,
+            deltaValue: 1000,
+          }),
+          makeItem({
+            assetId: "a2",
+            assetCode: "MSFT",
+            effectiveTarget: 0.3,
+            deltaValue: 1000,
+          }),
+        ],
+        { handlers: { commit } },
+      )
+      render(<ExecuteRebalancePage />)
+      goToPreviewStep()
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Execute Transactions/i }),
+      )
+
+      expect(commit).not.toHaveBeenCalled()
+      expect(screen.getByText(/90\.00%/)).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole("button", { name: /Execute Anyway/i }))
+
+      await waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
+    })
+
+    it("commits directly with no confirm dialog when included targets sum to 100%", async () => {
+      const commit = jest.fn().mockResolvedValue({
+        portfolioId: "portfolio-1",
+        transactionStatus: "PROPOSED",
+      })
+      mockHookResult(
+        [
+          makeItem({ assetId: "cash", isCash: true, effectiveTarget: 0.1 }),
+          makeItem({
+            assetId: "a1",
+            assetCode: "AAPL",
+            effectiveTarget: 0.5,
+            deltaValue: 1000,
+          }),
+          makeItem({
+            assetId: "a2",
+            assetCode: "MSFT",
+            effectiveTarget: 0.4,
+            deltaValue: 1000,
+          }),
+        ],
+        { handlers: { commit } },
+      )
+      render(<ExecuteRebalancePage />)
+      goToPreviewStep()
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Execute Transactions/i }),
+      )
+
+      expect(
+        screen.queryByRole("button", { name: /Execute Anyway/i }),
+      ).not.toBeInTheDocument()
+      await waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
     })
   })
 })
