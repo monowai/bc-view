@@ -374,4 +374,73 @@ describe("TargetWeightDialog Component", () => {
       })
     })
   })
+
+  describe("FX-aware sizing (#1156)", () => {
+    // Portfolio in NZD, asset priced/traded in USD (fxRate = USD -> NZD).
+    const nzdPortfolio: Portfolio = makePortfolio({
+      id: "nzd-portfolio-id",
+      currency: { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
+      marketValue: 100000,
+    })
+
+    it("uses the fx-adjusted price, not the naive base-currency-diff / trade-price division", async () => {
+      render(
+        <TargetWeightDialog
+          modalOpen={true}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+          asset={mockAsset}
+          portfolio={nzdPortfolio}
+          currentWeight={5}
+          currentQuantity={100}
+          currentPrice={150} // USD, trade currency
+          fxRate={2} // 1 USD = 2 NZD
+        />,
+      )
+
+      const input = screen.getByRole("textbox")
+      fireEvent.change(input, { target: { value: "10" } })
+      fireEvent.blur(input)
+
+      await waitFor(() => {
+        // Target 10% of NZ$100,000 = NZ$10,000; current 5% = NZ$5,000.
+        // Diff = NZ$5,000, priced in NZD at $150 USD * fxRate 2 = NZ$300/share.
+        // 5000 / 300 = 16.67 => 17 shares.
+        // The naive (no-fx) calculation would divide by the raw USD price
+        // (5000 / 150 = 33.33 => 33) — asserting 17 is absent proves the fx
+        // adjustment, not just rounding, drove the result.
+        expect(screen.getByText("17")).toBeInTheDocument()
+        expect(screen.queryByText("33")).not.toBeInTheDocument()
+        expect(screen.getByText(/Buy/i)).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText("Proceed"))
+      expect(mockOnConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ quantity: 17, price: 150, type: "BUY" }),
+      )
+    })
+
+    it("defaults to fxRate 1 (same-currency behaviour) when the prop is omitted", async () => {
+      render(
+        <TargetWeightDialog
+          modalOpen={true}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+          asset={mockAsset}
+          portfolio={mockPortfolio}
+          currentWeight={5}
+          currentQuantity={100}
+          currentPrice={150}
+        />,
+      )
+
+      const input = screen.getByRole("textbox")
+      fireEvent.change(input, { target: { value: "10" } })
+      fireEvent.blur(input)
+
+      await waitFor(() => {
+        expect(screen.getByText(/33/)).toBeInTheDocument()
+      })
+    })
+  })
 })

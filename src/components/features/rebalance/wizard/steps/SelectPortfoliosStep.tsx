@@ -61,6 +61,20 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
 
   const portfolios = data?.data || []
 
+  // Distinct report currencies among the SELECTED portfolios (not the whole
+  // list) — #1156. The wizard doesn't block a mixed-currency selection
+  // (svc-rebalance values the execution in one enforced currency), but the
+  // user should know up front that it's happening rather than discovering it
+  // from unlabelled numbers on the execute screen.
+  const selectedCurrencies = Array.from(
+    new Set(
+      portfolios
+        .filter((p) => selectedPortfolioIds.includes(p.id))
+        .map((p) => p.currency.code),
+    ),
+  )
+  const hasMixedCurrencies = selectedCurrencies.length > 1
+
   if (portfolios.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
@@ -97,6 +111,12 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
           {"Select None"}
         </button>
       </div>
+
+      {hasMixedCurrencies && (
+        <Alert variant="warning">
+          {`Selected portfolios report in different currencies (${selectedCurrencies.join(", ")}). This rebalance execution will value everything in a single currency.`}
+        </Alert>
+      )}
 
       {/* Portfolio list */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

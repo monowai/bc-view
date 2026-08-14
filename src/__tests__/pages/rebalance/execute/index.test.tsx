@@ -87,6 +87,9 @@ function makeItem(overrides: Partial<DisplayItem> = {}): DisplayItem {
     snapshotValue: overrides.snapshotValue ?? 5000,
     snapshotQuantity: overrides.snapshotQuantity ?? 50,
     snapshotPrice: overrides.snapshotPrice ?? 281.31,
+    // Absent by default (mirrors a legacy pre-#38 row) — tests exercising the
+    // nativePrice branch pass it explicitly.
+    nativePrice: overrides.nativePrice,
     priceCurrency: overrides.priceCurrency ?? "USD",
     planTargetWeight: overrides.planTargetWeight ?? 0.6,
     returnAdjustedTarget: overrides.returnAdjustedTarget ?? 0.58,
@@ -226,20 +229,87 @@ describe("ExecuteRebalancePage", () => {
     expect(screen.queryByTitle(/return-adjusted/i)).not.toBeInTheDocument()
   })
 
-  it("renders the price column as value + currency, and — when price is null", () => {
-    mockHookResult([
-      makeItem({ assetId: "a1", snapshotPrice: 281.31, priceCurrency: "USD" }),
-      makeItem({
-        assetId: "a2",
-        assetCode: "MSFT",
-        snapshotPrice: undefined,
-        priceCurrency: undefined,
-      }),
-    ])
+  it("renders a single execution-currency badge next to the page title", () => {
+    mockHookResult([makeItem()], {
+      execution: makeExecution({ currency: "SGD" }),
+    })
+    render(<ExecuteRebalancePage />)
+
+    expect(screen.getByTestId("execution-currency-badge")).toHaveTextContent(
+      "SGD",
+    )
+  })
+
+  it("price cell renders nativePrice labelled with the trade currency (priceCurrency) when present", () => {
+    mockHookResult(
+      [
+        makeItem({
+          assetId: "a1",
+          // snapshotPrice is the FX-converted (execution-currency) figure —
+          // must NOT be what's shown once nativePrice is available.
+          snapshotPrice: 300.5,
+          nativePrice: 281.31,
+          priceCurrency: "USD",
+        }),
+      ],
+      { execution: makeExecution({ currency: "NZD" }) },
+    )
     render(<ExecuteRebalancePage />)
 
     expect(screen.getByText("281.31 USD")).toBeInTheDocument()
+    expect(screen.queryByText(/300\.50/)).not.toBeInTheDocument()
+  })
+
+  it("price cell falls back to snapshotPrice labelled with the EXECUTION currency when nativePrice is absent (legacy rows), and — when there is no price at all", () => {
+    mockHookResult(
+      [
+        makeItem({
+          assetId: "a1",
+          snapshotPrice: 281.31,
+          nativePrice: null,
+          // Trade currency — must NOT be used as the label on this branch,
+          // since snapshotPrice is already FX-converted to the execution
+          // currency, not this one.
+          priceCurrency: "USD",
+        }),
+        makeItem({
+          assetId: "a2",
+          assetCode: "MSFT",
+          snapshotPrice: undefined,
+          nativePrice: undefined,
+          priceCurrency: undefined,
+        }),
+      ],
+      { execution: makeExecution({ currency: "NZD" }) },
+    )
+    render(<ExecuteRebalancePage />)
+
+    expect(screen.getByText("281.31 NZD")).toBeInTheDocument()
+    expect(screen.queryByText("281.31 USD")).not.toBeInTheDocument()
     expect(screen.getByText("—")).toBeInTheDocument()
+  })
+
+  it("preview table's price cell applies the same nativePrice/priceCurrency pairing as the configure table", () => {
+    mockHookResult(
+      [
+        makeItem({
+          assetId: "a1",
+          assetCode: "AAPL",
+          snapshotPrice: 300.5,
+          nativePrice: 281.31,
+          priceCurrency: "USD",
+          deltaValue: 1000,
+        }),
+      ],
+      { execution: makeExecution({ currency: "NZD" }) },
+    )
+    render(<ExecuteRebalancePage />)
+    fireEvent.click(
+      screen.getByRole("button", { name: /Next.*Review Transactions/i }),
+    )
+
+    expect(screen.getByText("Proposed Transactions")).toBeInTheDocument()
+    expect(screen.getByText("281.31 USD")).toBeInTheDocument()
   })
 
   it("tints a positive-delta-quantity row green and a negative one red; leaves excluded/zero rows neutral", () => {

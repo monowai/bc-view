@@ -75,7 +75,12 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
     setLoadingWeights(true)
     try {
       const portfolio = portfolios.find((p) => p.id === portfolioId)
-      const valueCurrency = portfolio?.currency?.code || "USD"
+      // Fallback only covers a race against a background portfolios refetch
+      // (the dropdown only ever offers ids drawn from `portfolios`, so the
+      // lookup above should always hit) — the first portfolio in the
+      // currently-known list, never a hard-coded country default (#1156).
+      const valueCurrency =
+        portfolio?.currency?.code || portfolios[0]?.currency?.code || ""
 
       const response = await fetch(
         `/api/rebalance/models/${modelId}/plans/weights-from-holdings?portfolioId=${portfolioId}&valueCurrency=${valueCurrency}`,

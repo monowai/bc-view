@@ -3,6 +3,7 @@ import { Asset, Portfolio, RebalanceData } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { calculateQuantityFromTargetWeight } from "@lib/trns/tradeFormHelpers"
 
 export type { RebalanceData }
 
@@ -15,6 +16,10 @@ interface TargetWeightDialogProps {
   currentWeight: number
   currentQuantity: number
   currentPrice: number
+  // Trade-currency -> portfolio-currency rate (see WeightClickData.fxRate).
+  // Defaults to 1 — same-currency asset/portfolio, or a caller that hasn't
+  // been updated to supply it yet.
+  fxRate?: number
 }
 
 const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
@@ -26,37 +31,48 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
   currentWeight,
   currentQuantity,
   currentPrice,
+  fxRate = 1,
 }) => {
   // Parent (pages/holdings/[code].tsx) conditionally mounts this dialog,
   // so the initial useState already gives fresh state on each open.
   const [targetWeight, setTargetWeight] = useState<number>(currentWeight)
 
-  // Calculate required shares and action type
+  // Calculate required shares and action type. `currentPrice` is the asset's
+  // TRADE currency but `portfolio.marketValue` (and so the weight-derived
+  // valueDiff) is portfolio currency — `calculateQuantityFromTargetWeight`
+  // applies `fxRate` to reconcile them, same fix as the trade dialog's
+  // target-weight sizing (#1156). Without it, a foreign-currency asset's
+  // required-share count is silently wrong by the fx ratio.
   const calculation = useMemo(() => {
     const portfolioValue = portfolio.marketValue
     if (portfolioValue <= 0 || currentPrice <= 0) {
       return { shares: 0, type: "BUY" as const }
     }
 
-    const targetValue = (targetWeight / 100) * portfolioValue
-    const currentValue = (currentWeight / 100) * portfolioValue
-    const valueDiff = targetValue - currentValue
-
     // For selling to 0%, use all current shares
     if (targetWeight === 0 && currentQuantity > 0) {
       return { shares: currentQuantity, type: "SELL" as const }
     }
 
-    const shares = Math.round(Math.abs(valueDiff) / currentPrice)
-    const type = valueDiff >= 0 ? ("BUY" as const) : ("SELL" as const)
+    const result = calculateQuantityFromTargetWeight(
+      targetWeight,
+      currentWeight,
+      currentPrice,
+      portfolioValue,
+      fxRate,
+    )
+    if (!result) {
+      return { shares: 0, type: "BUY" as const }
+    }
 
-    return { shares, type }
+    return { shares: result.quantity, type: result.tradeType }
   }, [
     targetWeight,
     currentWeight,
     portfolio.marketValue,
     currentPrice,
     currentQuantity,
+    fxRate,
   ])
 
   const handleProceed = (): void => {

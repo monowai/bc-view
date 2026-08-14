@@ -61,6 +61,11 @@ export interface WeightClickData {
   currentWeight: number
   currentQuantity: number
   currentPrice: number
+  // Trade-currency -> portfolio-currency rate, so the rebalance dialog can
+  // weigh `currentPrice` (the asset's own trade currency) against
+  // portfolio.marketValue (portfolio currency). Omitted/1 when they already
+  // match. Mirrors QuickSellData.fxRate.
+  fxRate?: number
 }
 
 export interface SetCashBalanceData {

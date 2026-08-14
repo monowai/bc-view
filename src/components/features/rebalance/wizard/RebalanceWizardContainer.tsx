@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import useSwr from "swr"
 import Alert from "@components/ui/Alert"
 import { useRouter } from "next/router"
 import Spinner from "@components/ui/Spinner"
@@ -13,6 +14,8 @@ import {
   CreatePlanRequest,
   CreateExecutionRequest,
 } from "types/rebalance"
+import { PortfolioResponses } from "types/beancounter"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface RebalanceWizardContainerProps {
@@ -40,6 +43,30 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
   } = useDialogSubmit({ fallbackError: "Failed to complete wizard" })
 
   const hasApprovedPlan = Boolean(selectedModel?.currentPlanId)
+
+  // Backs the cash-delta currency label in steps 3-4. The model's
+  // baseCurrency is the primary source once one's selected; the fallback (for
+  // the brief window before that, or a defensively-null model) derives from
+  // the selected portfolio's report currency rather than a hard-coded
+  // country default (#1156) — never observable via the wizard's own
+  // navigation gating today (step 3 is unreachable without a model), but the
+  // fallback should still be honest if that ever changes.
+  const { data: portfoliosData } = useSwr<PortfolioResponses>(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
+  const planCurrency = useMemo(() => {
+    if (selectedModel?.baseCurrency) return selectedModel.baseCurrency
+    const portfolios = portfoliosData?.data || []
+    const firstSelectedPortfolio = portfolios.find((p) =>
+      selectedPortfolioIds.includes(p.id),
+    )
+    return (
+      firstSelectedPortfolio?.currency.code ||
+      portfolios[0]?.currency.code ||
+      ""
+    )
+  }, [selectedModel, portfoliosData, selectedPortfolioIds])
 
   // Steps configuration
   const steps = useMemo(
@@ -168,7 +195,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             onScenarioChange={setScenario}
             cashDelta={cashDelta}
             onCashDeltaChange={setCashDelta}
-            planCurrency={selectedModel?.baseCurrency || "USD"}
+            planCurrency={planCurrency}
           />
         )}
         {currentStep === 4 && (
@@ -179,7 +206,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             portfolioCount={selectedPortfolioIds.length}
             scenario={scenario}
             cashDelta={cashDelta}
-            planCurrency={selectedModel?.baseCurrency || "USD"}
+            planCurrency={planCurrency}
           />
         )}
       </div>

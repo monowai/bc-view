@@ -196,6 +196,8 @@ export interface ExecutionItemDto {
   snapshotValue: number
   snapshotQuantity: number
   snapshotPrice?: number
+  /** Trade-currency (native) price used for booking on commit; null on pre-existing rows */
+  nativePrice?: number | null
   priceCurrency?: string
   planTargetWeight: number
   /** Return-adjusted target accounting for price movements since model creation */
