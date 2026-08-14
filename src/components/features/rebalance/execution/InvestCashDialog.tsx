@@ -19,6 +19,8 @@ import {
   ModelDto,
   ExecutionDto,
   ExecutionItemDto,
+  ExecutionItemUpdate,
+  CommitExecutionRequest,
   PlanDto,
 } from "types/rebalance"
 import { BrokerWithAccounts } from "types/beancounter"
@@ -251,7 +253,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     try {
       // Only send updates if user made edits
       if (Object.keys(itemEdits).length > 0) {
-        const itemUpdates = buyItems
+        const itemUpdates: ExecutionItemUpdate[] = buyItems
           .filter((item) => itemEdits[item.assetId])
           .map((item) => ({
             assetId: item.assetId,
@@ -287,17 +289,18 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         }) ?? undefined
 
       // Commit to create transactions
+      const commitRequest: CommitExecutionRequest = {
+        portfolioId,
+        transactionStatus,
+        brokerId: selectedBrokerId,
+        cashAssetId,
+      }
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}/commit`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId: portfolioId,
-            transactionStatus,
-            brokerId: selectedBrokerId,
-            cashAssetId,
-          }),
+          body: JSON.stringify(commitRequest),
         },
       )
 

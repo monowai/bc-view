@@ -1,13 +1,15 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { simpleFetcher, accountsKey } from "@utils/api/fetchHelper"
 import { toErrorMessage } from "@lib/formatters"
+import { resolveBrokerCashAssetId } from "@utils/trns/tradeFormHelpers"
 import {
   ExecutionDto,
   ExecutionItemDto,
   ExecutionItemUpdate,
+  CommitExecutionRequest,
 } from "types/rebalance"
-import { Broker, TrnStatus } from "types/beancounter"
+import { Asset, BrokerWithAccounts, TrnStatus } from "types/beancounter"
 import { TRN_STATUS } from "types/constants"
 
 // --- Public types ---
@@ -78,7 +80,7 @@ export interface UseRebalanceExecutionResult {
   displayItems: DisplayItem[]
   activeItems: DisplayItem[]
   cashSummary: CashSummary
-  brokers: Broker[]
+  brokers: BrokerWithAccounts[]
   selectedBrokerId: string | undefined
   setSelectedBrokerId: (id: string | undefined) => void
   states: {
@@ -188,12 +190,30 @@ export function useRebalanceExecution(
   // --- SWR data ---
 
   const { data: brokersData } = useSwr(
-    "/api/brokers",
-    simpleFetcher("/api/brokers"),
+    "/api/brokers?includeAccounts=true",
+    simpleFetcher("/api/brokers?includeAccounts=true"),
   )
-  const brokers: Broker[] = useMemo(
+  const brokers: BrokerWithAccounts[] = useMemo(
     () => brokersData?.data || [],
     [brokersData],
+  )
+
+  // Account assets (incl. broker settlement lines) — same source
+  // InvestCashDialog uses to resolve a broker's own cash line for commit
+  // (see resolveBrokerCashAssetId below). `Asset` is structurally
+  // compatible with that helper's expected shape (id/code/market.currency/
+  // accountingType.currency/priceSymbol) — verified against types/beancounter's
+  // Asset/Market/AccountingType/Currency, not just assumed.
+  const { data: accountAssetsData } = useSwr(
+    accountsKey,
+    simpleFetcher(accountsKey),
+  )
+  const accountAssets = useMemo(
+    () =>
+      accountAssetsData?.data
+        ? (Object.values(accountAssetsData.data) as Asset[])
+        : [],
+    [accountAssetsData],
   )
 
   // Convenience default: if the user has exactly one broker, pre-select it.
@@ -588,7 +608,12 @@ export function useRebalanceExecution(
     setHasChanges(true)
   }, [])
 
-  // Commit execution - create transactions
+  // Commit execution - create transactions. Routes settlement into the
+  // selected broker's own cash line (e.g. IBRK-USD) when resolvable —
+  // mirrors InvestCashDialog's resolution exactly (same brokers +
+  // accountAssets sources, see resolveBrokerCashAssetId) — otherwise omits
+  // cashAssetId so the backend falls back to the generic CASH/{currency}
+  // asset for the execution's currency.
   const handleCommit = useCallback(async (): Promise<
     | { portfolioId: string; transactionStatus: "PROPOSED" | "SETTLED" }
     | undefined
@@ -601,17 +626,27 @@ export function useRebalanceExecution(
     try {
       const portfolioId = execution.portfolioIds[0]
       const transactionStatus: TrnStatus = TRN_STATUS.PROPOSED
+      const cashAssetId =
+        resolveBrokerCashAssetId({
+          brokerId: selectedBrokerId,
+          currency: execution.currency,
+          brokers,
+          accountAssets,
+        }) ?? undefined
+
+      const commitRequest: CommitExecutionRequest = {
+        portfolioId,
+        transactionStatus,
+        brokerId: selectedBrokerId,
+        cashAssetId,
+      }
 
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}/commit`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId,
-            transactionStatus,
-            brokerId: selectedBrokerId,
-          }),
+          body: JSON.stringify(commitRequest),
         },
       )
 
@@ -631,7 +666,7 @@ export function useRebalanceExecution(
     } finally {
       setCommitting(false)
     }
-  }, [execution, selectedBrokerId])
+  }, [execution, selectedBrokerId, brokers, accountAssets])
 
   // --- Computed values ---
 

@@ -125,6 +125,7 @@ function PlanDetailPage(): React.ReactElement {
 
   const handleSave = async (): Promise<void> => {
     setSaving(true)
+    setActionError(null)
     try {
       const response = await fetch(
         `/api/rebalance/models/${modelId}/plans/${planId}`,
@@ -137,9 +138,15 @@ function PlanDetailPage(): React.ReactElement {
       if (response.ok) {
         mutate()
         setHasChanges(false)
+      } else {
+        const text = await response.text().catch(() => "")
+        setActionError(
+          `Save failed (${response.status})${text ? `: ${text}` : ""}`,
+        )
       }
     } catch (err) {
       console.error("Failed to save plan:", err)
+      setActionError("Save failed — please try again")
     } finally {
       setSaving(false)
     }
