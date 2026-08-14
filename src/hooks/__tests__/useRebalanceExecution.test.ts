@@ -1446,3 +1446,245 @@ describe("useRebalanceExecution", () => {
     expect(byId("fallback-1")).toBe(true)
   })
 })
+
+// --- Characterization: mixed-currency client math ---
+//
+// `makeItem`/`makeExecution` already default `priceCurrency`/`currency` to
+// "USD" but accept overrides, so no fixture-factory changes were needed for
+// this block — see the top-level fixtures above.
+describe("characterization: mixed-currency client math (#1154/#1156)", () => {
+  // These tests document what the CURRENT client math in
+  // useRebalanceExecution.ts actually produces when an execution's items
+  // carry a `priceCurrency` that differs from the execution/portfolio's own
+  // reporting currency. The hook's computed memo (useRebalanceExecution.ts
+  // ~lines 642-788) never reads `priceCurrency` at all: `totalPortfolioValue`,
+  // `snapshotValue`, `snapshotCashValue` and `snapshotPrice` are all treated
+  // as plain numbers in one implicit unit. In particular `deltaQuantity`
+  // (line ~699-703) divides a delta expressed in the execution's reporting
+  // currency by `snapshotPrice`, which may be quoted in a different currency
+  // entirely — silently mixing currencies to produce a share count. These
+  // tests pin that behavior for future refactors; they do NOT bless it as
+  // correct. The fix belongs on the backend (#1154) per the
+  // backend-drives-data hard rule.
+
+  it("a) an asset priced in USD inside an SGD-reporting execution: deltaValue/deltaQuantity mix the two currencies without conversion", async () => {
+    const exec = makeExecution({
+      currency: "SGD",
+      totalPortfolioValue: 10000,
+      snapshotCashValue: 1000,
+      items: [
+        makeItem({
+          id: "usd-item",
+          assetId: "usd-asset",
+          assetCode: "AAPL",
+          priceCurrency: "USD",
+          snapshotWeight: 0.5,
+          snapshotValue: 5000,
+          snapshotPrice: 100,
+          planTargetWeight: 0.6,
+          isCash: false,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          priceCurrency: "SGD",
+          snapshotWeight: 0.1,
+          snapshotValue: 1000,
+          planTargetWeight: 0.1,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    const usdItem = result.current.displayItems.find(
+      (i) => i.assetId === "usd-asset",
+    )
+    // No override, no other non-cash items: proportional scaling collapses
+    // to (planTargetWeight / totalPlanTargetWeights) * availableForAssets
+    // = (0.6 / 0.6) * (1 - 0.1) = 0.9.
+    expect(usdItem?.effectiveTarget).toBeCloseTo(0.9, 10)
+    // targetValue = 10000 (SGD) * 0.9 = 9000 (SGD); deltaValue = 9000 - 5000
+    // (the item's own snapshotValue, also nominally SGD per the DTO) = 4000.
+    expect(usdItem?.deltaValue).toBeCloseTo(4000, 6)
+    // deltaQuantity = round(deltaValue / snapshotPrice) = round(4000 / 100)
+    // = 40 -- a "4000 SGD" delta divided by a "100 USD" price, treated as
+    // the same unit. priceCurrency is never consulted.
+    expect(usdItem?.deltaQuantity).toBe(40)
+
+    // Cash summary: the 4000 buy has to be funded from somewhere. Nothing
+    // was sold, cashPositionChange is 0 (cash target == current), so the
+    // hook reports a deposit requirement of exactly the mismatched delta.
+    expect(result.current.cashSummary.cashForPurchases).toBeCloseTo(4000, 6)
+    expect(result.current.cashSummary.cashFromSales).toBe(0)
+    expect(result.current.cashSummary.netImpact).toBeCloseTo(-4000, 6)
+    // projectedCash is unclamped and goes negative -- "needs a deposit".
+    expect(result.current.cashSummary.projectedCash).toBeCloseTo(-3000, 6)
+
+    // projectedWeight: excluded rows aside, projectedTotal only ever sums
+    // snapshotValue + deltaValue across items -- again currency-blind. Cash
+    // is clamped to 0 (can't fund the deposit from itself), so the USD item
+    // ends up owning 100% of the projected total.
+    expect(usdItem?.projectedWeight).toBeCloseTo(1, 6)
+    const cash = result.current.displayItems.find((i) => i.isCash)
+    expect(cash?.projectedValue).toBe(0)
+    expect(cash?.projectedWeight).toBe(0)
+  })
+
+  it("b) a plan-only asset (no held position) quoted in EUR inside an SGD-reporting execution gets a full target allocation and a currency-blind share count", async () => {
+    const exec = makeExecution({
+      currency: "SGD",
+      totalPortfolioValue: 10000,
+      snapshotCashValue: 1000,
+      items: [
+        makeItem({
+          id: "held",
+          assetId: "held-asset",
+          assetCode: "MSFT",
+          priceCurrency: "USD",
+          snapshotWeight: 0.9,
+          snapshotValue: 9000,
+          snapshotPrice: 100,
+          planTargetWeight: 0.5,
+          isCash: false,
+        }),
+        makeItem({
+          id: "plan-only",
+          assetId: "eur-planonly-asset",
+          assetCode: "SAP",
+          priceCurrency: "EUR",
+          // Not currently held: zero snapshot position, but still carries a
+          // plan target weight, exactly like a brand-new model addition.
+          snapshotWeight: 0,
+          snapshotValue: 0,
+          snapshotQuantity: 0,
+          snapshotPrice: 50,
+          planTargetWeight: 0.5,
+          isCash: false,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          priceCurrency: "SGD",
+          snapshotWeight: 0.1,
+          snapshotValue: 1000,
+          planTargetWeight: 0.1,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+
+    const planOnly = result.current.displayItems.find(
+      (i) => i.assetId === "eur-planonly-asset",
+    )
+    // totalPlanTargetWeights (non-cash) = 0.5 + 0.5 = 1.0; availableForAssets
+    // = 0.9; effectiveTarget = (0.5 / 1.0) * 0.9 = 0.45 for both non-cash rows.
+    expect(planOnly?.effectiveTarget).toBeCloseTo(0.45, 10)
+    // targetValue = 10000 * 0.45 = 4500 (SGD); deltaValue = 4500 - 0 = 4500,
+    // even though the asset has never been held and is quoted in EUR.
+    expect(planOnly?.deltaValue).toBeCloseTo(4500, 6)
+    // deltaQuantity = round(4500 / 50) = 90 "shares" -- again the SGD-valued
+    // delta is divided by a EUR-quoted price with no FX applied.
+    expect(planOnly?.deltaQuantity).toBe(90)
+
+    const held = result.current.displayItems.find(
+      (i) => i.assetId === "held-asset",
+    )
+    expect(held?.effectiveTarget).toBeCloseTo(0.45, 10)
+    expect(held?.deltaValue).toBeCloseTo(-4500, 6)
+    expect(held?.deltaQuantity).toBe(-45)
+
+    // This scenario happens to be self-funding (sale of `held` == purchase
+    // of `plan-only`), so cash is untouched and the projected weights land
+    // exactly on the (currency-blind) target weights.
+    expect(result.current.cashSummary.netImpact).toBeCloseTo(0, 6)
+    expect(result.current.cashSummary.projectedCash).toBeCloseTo(1000, 6)
+    expect(planOnly?.projectedWeight).toBeCloseTo(0.45, 6)
+    expect(held?.projectedWeight).toBeCloseTo(0.45, 6)
+  })
+
+  it("c) two portfolios with different native currencies are flattened into one item list with no per-portfolio currency segregation", async () => {
+    // ExecutionDto exposes a single aggregate `currency` field and
+    // ExecutionItemDto carries no portfolioId -- the hook's surface has no
+    // concept of "this item belongs to that portfolio's currency". This
+    // test documents that: with portfolioIds.length === 2, the compute pass
+    // still just sums raw item numbers regardless of each item's own
+    // (notionally per-portfolio) priceCurrency.
+    const exec = makeExecution({
+      portfolioIds: ["portfolio-usd", "portfolio-sgd"],
+      currency: "SGD",
+      totalPortfolioValue: 20000,
+      snapshotCashValue: 2000,
+      items: [
+        makeItem({
+          id: "usd-port-item",
+          assetId: "usd-port-asset",
+          assetCode: "VOO",
+          priceCurrency: "USD",
+          snapshotWeight: 0.4,
+          snapshotValue: 8000,
+          snapshotPrice: 200,
+          planTargetWeight: 0.45,
+          isCash: false,
+        }),
+        makeItem({
+          id: "sgd-port-item",
+          assetId: "sgd-port-asset",
+          assetCode: "ES3",
+          priceCurrency: "SGD",
+          snapshotWeight: 0.5,
+          snapshotValue: 10000,
+          snapshotPrice: 500,
+          planTargetWeight: 0.45,
+          isCash: false,
+        }),
+        makeCashItem({
+          assetId: "cash",
+          priceCurrency: "SGD",
+          snapshotWeight: 0.1,
+          snapshotValue: 2000,
+          planTargetWeight: 0.1,
+        }),
+      ],
+    })
+
+    const { result } = await renderWithExecution(exec)
+    expect(result.current.execution?.portfolioIds).toEqual([
+      "portfolio-usd",
+      "portfolio-sgd",
+    ])
+
+    const usdItem = result.current.displayItems.find(
+      (i) => i.assetId === "usd-port-asset",
+    )
+    const sgdItem = result.current.displayItems.find(
+      (i) => i.assetId === "sgd-port-asset",
+    )
+
+    // totalPlanTargetWeights = 0.45 + 0.45 = 0.9 = availableForAssets, so
+    // effectiveTarget == planTargetWeight for both, unaffected by which
+    // portfolio (or currency) each item nominally came from.
+    expect(usdItem?.effectiveTarget).toBeCloseTo(0.45, 10)
+    expect(sgdItem?.effectiveTarget).toBeCloseTo(0.45, 10)
+
+    // targetValue = 20000 * 0.45 = 9000 for both.
+    expect(usdItem?.deltaValue).toBeCloseTo(1000, 6) // 9000 - 8000
+    expect(sgdItem?.deltaValue).toBeCloseTo(-1000, 6) // 9000 - 10000
+    // deltaQuantity divides the aggregate-currency delta by each item's own
+    // native price -- USD price for the "USD portfolio" item, SGD price for
+    // the "SGD portfolio" item -- with no currency-aware boundary between
+    // the two portfolios' contributions to the flattened items array.
+    expect(usdItem?.deltaQuantity).toBe(5) // round(1000 / 200)
+    expect(sgdItem?.deltaQuantity).toBe(-2) // round(-1000 / 500)
+
+    // Self-funding across the two portfolios' items: cash is untouched.
+    expect(result.current.cashSummary.cashFromSales).toBeCloseTo(1000, 6)
+    expect(result.current.cashSummary.cashForPurchases).toBeCloseTo(1000, 6)
+    expect(result.current.cashSummary.netImpact).toBeCloseTo(0, 6)
+
+    const total = result.current.displayItems.reduce(
+      (sum, item) => sum + (item.projectedWeight ?? 0),
+      0,
+    )
+    expect(total).toBeCloseTo(1, 5)
+  })
+})
