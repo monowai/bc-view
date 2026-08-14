@@ -1447,6 +1447,127 @@ describe("useRebalanceExecution", () => {
   })
 })
 
+// --- Commit: broker settlement cash asset resolution (#1157) ---
+//
+// The execute-screen commit path must resolve cashAssetId the same way
+// InvestCashDialog does (resolveBrokerCashAssetId over brokers +
+// accountAssets), not omit it outright — otherwise broker-tagged trades
+// settle into the generic currency cash asset instead of the broker's own
+// settlement account.
+describe("commit: broker settlement cash asset resolution (#1157)", () => {
+  // This describe is a sibling of the main `describe("useRebalanceExecution")`
+  // block above, not nested inside it, so it does not inherit that block's
+  // beforeEach (mockUseSwr.mockReset / fresh global.fetch) — without its own
+  // reset here, global.fetch (and its mockResolvedValueOnce queue) would
+  // accumulate calls across these tests and findCommitCall() below could
+  // match a previous test's commit request instead of this test's own.
+  beforeEach(() => {
+    mockUseSwr.mockReset()
+    global.fetch = jest.fn()
+  })
+
+  const brokerWithUsdSettlement = {
+    id: "broker-1",
+    name: "IBKR",
+    settlementAccounts: [{ currencyCode: "USD", accountId: "cash-asset-usd" }],
+  }
+  // A second broker so a two-broker fixture never triggers the "exactly one
+  // broker" auto-select convenience — keeps selectedBrokerId under explicit
+  // test control.
+  const otherBroker = {
+    id: "broker-2",
+    name: "Schwab",
+    settlementAccounts: [],
+  }
+
+  const findCommitCall = (): [string, RequestInit] | undefined =>
+    (global.fetch as jest.Mock).mock.calls.find(
+      ([url, opts]: [string, RequestInit]) =>
+        url === "/api/rebalance/executions/exec-1/commit" &&
+        opts?.method === "POST",
+    )
+
+  it("includes the broker's resolved settlement cash asset when a broker with a matching account is selected", async () => {
+    setupSwrMocks({}, [brokerWithUsdSettlement, otherBroker])
+    const exec = makeExecution({ currency: "USD" })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
+        data: { data: { transactionsCreated: 1, transactionIds: ["t1"] } },
+      },
+    )
+
+    act(() => {
+      result.current.setSelectedBrokerId("broker-1")
+    })
+
+    await act(async () => {
+      await result.current.handlers.commit()
+    })
+
+    const call = findCommitCall()
+    expect(call).toBeDefined()
+    const body = JSON.parse(call![1].body as string)
+    expect(body.cashAssetId).toBe("cash-asset-usd")
+    expect(body.brokerId).toBe("broker-1")
+  })
+
+  it("omits cashAssetId when no broker is selected", async () => {
+    setupSwrMocks({}, [brokerWithUsdSettlement, otherBroker])
+    const exec = makeExecution({ currency: "USD" })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
+        data: { data: { transactionsCreated: 1, transactionIds: ["t1"] } },
+      },
+    )
+
+    await act(async () => {
+      await result.current.handlers.commit()
+    })
+
+    const call = findCommitCall()
+    expect(call).toBeDefined()
+    const body = JSON.parse(call![1].body as string)
+    expect(body).not.toHaveProperty("cashAssetId")
+  })
+
+  it("omits cashAssetId when the selected broker has no settlement account for the execution's currency", async () => {
+    // Two brokers (not one) so the "exactly one broker" auto-select
+    // convenience never fires — selectedBrokerId stays under this test's
+    // explicit control.
+    setupSwrMocks({}, [brokerWithUsdSettlement, otherBroker])
+    const exec = makeExecution({ currency: "EUR" })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
+        data: { data: { transactionsCreated: 1, transactionIds: ["t1"] } },
+      },
+    )
+
+    act(() => {
+      result.current.setSelectedBrokerId("broker-1")
+    })
+
+    await act(async () => {
+      await result.current.handlers.commit()
+    })
+
+    const call = findCommitCall()
+    expect(call).toBeDefined()
+    const body = JSON.parse(call![1].body as string)
+    expect(body).not.toHaveProperty("cashAssetId")
+    // Broker is still tagged even though no settlement account matched.
+    expect(body.brokerId).toBe("broker-1")
+  })
+})
+
 // --- Characterization: mixed-currency client math ---
 //
 // `makeItem`/`makeExecution` already default `priceCurrency`/`currency` to

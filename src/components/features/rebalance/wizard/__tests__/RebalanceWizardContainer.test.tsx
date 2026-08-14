@@ -48,6 +48,32 @@ const testModelWithApprovedPlan: ModelDto = {
   currentPlanId: "plan-approved-1",
 }
 
+// Explicit currentPlanStatus: "APPROVED" — as opposed to
+// testModelWithApprovedPlan above, which omits the field entirely to cover
+// the backward-compatible "missing status" case.
+const testModelWithExplicitlyApprovedPlan: ModelDto = {
+  ...testModel,
+  id: "model-4",
+  currentPlanId: "plan-approved-2",
+  currentPlanStatus: "APPROVED",
+}
+
+const testModelWithDraftPlan: ModelDto = {
+  ...testModel,
+  id: "model-3",
+  currentPlanId: "plan-draft-1",
+  currentPlanStatus: "DRAFT",
+}
+
+// Unexpected status value this client doesn't know about — must NOT be
+// treated as approved (strict equality only, no `!== "DRAFT"` catch-all).
+const testModelWithArchivedPlan: ModelDto = {
+  ...testModel,
+  id: "model-5",
+  currentPlanId: "plan-archived-1",
+  currentPlanStatus: "ARCHIVED" as unknown as ModelDto["currentPlanStatus"],
+}
+
 // The wizard steps are exercised elsewhere (model list, portfolio picker,
 // scenario form) — stubbing them here keeps this test focused on the
 // container's own responsibility: building the create-plan/create-execution
@@ -281,6 +307,104 @@ describe("RebalanceWizardContainer submit", () => {
       })
 
       expect(mockPush).not.toHaveBeenCalled()
+    })
+  })
+
+  // --- Approved = plan status, not presence (#1157) ---
+  //
+  // hasApprovedPlan (button label + which endpoint handleSubmit posts to)
+  // must gate on currentPlanStatus, not merely on currentPlanId being set —
+  // a currentPlanId that points at a DRAFT plan is not yet executable.
+
+  describe("model with a DRAFT current plan", () => {
+    beforeEach(() => {
+      modelToSelect = testModelWithDraftPlan
+    })
+
+    it("shows Create Plan (not Start Execution) even though currentPlanId is set", () => {
+      driveToReview()
+
+      expect(screen.getByText("Create Plan")).toBeInTheDocument()
+      expect(screen.queryByText("Start Execution")).not.toBeInTheDocument()
+    })
+
+    it("posts to the per-model plans endpoint, not /api/rebalance/executions", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { id: "plan-99" } }),
+      })
+
+      driveToReview()
+      fireEvent.click(screen.getByText("Create Plan"))
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/rebalance/models/model-3/plans",
+          expect.objectContaining({ method: "POST" }),
+        )
+      })
+      expect(mockFetch).not.toHaveBeenCalledWith(
+        "/api/rebalance/executions",
+        expect.anything(),
+      )
+    })
+  })
+
+  describe("model with an unexpected (non-DRAFT, non-APPROVED) plan status", () => {
+    beforeEach(() => {
+      modelToSelect = testModelWithArchivedPlan
+    })
+
+    it("shows Create Plan (not Start Execution) — an unrecognized status is never treated as approved", () => {
+      driveToReview()
+
+      expect(screen.getByText("Create Plan")).toBeInTheDocument()
+      expect(screen.queryByText("Start Execution")).not.toBeInTheDocument()
+    })
+
+    it("posts to the per-model plans endpoint, not /api/rebalance/executions", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { id: "plan-100" } }),
+      })
+
+      driveToReview()
+      fireEvent.click(screen.getByText("Create Plan"))
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/rebalance/models/model-5/plans",
+          expect.objectContaining({ method: "POST" }),
+        )
+      })
+      expect(mockFetch).not.toHaveBeenCalledWith(
+        "/api/rebalance/executions",
+        expect.anything(),
+      )
+    })
+  })
+
+  describe("model with an explicitly APPROVED current plan", () => {
+    beforeEach(() => {
+      modelToSelect = testModelWithExplicitlyApprovedPlan
+    })
+
+    it("shows Start Execution and posts to /api/rebalance/executions", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { id: "execution-3" } }),
+      })
+
+      driveToReview({ scenarioButton: "set-scenario-rebalance" })
+      expect(screen.getByText("Start Execution")).toBeInTheDocument()
+      fireEvent.click(screen.getByText("Start Execution"))
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/rebalance/executions",
+          expect.objectContaining({ method: "POST" }),
+        )
+      })
     })
   })
 

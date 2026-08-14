@@ -22,6 +22,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
   const [filterByModel, setFilterByModel] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch models with an approved current plan
   const { approvedModels: modelsWithApprovedPlans, isLoading: loadingModels } =
@@ -32,6 +33,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
 
     setSelectedModelId(model.id)
     setLoadingPlan(true)
+    setError(null)
 
     try {
       // Fetch the approved plan
@@ -41,9 +43,17 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
       if (response.ok) {
         const planData = await response.json()
         onSelectPlan(model, planData.data, filterByModel)
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setError(
+          typeof errorData.message === "string"
+            ? errorData.message
+            : `Failed to load plan: ${response.status}`,
+        )
       }
     } catch (err) {
       console.error("Failed to fetch plan:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch plan")
     } finally {
       setLoadingPlan(false)
       setSelectedModelId(null)
@@ -60,6 +70,8 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
       scrollable={true}
       footer={<Dialog.CancelButton onClick={onClose} label={"Cancel"} />}
     >
+      <Dialog.ErrorAlert message={error} />
+
       <p className="text-sm text-gray-600 mb-4">
         {
           "Choose an approved model plan to rebalance against, or create a new model from your current holdings."

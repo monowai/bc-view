@@ -143,3 +143,34 @@ describe("InvestCashDialog price editing", () => {
     expect(priceInput().value).toBe("12")
   })
 })
+
+// --- Commit request body shape (#1157) ---
+describe("InvestCashDialog commit request", () => {
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: execution }),
+    }) as unknown as typeof fetch
+  })
+
+  it("posts a CommitExecutionRequest body with no stray keys when no broker is selected", async () => {
+    const user = userEvent.setup()
+    await goToPreview(user)
+
+    await user.click(screen.getByText(/Create Proposed/))
+
+    await waitFor(() => {
+      const commitCall = (global.fetch as jest.Mock).mock.calls.find(
+        ([url, opts]: [string, RequestInit]) =>
+          url === "/api/rebalance/executions/exec-1/commit" &&
+          opts?.method === "POST",
+      )
+      expect(commitCall).toBeDefined()
+      const body = JSON.parse(commitCall![1].body as string)
+      expect(body).toEqual({
+        portfolioId: "p1",
+        transactionStatus: "PROPOSED",
+      })
+    })
+  })
+})
