@@ -4,6 +4,7 @@ import {
   toWeightPercent,
   toWeightDecimal,
   buildPlanAssetsPayload,
+  clampWeightPercent,
 } from "./weights"
 import { AssetWeightWithDetails } from "types/rebalance"
 
@@ -73,6 +74,52 @@ describe("normalizeWeights", () => {
 
     expect(result).not.toBe(weights)
     expect(result?.[0]).not.toBe(weights[0])
+  })
+
+  it("distributes the remaining hundredths by largest remainder so three equal weights sum to exactly 100.00, not 99.99", () => {
+    const weights = [
+      sampleWeight({ assetId: "a1", weight: 33.33 }),
+      sampleWeight({ assetId: "a2", weight: 33.33 }),
+      sampleWeight({ assetId: "a3", weight: 33.33 }),
+    ]
+
+    const result = normalizeWeights(weights, 99.99)
+
+    expect(result?.map((w) => w.weight)).toEqual([33.34, 33.33, 33.33])
+    expect(result?.reduce((sum, w) => sum + w.weight, 0)).toBeCloseTo(100, 10)
+  })
+
+  it("allocates remaining hundredths to the items with the largest fractional remainder, not by row order", () => {
+    // factor = 100/99.98; exact cents work out to 1000.20004, 2000.40008,
+    // 3000.60012, 3998.79976 — remainders (desc) are item4 > item3 > item2 >
+    // item1, so the 2 leftover cents go to item4 then item3, NOT item1/item2.
+    const weights = [
+      sampleWeight({ assetId: "a1", weight: 10 }),
+      sampleWeight({ assetId: "a2", weight: 20 }),
+      sampleWeight({ assetId: "a3", weight: 30 }),
+      sampleWeight({ assetId: "a4", weight: 39.98 }),
+    ]
+
+    const result = normalizeWeights(weights, 99.98)
+
+    expect(result?.map((w) => w.weight)).toEqual([10, 20, 30.01, 39.99])
+    expect(result?.reduce((sum, w) => sum + w.weight, 0)).toBeCloseTo(100, 10)
+  })
+
+  it("breaks a remainder tie by original index, giving the extra hundredth to the earliest item", () => {
+    // 7 equal weights of 1 (total 7): each scales to 1428.571..., so every
+    // item ties on remainder — the 4 leftover cents must land on indices
+    // 0-3, not some other subset.
+    const weights = Array.from({ length: 7 }, (_, i) =>
+      sampleWeight({ assetId: `a${i}`, weight: 1 }),
+    )
+
+    const result = normalizeWeights(weights, 7)
+
+    expect(result?.map((w) => w.weight)).toEqual([
+      14.29, 14.29, 14.29, 14.29, 14.28, 14.28, 14.28,
+    ])
+    expect(result?.reduce((sum, w) => sum + w.weight, 0)).toBeCloseTo(100, 10)
   })
 })
 
@@ -171,5 +218,31 @@ describe("buildPlanAssetsPayload", () => {
     const payload = buildPlanAssetsPayload(weights)
 
     expect(payload.assets[0].rationale).toBeUndefined()
+  })
+})
+
+describe("clampWeightPercent", () => {
+  it("passes through an in-range value unchanged", () => {
+    expect(clampWeightPercent(42.5)).toBe(42.5)
+    expect(clampWeightPercent(0)).toBe(0)
+    expect(clampWeightPercent(100)).toBe(100)
+  })
+
+  it("clamps a value above 100 down to 100", () => {
+    expect(clampWeightPercent(500)).toBe(100)
+    expect(clampWeightPercent(100.01)).toBe(100)
+  })
+
+  it("clamps a negative value up to 0", () => {
+    expect(clampWeightPercent(-5)).toBe(0)
+  })
+
+  it("treats NaN as 0", () => {
+    expect(clampWeightPercent(NaN)).toBe(0)
+  })
+
+  it("treats Infinity and -Infinity as 0", () => {
+    expect(clampWeightPercent(Infinity)).toBe(0)
+    expect(clampWeightPercent(-Infinity)).toBe(0)
   })
 })

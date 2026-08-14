@@ -6,6 +6,7 @@ import { AssetWeightWithDetails } from "types/rebalance"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { clampWeightPercent } from "@lib/rebalance/weights"
 
 interface AddAssetToModelDialogProps {
   modalOpen: boolean
@@ -199,7 +200,9 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
               max="100"
               step="0.1"
               value={weight}
-              onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                setWeight(clampWeightPercent(parseFloat(e.target.value) || 0))
+              }
               className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
             <span className="text-gray-500">%</span>

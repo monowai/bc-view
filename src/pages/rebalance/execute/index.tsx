@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   formatCurrency,
   formatPercent,
+  formatPercentValue,
   formatSignedNumber,
 } from "@lib/formatters"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
@@ -21,6 +22,8 @@ import {
   DisplayItem,
   CashSummary,
 } from "@hooks/useRebalanceExecution"
+import { clampWeightPercent, weightsSumValid } from "@lib/rebalance/weights"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { Asset } from "types/beancounter"
 import { ExecutionDto } from "types/rebalance"
 
@@ -282,6 +285,10 @@ function ExecuteRebalancePage(): React.ReactElement {
   const [chartTarget, setChartTarget] = useState<DisplayItem | null>(null)
   const [insightTarget, setInsightTarget] = useState<DisplayItem | null>(null)
 
+  // Gate on Execute Transactions: shown instead of committing immediately
+  // when the included targets don't sum to ~100% (see targetTotalValid).
+  const [showCommitConfirm, setShowCommitConfirm] = useState(false)
+
   // Hook handles all data fetching, state, and operations
   const {
     execution,
@@ -485,6 +492,72 @@ function ExecuteRebalancePage(): React.ReactElement {
     cashSummary.netImpact >= 0
       ? "text-green-700 font-medium"
       : "text-red-700 font-medium"
+
+  // --- Footer truthfulness + commit-confirm gate (#1155) ---
+  //
+  // Target total: sum of every row's target weight (cash + assets, whether
+  // excluded or not). The proportional-scaling formula in
+  // useRebalanceExecution pins this at exactly 100% UNLESS the user has
+  // hand-edited one or more targets (slider/typed) into a set that no
+  // longer balances — each edit is clamped to [0,100] individually, but
+  // nothing stops several valid-in-isolation edits from summing wrong
+  // together. Shared by the footer cell below and the pre-commit gate so
+  // the number shown and the number gated on can never drift apart.
+  const targetTotalPercent = displayItems.reduce(
+    (sum, item) => sum + item.effectiveTarget * 100,
+    0,
+  )
+  const targetTotalValid = weightsSumValid(targetTotalPercent)
+
+  // Projected (After %) total: excluded rows sit outside the projected
+  // total's numerator AND denominator (see DisplayItem.projectedWeight), so
+  // the included rows always sum to 100% of THEIR OWN pie even when a
+  // chunk of the portfolio is excluded and untouched — a plain `?? 0` sum
+  // reads a deceptive "100.00%" that quietly omits the excluded rows'
+  // actual value. Split the true (included + excluded) total instead, so
+  // the footer states what fraction of the WHOLE portfolio each side
+  // represents.
+  const excludedValue = displayItems
+    .filter((item) => !item.isCash && item.isExcluded)
+    .reduce((sum, item) => sum + item.snapshotValue, 0)
+  const projectedIncludedValue = displayItems
+    .filter((item) => item.isCash || !item.isExcluded)
+    .reduce((sum, item) => sum + item.projectedValue, 0)
+  const projectedFullValue = projectedIncludedValue + excludedValue
+  const projectedIncludedPercent =
+    projectedFullValue > 0
+      ? (projectedIncludedValue / projectedFullValue) * 100
+      : 0
+  const projectedExcludedPercent =
+    projectedFullValue > 0 ? (excludedValue / projectedFullValue) * 100 : 0
+
+  const runCommit = async (): Promise<void> => {
+    const result = await handlers.commit()
+    if (!result) return
+    // Only land on /trns/proposed when the orders are actually unsettled.
+    // Settled commits go straight to the portfolio holdings.
+    if (result.transactionStatus === "PROPOSED") {
+      router.push("/trns/proposed")
+    } else {
+      router.push(`/trns?portfolioId=${result.portfolioId}`)
+    }
+  }
+
+  const handleExecuteClick = async (): Promise<void> => {
+    // Warn (but don't block) when the user has >1 brokers and didn't tag
+    // the orders — saves a "where's the broker on these trns?" follow-up
+    // later.
+    if (!confirmBrokerSelection(brokers.length, selectedBrokerId)) return
+    // Client-side seatbelt only — backend-side validation is svc-rebalance
+    // #43. Off-100% targets aren't blocked, just confirmed: this is a
+    // what-if surface, and the user may be deliberately parking spare cash
+    // or a partial rebalance.
+    if (!targetTotalValid) {
+      setShowCommitConfirm(true)
+      return
+    }
+    await runCommit()
+  }
 
   return (
     <div className="w-full py-4">
@@ -996,7 +1069,9 @@ function ExecuteRebalancePage(): React.ReactElement {
                               step={sliderStep}
                               value={(item.effectiveTarget * 100).toFixed(2)}
                               onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0
+                                const val = clampWeightPercent(
+                                  parseFloat(e.target.value) || 0,
+                                )
                                 handlers.targetChange(item.assetId, val / 100)
                                 // Numeric entry re-anchors immediately — the
                                 // user just told us exactly where they want
@@ -1099,20 +1174,24 @@ function ExecuteRebalancePage(): React.ReactElement {
                     </td>
                     <td className="px-3 py-2"></td>
                     <td className="px-3 py-2"></td>
-                    <td className="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">
-                      {formatPercent(
-                        displayItems.reduce(
-                          (sum, item) => sum + item.effectiveTarget,
-                          0,
-                        ),
-                      )}
+                    <td
+                      className={`px-3 py-2 text-right font-semibold tabular-nums ${
+                        targetTotalValid ? "text-gray-900" : "text-red-700"
+                      }`}
+                      title={
+                        targetTotalValid
+                          ? undefined
+                          : "Target weights don't sum to 100% — some rows were edited independently"
+                      }
+                    >
+                      {formatPercentValue(targetTotalPercent, 2)}
                     </td>
                     <td className="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">
-                      {formatPercent(
-                        displayItems.reduce(
-                          (sum, item) => sum + (item.projectedWeight ?? 0),
-                          0,
-                        ),
+                      {formatPercentValue(projectedIncludedPercent, 1)}
+                      {excludedValue > 0 && (
+                        <div className="text-[11px] font-normal text-gray-500">
+                          {`+${formatPercentValue(projectedExcludedPercent, 1)} excluded`}
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2"></td>
@@ -1323,23 +1402,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               {"Back"}
             </button>
             <button
-              onClick={async () => {
-                // Warn (but don't block) when the user has >1 brokers
-                // and didn't tag the orders — saves a "where's the
-                // broker on these trns?" follow-up later.
-                if (!confirmBrokerSelection(brokers.length, selectedBrokerId))
-                  return
-                const result = await handlers.commit()
-                if (!result) return
-                // Only land on /trns/proposed when the orders are
-                // actually unsettled. Settled commits go straight to
-                // the portfolio holdings.
-                if (result.transactionStatus === "PROPOSED") {
-                  router.push("/trns/proposed")
-                } else {
-                  router.push(`/trns?portfolioId=${result.portfolioId}`)
-                }
-              }}
+              onClick={handleExecuteClick}
               disabled={states.committing || activeItems.length === 0}
               className={`px-4 py-2 rounded text-white transition-colors ${
                 states.committing || activeItems.length === 0
@@ -1354,6 +1417,20 @@ function ExecuteRebalancePage(): React.ReactElement {
             </button>
           </div>
         </>
+      )}
+      {showCommitConfirm && (
+        <ConfirmDialog
+          title={"Targets Don't Total 100%"}
+          message={`Target weights total ${targetTotalPercent.toFixed(2)}% instead of 100%. Execute the transactions anyway?`}
+          confirmLabel={"Execute Anyway"}
+          cancelLabel={"Cancel"}
+          variant="amber"
+          onConfirm={async () => {
+            setShowCommitConfirm(false)
+            await runCommit()
+          }}
+          onCancel={() => setShowCommitConfirm(false)}
+        />
       )}
       {chartTarget && (
         <PriceChartPopup

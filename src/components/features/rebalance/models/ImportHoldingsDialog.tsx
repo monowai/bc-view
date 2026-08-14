@@ -8,6 +8,7 @@ import {
   normalizeWeights,
   weightsSumValid,
   toWeightPercent,
+  clampWeightPercent,
 } from "@lib/rebalance/weights"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { Portfolio } from "types/beancounter"
@@ -229,7 +230,9 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
                       step="0.01"
                       value={weight.weight}
                       onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0
+                        const value = clampWeightPercent(
+                          parseFloat(e.target.value) || 0,
+                        )
                         const updated = [...weights]
                         updated[index] = {
                           ...updated[index],

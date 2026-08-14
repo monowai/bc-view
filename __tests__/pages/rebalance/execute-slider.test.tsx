@@ -464,7 +464,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
   // --- After % column ---
 
-  it("renders the After % column with projected weights, dash for excluded rows, and a 100% total", () => {
+  it("renders the After % column with projected weights, dash for excluded rows, and an included/excluded footer split (#1155)", () => {
     const execution: ExecutionDto = {
       ...makeExecution(),
       totalPortfolioValue: 10000,
@@ -554,8 +554,18 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
     // QUAL: 5200/10000, EXCL: excluded -> dash, cash: 3000/10000
     expect(afterValues).toEqual(["52.00%", "—", "30.00%"])
 
+    // #1155: the footer no longer reports a self-referential 100% that
+    // silently drops EXCL's value out of the picture — it splits the total
+    // into "included" (QUAL + cash, valued against the whole pie) and an
+    // explicit "excluded" call-out for EXCL's own (unchanged) value. This
+    // fixture's QUAL row carries a nonzero deltaValue (200) that the mock's
+    // cash figure doesn't offset, so the "pie" here (10,200) runs slightly
+    // above totalPortfolioValue (10,000) — that's a quirk of this
+    // characterization fixture, not the component under test.
     const footerRow = container.querySelector("tfoot tr")!
-    expect(footerRow.children[afterIdx]?.textContent?.trim()).toBe("82.00%")
+    expect(footerRow.children[afterIdx]?.textContent?.trim()).toBe(
+      "80.4%+19.6% excluded",
+    )
   })
 
   it("shows the funded-by-deposit footnote when projected cash is negative", () => {

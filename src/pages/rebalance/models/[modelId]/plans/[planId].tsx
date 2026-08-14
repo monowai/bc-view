@@ -19,7 +19,11 @@ import StatusBadge from "@components/features/rebalance/common/StatusBadge"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
-import { toWeightPercent, buildPlanAssetsPayload } from "@lib/rebalance/weights"
+import {
+  toWeightPercent,
+  buildPlanAssetsPayload,
+  weightsSumValid,
+} from "@lib/rebalance/weights"
 import { parseWeightsFromCsvText } from "@lib/rebalance/csvImport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
@@ -486,6 +490,14 @@ function PlanDetailPage(): React.ReactElement {
 
   const isDraft = plan.status === "DRAFT"
 
+  // Approve is gated on the weights actually summing to 100% — saving a
+  // draft stays allowed at any total (drafts are work-in-progress), but
+  // locking in an allocation that doesn't sum correctly would ship a
+  // silently wrong plan.
+  const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
+  const weightsValid = weightsSumValid(totalWeight)
+  const approveDisabled = approving || weights.length === 0 || !weightsValid
+
   return (
     <div className="w-full py-4">
       <div className="max-w-5xl mx-auto">
@@ -576,7 +588,7 @@ function PlanDetailPage(): React.ReactElement {
               )}
               <button
                 onClick={() => setShowApproveConfirm(true)}
-                disabled={approving || weights.length === 0}
+                disabled={approveDisabled}
                 className={`px-4 py-2 rounded-lg transition-colors flex items-center disabled:opacity-50 ${
                   hasChanges
                     ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -590,6 +602,11 @@ function PlanDetailPage(): React.ReactElement {
                 )}
                 {"Approve Plan"}
               </button>
+              {weights.length > 0 && !weightsValid && (
+                <span className="text-sm text-red-600">
+                  {`Weights total ${totalWeight.toFixed(2)}% — must equal 100% to approve`}
+                </span>
+              )}
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={deleting}
