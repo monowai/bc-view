@@ -483,7 +483,7 @@ export const resolveSelfSettleAccount = (params: {
   const currency = getAssetCurrency(account)
   return {
     value: account.id,
-    label: `${account.name || getDisplayCode(account as never)} (${currency || "?"})`,
+    label: `${account.name || stripOwnerPrefix(account.code)} (${currency || "?"})`,
     currency,
     market: account.market?.code || "PRIVATE",
   }

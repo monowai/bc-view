@@ -653,13 +653,29 @@ const TradeInputForm: React.FC<{
       return // Don't override broker's settlement account
     }
 
+    // The accounts list arrives after the first render, so the field may already
+    // hold the currency balance this effect seeded a moment ago. That seeded
+    // value has to give way once a better default is known — a value the user
+    // actually chose does not (the effect only re-runs when a default changes).
+    const holdsSeededDefault =
+      currentSettlement?.value === defaultCashAsset.value
+
     if (
       !currentSettlement?.value ||
-      currentSettlement.currency !== currentTradeCurrency
+      currentSettlement.currency !== currentTradeCurrency ||
+      (holdsSeededDefault &&
+        preferredCashAsset.value !== currentSettlement.value)
     ) {
       setValue("settlementAccount", preferredCashAsset)
     }
-  }, [currentTradeCurrency, preferredCashAsset, setValue, watch, brokers])
+  }, [
+    currentTradeCurrency,
+    preferredCashAsset,
+    defaultCashAsset,
+    setValue,
+    watch,
+    brokers,
+  ])
 
   // Watch brokerId for auto-selecting settlement account
   const selectedBrokerId = watch("brokerId")

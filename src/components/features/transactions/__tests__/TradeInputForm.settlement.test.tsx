@@ -26,6 +26,10 @@ const apartment = {
   assetCategory: { id: "RE", name: "Real Estate" },
 }
 
+// The accounts list arrives from SWR, so the dialog renders once before it is
+// known which assets are cash accounts. Flipping this mirrors that second pass.
+let accountsLoaded = true
+
 jest.mock("swr", () => ({
   __esModule: true,
   default: (key: string | null) => {
@@ -33,9 +37,11 @@ jest.mock("swr", () => ({
     if (!key) return empty
     if (key.includes("category=ACCOUNT"))
       return {
-        data: { data: { "acct-ibrk-usd": ibrkUsd } },
+        data: accountsLoaded
+          ? { data: { "acct-ibrk-usd": ibrkUsd } }
+          : undefined,
         error: undefined,
-        isLoading: false,
+        isLoading: !accountsLoaded,
       }
     if (key.includes("currencies"))
       return {
@@ -75,34 +81,62 @@ const portfolio = makePortfolio({
   base: USD,
 })
 
+const dialogFor = (
+  asset: { id: string; code: string },
+  type: "INCOME" | "EXPENSE",
+): React.ReactElement => (
+  <TradeInputForm
+    portfolio={portfolio}
+    modalOpen={true}
+    setModalOpen={jest.fn()}
+    initialValues={
+      {
+        asset: asset.code,
+        assetId: asset.id,
+        market: "PRIVATE",
+        quantity: 0,
+        price: 0,
+        currency: "USD",
+        type,
+      } as never
+    }
+  />
+)
+
 const recordAgainst = (
   asset: { id: string; code: string },
   type: "INCOME" | "EXPENSE",
-): void => {
-  render(
-    <TradeInputForm
-      portfolio={portfolio}
-      modalOpen={true}
-      setModalOpen={jest.fn()}
-      initialValues={
-        {
-          asset: asset.code,
-          assetId: asset.id,
-          market: "PRIVATE",
-          quantity: 0,
-          price: 0,
-          currency: "USD",
-          type,
-        } as never
-      }
-    />,
-  )
+): ReturnType<typeof render> => {
+  const view = render(dialogFor(asset, type))
   fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+  return view
 }
 
 const settlement = (): HTMLElement => screen.getByTestId("settlement-account")
 
 describe("TradeInputForm — settlement default", () => {
+  beforeEach(() => {
+    accountsLoaded = true
+  })
+
+  test("the account wins once the accounts list arrives", () => {
+    // The dialog opens before /assets?category=ACCOUNT resolves, so the first
+    // pass can only offer the currency balance. Once the accounts land the
+    // seeded default has to give way — otherwise the fix only works when the
+    // list happens to be cached.
+    accountsLoaded = false
+    // One element, rendered twice: the dialog's own props never change while
+    // SWR fills in — re-creating them would reset the form and hide the race.
+    const dialog = dialogFor(ibrkUsd, "INCOME")
+    const { rerender } = render(dialog)
+
+    accountsLoaded = true
+    rerender(dialog)
+    fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+
+    expect(within(settlement()).getByText("IBRK-USD (USD)")).toBeVisible()
+  })
+
   test("income on a cash account is credited to that account", () => {
     recordAgainst(ibrkUsd, "INCOME")
 
