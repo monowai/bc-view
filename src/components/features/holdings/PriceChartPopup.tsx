@@ -21,7 +21,7 @@ import {
   TrnType,
 } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import { buildRatioSeries } from "@utils/chart/ratioSeries"
+import { buildRatioSeries, ratioTickPrecision } from "@utils/chart/ratioSeries"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -227,6 +227,7 @@ interface TooltipPayload {
   payload?: { dataKey: string; value: number; payload: ChartPoint }[]
   currencySymbol: string
   ratioLabel?: string
+  ratioPrecision?: number
 }
 
 const ChartTooltip: React.FC<TooltipPayload> = ({
@@ -234,6 +235,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
   payload,
   currencySymbol,
   ratioLabel,
+  ratioPrecision = 1,
 }) => {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
@@ -267,10 +269,10 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
       )}
       {ratioLabel && typeof point.ratio === "number" && (
         <div className="text-xs text-sky-600 tabular-nums">
-          {ratioLabel}: {point.ratio.toFixed(1)}
+          {ratioLabel}: {point.ratio.toFixed(ratioPrecision)}
           <span className="ml-1 text-gray-400">
             ({point.ratio >= 100 ? "+" : ""}
-            {(point.ratio - 100).toFixed(1)}% vs range start)
+            {(point.ratio - 100).toFixed(ratioPrecision)}% vs range start)
           </span>
         </div>
       )}
@@ -535,6 +537,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // Only claim the right-hand axis once the overlay actually has data — a
   // selected-but-still-loading overlay would otherwise render an empty axis.
   const ratioActive = series.some((p) => typeof p.ratio === "number")
+  const ratioPrecision = ratioTickPrecision(series.map((p) => p.ratio))
   const ratioLast = [...series]
     .reverse()
     .find((p) => typeof p.ratio === "number")?.ratio
@@ -783,8 +786,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   tick={{ fontSize: 10, fill: "#0284C7" }}
                   tickLine={false}
                   axisLine={{ stroke: "#E5E7EB" }}
-                  width={44}
-                  tickFormatter={(v: number) => v.toFixed(0)}
+                  width={48}
+                  tickFormatter={(v: number) => v.toFixed(ratioPrecision)}
                 />
               )}
               <Tooltip
@@ -792,6 +795,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   <ChartTooltip
                     currencySymbol={currencySymbol}
                     ratioLabel={ratioActive ? overlay.label : undefined}
+                    ratioPrecision={ratioPrecision}
                   />
                 }
               />
@@ -859,8 +863,10 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   stroke="#0EA5E9"
                   strokeWidth={1.5}
                   dot={false}
-                  isAnimationActive
-                  animationDuration={400}
+                  // The legs revalidate independently of the price fetch, and
+                  // each new array restarts the draw-on animation — the line
+                  // never settles. Render it flat, like the price area.
+                  isAnimationActive={false}
                   connectNulls
                 />
               )}

@@ -1,4 +1,23 @@
-import { buildRatioSeries } from "../ratioSeries"
+import { buildRatioSeries, ratioTickPrecision } from "../ratioSeries"
+
+describe("ratioTickPrecision", () => {
+  it("uses whole numbers when the ratio moves enough to separate them", () => {
+    expect(ratioTickPrecision([100, 104, 92])).toBe(0)
+  })
+
+  it("adds a decimal for a narrow span so ticks stop repeating", () => {
+    // VOO vs SPY spans about a point — 0dp would print "100 100 99 99 98".
+    expect(ratioTickPrecision([100, 100.2, 99.1])).toBe(1)
+  })
+
+  it("adds two decimals when the ratio barely moves at all", () => {
+    expect(ratioTickPrecision([100, 100.08, 99.94])).toBe(2)
+  })
+
+  it("falls back to whole numbers when nothing is plotted", () => {
+    expect(ratioTickPrecision([undefined, undefined])).toBe(0)
+  })
+})
 
 describe("buildRatioSeries", () => {
   const dates = ["2026-01-02", "2026-01-03", "2026-01-06"]

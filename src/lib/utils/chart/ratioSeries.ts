@@ -75,3 +75,16 @@ export function buildRatioSeries(
     return (ratio / base) * REBASE_AT
   })
 }
+
+/**
+ * Decimal places the ratio axis needs so its ticks stay distinct. A relative
+ * strength line against its own benchmark barely moves — VOO vs SPY spans
+ * about a point — and whole-number ticks then read "100 100 99 99 98".
+ */
+export function ratioTickPrecision(values: (number | undefined)[]): number {
+  const plotted = values.filter((v): v is number => typeof v === "number")
+  if (plotted.length === 0) return 0
+  const span = Math.max(...plotted) - Math.min(...plotted)
+  if (span >= 5) return 0
+  return span >= 0.5 ? 1 : 2
+}
