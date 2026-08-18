@@ -39,8 +39,7 @@ function closeAsAt(
   }
   if (cursor.i === 0) return undefined
   const latest = leg[cursor.i - 1]
-  const ageDays =
-    (Date.parse(date) - Date.parse(latest.priceDate)) / MS_PER_DAY
+  const ageDays = (Date.parse(date) - Date.parse(latest.priceDate)) / MS_PER_DAY
   return ageDays > MAX_CARRY_FORWARD_DAYS ? undefined : latest.close
 }
 
@@ -69,7 +68,10 @@ export function buildRatioSeries(
     if (num === undefined || den === undefined || den === 0) return undefined
 
     const ratio = num / den
+    // A zero ratio cannot be rebased onto, and anchoring on one would divide
+    // every later point by zero — skip it rather than blank the whole range.
+    if (ratio === 0) return undefined
     if (base === undefined) base = ratio
-    return base === 0 ? undefined : (ratio / base) * REBASE_AT
+    return (ratio / base) * REBASE_AT
   })
 }

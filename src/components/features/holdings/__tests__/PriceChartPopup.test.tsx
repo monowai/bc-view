@@ -372,6 +372,28 @@ describe("PriceChartPopup", () => {
     )
   })
 
+  it("says the overlay is unavailable when a leg fails to load", () => {
+    mockUseSwr.mockImplementation(((key: unknown) => {
+      const base = makeRouter({})(key)
+      if (typeof key === "string" && key.startsWith("/api/assets/resolve")) {
+        return {
+          data: undefined,
+          isLoading: false,
+          error: new Error("boom"),
+        } as unknown as ReturnType<typeof useSwr>
+      }
+      return base
+    }) as unknown as typeof useSwr)
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+    // Without this the toggle stays lit while nothing is drawn, which reads
+    // as "this asset has no breadth data" rather than "the fetch failed".
+    expect(screen.getByText(/RSP\/SPY unavailable/)).toBeInTheDocument()
+    expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
+  })
+
   it("fetches trades from a single portfolio via the path form", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 

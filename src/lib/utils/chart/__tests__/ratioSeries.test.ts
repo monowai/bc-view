@@ -105,6 +105,27 @@ describe("buildRatioSeries", () => {
     ])
   })
 
+  it("does not anchor the rebase on a zero ratio", () => {
+    // A zero numerator close would otherwise become the rebase base, and
+    // every later point divides by it — one bad quote blanking the range.
+    const numerator = [
+      { priceDate: "2026-01-02", close: 0 },
+      { priceDate: "2026-01-03", close: 50 },
+      { priceDate: "2026-01-06", close: 60 },
+    ]
+    const denominator = [
+      { priceDate: "2026-01-02", close: 100 },
+      { priceDate: "2026-01-03", close: 100 },
+      { priceDate: "2026-01-06", close: 100 },
+    ]
+
+    expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
+      undefined,
+      100,
+      expect.closeTo(120, 6),
+    ])
+  })
+
   it("returns undefined for every date when a leg has no prices", () => {
     const denominator = [{ priceDate: "2026-01-02", close: 100 }]
 

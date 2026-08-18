@@ -201,23 +201,25 @@ function useOverlayLeg(
   spec: string | null,
   from: string,
   to: string,
-): PricePoint[] | undefined {
+): { prices?: PricePoint[]; failed: boolean } {
   const resolveUrl = spec
     ? `/api/assets/resolve?code=${encodeURIComponent(spec)}`
     : null
-  const { data: resolved } = useSwr<{ data: { id: string } }>(
-    resolveUrl,
-    resolveUrl ? simpleFetcher(resolveUrl) : null,
-  )
+  const { data: resolved, error: resolveError } = useSwr<{
+    data: { id: string }
+  }>(resolveUrl, resolveUrl ? simpleFetcher(resolveUrl) : null)
   const legId = resolved?.data?.id
   const historyUrl = legId
     ? `/api/prices/history/${legId}?from=${from}&to=${to}`
     : null
-  const { data } = useSwr<PriceHistoryResponse>(
+  const { data, error: historyError } = useSwr<PriceHistoryResponse>(
     historyUrl,
     historyUrl ? simpleFetcher(historyUrl) : null,
   )
-  return data?.prices
+  return {
+    prices: data?.prices,
+    failed: Boolean(resolveError || historyError),
+  }
 }
 
 interface TooltipPayload {
@@ -357,7 +359,9 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const denominatorLeg = useOverlayLeg(overlay.denominator, from, to)
   // A SELF numerator reuses the history already fetched for the price area.
   const ratioNumerator =
-    overlay.numerator === SELF ? priceData?.prices : numeratorLeg
+    overlay.numerator === SELF ? priceData?.prices : numeratorLeg.prices
+  const ratioDenominator = denominatorLeg.prices
+  const overlayFailed = numeratorLeg.failed || denominatorLeg.failed
 
   const handleRepairSplits = useCallback(async () => {
     setRepairState({ busy: true, message: null, error: false })
@@ -459,7 +463,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     const ratioSeries = buildRatioSeries(
       raw.map((p) => p.priceDate),
       ratioNumerator ?? [],
-      denominatorLeg ?? [],
+      ratioDenominator ?? [],
     )
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
@@ -482,7 +486,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         sellQty: sell?.quantity,
       }
     })
-  }, [priceData, tradesByDate, smaWindow, ratioNumerator, denominatorLeg])
+  }, [priceData, tradesByDate, smaWindow, ratioNumerator, ratioDenominator])
 
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
@@ -673,6 +677,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
       <div className="flex items-center justify-between mb-3 text-xs gap-3 text-gray-500">
         <span>
+          {overlayFailed && (
+            <span className="text-amber-600">
+              {overlay.label} unavailable — could not load its price history
+            </span>
+          )}
           {ratioActive && (
             <span className="flex items-center gap-1">
               <span
