@@ -21,6 +21,7 @@ import {
   TrnType,
 } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { buildRatioSeries } from "@utils/chart/ratioSeries"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -75,6 +76,7 @@ interface ChartPoint {
   splitFactor: number
   split?: number
   sma?: number
+  ratio?: number
   buyPrice?: number | null
   sellPrice?: number | null
   buyPriceRaw?: number
@@ -99,6 +101,34 @@ const SMA_OPTIONS: { label: string; window: number }[] = [
   { label: "SMA 50", window: 50 },
 ]
 
+// A ratio overlay divides one price series by another and plots the result,
+// rebased to 100, on the right-hand axis. `SELF` means "the asset being
+// charted", so a relative-strength line costs no extra numerator fetch.
+interface OverlayOption {
+  label: string
+  numerator: string | null
+  denominator: string | null
+  hint?: string
+}
+
+const SELF = "SELF"
+
+const OVERLAYS: OverlayOption[] = [
+  { label: "None", numerator: null, denominator: null },
+  {
+    label: "RSP/SPY",
+    numerator: "US:RSP",
+    denominator: "US:SPY",
+    hint: "Equal-weight vs cap-weight S&P 500 — rising means breadth is widening",
+  },
+  {
+    label: "vs SPY",
+    numerator: SELF,
+    denominator: "US:SPY",
+    hint: "This asset's relative strength against the S&P 500",
+  },
+]
+
 function pickDefault<T extends number>(
   raw: string | undefined,
   allowed: T[],
@@ -120,6 +150,12 @@ const DEFAULT_SMA = pickDefault(
   SMA_OPTIONS.map((s) => s.window),
   20,
 )
+// Off by default: the overlay costs two more asset lookups plus two price
+// histories, and most holdings are opened to read price, not breadth.
+const DEFAULT_OVERLAY =
+  OVERLAYS.find(
+    (o) => o.label === process.env.NEXT_PUBLIC_CHART_DEFAULT_OVERLAY,
+  )?.label ?? OVERLAYS[0].label
 
 function subtractMonths(date: Date, months: number): Date {
   const d = new Date(date)
@@ -152,16 +188,50 @@ function computeSma(values: number[], window: number): (number | undefined)[] {
   return out
 }
 
+/**
+ * Price history for one side of a ratio overlay. `spec` is a "MARKET:CODE"
+ * ticker; a null spec (overlay off, or the leg is the charted asset itself)
+ * parks both requests on a null SWR key so nothing is fetched.
+ *
+ * svc-data creates the asset on first lookup and backfills its price history
+ * on first chart, so RSP/SPY resolve even though nobody holds them. Both
+ * requests are keyed by URL, so every popup at the same range shares one fetch.
+ */
+function useOverlayLeg(
+  spec: string | null,
+  from: string,
+  to: string,
+): PricePoint[] | undefined {
+  const resolveUrl = spec
+    ? `/api/assets/resolve?code=${encodeURIComponent(spec)}`
+    : null
+  const { data: resolved } = useSwr<{ data: { id: string } }>(
+    resolveUrl,
+    resolveUrl ? simpleFetcher(resolveUrl) : null,
+  )
+  const legId = resolved?.data?.id
+  const historyUrl = legId
+    ? `/api/prices/history/${legId}?from=${from}&to=${to}`
+    : null
+  const { data } = useSwr<PriceHistoryResponse>(
+    historyUrl,
+    historyUrl ? simpleFetcher(historyUrl) : null,
+  )
+  return data?.prices
+}
+
 interface TooltipPayload {
   active?: boolean
   payload?: { dataKey: string; value: number; payload: ChartPoint }[]
   currencySymbol: string
+  ratioLabel?: string
 }
 
 const ChartTooltip: React.FC<TooltipPayload> = ({
   active,
   payload,
   currencySymbol,
+  ratioLabel,
 }) => {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
@@ -191,6 +261,15 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         <div className="text-xs text-indigo-600 tabular-nums">
           SMA: {currencySymbol}
           <FormatValue value={point.sma} />
+        </div>
+      )}
+      {ratioLabel && typeof point.ratio === "number" && (
+        <div className="text-xs text-sky-600 tabular-nums">
+          {ratioLabel}: {point.ratio.toFixed(1)}
+          <span className="ml-1 text-gray-400">
+            ({point.ratio >= 100 ? "+" : ""}
+            {(point.ratio - 100).toFixed(1)}% vs range start)
+          </span>
         </div>
       )}
       {typeof point.buyPrice === "number" && (
@@ -246,6 +325,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
   const [smaWindow, setSmaWindow] = useState(DEFAULT_SMA)
+  const [overlayLabel, setOverlayLabel] = useState(DEFAULT_OVERLAY)
   const { admin: isAdmin } = usePermissions()
   const [repairState, setRepairState] = useState<{
     busy: boolean
@@ -267,6 +347,17 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     error: priceError,
     isLoading: pricesLoading,
   } = useSwr<PriceHistoryResponse>(priceUrl, simpleFetcher(priceUrl))
+
+  const overlay = OVERLAYS.find((o) => o.label === overlayLabel) ?? OVERLAYS[0]
+  const numeratorLeg = useOverlayLeg(
+    overlay.numerator === SELF ? null : overlay.numerator,
+    from,
+    to,
+  )
+  const denominatorLeg = useOverlayLeg(overlay.denominator, from, to)
+  // A SELF numerator reuses the history already fetched for the price area.
+  const ratioNumerator =
+    overlay.numerator === SELF ? priceData?.prices : numeratorLeg
 
   const handleRepairSplits = useCallback(async () => {
     setRepairState({ busy: true, message: null, error: false })
@@ -365,6 +456,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     // The chart renders the response as-is.
     const closes = raw.map((p) => Number(p.close))
     const smaSeries = computeSma(closes, smaWindow)
+    const ratioSeries = buildRatioSeries(
+      raw.map((p) => p.priceDate),
+      ratioNumerator ?? [],
+      denominatorLeg ?? [],
+    )
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")
@@ -377,6 +473,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         splitFactor: 1,
         split: splitNum !== 1 ? splitNum : undefined,
         sma: smaSeries[i],
+        ratio: ratioSeries[i],
         buyPrice: buy ? buy.price : null,
         sellPrice: sell ? sell.price : null,
         buyPriceRaw: buy?.price,
@@ -385,7 +482,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         sellQty: sell?.quantity,
       }
     })
-  }, [priceData, tradesByDate, smaWindow])
+  }, [priceData, tradesByDate, smaWindow, ratioNumerator, denominatorLeg])
 
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
@@ -430,6 +527,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     () => series.filter((p) => typeof p.split === "number"),
     [series],
   )
+
+  // Only claim the right-hand axis once the overlay actually has data — a
+  // selected-but-still-loading overlay would otherwise render an empty axis.
+  const ratioActive = series.some((p) => typeof p.ratio === "number")
+  const ratioLast = [...series]
+    .reverse()
+    .find((p) => typeof p.ratio === "number")?.ratio
 
   return (
     <Dialog
@@ -511,6 +615,24 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               </button>
             ))}
           </div>
+          <span className="h-4 w-px bg-gray-200" aria-hidden />
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-gray-500 mr-1">Ratio:</span>
+            {OVERLAYS.map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => setOverlayLabel(opt.label)}
+                title={opt.hint}
+                className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                  overlayLabel === opt.label
+                    ? "bg-sky-600 text-white"
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
         {last && (
           <div className="text-right">
@@ -549,20 +671,42 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         )}
       </div>
 
-      <div className="flex items-center justify-end mb-3 text-xs gap-3 text-gray-500">
-        <span className="flex items-center gap-1">
-          <span
-            aria-hidden
-            className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-b-[7px] border-l-transparent border-r-transparent border-b-blue-600"
-          />
-          Buy
+      <div className="flex items-center justify-between mb-3 text-xs gap-3 text-gray-500">
+        <span>
+          {ratioActive && (
+            <span className="flex items-center gap-1">
+              <span
+                aria-hidden
+                className="inline-block w-4 h-0.5 bg-sky-500 rounded"
+              />
+              <span className="text-sky-700">{overlay.label}</span>
+              {typeof ratioLast === "number" && (
+                <span className="tabular-nums">
+                  {ratioLast >= 100 ? "+" : ""}
+                  {(ratioLast - 100).toFixed(1)}% over range
+                </span>
+              )}
+              {overlay.hint && (
+                <span className="text-gray-400">— {overlay.hint}</span>
+              )}
+            </span>
+          )}
         </span>
-        <span className="flex items-center gap-1">
-          <span
-            aria-hidden
-            className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-red-600"
-          />
-          Sell
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <span
+              aria-hidden
+              className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-b-[7px] border-l-transparent border-r-transparent border-b-blue-600"
+            />
+            Buy
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              aria-hidden
+              className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-red-600"
+            />
+            Sell
+          </span>
         </span>
       </div>
 
@@ -612,6 +756,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 tickFormatter={(v) => formatAxisDate(v, months)}
               />
               <YAxis
+                yAxisId="price"
                 domain={yDomain}
                 tick={{ fontSize: 11 }}
                 tickLine={false}
@@ -621,10 +766,28 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   `${currencySymbol}${v.toFixed(2)}`
                 }
               />
+              {ratioActive && (
+                <YAxis
+                  yAxisId="ratio"
+                  orientation="right"
+                  domain={["dataMin", "dataMax"]}
+                  tick={{ fontSize: 10, fill: "#0284C7" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "#E5E7EB" }}
+                  width={44}
+                  tickFormatter={(v: number) => v.toFixed(0)}
+                />
+              )}
               <Tooltip
-                content={<ChartTooltip currencySymbol={currencySymbol} />}
+                content={
+                  <ChartTooltip
+                    currencySymbol={currencySymbol}
+                    ratioLabel={ratioActive ? overlay.label : undefined}
+                  />
+                }
               />
               <Area
+                yAxisId="price"
                 type="monotone"
                 dataKey="close"
                 stroke={positive ? "#10B981" : "#EF4444"}
@@ -634,6 +797,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               />
               {typeof limitPrice === "number" && (
                 <ReferenceLine
+                  yAxisId="price"
                   y={limitPrice}
                   stroke="#7C3AED"
                   strokeDasharray="5 4"
@@ -649,6 +813,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {splitEvents.map((p) => (
                 <ReferenceLine
                   key={`split-${p.priceDate}`}
+                  yAxisId="price"
                   x={p.priceDate}
                   stroke="#F59E0B"
                   strokeDasharray="3 3"
@@ -664,6 +829,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {smaWindow > 0 && (
                 <Line
                   key={`sma-${smaWindow}`}
+                  yAxisId="price"
                   type="monotone"
                   dataKey="sma"
                   stroke="#6366F1"
@@ -675,13 +841,29 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   connectNulls
                 />
               )}
+              {ratioActive && (
+                <Line
+                  key={`ratio-${overlay.label}`}
+                  yAxisId="ratio"
+                  type="monotone"
+                  dataKey="ratio"
+                  stroke="#0EA5E9"
+                  strokeWidth={1.5}
+                  dot={false}
+                  isAnimationActive
+                  animationDuration={400}
+                  connectNulls
+                />
+              )}
               <Scatter
+                yAxisId="price"
                 dataKey="buyPrice"
                 fill="#2563EB"
                 shape={<TradeDot color="#2563EB" direction="up" />}
                 isAnimationActive={false}
               />
               <Scatter
+                yAxisId="price"
                 dataKey="sellPrice"
                 fill="#EF4444"
                 shape={<TradeDot color="#EF4444" direction="down" />}

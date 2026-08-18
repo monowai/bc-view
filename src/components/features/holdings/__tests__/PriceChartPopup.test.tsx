@@ -51,7 +51,9 @@ jest.mock("recharts", () => ({
       <g data-testid={`refline-y-${y}`} />
     ),
   XAxis: () => <g />,
-  YAxis: () => <g />,
+  YAxis: ({ yAxisId }: { yAxisId?: string }) => (
+    <g data-testid={`yaxis-${yAxisId ?? "default"}`} />
+  ),
   Tooltip: () => <g />,
   CartesianGrid: () => <g />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
@@ -80,6 +82,7 @@ type SwrMock = (key: unknown) => ReturnType<typeof useSwr>
 function makeRouter(options: {
   pricesResult?: ReturnType<typeof useSwr>
   tradesResult?: ReturnType<typeof useSwr>
+  overlayLegs?: Record<string, { priceDate: string; close: number }[]>
 }): SwrMock {
   const prices = options.pricesResult ?? {
     data: history,
@@ -91,9 +94,38 @@ function makeRouter(options: {
     isLoading: false,
     error: undefined,
   }
+  const idle = {
+    data: undefined,
+    isLoading: false,
+    error: undefined,
+  } as ReturnType<typeof useSwr>
   return (key) => {
-    if (typeof key === "string" && key.includes("/api/trns/trades/")) {
+    if (typeof key !== "string") return idle
+    if (key.includes("/api/trns/trades/")) {
       return trades as ReturnType<typeof useSwr>
+    }
+    // Overlay legs resolve "US:RSP" to an asset id before their history is
+    // fetched; the stub mints a predictable "<code>-id" so the follow-on
+    // history key can be routed back to the right leg fixture.
+    if (key.startsWith("/api/assets/resolve")) {
+      const code = decodeURIComponent(key.split("code=")[1] ?? "")
+      const ticker = code.split(":").pop()?.toLowerCase() ?? ""
+      return {
+        data: { data: { id: `${ticker}-id` } },
+        isLoading: false,
+        error: undefined,
+      } as unknown as ReturnType<typeof useSwr>
+    }
+    if (key.startsWith("/api/prices/history/")) {
+      const assetId = key.slice("/api/prices/history/".length).split("?")[0]
+      if (assetId !== asset.id) {
+        const leg = options.overlayLegs?.[assetId]
+        return {
+          data: leg ? { asset, prices: leg } : undefined,
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>
+      }
     }
     return prices as ReturnType<typeof useSwr>
   }
@@ -129,6 +161,16 @@ function tradesKeys(): string[] {
       (k): k is string =>
         typeof k === "string" && k.includes("/api/trns/trades/"),
     )
+}
+
+function resolveKeys(): string[] {
+  return mockUseSwr.mock.calls
+    .map((call) => call[0])
+    .filter(
+      (k): k is string =>
+        typeof k === "string" && k.startsWith("/api/assets/resolve"),
+    )
+    .filter((k, i, all) => all.indexOf(k) === i)
 }
 
 describe("PriceChartPopup", () => {
@@ -213,6 +255,121 @@ describe("PriceChartPopup", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
     expect(screen.getByTestId("line-sma")).toBeInTheDocument()
+  })
+
+  it("draws no ratio overlay and resolves no extra assets by default", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup()
+
+    expect(screen.getByRole("button", { name: "None" })).toHaveClass(
+      "bg-sky-600",
+    )
+    expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("yaxis-ratio")).not.toBeInTheDocument()
+    expect(resolveKeys()).toHaveLength(0)
+  })
+
+  it("plots RSP/SPY rebased to 100 on its own axis when selected", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "rsp-id": [
+            { priceDate: "2026-03-21", close: 180 },
+            { priceDate: "2026-04-01", close: 183.6 },
+            { priceDate: "2026-04-20", close: 176.4 },
+          ],
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 600 },
+            { priceDate: "2026-04-01", close: 600 },
+            { priceDate: "2026-04-20", close: 630 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+    expect(resolveKeys()).toEqual(
+      expect.arrayContaining([
+        "/api/assets/resolve?code=US%3ARSP",
+        "/api/assets/resolve?code=US%3ASPY",
+      ]),
+    )
+    expect(screen.getByTestId("line-ratio")).toBeInTheDocument()
+    // Ratio shares the plot with price, so it needs its own right-hand axis.
+    expect(screen.getByTestId("yaxis-price")).toBeInTheDocument()
+    expect(screen.getByTestId("yaxis-ratio")).toBeInTheDocument()
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ ratio?: number }>
+    expect(rows.map((r) => r.ratio)).toEqual([
+      100,
+      expect.closeTo(102, 6),
+      expect.closeTo(93.33, 2),
+    ])
+  })
+
+  it("uses the charted asset as the numerator for a relative-strength overlay", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 500 },
+            { priceDate: "2026-04-20", close: 525 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    // Only the denominator is resolved — the numerator is this asset's own
+    // history, already fetched for the price area.
+    expect(resolveKeys()).toEqual(["/api/assets/resolve?code=US%3ASPY"])
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ ratio?: number }>
+    // MSFT 400→410→420 against SPY 500→500→525: ahead, then behind.
+    expect(rows.map((r) => r.ratio)).toEqual([
+      100,
+      expect.closeTo(102.5, 6),
+      expect.closeTo(100, 6),
+    ])
+  })
+
+  it("leaves the ratio undefined for dates the overlay legs do not cover yet", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "rsp-id": [
+            { priceDate: "2026-04-01", close: 180 },
+            { priceDate: "2026-04-20", close: 189 },
+          ],
+          "spy-id": [
+            { priceDate: "2026-04-01", close: 600 },
+            { priceDate: "2026-04-20", close: 600 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ ratio?: number }>
+    expect(rows[0].ratio).toBeUndefined()
+    expect(rows[1].ratio).toBe(100)
+    expect(rows[2]).toEqual(
+      expect.objectContaining({ ratio: expect.closeTo(105, 6) }),
+    )
   })
 
   it("fetches trades from a single portfolio via the path form", () => {
