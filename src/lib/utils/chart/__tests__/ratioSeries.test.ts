@@ -1,21 +1,60 @@
-import { buildRatioSeries, ratioTickPrecision } from "../ratioSeries"
+import {
+  buildRatioSeries,
+  ratioAxisDomain,
+  ratioValuePrecision,
+} from "../ratioSeries"
 
-describe("ratioTickPrecision", () => {
-  it("uses whole numbers when the ratio moves enough to separate them", () => {
-    expect(ratioTickPrecision([100, 104, 92])).toBe(0)
+describe("ratioAxisDomain", () => {
+  it("keeps a flat ratio looking flat instead of magnifying its noise", () => {
+    // VOO vs SPY both track the S&P 500, so the ratio is a constant plus feed
+    // noise. Scaling to dataMin/dataMax stretched a 0.4% wobble over the full
+    // pane and drew it as a crash.
+    const [min, max] = ratioAxisDomain([99.9, 100.1, 99.95])
+
+    expect(max - min).toBeGreaterThanOrEqual(5)
+    expect(min).toBeLessThan(99.9)
+    expect(max).toBeGreaterThan(100.1)
   })
 
-  it("adds a decimal for a narrow span so ticks stop repeating", () => {
-    // VOO vs SPY spans about a point — 0dp would print "100 100 99 99 98".
-    expect(ratioTickPrecision([100, 100.2, 99.1])).toBe(1)
+  it("does not clip a ratio that genuinely moves", () => {
+    const [min, max] = ratioAxisDomain([100, 128, 84])
+
+    expect(min).toBeLessThan(84)
+    expect(max).toBeGreaterThan(128)
+  })
+
+  it("centres the floor on the data, not on 100", () => {
+    // A late-starting leg can rebase well away from 100 and still be flat.
+    const [min, max] = ratioAxisDomain([130, 130.2])
+
+    expect(min).toBeLessThan(130)
+    expect(max).toBeGreaterThan(130.2)
+    expect((min + max) / 2).toBeCloseTo(130.1, 1)
+  })
+
+  it("returns a sane band when nothing is plotted", () => {
+    const [min, max] = ratioAxisDomain([undefined, undefined])
+
+    expect(min).toBeLessThan(100)
+    expect(max).toBeGreaterThan(100)
+  })
+})
+
+describe("ratioValuePrecision", () => {
+  it("uses whole numbers when the ratio moves enough to separate them", () => {
+    expect(ratioValuePrecision([100, 104, 92])).toBe(0)
+  })
+
+  it("adds a decimal for a narrow span so readouts stop repeating", () => {
+    expect(ratioValuePrecision([100, 100.2, 99.1])).toBe(1)
   })
 
   it("adds two decimals when the ratio barely moves at all", () => {
-    expect(ratioTickPrecision([100, 100.08, 99.94])).toBe(2)
+    expect(ratioValuePrecision([100, 100.08, 99.94])).toBe(2)
   })
 
   it("falls back to whole numbers when nothing is plotted", () => {
-    expect(ratioTickPrecision([undefined, undefined])).toBe(0)
+    expect(ratioValuePrecision([undefined, undefined])).toBe(0)
   })
 })
 
@@ -101,26 +140,52 @@ describe("buildRatioSeries", () => {
     ])
   })
 
-  it("stops the overlay once a leg's last close goes stale", () => {
-    // svc-data can hold a fuller history for one leg than the other. Carrying
-    // a month-old denominator forward would draw a ratio that is really just
-    // the numerator's own move, so the overlay ends where its data ends.
-    const chartDates = ["2026-01-02", "2026-01-09", "2026-01-30"]
+  it("ends the overlay on a leg's last real date, not days later", () => {
+    // svc-data holds deeper history for some assets than others: locally SPY
+    // stopped a month short of VOO. Carrying the last denominator close past
+    // the end of its series plots the numerator's own move as if it were a
+    // ratio — a fake 1.7% slide in VOO vs SPY. Past the end of a leg there is
+    // no ratio, however recent that last close is.
+    const chartDates = ["2026-01-02", "2026-01-09", "2026-01-12"]
     const numerator = [
       { priceDate: "2026-01-02", close: 100 },
       { priceDate: "2026-01-09", close: 110 },
-      { priceDate: "2026-01-30", close: 130 },
+      { priceDate: "2026-01-12", close: 130 },
     ]
     const denominator = [
       { priceDate: "2026-01-02", close: 100 },
       { priceDate: "2026-01-09", close: 100 },
-      // Nothing after 2026-01-09 — 2026-01-30 is 21 days stale.
+      // Series ends here. 2026-01-12 is only 3 days on — inside the window
+      // that covers interior holidays — but there is nothing left to divide by.
     ]
 
     expect(buildRatioSeries(chartDates, numerator, denominator)).toEqual([
       100,
       expect.closeTo(110, 6),
       undefined,
+    ])
+  })
+
+  it("still fills an interior gap from the last close", () => {
+    // The distinction that matters: a hole *inside* a series is a day the feed
+    // skipped, and the previous close still describes the leg. Past the end of
+    // the series it describes nothing.
+    const chartDates = ["2026-01-02", "2026-01-05", "2026-01-09"]
+    const numerator = [
+      { priceDate: "2026-01-02", close: 100 },
+      { priceDate: "2026-01-05", close: 110 },
+      { priceDate: "2026-01-09", close: 120 },
+    ]
+    const denominator = [
+      { priceDate: "2026-01-02", close: 100 },
+      // No 2026-01-05 row — interior hole, fill from 2026-01-02.
+      { priceDate: "2026-01-09", close: 100 },
+    ]
+
+    expect(buildRatioSeries(chartDates, numerator, denominator)).toEqual([
+      100,
+      expect.closeTo(110, 6),
+      expect.closeTo(120, 6),
     ])
   })
 

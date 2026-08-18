@@ -21,7 +21,11 @@ import {
   TrnType,
 } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import { buildRatioSeries, ratioTickPrecision } from "@utils/chart/ratioSeries"
+import {
+  buildRatioSeries,
+  ratioAxisDomain,
+  ratioValuePrecision,
+} from "@utils/chart/ratioSeries"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -537,7 +541,9 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // Only claim the right-hand axis once the overlay actually has data — a
   // selected-but-still-loading overlay would otherwise render an empty axis.
   const ratioActive = series.some((p) => typeof p.ratio === "number")
-  const ratioPrecision = ratioTickPrecision(series.map((p) => p.ratio))
+  const ratioValues = series.map((p) => p.ratio)
+  const ratioPrecision = ratioValuePrecision(ratioValues)
+  const ratioDomain = ratioAxisDomain(ratioValues)
   const ratioLast = [...series]
     .reverse()
     .find((p) => typeof p.ratio === "number")?.ratio
@@ -782,12 +788,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 <YAxis
                   yAxisId="ratio"
                   orientation="right"
-                  domain={["dataMin", "dataMax"]}
+                  domain={ratioDomain}
                   tick={{ fontSize: 10, fill: "#0284C7" }}
                   tickLine={false}
                   axisLine={{ stroke: "#E5E7EB" }}
                   width={48}
-                  tickFormatter={(v: number) => v.toFixed(ratioPrecision)}
+                  tickFormatter={(v: number) => v.toFixed(0)}
                 />
               )}
               <Tooltip

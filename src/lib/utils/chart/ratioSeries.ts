@@ -15,25 +15,30 @@ export interface RatioLegPoint {
 
 const REBASE_AT = 100
 
-// How long a leg's last close may stand in for a missing one. Covers weekends
-// and public holidays; past that the leg is stale rather than merely quiet —
-// svc-data holds deeper history for some assets than others, and dragging a
-// month-old close forward would draw the other leg's move as if it were a
-// ratio. The overlay ends where its data ends instead.
+// How long a leg's last close may stand in for a missing one *inside* its own
+// series — enough to cover a holiday one feed skipped and the other did not.
 const MAX_CARRY_FORWARD_DAYS = 7
 const MS_PER_DAY = 86_400_000
 
 /**
- * Close of `leg` as at `date` — the most recent row on or before it, provided
- * that row is no more than MAX_CARRY_FORWARD_DAYS old. Legs are assumed sorted
- * ascending (svc-data returns price history that way); `cursor` is the caller's
- * position in `leg` and is advanced in place so the whole walk stays linear.
+ * Close of `leg` as at `date` — the most recent row on or before it. Legs are
+ * assumed sorted ascending (svc-data returns price history that way); `cursor`
+ * is the caller's position in `leg` and is advanced in place so the whole walk
+ * stays linear.
+ *
+ * Two ways this returns nothing. Past the last row of the series there is no
+ * close at any age: svc-data holds deeper history for some assets than others,
+ * and dividing by a leg that has simply ended plots the *other* leg's move as
+ * if it were a ratio. Inside the series a hole is just a day the feed skipped,
+ * so the previous close stands in — but only for MAX_CARRY_FORWARD_DAYS, past
+ * which it has stopped describing the leg.
  */
 function closeAsAt(
   leg: RatioLegPoint[],
   date: string,
   cursor: { i: number },
 ): number | undefined {
+  if (leg.length === 0 || date > leg[leg.length - 1].priceDate) return undefined
   while (cursor.i < leg.length && leg[cursor.i].priceDate <= date) {
     cursor.i++
   }
@@ -76,13 +81,47 @@ export function buildRatioSeries(
   })
 }
 
+// Narrowest band the ratio axis will show, in rebased points. A ratio against
+// a benchmark the asset largely *is* — VOO against SPY — moves a fraction of a
+// percent, and scaling the axis to the data drew that noise as a crash. Five
+// points is wide enough that a flat ratio reads flat and a real divergence
+// still stands out.
+const MIN_AXIS_SPAN = 5
+const AXIS_PADDING = 0.08
+
+function plottedValues(values: (number | undefined)[]): number[] {
+  return values.filter((v): v is number => typeof v === "number")
+}
+
 /**
- * Decimal places the ratio axis needs so its ticks stay distinct. A relative
- * strength line against its own benchmark barely moves — VOO vs SPY spans
- * about a point — and whole-number ticks then read "100 100 99 99 98".
+ * Y-axis bounds for the ratio line: the data's own range, widened to at least
+ * MIN_AXIS_SPAN around its midpoint, then padded so the line does not graze
+ * the frame. Centred on the data rather than on 100 — a leg that starts late
+ * rebases well away from 100 and is still flat.
  */
-export function ratioTickPrecision(values: (number | undefined)[]): number {
-  const plotted = values.filter((v): v is number => typeof v === "number")
+export function ratioAxisDomain(
+  values: (number | undefined)[],
+): [number, number] {
+  const plotted = plottedValues(values)
+  if (plotted.length === 0) {
+    return [REBASE_AT - MIN_AXIS_SPAN / 2, REBASE_AT + MIN_AXIS_SPAN / 2]
+  }
+  const min = Math.min(...plotted)
+  const max = Math.max(...plotted)
+  const mid = (min + max) / 2
+  const half = Math.max((max - min) / 2, MIN_AXIS_SPAN / 2)
+  const padded = half * (1 + AXIS_PADDING)
+  return [mid - padded, mid + padded]
+}
+
+/**
+ * Decimal places a ratio readout needs to change from point to point. The axis
+ * has a floored span so whole numbers separate its ticks, but the tooltip
+ * reports actual values — at 0dp a flat ratio would read "100" all the way
+ * across.
+ */
+export function ratioValuePrecision(values: (number | undefined)[]): number {
+  const plotted = plottedValues(values)
   if (plotted.length === 0) return 0
   const span = Math.max(...plotted) - Math.min(...plotted)
   if (span >= 5) return 0
