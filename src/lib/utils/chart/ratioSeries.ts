@@ -45,6 +45,9 @@ function closeAsAt(
   if (cursor.i === 0) return undefined
   const latest = leg[cursor.i - 1]
   const ageDays = (Date.parse(date) - Date.parse(latest.priceDate)) / MS_PER_DAY
+  // An unparseable date gives NaN, and `NaN > MAX_CARRY_FORWARD_DAYS` is false —
+  // which would hand back a close of unknown age as if it were current.
+  if (!Number.isFinite(ageDays)) return undefined
   return ageDays > MAX_CARRY_FORWARD_DAYS ? undefined : latest.close
 }
 
@@ -70,9 +73,22 @@ export function buildRatioSeries(
   return dates.map((date) => {
     const num = closeAsAt(numerator, date, numCursor)
     const den = closeAsAt(denominator, date, denCursor)
-    if (num === undefined || den === undefined || den === 0) return undefined
+    // Not just undefined: a malformed close arrives as NaN or Infinity, and
+    // either one captured as the rebase base turns the whole series into NaN —
+    // which the axis helpers then reduce to a NaN domain and no chart at all.
+    if (
+      num === undefined ||
+      den === undefined ||
+      !Number.isFinite(num) ||
+      !Number.isFinite(den) ||
+      den === 0
+    ) {
+      return undefined
+    }
 
     const ratio = num / den
+    // Two finite closes can still divide to an overflow.
+    if (!Number.isFinite(ratio)) return undefined
     // A zero ratio cannot be rebased onto, and anchoring on one would divide
     // every later point by zero — skip it rather than blank the whole range.
     if (ratio === 0) return undefined
@@ -90,7 +106,9 @@ const MIN_AXIS_SPAN = 5
 const AXIS_PADDING = 0.08
 
 function plottedValues(values: (number | undefined)[]): number[] {
-  return values.filter((v): v is number => typeof v === "number")
+  // Not `typeof v === "number"`: NaN and Infinity pass that, and either one
+  // reaching Math.min/Math.max gives a NaN domain and no axis at all.
+  return values.filter((v): v is number => Number.isFinite(v))
 }
 
 /**

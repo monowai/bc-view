@@ -245,3 +245,105 @@ describe("buildRatioSeries", () => {
     ])
   })
 })
+
+describe("buildRatioSeries with malformed feed values", () => {
+  const dates = ["2026-01-01", "2026-01-02", "2026-01-03"]
+
+  it("skips a point whose leg is not a finite number", () => {
+    // A malformed close reaches here as NaN (Number("") or a null coerced by
+    // the caller). Captured as the rebase base it turns every later point into
+    // NaN, and the axis helpers then compute a NaN domain that breaks the chart.
+    const series = buildRatioSeries(
+      dates,
+      [
+        { priceDate: dates[0], close: Number.NaN },
+        { priceDate: dates[1], close: 110 },
+        { priceDate: dates[2], close: 120 },
+      ],
+      dates.map((d) => ({ priceDate: d, close: 100 })),
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+    expect(series.every((v) => v === undefined || Number.isFinite(v))).toBe(
+      true,
+    )
+  })
+
+  it("skips a point whose quotient overflows to infinity", () => {
+    const series = buildRatioSeries(
+      dates,
+      dates.map((d) => ({ priceDate: d, close: 1e308 })),
+      [
+        { priceDate: dates[0], close: 1e-308 },
+        { priceDate: dates[1], close: 1e308 },
+        { priceDate: dates[2], close: 1e308 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+  })
+
+  it("skips a point whose denominator is not finite", () => {
+    const series = buildRatioSeries(
+      dates,
+      dates.map((d) => ({ priceDate: d, close: 100 })),
+      [
+        { priceDate: dates[0], close: Number.POSITIVE_INFINITY },
+        { priceDate: dates[1], close: 100 },
+        { priceDate: dates[2], close: 100 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+  })
+})
+
+describe("axis helpers with malformed values", () => {
+  it("ignores non-finite values rather than returning a NaN domain", () => {
+    // buildRatioSeries guards its own output, but these are exported: a NaN
+    // reaching Math.min/Math.max yields a NaN domain and no axis at all.
+    const [min, max] = ratioAxisDomain([100, Number.NaN, 104])
+
+    expect(Number.isFinite(min)).toBe(true)
+    expect(Number.isFinite(max)).toBe(true)
+  })
+
+  it("still reports a usable precision when a value is not finite", () => {
+    expect(
+      Number.isFinite(ratioValuePrecision([100, Number.POSITIVE_INFINITY])),
+    ).toBe(true)
+  })
+
+  it("falls back to a default band when nothing is plottable", () => {
+    const [min, max] = ratioAxisDomain([Number.NaN, undefined])
+
+    expect(Number.isFinite(min)).toBe(true)
+    expect(max).toBeGreaterThan(min)
+  })
+})
+
+describe("buildRatioSeries with an unparseable date", () => {
+  it("does not treat a malformed price date as a recent close", () => {
+    // Date.parse returns NaN, and NaN > MAX_CARRY_FORWARD_DAYS is false — so a
+    // stale close would be handed back as if it were current, and could become
+    // the rebase base for the whole series.
+    // "2026-01-99" sorts inside the leg's range (so the string comparisons let
+    // it through) but Date.parse cannot read it.
+    const series = buildRatioSeries(
+      ["2026-01-99"],
+      [
+        { priceDate: "2026-01-99", close: 110 },
+        { priceDate: "2026-02-01", close: 120 },
+      ],
+      [
+        { priceDate: "2026-01-99", close: 100 },
+        { priceDate: "2026-02-01", close: 100 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+  })
+})
