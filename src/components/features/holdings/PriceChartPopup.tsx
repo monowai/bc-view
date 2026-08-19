@@ -588,10 +588,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const trendSummary = useMemo(
     () =>
       summariseTrend(
-        series
-          .map((p) => p.trend)
-          .filter((t): t is RatioTrend => t !== undefined),
-        series.filter((p) => p.trend !== undefined).map((p) => p.priceDate),
+        series.map((p) => p.trend),
+        series.map((p) => p.priceDate),
       ),
     [series],
   )

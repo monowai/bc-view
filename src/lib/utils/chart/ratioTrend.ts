@@ -63,14 +63,15 @@ function ema(
  * which is most days — that is what turned the ribbon into a barcode.
  *
  * Days the ratio cannot cover (a leg with no close, so `buildRatioSeries` left
- * `undefined`) report `inline`: no data, no claim. A gap also *clears* the held
- * state — resuming "leading" on the far side of a blackout would date the claim
- * to before it, and the smoothing restarts for the same reason.
+ * `undefined`) report `undefined` in turn — not `flat`. "Flat" is a claim, and a
+ * caller counting states would tally a coverage hole as a steady day. A gap also
+ * *clears* the held state: resuming "rising" on the far side of a blackout would
+ * date the claim to before it, and the smoothing restarts for the same reason.
  */
 export function ratioTrendStates(
   ratio: (number | undefined)[],
   { window = TREND_EMA_WINDOW, band = TREND_BAND_PCT } = {},
-): RatioTrend[] {
+): (RatioTrend | undefined)[] {
   const smoothed = ema(ratio, window)
   let held: RatioTrend = "flat"
   return smoothed.map((value, i) => {
@@ -82,8 +83,9 @@ export function ratioTrendStates(
       !Number.isFinite(prev)
     ) {
       held = "flat"
-      return held
+      return undefined
     }
+    if (prev === 0) return "flat"
     const slope = ((value - prev) / prev) * 100
     if (slope > band) held = "rising"
     else if (slope < -band) held = "falling"
@@ -109,21 +111,31 @@ export interface TrendSummary {
  * spine and must align index-for-index with `states`.
  */
 export function summariseTrend(
-  states: RatioTrend[],
+  states: (RatioTrend | undefined)[],
   dates: string[],
 ): TrendSummary {
-  if (states.length === 0) {
+  const covered = states.filter((s): s is RatioTrend => s !== undefined)
+  if (covered.length === 0) {
     return { current: "flat", runDays: 0, risingPct: 0, fallingPct: 0 }
   }
-  const current = states[states.length - 1]
-  let start = states.length - 1
+  // Trailing days with no coverage do not change what the ratio last did.
+  let last = states.length - 1
+  while (last > 0 && states[last] === undefined) last--
+  const current = states[last] as RatioTrend
+  // A hole ends the run: the state either side of a blackout is not one stretch,
+  // and dating "since" to before it would claim knowledge we do not have.
+  let start = last
   while (start > 0 && states[start - 1] === current) start--
+  // Shares are of the days actually covered, so a leg that starts late does not
+  // dilute the split with days nothing was known about.
   const share = (state: RatioTrend): number =>
-    Math.round((states.filter((s) => s === state).length / states.length) * 100)
+    Math.round(
+      (covered.filter((s) => s === state).length / covered.length) * 100,
+    )
   return {
     current,
     since: dates[start],
-    runDays: states.length - start,
+    runDays: last - start + 1,
     risingPct: share("rising"),
     fallingPct: share("falling"),
   }

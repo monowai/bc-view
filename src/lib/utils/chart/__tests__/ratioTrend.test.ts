@@ -69,12 +69,15 @@ describe("ratioTrendStates", () => {
     expect(states[states.length - 1]).toBe("rising")
   })
 
-  it("reads in line until the band is first cleared", () => {
+  it("reads flat until the band is first cleared", () => {
     const flat = Array.from({ length: 20 }, () => 100)
 
     const states = ratioTrendStates(flat)
 
-    expect(states.every((s) => s === "flat")).toBe(true)
+    // The first day has no previous value to measure a slope against, so it
+    // has no state at all rather than a flat one.
+    expect(states[0]).toBeUndefined()
+    expect(states.slice(1).every((s) => s === "flat")).toBe(true)
   })
 
   it("restarts neutral after a mid-series gap instead of resuming the old claim", () => {
@@ -93,6 +96,7 @@ describe("ratioTrendStates", () => {
     ])
 
     expect(states[29]).toBe("rising")
+    expect(states[30]).toBeUndefined()
     expect(states[states.length - 1]).toBe("flat")
   })
 
@@ -110,15 +114,20 @@ describe("ratioTrendStates", () => {
       ...after,
     ])
 
-    expect(states[before.length + 3]).toBe("flat")
+    // First value back has nothing to compare against; the day after it must
+    // read flat rather than inheriting a slope from across the blackout.
+    expect(states[before.length + 3]).toBeUndefined()
+    expect(states[before.length + 4]).toBe("flat")
   })
 
-  it("carries no state across a gap in the underlying ratio", () => {
+  it("reports no state at all for a day the ratio does not cover", () => {
     // buildRatioSeries leaves a leg's missing days undefined rather than
-    // dividing by a stale close; those days cannot claim a relative strength.
+    // dividing by a stale close. "flat" would be a claim about those days —
+    // a caller counting states would tally them as steady, and a ribbon would
+    // paint them. Absence has to stay absent.
     const states = ratioTrendStates([...climbing(20), undefined, undefined])
 
-    expect(states[states.length - 1]).toBe("flat")
+    expect(states[states.length - 1]).toBeUndefined()
     expect(states).toHaveLength(22)
   })
 
@@ -199,5 +208,38 @@ describe("reserveRibbonLane", () => {
     const [lo, hi] = reserveRibbonLane([100, 100])
 
     expect(lo).toBeLessThan(hi)
+  })
+})
+
+describe("summariseTrend with coverage holes", () => {
+  it("does not weld a run across a gap", () => {
+    const states = ["rising", "rising", undefined, "rising"] as ReturnType<
+      typeof ratioTrendStates
+    >
+
+    const summary = summariseTrend(states, dates(4))
+
+    expect(summary.current).toBe("rising")
+    expect(summary.runDays).toBe(1)
+    expect(summary.since).toBe(dates(4)[3])
+  })
+
+  it("takes percentages over the days actually covered", () => {
+    const states = ["rising", undefined, undefined, "falling"] as ReturnType<
+      typeof ratioTrendStates
+    >
+
+    const summary = summariseTrend(states, dates(4))
+
+    expect(summary.risingPct).toBe(50)
+    expect(summary.fallingPct).toBe(50)
+  })
+
+  it("says nothing when no day is covered", () => {
+    const summary = summariseTrend([undefined, undefined], dates(2))
+
+    expect(summary.current).toBe("flat")
+    expect(summary.runDays).toBe(0)
+    expect(summary.risingPct).toBe(0)
   })
 })
