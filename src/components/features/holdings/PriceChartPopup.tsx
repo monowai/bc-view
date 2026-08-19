@@ -34,6 +34,7 @@ import {
   ratioTrendStates,
   reserveRibbonLane,
   summariseTrend,
+  trendRuns,
 } from "@utils/chart/ratioTrend"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
@@ -573,17 +574,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   // Contiguous runs of one state, so the ribbon is a handful of blocks rather
   // than one rect per trading day.
-  const trendRuns = useMemo(() => {
-    const runs: { from: string; to: string; state: RatioTrend }[] = []
-    for (const point of series) {
-      const state = point.trend
-      if (state === undefined) continue
-      const open = runs[runs.length - 1]
-      if (open && open.state === state) open.to = point.priceDate
-      else runs.push({ from: point.priceDate, to: point.priceDate, state })
-    }
-    return runs
-  }, [series])
+  const ribbonRuns = useMemo(() => trendRuns(series), [series])
 
   const trendSummary = useMemo(
     () =>
@@ -905,7 +896,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   `${currencySymbol}${v.toFixed(2)}`
                 }
               />
-              {trendRuns.map((run) => (
+              {ribbonRuns.map((run) => (
                 <ReferenceArea
                   key={`trend-${run.from}`}
                   yAxisId="price"

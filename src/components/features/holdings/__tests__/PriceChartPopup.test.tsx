@@ -49,8 +49,16 @@ jest.mock("recharts", () => ({
   Scatter: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`scatter-${dataKey}`} />
   ),
-  ReferenceArea: ({ x1, fill }: { x1?: string; fill?: string }) => (
-    <g data-testid="rs-band" data-from={x1} data-fill={fill} />
+  ReferenceArea: ({
+    x1,
+    x2,
+    fill,
+  }: {
+    x1?: string
+    x2?: string
+    fill?: string
+  }) => (
+    <g data-testid="rs-band" data-from={x1} data-to={x2} data-fill={fill} />
   ),
   ReferenceLine: ({ x, y }: { x?: string; y?: number }) =>
     x != null ? (
@@ -660,6 +668,20 @@ describe("PriceChartPopup", () => {
   describe("trend ribbon", () => {
     // The overlay's own series decides the ribbon, so the fixture moves the
     // leg that the selected ratio divides by.
+    // Consecutive real dates, so a gap can exceed the ratio's carry-forward.
+    function dayHistory(
+      days: number,
+      perDay: number,
+      base = 500,
+    ): { priceDate: string; close: number }[] {
+      return Array.from({ length: days }, (_, i) => ({
+        priceDate: new Date(Date.UTC(2026, 3, 1 + i))
+          .toISOString()
+          .slice(0, 10),
+        close: base * (1 + perDay) ** i,
+      }))
+    }
+
     function legHistory(
       days: number,
       perDay: number,
@@ -754,6 +776,38 @@ describe("PriceChartPopup", () => {
       const bands = screen.getAllByTestId("rs-band")
       expect(bands.length).toBeGreaterThan(0)
       expect(bands.length).toBeLessThan(12)
+    })
+
+    it("breaks the ribbon at a hole rather than painting over it", () => {
+      // The benchmark goes dark for a fortnight mid-range — longer than the
+      // ratio will carry a close forward. One band spanning the blackout would
+      // assert a trend through days nothing was known about.
+      const prices = dayHistory(40, 0.004, 400)
+      const benchmark = dayHistory(40, 0, 500).filter(
+        (_, i) => i < 12 || i > 26,
+      )
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          pricesResult: {
+            data: { asset, prices },
+            isLoading: false,
+            error: undefined,
+          } as ReturnType<typeof useSwr>,
+          overlayLegs: { "spy-id": benchmark },
+        }) as typeof useSwr,
+      )
+      renderPopup()
+
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+      const holeStart = prices[13].priceDate
+      const holeEnd = prices[26].priceDate
+      const spanning = screen.getAllByTestId("rs-band").filter((band) => {
+        const from = band.getAttribute("data-from") ?? ""
+        const to = band.getAttribute("data-to") ?? ""
+        return from < holeStart && to > holeEnd
+      })
+      expect(spanning).toHaveLength(0)
     })
 
     it("drops the ribbon when the chosen overlay cannot be loaded", () => {

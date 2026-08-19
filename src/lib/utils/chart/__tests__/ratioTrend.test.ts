@@ -1,5 +1,6 @@
 import {
   TREND_BAND_PCT,
+  trendRuns,
   TREND_EMA_WINDOW,
   ratioTrendStates,
   reserveRibbonLane,
@@ -136,8 +137,10 @@ describe("ratioTrendStates", () => {
     // and would read as a violent move in whichever direction the sign fell.
     const states = ratioTrendStates([0, 0, 100, 100])
 
-    expect(states[1]).toBe("flat")
-    expect(states[2]).toBe("flat")
+    // Not "flat" either: a day whose slope cannot be measured is not a steady
+    // day, and summariseTrend would count it as one.
+    expect(states[1]).toBeUndefined()
+    expect(states[2]).toBeUndefined()
   })
 
   it("refuses tuning values that would disable the smoothing or the band", () => {
@@ -147,6 +150,12 @@ describe("ratioTrendStates", () => {
     expect(() => ratioTrendStates([1, 2], { window: 0 })).toThrow(/window/i)
     expect(() => ratioTrendStates([1, 2], { window: -1 })).toThrow(/window/i)
     expect(() => ratioTrendStates([1, 2], { band: 0 })).toThrow(/band/i)
+    expect(() => ratioTrendStates([1, 2], { window: Number.NaN })).toThrow(
+      /window/i,
+    )
+    expect(() => ratioTrendStates([1, 2], { band: Number.NaN })).toThrow(
+      /band/i,
+    )
   })
 
   it("returns one state per input point", () => {
@@ -259,5 +268,40 @@ describe("summariseTrend with coverage holes", () => {
     expect(summary.current).toBe("flat")
     expect(summary.runDays).toBe(0)
     expect(summary.risingPct).toBe(0)
+  })
+})
+
+describe("trendRuns", () => {
+  const day = (n: number): string => `2026-04-${String(n).padStart(2, "0")}`
+
+  it("collapses consecutive days of one state into a single band", () => {
+    const runs = trendRuns([
+      { priceDate: day(1), trend: "rising" },
+      { priceDate: day(2), trend: "rising" },
+      { priceDate: day(3), trend: "falling" },
+    ])
+
+    expect(runs).toEqual([
+      { from: day(1), to: day(2), state: "rising" },
+      { from: day(3), to: day(3), state: "falling" },
+    ])
+  })
+
+  it("splits a run at a coverage hole instead of welding across it", () => {
+    // Same state either side of a blackout is not one stretch. A single band
+    // spanning the hole would assert a trend through days with no data.
+    const runs = trendRuns([
+      { priceDate: day(1), trend: "flat" },
+      { priceDate: day(2), trend: undefined },
+      { priceDate: day(3), trend: "flat" },
+    ])
+
+    expect(runs).toHaveLength(2)
+    expect(runs[0]).toEqual({ from: day(1), to: day(1), state: "flat" })
+    expect(runs[1]).toEqual({ from: day(3), to: day(3), state: "flat" })
+  })
+
+  it("has nothing to draw when no day is covered", () => {
+    expect(trendRuns([{ priceDate: day(1), trend: undefined }])).toHaveLength(0)
   })
 })

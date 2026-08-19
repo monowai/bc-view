@@ -65,17 +65,17 @@ function ema(
  * Days the ratio cannot cover (a leg with no close, so `buildRatioSeries` left
  * `undefined`) report `undefined` in turn — not `flat`. "Flat" is a claim, and a
  * caller counting states would tally a coverage hole as a steady day. A gap also
- * *clears* the held state: resuming "rising" on the far side of a blackout would
+ * *clears* the held state: resuming a direction on the far side of a blackout would
  * date the claim to before it, and the smoothing restarts for the same reason.
  */
 export function ratioTrendStates(
   ratio: (number | undefined)[],
   { window = TREND_EMA_WINDOW, band = TREND_BAND_PCT } = {},
 ): (RatioTrend | undefined)[] {
-  if (window <= 0) {
+  if (!Number.isFinite(window) || window <= 0) {
     throw new Error(`ratioTrendStates: window must be positive, got ${window}`)
   }
-  if (band <= 0) {
+  if (!Number.isFinite(band) || band <= 0) {
     throw new Error(`ratioTrendStates: band must be positive, got ${band}`)
   }
   const smoothed = ema(ratio, window)
@@ -91,10 +91,11 @@ export function ratioTrendStates(
       held = "flat"
       return undefined
     }
-    // No slope can be measured from zero; drop any claim rather than holding it.
+    // No slope can be measured from zero, so this is not a flat day either —
+    // it is a day with no reading. Drop any claim rather than holding it.
     if (prev === 0) {
       held = "flat"
-      return held
+      return undefined
     }
     const slope = ((value - prev) / prev) * 100
     if (slope > band) held = "rising"
@@ -171,6 +172,40 @@ export function reserveRibbonLane(
   // so the lane still has height.
   const span = high - low || Math.abs(high) || 1
   return [low - span * fraction, high]
+}
+
+export interface TrendRun {
+  from: string
+  to: string
+  state: RatioTrend
+}
+
+/**
+ * Contiguous runs of one state, so the ribbon is a handful of blocks rather
+ * than one rect per trading day.
+ *
+ * A day with no state **ends** the open run. Same state either side of a
+ * blackout is not one stretch, and a band drawn across the hole would assert a
+ * trend through days nothing was known about.
+ */
+export function trendRuns(
+  points: { priceDate: string; trend?: RatioTrend }[],
+): TrendRun[] {
+  const runs: TrendRun[] = []
+  let open: TrendRun | undefined
+  for (const point of points) {
+    const state = point.trend
+    if (state === undefined) {
+      open = undefined
+      continue
+    }
+    if (open && open.state === state) open.to = point.priceDate
+    else {
+      open = { from: point.priceDate, to: point.priceDate, state }
+      runs.push(open)
+    }
+  }
+  return runs
 }
 
 /**

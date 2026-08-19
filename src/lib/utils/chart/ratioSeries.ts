@@ -84,6 +84,8 @@ export function buildRatioSeries(
     }
 
     const ratio = num / den
+    // Two finite closes can still divide to an overflow.
+    if (!Number.isFinite(ratio)) return undefined
     // A zero ratio cannot be rebased onto, and anchoring on one would divide
     // every later point by zero — skip it rather than blank the whole range.
     if (ratio === 0) return undefined

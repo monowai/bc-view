@@ -270,6 +270,21 @@ describe("buildRatioSeries with malformed feed values", () => {
     )
   })
 
+  it("skips a point whose quotient overflows to infinity", () => {
+    const series = buildRatioSeries(
+      dates,
+      dates.map((d) => ({ priceDate: d, close: 1e308 })),
+      [
+        { priceDate: dates[0], close: 1e-308 },
+        { priceDate: dates[1], close: 1e308 },
+        { priceDate: dates[2], close: 1e308 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+  })
+
   it("skips a point whose denominator is not finite", () => {
     const series = buildRatioSeries(
       dates,
