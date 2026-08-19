@@ -23,18 +23,23 @@ jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => mockUsePermissions(),
 }))
 
+let lastSeries: Record<string, unknown>[] = []
+
 jest.mock("recharts", () => ({
   ComposedChart: ({
     children,
     data,
   }: {
     children: React.ReactNode
-    data: unknown[]
-  }) => (
-    <svg data-testid="chart" data-series={JSON.stringify(data)}>
-      {children}
-    </svg>
-  ),
+    data: Record<string, unknown>[]
+  }) => {
+    lastSeries = data
+    return (
+      <svg data-testid="chart" data-series={JSON.stringify(data)}>
+        {children}
+      </svg>
+    )
+  },
   Area: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`area-${dataKey}`} />
   ),
@@ -57,7 +62,24 @@ jest.mock("recharts", () => ({
   YAxis: ({ yAxisId }: { yAxisId?: string }) => (
     <g data-testid={`yaxis-${yAxisId ?? "default"}`} />
   ),
-  Tooltip: () => <g />,
+  // Render the tooltip's own content against the last charted point, so what
+  // the user would actually read on hover is assertable.
+  Tooltip: ({
+    content,
+  }: {
+    content: React.ReactElement<Record<string, unknown>>
+  }) => {
+    const point = lastSeries[lastSeries.length - 1]
+    if (!point) return <g />
+    return (
+      <div data-testid="tooltip">
+        {React.cloneElement(content, {
+          active: true,
+          payload: [{ dataKey: "close", value: point.close, payload: point }],
+        })}
+      </div>
+    )
+  },
   CartesianGrid: () => <g />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
@@ -681,8 +703,8 @@ describe("PriceChartPopup", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
-      expect(screen.getByText("Outperforming")).toBeInTheDocument()
-      expect(screen.getByText(/vs SPY:/)).toBeInTheDocument()
+      expect(screen.getAllByText("Outperforming").length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/vs SPY:/).length).toBeGreaterThan(0)
     })
 
     it("describes breadth — not the asset — when the overlay is RSP/SPY", () => {
@@ -695,7 +717,7 @@ describe("PriceChartPopup", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
-      expect(screen.getByText("Breadth widening")).toBeInTheDocument()
+      expect(screen.getAllByText("Breadth widening").length).toBeGreaterThan(0)
       expect(screen.queryByText("Outperforming")).not.toBeInTheDocument()
     })
 
@@ -710,6 +732,18 @@ describe("PriceChartPopup", () => {
       expect(
         screen.getByText(/% breadth widening · \d+% breadth narrowing/),
       ).toBeInTheDocument()
+    })
+
+    it("names the trend on hover, in the overlay's words", () => {
+      renderWithLegs({
+        "rsp-id": legHistory(12, 0.01),
+        "spy-id": legHistory(12, 0),
+      })
+
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+      const tooltip = screen.getByTestId("tooltip")
+      expect(tooltip).toHaveTextContent("Breadth widening")
     })
 
     it("draws one band per run of state, not one per trading day", () => {

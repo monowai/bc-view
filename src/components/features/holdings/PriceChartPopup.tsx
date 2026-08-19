@@ -940,6 +940,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     currencySymbol={currencySymbol}
                     ratioLabel={ratioActive ? overlay.label : undefined}
                     ratioPrecision={ratioPrecision}
+                    trendLabels={trendLabels}
                   />
                 }
               />

@@ -38,7 +38,9 @@ function ema(
   const k = 2 / (window + 1)
   let prev: number | undefined
   return values.map((v) => {
-    if (typeof v !== "number") {
+    // NaN and Infinity are `typeof "number"`. A malformed close would otherwise
+    // poison the running average for the rest of the series.
+    if (typeof v !== "number" || !Number.isFinite(v)) {
       // Restart the average across a hole rather than carrying the pre-gap
       // level over it. Blending the first value on the far side into an
       // average from before reads as one enormous day of movement.
@@ -73,7 +75,12 @@ export function ratioTrendStates(
   let held: RatioTrend = "flat"
   return smoothed.map((value, i) => {
     const prev = i > 0 ? smoothed[i - 1] : undefined
-    if (typeof value !== "number" || typeof prev !== "number") {
+    if (
+      typeof value !== "number" ||
+      typeof prev !== "number" ||
+      !Number.isFinite(value) ||
+      !Number.isFinite(prev)
+    ) {
       held = "flat"
       return held
     }
