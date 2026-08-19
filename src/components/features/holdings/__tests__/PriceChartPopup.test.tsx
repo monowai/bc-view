@@ -23,18 +23,23 @@ jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => mockUsePermissions(),
 }))
 
+let lastSeries: Record<string, unknown>[] = []
+
 jest.mock("recharts", () => ({
   ComposedChart: ({
     children,
     data,
   }: {
     children: React.ReactNode
-    data: unknown[]
-  }) => (
-    <svg data-testid="chart" data-series={JSON.stringify(data)}>
-      {children}
-    </svg>
-  ),
+    data: Record<string, unknown>[]
+  }) => {
+    lastSeries = data
+    return (
+      <svg data-testid="chart" data-series={JSON.stringify(data)}>
+        {children}
+      </svg>
+    )
+  },
   Area: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`area-${dataKey}`} />
   ),
@@ -57,7 +62,24 @@ jest.mock("recharts", () => ({
   YAxis: ({ yAxisId }: { yAxisId?: string }) => (
     <g data-testid={`yaxis-${yAxisId ?? "default"}`} />
   ),
-  Tooltip: () => <g />,
+  // Render the tooltip's own content against the last charted point, so what
+  // the user would actually read on hover is assertable.
+  Tooltip: ({
+    content,
+  }: {
+    content: React.ReactElement<Record<string, unknown>>
+  }) => {
+    const point = lastSeries[lastSeries.length - 1]
+    if (!point) return <g />
+    return (
+      <div data-testid="tooltip">
+        {React.cloneElement(content, {
+          active: true,
+          payload: [{ dataKey: "close", value: point.close, payload: point }],
+        })}
+      </div>
+    )
+  },
   CartesianGrid: () => <g />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
@@ -245,11 +267,7 @@ describe("PriceChartPopup", () => {
         (k): k is string =>
           typeof k === "string" && k.startsWith("/api/prices/history/"),
       )
-    // The benchmark leg also fetches history, so pick this asset's own keys
-    // rather than whichever request happened to be issued last.
-    const latest = priceKeys
-      .filter((key) => key.includes(`/api/prices/history/${asset.id}`))
-      .pop()
+    const latest = priceKeys[priceKeys.length - 1]
     expect(latest).toContain(`/api/prices/history/${asset.id}`)
     expect(latest).toContain("from=")
     expect(latest).toContain("to=")
@@ -274,9 +292,7 @@ describe("PriceChartPopup", () => {
     )
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
     expect(screen.queryByTestId("yaxis-ratio")).not.toBeInTheDocument()
-    // SPY is still resolved — the relative-strength ribbon needs a benchmark
-    // whatever the overlay picker says. RSP is not: that is overlay-only.
-    expect(resolveKeys()).toEqual(["/api/assets/resolve?code=US%3ASPY"])
+    expect(resolveKeys()).toHaveLength(0)
   })
 
   it("plots RSP/SPY rebased to 100 on its own axis when selected", () => {
@@ -641,82 +657,110 @@ describe("PriceChartPopup", () => {
       fetchSpy.mockRestore()
     })
   })
-  describe("relative-strength ribbon", () => {
-    // The asset gains 1% a day on a flat benchmark: unambiguous outperformance
-    // once the smoothed slope clears the hysteresis band.
-    function climbingHistory(
+  describe("trend ribbon", () => {
+    // The overlay's own series decides the ribbon, so the fixture moves the
+    // leg that the selected ratio divides by.
+    function legHistory(
       days: number,
       perDay: number,
+      base = 500,
     ): { priceDate: string; close: number }[] {
       return Array.from({ length: days }, (_, i) => ({
         priceDate: `2026-04-${String(i + 1).padStart(2, "0")}`,
-        close: 400 * (1 + perDay) ** i,
+        close: base * (1 + perDay) ** i,
       }))
     }
-    const flatBenchmark = climbingHistory(12, 0).map((p) => ({
-      ...p,
-      close: 500,
-    }))
 
-    function renderWithBenchmark(perDay: number): void {
+    function renderWithLegs(
+      overlayLegs: Record<string, { priceDate: string; close: number }[]>,
+    ): void {
       mockUseSwr.mockImplementation(
         makeRouter({
           pricesResult: {
-            data: { asset, prices: climbingHistory(12, perDay) },
+            data: { asset, prices: legHistory(12, 0.01, 400) },
             isLoading: false,
             error: undefined,
           } as ReturnType<typeof useSwr>,
-          overlayLegs: { "spy-id": flatBenchmark },
+          overlayLegs,
         }) as typeof useSwr,
       )
       renderPopup()
     }
 
-    it("names the state in words rather than leaving it to colour", () => {
-      renderWithBenchmark(0.01)
+    it("shows no ribbon and fetches nothing extra until a ratio is chosen", () => {
+      // Default overlay is None. Nothing is being compared, so there is nothing
+      // for the ribbon to describe and no reason to fetch a benchmark.
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
-      expect(screen.getByText("Outperforming")).toBeInTheDocument()
-      expect(screen.getByText(/vs SPY:/)).toBeInTheDocument()
+      renderPopup()
+
+      expect(screen.queryAllByTestId("rs-band")).toHaveLength(0)
+      expect(resolveKeys()).toHaveLength(0)
     })
 
-    it("reports how the range split between outperforming and lagging", () => {
-      renderWithBenchmark(0.01)
+    it("describes the asset when the overlay is the asset against the market", () => {
+      renderWithLegs({ "spy-id": legHistory(12, 0) })
+
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+      expect(screen.getAllByText("Outperforming").length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/vs SPY:/).length).toBeGreaterThan(0)
+    })
+
+    it("describes breadth — not the asset — when the overlay is RSP/SPY", () => {
+      // Same asset, different ratio: the ribbon must not keep talking about the
+      // asset's own performance when the line on screen is a market read.
+      renderWithLegs({
+        "rsp-id": legHistory(12, 0.01),
+        "spy-id": legHistory(12, 0),
+      })
+
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+      expect(screen.getAllByText("Breadth widening").length).toBeGreaterThan(0)
+      expect(screen.queryByText("Outperforming")).not.toBeInTheDocument()
+    })
+
+    it("reports how the range split, in the overlay's own words", () => {
+      renderWithLegs({
+        "rsp-id": legHistory(12, -0.01),
+        "spy-id": legHistory(12, 0),
+      })
+
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
       expect(
-        screen.getByText(/% outperforming · \d+% lagging over range/),
+        screen.getByText(/% breadth widening · \d+% breadth narrowing/),
       ).toBeInTheDocument()
     })
 
-    it("calls a sustained loss against the benchmark lagging", () => {
-      renderWithBenchmark(-0.01)
+    it("names the trend on hover, in the overlay's words", () => {
+      renderWithLegs({
+        "rsp-id": legHistory(12, 0.01),
+        "spy-id": legHistory(12, 0),
+      })
 
-      expect(screen.getByText("Lagging")).toBeInTheDocument()
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+      const tooltip = screen.getByTestId("tooltip")
+      expect(tooltip).toHaveTextContent("Breadth widening")
     })
 
     it("draws one band per run of state, not one per trading day", () => {
-      renderWithBenchmark(0.01)
+      renderWithLegs({ "spy-id": legHistory(12, 0) })
+
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
       const bands = screen.getAllByTestId("rs-band")
       expect(bands.length).toBeGreaterThan(0)
       expect(bands.length).toBeLessThan(12)
     })
 
-    it("fetches the benchmark even with the ratio overlay off", () => {
-      renderWithBenchmark(0.01)
+    it("drops the ribbon when the chosen overlay cannot be loaded", () => {
+      renderWithLegs({})
 
-      const resolved = mockUseSwr.mock.calls
-        .map((call) => call[0])
-        .filter((key): key is string => typeof key === "string")
-        .filter((key) => key.startsWith("/api/assets/resolve"))
-      expect(resolved.some((key) => key.includes("US%3ASPY"))).toBe(true)
-    })
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
-    it("leaves the chart alone when the benchmark history is unavailable", () => {
-      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
-
-      renderPopup()
-
-      expect(screen.queryByText(/vs SPY:/)).not.toBeInTheDocument()
       expect(screen.queryAllByTestId("rs-band")).toHaveLength(0)
     })
   })
