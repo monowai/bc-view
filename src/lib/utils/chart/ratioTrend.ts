@@ -56,8 +56,8 @@ function ema(
  * State per day for a relative-strength series (asset / benchmark, rebased —
  * see `buildRatioSeries`).
  *
- * The band is a Schmitt trigger, not a threshold. The state flips to `leading`
- * only when the smoothed slope clears `+band`, and back to `lagging` only when
+ * The band is a Schmitt trigger, not a threshold. The state flips to `rising`
+ * only when the smoothed slope clears `+band`, and back to `falling` only when
  * it drops under `−band`; in between it *holds whatever it was*. A plain
  * threshold instead reverts to neutral on every day the slope grazes zero,
  * which is most days — that is what turned the ribbon into a barcode.
@@ -72,8 +72,10 @@ export function ratioTrendStates(
   ratio: (number | undefined)[],
   { window = TREND_EMA_WINDOW, band = TREND_BAND_PCT } = {},
 ): (RatioTrend | undefined)[] {
-  if (!Number.isFinite(window) || window <= 0) {
-    throw new Error(`ratioTrendStates: window must be positive, got ${window}`)
+  // Below 1 the coefficient `2 / (window + 1)` exceeds 1 and the recursion
+  // oscillates rather than averaging, so the states become noise.
+  if (!Number.isFinite(window) || window < 1) {
+    throw new Error(`ratioTrendStates: window must be >= 1, got ${window}`)
   }
   if (!Number.isFinite(band) || band <= 0) {
     throw new Error(`ratioTrendStates: band must be positive, got ${band}`)

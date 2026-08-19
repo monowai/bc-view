@@ -45,6 +45,9 @@ function closeAsAt(
   if (cursor.i === 0) return undefined
   const latest = leg[cursor.i - 1]
   const ageDays = (Date.parse(date) - Date.parse(latest.priceDate)) / MS_PER_DAY
+  // An unparseable date gives NaN, and `NaN > MAX_CARRY_FORWARD_DAYS` is false —
+  // which would hand back a close of unknown age as if it were current.
+  if (!Number.isFinite(ageDays)) return undefined
   return ageDays > MAX_CARRY_FORWARD_DAYS ? undefined : latest.close
 }
 

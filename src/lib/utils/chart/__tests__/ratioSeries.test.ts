@@ -324,3 +324,26 @@ describe("axis helpers with malformed values", () => {
     expect(max).toBeGreaterThan(min)
   })
 })
+
+describe("buildRatioSeries with an unparseable date", () => {
+  it("does not treat a malformed price date as a recent close", () => {
+    // Date.parse returns NaN, and NaN > MAX_CARRY_FORWARD_DAYS is false — so a
+    // stale close would be handed back as if it were current, and could become
+    // the rebase base for the whole series.
+    // "2026-01-99" sorts inside the leg's range (so the string comparisons let
+    // it through) but Date.parse cannot read it.
+    const series = buildRatioSeries(
+      ["2026-01-99"],
+      [
+        { priceDate: "2026-01-99", close: 110 },
+        { priceDate: "2026-02-01", close: 120 },
+      ],
+      [
+        { priceDate: "2026-01-99", close: 100 },
+        { priceDate: "2026-02-01", close: 100 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+  })
+})

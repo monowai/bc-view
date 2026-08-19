@@ -148,6 +148,9 @@ describe("ratioTrendStates", () => {
     // series; a band of 0 removes the hysteresis this module exists for. Both
     // are programming errors, so they fail loudly rather than plotting nonsense.
     expect(() => ratioTrendStates([1, 2], { window: 0 })).toThrow(/window/i)
+    // Below 1 the smoothing coefficient exceeds 1 and the recursion oscillates
+    // instead of averaging — garbage states rather than a loud failure.
+    expect(() => ratioTrendStates([1, 2], { window: 0.5 })).toThrow(/window/i)
     expect(() => ratioTrendStates([1, 2], { window: -1 })).toThrow(/window/i)
     expect(() => ratioTrendStates([1, 2], { band: 0 })).toThrow(/band/i)
     expect(() => ratioTrendStates([1, 2], { window: Number.NaN })).toThrow(
