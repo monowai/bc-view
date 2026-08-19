@@ -103,7 +103,9 @@ const MIN_AXIS_SPAN = 5
 const AXIS_PADDING = 0.08
 
 function plottedValues(values: (number | undefined)[]): number[] {
-  return values.filter((v): v is number => typeof v === "number")
+  // Not `typeof v === "number"`: NaN and Infinity pass that, and either one
+  // reaching Math.min/Math.max gives a NaN domain and no axis at all.
+  return values.filter((v): v is number => Number.isFinite(v))
 }
 
 /**

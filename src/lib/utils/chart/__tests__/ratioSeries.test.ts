@@ -300,3 +300,27 @@ describe("buildRatioSeries with malformed feed values", () => {
     expect(series[1]).toBe(100)
   })
 })
+
+describe("axis helpers with malformed values", () => {
+  it("ignores non-finite values rather than returning a NaN domain", () => {
+    // buildRatioSeries guards its own output, but these are exported: a NaN
+    // reaching Math.min/Math.max yields a NaN domain and no axis at all.
+    const [min, max] = ratioAxisDomain([100, Number.NaN, 104])
+
+    expect(Number.isFinite(min)).toBe(true)
+    expect(Number.isFinite(max)).toBe(true)
+  })
+
+  it("still reports a usable precision when a value is not finite", () => {
+    expect(
+      Number.isFinite(ratioValuePrecision([100, Number.POSITIVE_INFINITY])),
+    ).toBe(true)
+  })
+
+  it("falls back to a default band when nothing is plottable", () => {
+    const [min, max] = ratioAxisDomain([Number.NaN, undefined])
+
+    expect(Number.isFinite(min)).toBe(true)
+    expect(max).toBeGreaterThan(min)
+  })
+})
