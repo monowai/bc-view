@@ -711,6 +711,31 @@ describe("PriceChartPopup", () => {
       expect(resolved.some((key) => key.includes("US%3ASPY"))).toBe(true)
     })
 
+    it("says so when the benchmark cannot be loaded, rather than just dropping the ribbon", () => {
+      // An overlay leg that fails gets a warning; a benchmark that fails used
+      // to make the ribbon vanish with nothing said.
+      mockUseSwr.mockImplementation(((key: unknown) => {
+        if (
+          typeof key === "string" &&
+          key.startsWith("/api/assets/resolve") &&
+          key.includes("SPY")
+        ) {
+          return {
+            data: undefined,
+            isLoading: false,
+            error: new Error("resolve failed"),
+          } as unknown as ReturnType<typeof useSwr>
+        }
+        return makeRouter({})(key)
+      }) as typeof useSwr)
+
+      renderPopup()
+
+      expect(
+        screen.getByText(/relative strength unavailable/i),
+      ).toBeInTheDocument()
+    })
+
     it("leaves the chart alone when the benchmark history is unavailable", () => {
       mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 

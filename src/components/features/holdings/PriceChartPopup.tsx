@@ -788,6 +788,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {overlay.label} unavailable — could not load its price history
             </span>
           )}
+          {benchmarkLeg.failed && !rsActive && (
+            <span className="text-amber-600">
+              Relative strength unavailable — could not load {RS_BENCHMARK}
+            </span>
+          )}
           {rsActive && (
             <span className="flex items-center gap-1.5">
               <span
