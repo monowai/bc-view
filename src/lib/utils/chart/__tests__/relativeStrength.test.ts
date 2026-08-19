@@ -2,6 +2,7 @@ import {
   RS_BAND_PCT,
   RS_EMA_WINDOW,
   relativeStrengthStates,
+  reserveRibbonLane,
   summariseRelativeStrength,
 } from "../relativeStrength"
 
@@ -136,5 +137,35 @@ describe("tuning constants", () => {
     // barcode; see project_rs_ribbon_encoding.
     expect(RS_EMA_WINDOW).toBe(15)
     expect(RS_BAND_PCT).toBeCloseTo(0.3)
+  })
+})
+
+describe("reserveRibbonLane", () => {
+  it("extends the domain downward so nothing plots in the lane", () => {
+    const [lo, hi] = reserveRibbonLane([100, 200])
+
+    expect(hi).toBe(200)
+    expect(lo).toBeLessThan(100)
+  })
+
+  it("leaves the top of the range where the caller put it", () => {
+    // Only the floor moves: pushing the ceiling would shrink the data's own
+    // pane every time the ribbon turned on.
+    const [, hi] = reserveRibbonLane([0.5, 0.9])
+
+    expect(hi).toBeCloseTo(0.9)
+  })
+
+  it("reserves the same share of the pane whatever the units", () => {
+    const [smallLo] = reserveRibbonLane([0, 10])
+    const [bigLo] = reserveRibbonLane([0, 1000])
+
+    expect(smallLo / 10).toBeCloseTo(bigLo / 1000)
+  })
+
+  it("still reserves a lane for a flat series with no span", () => {
+    const [lo, hi] = reserveRibbonLane([100, 100])
+
+    expect(lo).toBeLessThan(hi)
   })
 })

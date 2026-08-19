@@ -110,6 +110,28 @@ export function summariseRelativeStrength(
   }
 }
 
+/**
+ * Share of a pane reserved below the data for the ribbon lane.
+ */
+export const RS_LANE_FRACTION = 0.12
+
+/**
+ * Extend a y-axis domain downward to make room for the ribbon.
+ *
+ * Every axis the chart draws on needs this, not just the price axis: the ratio
+ * overlay has its own scale, and without the same reservation its line dips
+ * into the lane and crosses the ribbon.
+ */
+export function reserveRibbonLane(
+  [low, high]: [number, number],
+  fraction: number = RS_LANE_FRACTION,
+): [number, number] {
+  // A flat series has no span to take a share of; fall back to the level itself
+  // so the lane still has height.
+  const span = high - low || Math.abs(high) || 1
+  return [low - span * fraction, high]
+}
+
 /** Ribbon colours. Blue/red rather than green/red — green is the price fill. */
 export const RS_COLOR: Record<RsState, string> = {
   leading: "#2563EB",

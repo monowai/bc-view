@@ -30,8 +30,10 @@ import {
 import {
   RS_COLOR,
   RS_LABEL,
+  RS_LANE_FRACTION,
   RsState,
   relativeStrengthStates,
+  reserveRibbonLane,
   summariseRelativeStrength,
 } from "@utils/chart/relativeStrength"
 import Dialog from "@components/ui/Dialog"
@@ -128,11 +130,6 @@ const SELF = "SELF"
 
 // Benchmark the relative-strength ribbon measures every asset against.
 const RS_BENCHMARK = "US:SPY"
-
-// Share of the price pane reserved below the data for the ribbon lane. The lane
-// sits outside the price range rather than over it, so the ribbon can never be
-// mistaken for a price level or hide the low of the range.
-const RS_LANE_FRACTION = 0.12
 
 const OVERLAYS: OverlayOption[] = [
   { label: "None", numerator: null, denominator: null },
@@ -562,7 +559,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     const floor = min - span * 0.1
     const top = max + span * 0.1
     if (!rsActive) return [floor, top]
-    return [floor - (top - floor) * RS_LANE_FRACTION, top]
+    return reserveRibbonLane([floor, top])
   }, [series.length, min, max, rsActive])
 
   // Ticks are derived from the price range only. Left to itself Recharts would
@@ -633,7 +630,17 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const ratioActive = series.some((p) => typeof p.ratio === "number")
   const ratioValues = series.map((p) => p.ratio)
   const ratioPrecision = ratioValuePrecision(ratioValues)
-  const ratioDomain = ratioAxisDomain(ratioValues)
+  const rawRatioDomain = ratioAxisDomain(ratioValues)
+  const ratioDomain = rsActive
+    ? reserveRibbonLane(rawRatioDomain)
+    : rawRatioDomain
+  // Ticks come from the ratio's own range so the reserved lane is not labelled
+  // as if the ratio traded there.
+  const ratioTicks = Array.from(
+    { length: 4 },
+    (_, i) =>
+      rawRatioDomain[0] + ((rawRatioDomain[1] - rawRatioDomain[0]) / 3) * i,
+  )
   const ratioLast = [...series]
     .reverse()
     .find((p) => typeof p.ratio === "number")?.ratio
@@ -919,6 +926,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   yAxisId="ratio"
                   orientation="right"
                   domain={ratioDomain}
+                  ticks={ratioTicks}
                   tick={{ fontSize: 10, fill: "#0284C7" }}
                   tickLine={false}
                   axisLine={{ stroke: "#E5E7EB" }}
