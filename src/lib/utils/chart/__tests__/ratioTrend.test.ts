@@ -131,6 +131,15 @@ describe("ratioTrendStates", () => {
     expect(states).toHaveLength(22)
   })
 
+  it("makes no claim when the previous value is zero", () => {
+    // Dividing by a zero previous value yields Infinity, which clears any band
+    // and would read as a violent move in whichever direction the sign fell.
+    const states = ratioTrendStates([0, 0, 100, 100])
+
+    expect(states[1]).toBe("flat")
+    expect(states[2]).toBe("flat")
+  })
+
   it("returns one state per input point", () => {
     expect(ratioTrendStates(climbing(7))).toHaveLength(7)
     expect(ratioTrendStates([])).toHaveLength(0)

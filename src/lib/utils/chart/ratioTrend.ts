@@ -85,7 +85,11 @@ export function ratioTrendStates(
       held = "flat"
       return undefined
     }
-    if (prev === 0) return "flat"
+    // No slope can be measured from zero; drop any claim rather than holding it.
+    if (prev === 0) {
+      held = "flat"
+      return held
+    }
     const slope = ((value - prev) / prev) * 100
     if (slope > band) held = "rising"
     else if (slope < -band) held = "falling"
