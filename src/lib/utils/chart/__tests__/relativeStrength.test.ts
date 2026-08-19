@@ -77,6 +77,42 @@ describe("relativeStrengthStates", () => {
     expect(states.every((s) => s === "inline")).toBe(true)
   })
 
+  it("restarts neutral after a mid-series gap instead of resuming the old claim", () => {
+    // A hole longer than the ratio's carry-forward (a leg whose history ends,
+    // a feed outage) means we no longer know how the asset stands. Resuming
+    // "leading" on the far side would date a claim to before the blackout.
+    const rise = climbing(30)
+    const last = rise[rise.length - 1]
+    const states = relativeStrengthStates([
+      ...rise,
+      undefined,
+      undefined,
+      undefined,
+      last,
+      last,
+    ])
+
+    expect(states[29]).toBe("leading")
+    expect(states[states.length - 1]).toBe("inline")
+  })
+
+  it("does not manufacture a flip from the level either side of a gap", () => {
+    // The smoothing must restart too. Comparing the first post-gap value
+    // against a pre-gap average reads as one enormous day of movement.
+    const before = climbing(20)
+    const after = climbing(6).map((v) => v * 3)
+
+    const states = relativeStrengthStates([
+      ...before,
+      undefined,
+      undefined,
+      undefined,
+      ...after,
+    ])
+
+    expect(states[before.length + 3]).toBe("inline")
+  })
+
   it("carries no state across a gap in the underlying ratio", () => {
     // buildRatioSeries leaves a leg's missing days undefined rather than
     // dividing by a stale close; those days cannot claim a relative strength.

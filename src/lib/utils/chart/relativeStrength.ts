@@ -37,7 +37,13 @@ function ema(
   const k = 2 / (window + 1)
   let prev: number | undefined
   return values.map((v) => {
-    if (typeof v !== "number") return undefined
+    if (typeof v !== "number") {
+      // Restart the average across a hole rather than carrying the pre-gap
+      // level over it. Blending the first value on the far side into an
+      // average from before reads as one enormous day of movement.
+      prev = undefined
+      return undefined
+    }
     prev = prev === undefined ? v : v * k + prev * (1 - k)
     return prev
   })
@@ -54,7 +60,9 @@ function ema(
  * which is most days — that is what turned the ribbon into a barcode.
  *
  * Days the ratio cannot cover (a leg with no close, so `buildRatioSeries` left
- * `undefined`) report `inline`: no data, no claim.
+ * `undefined`) report `inline`: no data, no claim. A gap also *clears* the held
+ * state — resuming "leading" on the far side of a blackout would date the claim
+ * to before it, and the smoothing restarts for the same reason.
  */
 export function relativeStrengthStates(
   ratio: (number | undefined)[],
@@ -64,7 +72,10 @@ export function relativeStrengthStates(
   let held: RsState = "inline"
   return smoothed.map((value, i) => {
     const prev = i > 0 ? smoothed[i - 1] : undefined
-    if (typeof value !== "number" || typeof prev !== "number") return "inline"
+    if (typeof value !== "number" || typeof prev !== "number") {
+      held = "inline"
+      return held
+    }
     const slope = ((value - prev) / prev) * 100
     if (slope > band) held = "leading"
     else if (slope < -band) held = "lagging"
