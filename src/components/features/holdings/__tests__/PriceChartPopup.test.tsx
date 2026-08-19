@@ -729,7 +729,7 @@ describe("PriceChartPopup", () => {
       expect(screen.getAllByText(/vs SPY:/).length).toBeGreaterThan(0)
     })
 
-    it("describes breadth — not the asset — when the overlay is RSP/SPY", () => {
+    it("describes the market — not the asset — when the overlay is RSP/SPY", () => {
       // Same asset, different ratio: the ribbon must not keep talking about the
       // asset's own performance when the line on screen is a market read.
       renderWithLegs({
@@ -739,7 +739,7 @@ describe("PriceChartPopup", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
-      expect(screen.getAllByText("Breadth widening").length).toBeGreaterThan(0)
+      expect(screen.getAllByText("Broadening").length).toBeGreaterThan(0)
       expect(screen.queryByText("Outperforming")).not.toBeInTheDocument()
     })
 
@@ -752,7 +752,7 @@ describe("PriceChartPopup", () => {
       fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
       expect(
-        screen.getByText(/% breadth widening · \d+% breadth narrowing/),
+        screen.getByText(/% broadening · \d+% narrowing/),
       ).toBeInTheDocument()
     })
 
@@ -765,7 +765,7 @@ describe("PriceChartPopup", () => {
       fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
       const tooltip = screen.getByTestId("tooltip")
-      expect(tooltip).toHaveTextContent("Breadth widening")
+      expect(tooltip).toHaveTextContent("Broadening")
     })
 
     it("draws one band per run of state, not one per trading day", () => {

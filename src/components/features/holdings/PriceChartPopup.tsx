@@ -138,18 +138,18 @@ const OVERLAYS: OverlayOption[] = [
     label: "RSP/SPY",
     numerator: "US:RSP",
     denominator: "US:SPY",
-    hint: "Equal-weight vs cap-weight S&P 500 — rising means breadth is widening",
+    hint: "The average S&P 500 company against the biggest few — rising means gains are spreading out",
     trendLabels: {
-      rising: "Breadth widening",
-      falling: "Breadth narrowing",
-      flat: "Breadth steady",
+      rising: "Broadening",
+      falling: "Narrowing",
+      flat: "Steady",
     },
   },
   {
     label: "vs SPY",
     numerator: SELF,
     denominator: "US:SPY",
-    hint: "This asset's relative strength against the S&P 500",
+    hint: "This asset against the S&P 500 — rising means it is beating the index",
     trendLabels: {
       rising: "Outperforming",
       falling: "Lagging",
@@ -795,7 +795,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   </span>
                 )}
               </span>
-              <span className="text-gray-500 tabular-nums">
+              <span className="text-gray-500 tabular-nums whitespace-nowrap">
                 — {trendSummary.risingPct}% {trendLabels.rising.toLowerCase()} ·{" "}
                 {trendSummary.fallingPct}% {trendLabels.falling.toLowerCase()}{" "}
                 over range
@@ -810,7 +810,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               />
               <span className="text-sky-700">{overlay.label}</span>
               {typeof ratioLast === "number" && (
-                <span className="tabular-nums">
+                <span className="tabular-nums whitespace-nowrap">
                   {ratioLast >= 100 ? "+" : ""}
                   {(ratioLast - 100).toFixed(ratioPrecision)}% over range
                 </span>
