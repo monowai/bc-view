@@ -140,6 +140,15 @@ describe("ratioTrendStates", () => {
     expect(states[2]).toBe("flat")
   })
 
+  it("refuses tuning values that would disable the smoothing or the band", () => {
+    // A window of -1 divides by zero in the smoothing factor and NaNs the whole
+    // series; a band of 0 removes the hysteresis this module exists for. Both
+    // are programming errors, so they fail loudly rather than plotting nonsense.
+    expect(() => ratioTrendStates([1, 2], { window: 0 })).toThrow(/window/i)
+    expect(() => ratioTrendStates([1, 2], { window: -1 })).toThrow(/window/i)
+    expect(() => ratioTrendStates([1, 2], { band: 0 })).toThrow(/band/i)
+  })
+
   it("returns one state per input point", () => {
     expect(ratioTrendStates(climbing(7))).toHaveLength(7)
     expect(ratioTrendStates([])).toHaveLength(0)

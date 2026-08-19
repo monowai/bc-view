@@ -821,7 +821,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {typeof ratioLast === "number" && (
                 <span className="tabular-nums">
                   {ratioLast >= 100 ? "+" : ""}
-                  {(ratioLast - 100).toFixed(1)}% over range
+                  {(ratioLast - 100).toFixed(ratioPrecision)}% over range
                 </span>
               )}
               {overlay.hint && (

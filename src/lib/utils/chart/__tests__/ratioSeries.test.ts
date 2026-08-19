@@ -245,3 +245,43 @@ describe("buildRatioSeries", () => {
     ])
   })
 })
+
+describe("buildRatioSeries with malformed feed values", () => {
+  const dates = ["2026-01-01", "2026-01-02", "2026-01-03"]
+
+  it("skips a point whose leg is not a finite number", () => {
+    // A malformed close reaches here as NaN (Number("") or a null coerced by
+    // the caller). Captured as the rebase base it turns every later point into
+    // NaN, and the axis helpers then compute a NaN domain that breaks the chart.
+    const series = buildRatioSeries(
+      dates,
+      [
+        { priceDate: dates[0], close: Number.NaN },
+        { priceDate: dates[1], close: 110 },
+        { priceDate: dates[2], close: 120 },
+      ],
+      dates.map((d) => ({ priceDate: d, close: 100 })),
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+    expect(series.every((v) => v === undefined || Number.isFinite(v))).toBe(
+      true,
+    )
+  })
+
+  it("skips a point whose denominator is not finite", () => {
+    const series = buildRatioSeries(
+      dates,
+      dates.map((d) => ({ priceDate: d, close: 100 })),
+      [
+        { priceDate: dates[0], close: Number.POSITIVE_INFINITY },
+        { priceDate: dates[1], close: 100 },
+        { priceDate: dates[2], close: 100 },
+      ],
+    )
+
+    expect(series[0]).toBeUndefined()
+    expect(series[1]).toBe(100)
+  })
+})

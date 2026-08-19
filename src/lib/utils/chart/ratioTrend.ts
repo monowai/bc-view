@@ -72,6 +72,12 @@ export function ratioTrendStates(
   ratio: (number | undefined)[],
   { window = TREND_EMA_WINDOW, band = TREND_BAND_PCT } = {},
 ): (RatioTrend | undefined)[] {
+  if (window <= 0) {
+    throw new Error(`ratioTrendStates: window must be positive, got ${window}`)
+  }
+  if (band <= 0) {
+    throw new Error(`ratioTrendStates: band must be positive, got ${band}`)
+  }
   const smoothed = ema(ratio, window)
   let held: RatioTrend = "flat"
   return smoothed.map((value, i) => {

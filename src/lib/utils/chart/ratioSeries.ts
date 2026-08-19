@@ -70,7 +70,18 @@ export function buildRatioSeries(
   return dates.map((date) => {
     const num = closeAsAt(numerator, date, numCursor)
     const den = closeAsAt(denominator, date, denCursor)
-    if (num === undefined || den === undefined || den === 0) return undefined
+    // Not just undefined: a malformed close arrives as NaN or Infinity, and
+    // either one captured as the rebase base turns the whole series into NaN —
+    // which the axis helpers then reduce to a NaN domain and no chart at all.
+    if (
+      num === undefined ||
+      den === undefined ||
+      !Number.isFinite(num) ||
+      !Number.isFinite(den) ||
+      den === 0
+    ) {
+      return undefined
+    }
 
     const ratio = num / den
     // A zero ratio cannot be rebased onto, and anchoring on one would divide
