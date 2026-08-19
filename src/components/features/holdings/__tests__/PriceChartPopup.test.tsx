@@ -245,11 +245,7 @@ describe("PriceChartPopup", () => {
         (k): k is string =>
           typeof k === "string" && k.startsWith("/api/prices/history/"),
       )
-    // The benchmark leg also fetches history, so pick this asset's own keys
-    // rather than whichever request happened to be issued last.
-    const latest = priceKeys
-      .filter((key) => key.includes(`/api/prices/history/${asset.id}`))
-      .pop()
+    const latest = priceKeys[priceKeys.length - 1]
     expect(latest).toContain(`/api/prices/history/${asset.id}`)
     expect(latest).toContain("from=")
     expect(latest).toContain("to=")
@@ -274,9 +270,7 @@ describe("PriceChartPopup", () => {
     )
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
     expect(screen.queryByTestId("yaxis-ratio")).not.toBeInTheDocument()
-    // SPY is still resolved — the relative-strength ribbon needs a benchmark
-    // whatever the overlay picker says. RSP is not: that is overlay-only.
-    expect(resolveKeys()).toEqual(["/api/assets/resolve?code=US%3ASPY"])
+    expect(resolveKeys()).toHaveLength(0)
   })
 
   it("plots RSP/SPY rebased to 100 on its own axis when selected", () => {
@@ -641,107 +635,98 @@ describe("PriceChartPopup", () => {
       fetchSpy.mockRestore()
     })
   })
-  describe("relative-strength ribbon", () => {
-    // The asset gains 1% a day on a flat benchmark: unambiguous outperformance
-    // once the smoothed slope clears the hysteresis band.
-    function climbingHistory(
+  describe("trend ribbon", () => {
+    // The overlay's own series decides the ribbon, so the fixture moves the
+    // leg that the selected ratio divides by.
+    function legHistory(
       days: number,
       perDay: number,
+      base = 500,
     ): { priceDate: string; close: number }[] {
       return Array.from({ length: days }, (_, i) => ({
         priceDate: `2026-04-${String(i + 1).padStart(2, "0")}`,
-        close: 400 * (1 + perDay) ** i,
+        close: base * (1 + perDay) ** i,
       }))
     }
-    const flatBenchmark = climbingHistory(12, 0).map((p) => ({
-      ...p,
-      close: 500,
-    }))
 
-    function renderWithBenchmark(perDay: number): void {
+    function renderWithLegs(
+      overlayLegs: Record<string, { priceDate: string; close: number }[]>,
+    ): void {
       mockUseSwr.mockImplementation(
         makeRouter({
           pricesResult: {
-            data: { asset, prices: climbingHistory(12, perDay) },
+            data: { asset, prices: legHistory(12, 0.01, 400) },
             isLoading: false,
             error: undefined,
           } as ReturnType<typeof useSwr>,
-          overlayLegs: { "spy-id": flatBenchmark },
+          overlayLegs,
         }) as typeof useSwr,
       )
       renderPopup()
     }
 
-    it("names the state in words rather than leaving it to colour", () => {
-      renderWithBenchmark(0.01)
+    it("shows no ribbon and fetches nothing extra until a ratio is chosen", () => {
+      // Default overlay is None. Nothing is being compared, so there is nothing
+      // for the ribbon to describe and no reason to fetch a benchmark.
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+
+      expect(screen.queryAllByTestId("rs-band")).toHaveLength(0)
+      expect(resolveKeys()).toHaveLength(0)
+    })
+
+    it("describes the asset when the overlay is the asset against the market", () => {
+      renderWithLegs({ "spy-id": legHistory(12, 0) })
+
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
       expect(screen.getByText("Outperforming")).toBeInTheDocument()
       expect(screen.getByText(/vs SPY:/)).toBeInTheDocument()
     })
 
-    it("reports how the range split between outperforming and lagging", () => {
-      renderWithBenchmark(0.01)
+    it("describes breadth — not the asset — when the overlay is RSP/SPY", () => {
+      // Same asset, different ratio: the ribbon must not keep talking about the
+      // asset's own performance when the line on screen is a market read.
+      renderWithLegs({
+        "rsp-id": legHistory(12, 0.01),
+        "spy-id": legHistory(12, 0),
+      })
+
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+
+      expect(screen.getByText("Breadth widening")).toBeInTheDocument()
+      expect(screen.queryByText("Outperforming")).not.toBeInTheDocument()
+    })
+
+    it("reports how the range split, in the overlay's own words", () => {
+      renderWithLegs({
+        "rsp-id": legHistory(12, -0.01),
+        "spy-id": legHistory(12, 0),
+      })
+
+      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
 
       expect(
-        screen.getByText(/% outperforming · \d+% lagging over range/),
+        screen.getByText(/% breadth widening · \d+% breadth narrowing/),
       ).toBeInTheDocument()
     })
 
-    it("calls a sustained loss against the benchmark lagging", () => {
-      renderWithBenchmark(-0.01)
-
-      expect(screen.getByText("Lagging")).toBeInTheDocument()
-    })
-
     it("draws one band per run of state, not one per trading day", () => {
-      renderWithBenchmark(0.01)
+      renderWithLegs({ "spy-id": legHistory(12, 0) })
+
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
       const bands = screen.getAllByTestId("rs-band")
       expect(bands.length).toBeGreaterThan(0)
       expect(bands.length).toBeLessThan(12)
     })
 
-    it("fetches the benchmark even with the ratio overlay off", () => {
-      renderWithBenchmark(0.01)
+    it("drops the ribbon when the chosen overlay cannot be loaded", () => {
+      renderWithLegs({})
 
-      const resolved = mockUseSwr.mock.calls
-        .map((call) => call[0])
-        .filter((key): key is string => typeof key === "string")
-        .filter((key) => key.startsWith("/api/assets/resolve"))
-      expect(resolved.some((key) => key.includes("US%3ASPY"))).toBe(true)
-    })
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
-    it("says so when the benchmark cannot be loaded, rather than just dropping the ribbon", () => {
-      // An overlay leg that fails gets a warning; a benchmark that fails used
-      // to make the ribbon vanish with nothing said.
-      mockUseSwr.mockImplementation(((key: unknown) => {
-        if (
-          typeof key === "string" &&
-          key.startsWith("/api/assets/resolve") &&
-          key.includes("SPY")
-        ) {
-          return {
-            data: undefined,
-            isLoading: false,
-            error: new Error("resolve failed"),
-          } as unknown as ReturnType<typeof useSwr>
-        }
-        return makeRouter({})(key)
-      }) as typeof useSwr)
-
-      renderPopup()
-
-      expect(
-        screen.getByText(/relative strength unavailable/i),
-      ).toBeInTheDocument()
-    })
-
-    it("leaves the chart alone when the benchmark history is unavailable", () => {
-      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
-
-      renderPopup()
-
-      expect(screen.queryByText(/vs SPY:/)).not.toBeInTheDocument()
       expect(screen.queryAllByTestId("rs-band")).toHaveLength(0)
     })
   })
