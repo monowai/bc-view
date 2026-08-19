@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts"
 import {
   Asset,
@@ -26,6 +27,13 @@ import {
   ratioAxisDomain,
   ratioValuePrecision,
 } from "@utils/chart/ratioSeries"
+import {
+  RS_COLOR,
+  RS_LABEL,
+  RsState,
+  relativeStrengthStates,
+  summariseRelativeStrength,
+} from "@utils/chart/relativeStrength"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -81,6 +89,7 @@ interface ChartPoint {
   split?: number
   sma?: number
   ratio?: number
+  rsState?: RsState
   buyPrice?: number | null
   sellPrice?: number | null
   buyPriceRaw?: number
@@ -116,6 +125,14 @@ interface OverlayOption {
 }
 
 const SELF = "SELF"
+
+// Benchmark the relative-strength ribbon measures every asset against.
+const RS_BENCHMARK = "US:SPY"
+
+// Share of the price pane reserved below the data for the ribbon lane. The lane
+// sits outside the price range rather than over it, so the ribbon can never be
+// mistaken for a price level or hide the low of the range.
+const RS_LANE_FRACTION = 0.12
 
 const OVERLAYS: OverlayOption[] = [
   { label: "None", numerator: null, denominator: null },
@@ -271,6 +288,11 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
           <FormatValue value={point.sma} />
         </div>
       )}
+      {point.rsState && (
+        <div className="text-xs" style={{ color: RS_COLOR[point.rsState] }}>
+          vs SPY: {RS_LABEL[point.rsState]}
+        </div>
+      )}
       {ratioLabel && typeof point.ratio === "number" && (
         <div className="text-xs text-sky-600 tabular-nums">
           {ratioLabel}: {point.ratio.toFixed(ratioPrecision)}
@@ -369,6 +391,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const ratioDenominator = denominatorLeg.prices
   const overlayFailed = numeratorLeg.failed || denominatorLeg.failed
 
+  // The relative-strength ribbon reads this asset against the market whatever
+  // the overlay picker says, so the benchmark is fetched unconditionally. When
+  // the overlay already divides by SPY the SWR keys are identical and the two
+  // share one request.
+  const benchmarkLeg = useOverlayLeg(RS_BENCHMARK, from, to)
+
   const handleRepairSplits = useCallback(async () => {
     setRepairState({ busy: true, message: null, error: false })
     try {
@@ -466,11 +494,16 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     // The chart renders the response as-is.
     const closes = raw.map((p) => Number(p.close))
     const smaSeries = computeSma(closes, smaWindow)
+    const dates = raw.map((p) => p.priceDate)
     const ratioSeries = buildRatioSeries(
-      raw.map((p) => p.priceDate),
+      dates,
       ratioNumerator ?? [],
       ratioDenominator ?? [],
     )
+    // Relative strength is always this asset against the benchmark, never the
+    // selected overlay — RSP/SPY describes the market, not the asset on screen.
+    const rsRatio = buildRatioSeries(dates, raw, benchmarkLeg.prices ?? [])
+    const rsStates = relativeStrengthStates(rsRatio)
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")
@@ -484,6 +517,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         split: splitNum !== 1 ? splitNum : undefined,
         sma: smaSeries[i],
         ratio: ratioSeries[i],
+        rsState: typeof rsRatio[i] === "number" ? rsStates[i] : undefined,
         buyPrice: buy ? buy.price : null,
         sellPrice: sell ? sell.price : null,
         buyPriceRaw: buy?.price,
@@ -492,7 +526,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         sellQty: sell?.quantity,
       }
     })
-  }, [priceData, tradesByDate, smaWindow, ratioNumerator, ratioDenominator])
+  }, [
+    priceData,
+    tradesByDate,
+    smaWindow,
+    ratioNumerator,
+    ratioDenominator,
+    benchmarkLeg.prices,
+  ])
 
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
@@ -511,11 +552,60 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     return { min: Math.min(...vals), max: Math.max(...vals) }
   }, [series, limitPrice])
 
+  // The ribbon needs a benchmark to compare against; without one the lane is
+  // not reserved and the chart is exactly what it was before.
+  const rsActive = series.some((p) => p.rsState !== undefined)
+
   const yDomain = useMemo<[number, number]>(() => {
     if (series.length === 0) return [0, 1]
     const span = max - min || max * 0.02 || 1
-    return [min - span * 0.1, max + span * 0.1]
+    const floor = min - span * 0.1
+    const top = max + span * 0.1
+    if (!rsActive) return [floor, top]
+    return [floor - (top - floor) * RS_LANE_FRACTION, top]
+  }, [series.length, min, max, rsActive])
+
+  // Ticks are derived from the price range only. Left to itself Recharts would
+  // label the reserved lane as if prices traded there.
+  const priceTicks = useMemo(() => {
+    if (series.length === 0) return undefined
+    const span = max - min || max * 0.02 || 1
+    const lo = min - span * 0.1
+    const hi = max + span * 0.1
+    return Array.from({ length: 5 }, (_, i) => lo + ((hi - lo) / 4) * i)
   }, [series.length, min, max])
+
+  // Contiguous runs of one state, so the ribbon is a handful of blocks rather
+  // than one rect per trading day.
+  const rsRuns = useMemo(() => {
+    const runs: { from: string; to: string; state: RsState }[] = []
+    for (const point of series) {
+      const state = point.rsState
+      if (state === undefined) continue
+      const open = runs[runs.length - 1]
+      if (open && open.state === state) open.to = point.priceDate
+      else runs.push({ from: point.priceDate, to: point.priceDate, state })
+    }
+    return runs
+  }, [series])
+
+  const rsSummary = useMemo(
+    () =>
+      summariseRelativeStrength(
+        series
+          .map((p) => p.rsState)
+          .filter((s): s is RsState => s !== undefined),
+        series.filter((p) => p.rsState !== undefined).map((p) => p.priceDate),
+      ),
+    [series],
+  )
+
+  const rsLane = useMemo(() => {
+    const [floor, top] = yDomain
+    const laneHeight = (top - floor) * RS_LANE_FRACTION
+    // Inset top and bottom so the ribbon reads as a strip, not as the pane edge.
+    return { bottom: floor + laneHeight * 0.18, top: floor + laneHeight * 0.72 }
+  }, [yDomain])
 
   const last = series[series.length - 1]
   const first = series[0]
@@ -691,6 +781,31 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {overlay.label} unavailable — could not load its price history
             </span>
           )}
+          {rsActive && (
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="inline-block w-3 h-2.5 rounded-sm"
+                style={{ backgroundColor: RS_COLOR[rsSummary.current] }}
+              />
+              <span>
+                vs SPY:{" "}
+                <span className="font-medium">
+                  {RS_LABEL[rsSummary.current]}
+                </span>
+                {rsSummary.since && (
+                  <span className="text-gray-500">
+                    {" "}
+                    since {rsSummary.since} ({rsSummary.runDays}d)
+                  </span>
+                )}
+              </span>
+              <span className="text-gray-500 tabular-nums">
+                — {rsSummary.leadingPct}% outperforming · {rsSummary.laggingPct}
+                % lagging over range
+              </span>
+            </span>
+          )}
           {ratioActive && (
             <span className="flex items-center gap-1">
               <span
@@ -776,6 +891,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               <YAxis
                 yAxisId="price"
                 domain={yDomain}
+                ticks={priceTicks}
                 tick={{ fontSize: 11 }}
                 tickLine={false}
                 axisLine={{ stroke: "#E5E7EB" }}
@@ -784,6 +900,20 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   `${currencySymbol}${v.toFixed(2)}`
                 }
               />
+              {rsRuns.map((run) => (
+                <ReferenceArea
+                  key={`rs-${run.from}`}
+                  yAxisId="price"
+                  x1={run.from}
+                  x2={run.to}
+                  y1={rsLane.bottom}
+                  y2={rsLane.top}
+                  fill={RS_COLOR[run.state]}
+                  fillOpacity={run.state === "inline" ? 0.35 : 0.75}
+                  strokeOpacity={0}
+                  ifOverflow="hidden"
+                />
+              ))}
               {ratioActive && (
                 <YAxis
                   yAxisId="ratio"
