@@ -126,10 +126,9 @@ function extent(
   let seen = false
   for (const values of series) {
     for (const v of values) {
-      if (!Number.isFinite(v)) continue
-      const n = v as number
-      if (n < min) min = n
-      if (n > max) max = n
+      if (typeof v !== "number" || !Number.isFinite(v)) continue
+      if (v < min) min = v
+      if (v > max) max = v
       seen = true
     }
   }

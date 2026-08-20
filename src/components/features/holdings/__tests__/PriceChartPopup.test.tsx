@@ -429,6 +429,30 @@ describe("PriceChartPopup", () => {
     expect(screen.getByText(/\$420\.00/)).toBeInTheDocument()
   })
 
+  it("keeps a decimal for an overlay that barely moves, instead of reading flat", () => {
+    // An asset against a benchmark it largely *is* moves fractions of a
+    // percent. At one decimal every day of that reads "+0.0%", which says the
+    // overlay is flat when it is not.
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 512.5 },
+            { priceDate: "2026-04-20", close: 524.79 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    // MSFT is up 5.00% on the range, SPY 4.958% — four hundredths of a percent
+    // of relative strength.
+    expect(screen.getByText(/\+0\.04% over range/)).toBeInTheDocument()
+  })
+
   it("leaves a malformed close out of the indexed series rather than plotting NaN", () => {
     // A close that arrives unparseable is NaN, which passes `typeof "number"`.
     // Divided by the base it stays NaN, and recharts draws NaN as a dropped

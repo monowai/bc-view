@@ -256,11 +256,16 @@ function useOverlayLeg(
 }
 
 /**
- * A 1.0-based index read as a move over the range: 0.933 is "-6.7". One decimal
- * separates days without implying precision the feed does not have.
+ * A 1.0-based index read as a move over the range: 0.933 is "-6.7".
+ *
+ * One decimal is enough for a move that shows on the chart, but an overlay
+ * against a benchmark it largely *is* moves fractions of a percent — at one
+ * decimal every reading is "+0.0%", which claims flat. Under half a percent
+ * the readout keeps a second decimal.
  */
 function indexAsPercent(index: number): string {
-  return ((index - 1) * 100).toFixed(1)
+  const percent = (index - 1) * 100
+  return percent.toFixed(Math.abs(percent) < 0.5 ? 2 : 1)
 }
 
 interface TooltipPayload {
