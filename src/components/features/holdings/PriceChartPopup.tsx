@@ -120,8 +120,9 @@ const SMA_OPTIONS: { label: string; window: number }[] = [
 ]
 
 // A ratio overlay divides one price series by another and plots the result,
-// rebased to 100, on the right-hand axis. `SELF` means "the asset being
-// charted", so a relative-strength line costs no extra numerator fetch.
+// rebased to 1.0, on the same indexed scale as the price. `SELF` means "the
+// asset being charted", so a relative-strength line costs no extra numerator
+// fetch.
 interface OverlayOption {
   label: string
   numerator: string | null
@@ -538,8 +539,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     // The ribbon describes the ratio on screen, so it reads the same series the
     // overlay line plots. No overlay, no ribbon.
     const trendStates = ratioTrendStates(ratioSeries)
+    // Number.isFinite, not `typeof "number"`: a malformed close is NaN, which
+    // passes the typeof check and divides to NaN — and recharts draws NaN as a
+    // dropped segment or a marker at the wrong height, not as a gap.
     const index = (v: number | undefined | null): number | undefined =>
-      indexed && typeof v === "number" ? v / (priceBase as number) : undefined
+      indexed && Number.isFinite(v)
+        ? (v as number) / (priceBase as number)
+        : undefined
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")

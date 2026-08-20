@@ -107,10 +107,33 @@ export function buildRatioSeries(
 const MIN_AXIS_SPAN = 0.05
 const AXIS_PADDING = 0.08
 
-function plottedValues(values: (number | undefined)[]): number[] {
-  // Not `typeof v === "number"`: NaN and Infinity pass that, and either one
-  // reaching Math.min/Math.max gives a NaN domain and no axis at all.
-  return values.filter((v): v is number => Number.isFinite(v))
+/**
+ * Bounds of every finite value across the given series, or undefined if none
+ * is plottable.
+ *
+ * A loop rather than `Math.min(...values)`: one axis can carry price, its SMA,
+ * two marker series and the ratio, and spreading that many points into a call
+ * risks the engine's argument limit on the longer ranges.
+ *
+ * Not `typeof v === "number"` either — NaN and Infinity pass that, and either
+ * one reaching the bounds gives a NaN domain and no axis at all.
+ */
+function extent(
+  series: (number | undefined)[][],
+): { min: number; max: number } | undefined {
+  let min = Number.POSITIVE_INFINITY
+  let max = Number.NEGATIVE_INFINITY
+  let seen = false
+  for (const values of series) {
+    for (const v of values) {
+      if (!Number.isFinite(v)) continue
+      const n = v as number
+      if (n < min) min = n
+      if (n > max) max = n
+      seen = true
+    }
+  }
+  return seen ? { min, max } : undefined
 }
 
 /**
@@ -125,12 +148,11 @@ function plottedValues(values: (number | undefined)[]): number[] {
 export function indexedAxisDomain(
   series: (number | undefined)[][],
 ): [number, number] {
-  const plotted = plottedValues(series.flat())
-  if (plotted.length === 0) {
+  const plotted = extent(series)
+  if (plotted === undefined) {
     return [REBASE_AT - MIN_AXIS_SPAN / 2, REBASE_AT + MIN_AXIS_SPAN / 2]
   }
-  const min = Math.min(...plotted)
-  const max = Math.max(...plotted)
+  const { min, max } = plotted
   const mid = (min + max) / 2
   const half = Math.max((max - min) / 2, MIN_AXIS_SPAN / 2)
   const padded = half * (1 + AXIS_PADDING)

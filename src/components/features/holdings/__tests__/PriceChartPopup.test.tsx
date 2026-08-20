@@ -429,6 +429,47 @@ describe("PriceChartPopup", () => {
     expect(screen.getByText(/\$420\.00/)).toBeInTheDocument()
   })
 
+  it("leaves a malformed close out of the indexed series rather than plotting NaN", () => {
+    // A close that arrives unparseable is NaN, which passes `typeof "number"`.
+    // Divided by the base it stays NaN, and recharts draws NaN as a dropped
+    // segment or a marker at the wrong height rather than as a gap.
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        pricesResult: {
+          data: {
+            asset,
+            prices: [
+              { priceDate: "2026-03-21", close: 400 },
+              { priceDate: "2026-04-01", close: Number.NaN },
+              { priceDate: "2026-04-20", close: 420 },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 500 },
+            { priceDate: "2026-04-20", close: 525 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ closeIndex?: number | null }>
+    // JSON drops an undefined key and writes NaN as null, so this tells the
+    // two apart.
+    expect(rows[1].closeIndex).toBeUndefined()
+    expect(rows[0].closeIndex).toBe(1)
+    expect(rows[2].closeIndex).toBeCloseTo(1.05, 6)
+  })
+
   it("uses the charted asset as the numerator for a relative-strength overlay", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
