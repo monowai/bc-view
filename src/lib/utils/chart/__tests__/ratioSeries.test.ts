@@ -1,67 +1,59 @@
-import {
-  buildRatioSeries,
-  ratioAxisDomain,
-  ratioValuePrecision,
-} from "../ratioSeries"
+import { buildRatioSeries, indexedAxisDomain } from "../ratioSeries"
 
-describe("ratioAxisDomain", () => {
-  it("keeps a flat ratio looking flat instead of magnifying its noise", () => {
-    // VOO vs SPY both track the S&P 500, so the ratio is a constant plus feed
-    // noise. Scaling to dataMin/dataMax stretched a 0.4% wobble over the full
+describe("indexedAxisDomain", () => {
+  it("covers every series it is given, so one scale carries them all", () => {
+    // Price indexed to 1.0 and the ratio indexed to 1.0 share a single axis —
+    // the domain has to hold both or one of them clips.
+    const [min, max] = indexedAxisDomain([
+      [1, 1.32],
+      [1, 0.94],
+    ])
+
+    expect(min).toBeLessThan(0.94)
+    expect(max).toBeGreaterThan(1.32)
+  })
+
+  it("keeps a flat pair looking flat instead of magnifying its noise", () => {
+    // VOO against SPY barely moves, and neither does its price on a short
+    // range. Scaling to dataMin/dataMax stretched a 0.3% wobble over the whole
     // pane and drew it as a crash.
-    const [min, max] = ratioAxisDomain([99.9, 100.1, 99.95])
+    const [min, max] = indexedAxisDomain([
+      [1, 1.002],
+      [1, 0.999],
+    ])
 
-    expect(max - min).toBeGreaterThanOrEqual(5)
-    expect(min).toBeLessThan(99.9)
-    expect(max).toBeGreaterThan(100.1)
+    expect(max - min).toBeGreaterThanOrEqual(0.05)
+    expect(min).toBeLessThan(0.999)
+    expect(max).toBeGreaterThan(1.002)
   })
 
-  it("does not clip a ratio that genuinely moves", () => {
-    const [min, max] = ratioAxisDomain([100, 128, 84])
+  it("does not clip a series that genuinely moves", () => {
+    const [min, max] = indexedAxisDomain([[1, 2.4, 0.62]])
 
-    expect(min).toBeLessThan(84)
-    expect(max).toBeGreaterThan(128)
+    expect(min).toBeLessThan(0.62)
+    expect(max).toBeGreaterThan(2.4)
   })
 
-  it("centres the floor on the data, not on 100", () => {
-    // A late-starting leg can rebase well away from 100 and still be flat.
-    const [min, max] = ratioAxisDomain([130, 130.2])
+  it("ignores non-finite values rather than returning a NaN domain", () => {
+    const [min, max] = indexedAxisDomain([[1, Number.NaN, 1.2], [undefined]])
 
-    expect(min).toBeLessThan(130)
-    expect(max).toBeGreaterThan(130.2)
-    expect((min + max) / 2).toBeCloseTo(130.1, 1)
+    expect(Number.isFinite(min)).toBe(true)
+    expect(Number.isFinite(max)).toBe(true)
+    expect(max).toBeGreaterThan(1.2)
   })
 
-  it("returns a sane band when nothing is plotted", () => {
-    const [min, max] = ratioAxisDomain([undefined, undefined])
+  it("falls back to a band around the base when nothing is plottable", () => {
+    const [min, max] = indexedAxisDomain([[undefined], []])
 
-    expect(min).toBeLessThan(100)
-    expect(max).toBeGreaterThan(100)
-  })
-})
-
-describe("ratioValuePrecision", () => {
-  it("uses whole numbers when the ratio moves enough to separate them", () => {
-    expect(ratioValuePrecision([100, 104, 92])).toBe(0)
-  })
-
-  it("adds a decimal for a narrow span so readouts stop repeating", () => {
-    expect(ratioValuePrecision([100, 100.2, 99.1])).toBe(1)
-  })
-
-  it("adds two decimals when the ratio barely moves at all", () => {
-    expect(ratioValuePrecision([100, 100.08, 99.94])).toBe(2)
-  })
-
-  it("falls back to whole numbers when nothing is plotted", () => {
-    expect(ratioValuePrecision([undefined, undefined])).toBe(0)
+    expect(min).toBeLessThan(1)
+    expect(max).toBeGreaterThan(1)
   })
 })
 
 describe("buildRatioSeries", () => {
   const dates = ["2026-01-02", "2026-01-03", "2026-01-06"]
 
-  it("rebases the ratio to 100 at the first point both legs cover", () => {
+  it("rebases the ratio to 1.0 at the first point both legs cover", () => {
     const numerator = [
       { priceDate: "2026-01-02", close: 180 },
       { priceDate: "2026-01-03", close: 183.6 },
@@ -73,11 +65,11 @@ describe("buildRatioSeries", () => {
       { priceDate: "2026-01-06", close: 630 },
     ]
 
-    // Raw ratios: 0.30, 0.306, 0.28 → rebased 100, 102, 93.33.
+    // Raw ratios: 0.30, 0.306, 0.28 → rebased 1.00, 1.02, 0.9333.
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
-      100,
-      102,
-      expect.closeTo(93.33, 2),
+      1,
+      expect.closeTo(1.02, 6),
+      expect.closeTo(0.9333, 4),
     ])
   })
 
@@ -93,11 +85,11 @@ describe("buildRatioSeries", () => {
       { priceDate: "2026-01-06", close: 200 },
     ]
 
-    // 2026-01-03 reuses the 2026-01-02 numerator, so the ratio is flat at 100.
+    // 2026-01-03 reuses the 2026-01-02 numerator, so the ratio is flat at 1.0.
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
-      100,
-      100,
-      expect.closeTo(110, 6),
+      1,
+      1,
+      expect.closeTo(1.1, 6),
     ])
   })
 
@@ -113,11 +105,11 @@ describe("buildRatioSeries", () => {
     ]
 
     // Numerator starts a day late; the rebase anchors on 2026-01-03, not the
-    // first chart date, so the overlay always begins at 100.
+    // first chart date, so the overlay always begins at 1.0.
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
       undefined,
-      100,
-      120,
+      1,
+      expect.closeTo(1.2, 6),
     ])
   })
 
@@ -134,9 +126,9 @@ describe("buildRatioSeries", () => {
     ]
 
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
-      100,
+      1,
       undefined,
-      120,
+      expect.closeTo(1.2, 6),
     ])
   })
 
@@ -160,8 +152,8 @@ describe("buildRatioSeries", () => {
     ]
 
     expect(buildRatioSeries(chartDates, numerator, denominator)).toEqual([
-      100,
-      expect.closeTo(110, 6),
+      1,
+      expect.closeTo(1.1, 6),
       undefined,
     ])
   })
@@ -183,9 +175,9 @@ describe("buildRatioSeries", () => {
     ]
 
     expect(buildRatioSeries(chartDates, numerator, denominator)).toEqual([
-      100,
-      expect.closeTo(110, 6),
-      expect.closeTo(120, 6),
+      1,
+      expect.closeTo(1.1, 6),
+      expect.closeTo(1.2, 6),
     ])
   })
 
@@ -205,8 +197,8 @@ describe("buildRatioSeries", () => {
 
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
       undefined,
-      100,
-      expect.closeTo(120, 6),
+      1,
+      expect.closeTo(1.2, 6),
     ])
   })
 
@@ -241,7 +233,9 @@ describe("buildRatioSeries", () => {
     // The 2026-01-04 spike sits between chart dates; 2026-01-03 must not
     // borrow it, and 2026-01-06 uses its own row.
     expect(buildRatioSeries(dates, numerator, denominator)).toEqual([
-      100, 100, 120,
+      1,
+      1,
+      expect.closeTo(1.2, 6),
     ])
   })
 })
@@ -252,7 +246,7 @@ describe("buildRatioSeries with malformed feed values", () => {
   it("skips a point whose leg is not a finite number", () => {
     // A malformed close reaches here as NaN (Number("") or a null coerced by
     // the caller). Captured as the rebase base it turns every later point into
-    // NaN, and the axis helpers then compute a NaN domain that breaks the chart.
+    // NaN, and the axis helper then computes a NaN domain that breaks the chart.
     const series = buildRatioSeries(
       dates,
       [
@@ -264,7 +258,7 @@ describe("buildRatioSeries with malformed feed values", () => {
     )
 
     expect(series[0]).toBeUndefined()
-    expect(series[1]).toBe(100)
+    expect(series[1]).toBe(1)
     expect(series.every((v) => v === undefined || Number.isFinite(v))).toBe(
       true,
     )
@@ -282,7 +276,7 @@ describe("buildRatioSeries with malformed feed values", () => {
     )
 
     expect(series[0]).toBeUndefined()
-    expect(series[1]).toBe(100)
+    expect(series[1]).toBe(1)
   })
 
   it("skips a point whose denominator is not finite", () => {
@@ -297,31 +291,7 @@ describe("buildRatioSeries with malformed feed values", () => {
     )
 
     expect(series[0]).toBeUndefined()
-    expect(series[1]).toBe(100)
-  })
-})
-
-describe("axis helpers with malformed values", () => {
-  it("ignores non-finite values rather than returning a NaN domain", () => {
-    // buildRatioSeries guards its own output, but these are exported: a NaN
-    // reaching Math.min/Math.max yields a NaN domain and no axis at all.
-    const [min, max] = ratioAxisDomain([100, Number.NaN, 104])
-
-    expect(Number.isFinite(min)).toBe(true)
-    expect(Number.isFinite(max)).toBe(true)
-  })
-
-  it("still reports a usable precision when a value is not finite", () => {
-    expect(
-      Number.isFinite(ratioValuePrecision([100, Number.POSITIVE_INFINITY])),
-    ).toBe(true)
-  })
-
-  it("falls back to a default band when nothing is plottable", () => {
-    const [min, max] = ratioAxisDomain([Number.NaN, undefined])
-
-    expect(Number.isFinite(min)).toBe(true)
-    expect(max).toBeGreaterThan(min)
+    expect(series[1]).toBe(1)
   })
 })
 

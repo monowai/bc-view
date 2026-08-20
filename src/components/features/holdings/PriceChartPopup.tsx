@@ -22,11 +22,7 @@ import {
   TrnType,
 } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import {
-  buildRatioSeries,
-  ratioAxisDomain,
-  ratioValuePrecision,
-} from "@utils/chart/ratioSeries"
+import { buildRatioSeries, indexedAxisDomain } from "@utils/chart/ratioSeries"
 import {
   RatioTrend,
   TREND_COLOR,
@@ -98,6 +94,13 @@ interface ChartPoint {
   sellPriceRaw?: number
   buyQty?: number
   sellQty?: number
+  // Money values divided by the range's first close, so they plot on the same
+  // 1.0-based scale as the ratio overlay. Only present while an overlay is on;
+  // otherwise the chart plots the money values themselves.
+  closeIndex?: number
+  smaIndex?: number
+  buyIndex?: number | null
+  sellIndex?: number | null
 }
 
 const RANGES: { label: string; months: number }[] = [
@@ -251,12 +254,19 @@ function useOverlayLeg(
   }
 }
 
+/**
+ * A 1.0-based index read as a move over the range: 0.933 is "-6.7". One decimal
+ * separates days without implying precision the feed does not have.
+ */
+function indexAsPercent(index: number): string {
+  return ((index - 1) * 100).toFixed(1)
+}
+
 interface TooltipPayload {
   active?: boolean
   payload?: { dataKey: string; value: number; payload: ChartPoint }[]
   currencySymbol: string
   ratioLabel?: string
-  ratioPrecision?: number
   trendLabels?: Record<RatioTrend, string>
 }
 
@@ -265,7 +275,6 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
   payload,
   currencySymbol,
   ratioLabel,
-  ratioPrecision = 1,
   trendLabels,
 }) => {
   if (!active || !payload || payload.length === 0) return null
@@ -305,10 +314,10 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
       )}
       {ratioLabel && typeof point.ratio === "number" && (
         <div className="text-xs text-sky-600 tabular-nums">
-          {ratioLabel}: {point.ratio.toFixed(ratioPrecision)}
+          {ratioLabel}: {point.ratio.toFixed(3)}
           <span className="ml-1 text-gray-400">
-            ({point.ratio >= 100 ? "+" : ""}
-            {(point.ratio - 100).toFixed(ratioPrecision)}% vs range start)
+            ({point.ratio >= 1 ? "+" : ""}
+            {indexAsPercent(point.ratio)}% vs range start)
           </span>
         </div>
       )}
@@ -491,6 +500,34 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     return map
   }, [tradesData, priceData, from, to])
 
+  const ratioSeries = useMemo(
+    () =>
+      buildRatioSeries(
+        (priceData?.prices ?? []).map((p) => p.priceDate),
+        ratioNumerator ?? [],
+        ratioDenominator ?? [],
+      ),
+    [priceData, ratioNumerator, ratioDenominator],
+  )
+
+  // Level the whole plot is indexed from. The first close of the range is the
+  // natural base; a leading zero or malformed close cannot be divided by, so
+  // the first usable one stands in. A range with none at all cannot be indexed
+  // and keeps its money axis.
+  const priceBase = useMemo(
+    () =>
+      (priceData?.prices ?? [])
+        .map((p) => Number(p.close))
+        .find((c) => Number.isFinite(c) && c > 0),
+    [priceData],
+  )
+
+  // One shared scale only means something when there is a second series to
+  // share it with: with no overlay the axis stays in money, which is what a
+  // price chart is for.
+  const indexed =
+    priceBase !== undefined && ratioSeries.some((v) => Number.isFinite(v))
+
   const series: ChartPoint[] = useMemo(() => {
     const raw = priceData?.prices ?? []
     // svc-data's PriceService returns split-adjusted prices and normalises the
@@ -498,15 +535,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     // The chart renders the response as-is.
     const closes = raw.map((p) => Number(p.close))
     const smaSeries = computeSma(closes, smaWindow)
-    const dates = raw.map((p) => p.priceDate)
-    const ratioSeries = buildRatioSeries(
-      dates,
-      ratioNumerator ?? [],
-      ratioDenominator ?? [],
-    )
     // The ribbon describes the ratio on screen, so it reads the same series the
     // overlay line plots. No overlay, no ribbon.
     const trendStates = ratioTrendStates(ratioSeries)
+    const index = (v: number | undefined | null): number | undefined =>
+      indexed && typeof v === "number" ? v / (priceBase as number) : undefined
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")
@@ -527,9 +560,15 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         sellPriceRaw: sell?.price,
         buyQty: buy?.quantity,
         sellQty: sell?.quantity,
+        closeIndex: index(closes[i]),
+        smaIndex: index(smaSeries[i]),
+        // Scatter plots nothing for a null and skips the point; undefined
+        // would leave the marker on the money scale's height.
+        buyIndex: buy ? (index(buy.price) ?? null) : null,
+        sellIndex: sell ? (index(sell.price) ?? null) : null,
       }
     })
-  }, [priceData, tradesByDate, smaWindow, ratioNumerator, ratioDenominator])
+  }, [priceData, tradesByDate, smaWindow, ratioSeries, indexed, priceBase])
 
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
@@ -553,24 +592,40 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const trendActive = series.some((p) => p.trend !== undefined)
   const trendLabels = overlay.trendLabels
 
-  const yDomain = useMemo<[number, number]>(() => {
+  // What the axis covers before the ribbon lane is taken out of it: money when
+  // the chart plots prices, the shared 1.0-based index when an overlay is on.
+  const plottedDomain = useMemo<[number, number]>(() => {
     if (series.length === 0) return [0, 1]
+    if (indexed) {
+      const limitIndex =
+        typeof limitPrice === "number" && priceBase
+          ? [limitPrice / priceBase]
+          : []
+      return indexedAxisDomain([
+        series.map((p) => p.closeIndex),
+        series.map((p) => p.smaIndex),
+        series.map((p) => p.buyIndex ?? undefined),
+        series.map((p) => p.sellIndex ?? undefined),
+        series.map((p) => p.ratio),
+        limitIndex,
+      ])
+    }
     const span = max - min || max * 0.02 || 1
-    const floor = min - span * 0.1
-    const top = max + span * 0.1
-    if (!trendActive) return [floor, top]
-    return reserveRibbonLane([floor, top])
-  }, [series.length, min, max, trendActive])
+    return [min - span * 0.1, max + span * 0.1]
+  }, [series, indexed, min, max, limitPrice, priceBase])
 
-  // Ticks are derived from the price range only. Left to itself Recharts would
-  // label the reserved lane as if prices traded there.
+  const yDomain = useMemo<[number, number]>(
+    () => (trendActive ? reserveRibbonLane(plottedDomain) : plottedDomain),
+    [plottedDomain, trendActive],
+  )
+
+  // Ticks are derived from the plotted range only. Left to itself Recharts
+  // would label the reserved lane as if the data ran through it.
   const priceTicks = useMemo(() => {
     if (series.length === 0) return undefined
-    const span = max - min || max * 0.02 || 1
-    const lo = min - span * 0.1
-    const hi = max + span * 0.1
+    const [lo, hi] = plottedDomain
     return Array.from({ length: 5 }, (_, i) => lo + ((hi - lo) / 4) * i)
-  }, [series.length, min, max])
+  }, [series.length, plottedDomain])
 
   // Contiguous runs of one state, so the ribbon is a handful of blocks rather
   // than one rect per trading day.
@@ -613,22 +668,6 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     [series],
   )
 
-  // Only claim the right-hand axis once the overlay actually has data — a
-  // selected-but-still-loading overlay would otherwise render an empty axis.
-  const ratioActive = series.some((p) => typeof p.ratio === "number")
-  const ratioValues = series.map((p) => p.ratio)
-  const ratioPrecision = ratioValuePrecision(ratioValues)
-  const rawRatioDomain = ratioAxisDomain(ratioValues)
-  const ratioDomain = trendActive
-    ? reserveRibbonLane(rawRatioDomain)
-    : rawRatioDomain
-  // Ticks come from the ratio's own range so the reserved lane is not labelled
-  // as if the ratio traded there.
-  const ratioTicks = Array.from(
-    { length: 4 },
-    (_, i) =>
-      rawRatioDomain[0] + ((rawRatioDomain[1] - rawRatioDomain[0]) / 3) * i,
-  )
   const ratioLast = [...series]
     .reverse()
     .find((p) => typeof p.ratio === "number")?.ratio
@@ -802,7 +841,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               </span>
             </span>
           )}
-          {ratioActive && (
+          {indexed && (
             <span className="flex items-center gap-1">
               <span
                 aria-hidden
@@ -811,8 +850,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               <span className="text-sky-700">{overlay.label}</span>
               {typeof ratioLast === "number" && (
                 <span className="tabular-nums whitespace-nowrap">
-                  {ratioLast >= 100 ? "+" : ""}
-                  {(ratioLast - 100).toFixed(ratioPrecision)}% over range
+                  {ratioLast >= 1 ? "+" : ""}
+                  {indexAsPercent(ratioLast)}% over range
                 </span>
               )}
               {overlay.hint && (
@@ -893,7 +932,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 axisLine={{ stroke: "#E5E7EB" }}
                 width={64}
                 tickFormatter={(v: number) =>
-                  `${currencySymbol}${v.toFixed(2)}`
+                  indexed ? v.toFixed(2) : `${currencySymbol}${v.toFixed(2)}`
                 }
               />
               {ribbonRuns.map((run) => (
@@ -910,25 +949,23 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   ifOverflow="hidden"
                 />
               ))}
-              {ratioActive && (
-                <YAxis
-                  yAxisId="ratio"
-                  orientation="right"
-                  domain={ratioDomain}
-                  ticks={ratioTicks}
-                  tick={{ fontSize: 10, fill: "#0284C7" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#E5E7EB" }}
-                  width={48}
-                  tickFormatter={(v: number) => v.toFixed(0)}
+              {indexed && (
+                // Where the range started. Everything above it is up on the
+                // range, price and ratio alike — the one comparison a shared
+                // scale is there to make.
+                <ReferenceLine
+                  yAxisId="price"
+                  y={1}
+                  stroke="#9CA3AF"
+                  strokeDasharray="2 3"
+                  strokeWidth={1}
                 />
               )}
               <Tooltip
                 content={
                   <ChartTooltip
                     currencySymbol={currencySymbol}
-                    ratioLabel={ratioActive ? overlay.label : undefined}
-                    ratioPrecision={ratioPrecision}
+                    ratioLabel={indexed ? overlay.label : undefined}
                     trendLabels={trendLabels}
                   />
                 }
@@ -936,7 +973,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               <Area
                 yAxisId="price"
                 type="monotone"
-                dataKey="close"
+                dataKey={indexed ? "closeIndex" : "close"}
                 stroke={positive ? "#10B981" : "#EF4444"}
                 strokeWidth={2}
                 fill="url(#priceFill)"
@@ -945,7 +982,9 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {typeof limitPrice === "number" && (
                 <ReferenceLine
                   yAxisId="price"
-                  y={limitPrice}
+                  // The limit was entered in money; on an indexed scale it has
+                  // to be indexed too or the line sits at the wrong height.
+                  y={indexed ? limitPrice / (priceBase as number) : limitPrice}
                   stroke="#7C3AED"
                   strokeDasharray="5 4"
                   strokeWidth={1.5}
@@ -975,10 +1014,10 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               ))}
               {smaWindow > 0 && (
                 <Line
-                  key={`sma-${smaWindow}`}
+                  key={`sma-${smaWindow}-${indexed}`}
                   yAxisId="price"
                   type="monotone"
-                  dataKey="sma"
+                  dataKey={indexed ? "smaIndex" : "sma"}
                   stroke="#6366F1"
                   strokeWidth={1.5}
                   strokeDasharray="4 3"
@@ -988,10 +1027,10 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   connectNulls
                 />
               )}
-              {ratioActive && (
+              {indexed && (
                 <Line
                   key={`ratio-${overlay.label}`}
-                  yAxisId="ratio"
+                  yAxisId="price"
                   type="monotone"
                   dataKey="ratio"
                   stroke="#0EA5E9"
@@ -1006,14 +1045,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               )}
               <Scatter
                 yAxisId="price"
-                dataKey="buyPrice"
+                dataKey={indexed ? "buyIndex" : "buyPrice"}
                 fill="#2563EB"
                 shape={<TradeDot color="#2563EB" direction="up" />}
                 isAnimationActive={false}
               />
               <Scatter
                 yAxisId="price"
-                dataKey="sellPrice"
+                dataKey={indexed ? "sellIndex" : "sellPrice"}
                 fill="#EF4444"
                 shape={<TradeDot color="#EF4444" direction="down" />}
                 isAnimationActive={false}
