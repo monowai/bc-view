@@ -39,7 +39,8 @@ import {
 } from "@lib/holdings/aggregatedActions"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import Rows from "@components/features/holdings/Rows"
+import Rows, { SectorWeightingsData } from "@components/features/holdings/Rows"
+import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import PortfolioBreakdownPopup from "@components/features/holdings/PortfolioBreakdownPopup"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -172,6 +173,19 @@ function AggregatedHoldingsPage(): React.ReactElement {
   )
   const handlePortfolioBreakdownClose = useCallback(() => {
     setPortfolioBreakdownData(undefined)
+  }, [])
+
+  // Sector weightings for ETFs / funds. Asset-scoped — the exposures come
+  // from the asset's classification, not from any one portfolio, so the
+  // aggregate view needs no target-portfolio resolution here.
+  const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
+    Asset | undefined
+  >(undefined)
+  const handleSectorWeightings = useCallback((data: SectorWeightingsData) => {
+    setSectorWeightingsAsset(data.asset)
+  }, [])
+  const handleSectorWeightingsClose = useCallback(() => {
+    setSectorWeightingsAsset(undefined)
   }, [])
 
   // Edit-asset state. Asset metadata is global (not portfolio-scoped), so
@@ -634,6 +648,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                               onRecordIncome={handleRecordIncome}
                               onRecordExpense={handleRecordExpense}
                               onSetCashBalance={handleSetCashBalance}
+                              onSectorWeightings={handleSectorWeightings}
                               onGoToPortfolio={handleGoToPortfolio}
                               onEditAsset={handleEditAsset}
                             />
@@ -676,6 +691,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onRecordIncome={handleRecordIncome}
               onRecordExpense={handleRecordExpense}
               onSetCashBalance={handleSetCashBalance}
+              onSectorWeightings={handleSectorWeightings}
               onGoToPortfolio={handleGoToPortfolio}
               onEditAsset={handleEditAsset}
             />
@@ -747,6 +763,13 @@ function AggregatedHoldingsPage(): React.ReactElement {
               breakdownByAssetId.get(priceChartData.asset.id) ?? []
             ).map((b) => b.portfolioId)}
             onClose={handlePriceChartClose}
+          />
+        )}
+        {sectorWeightingsAsset && (
+          <SectorWeightingsPopup
+            asset={sectorWeightingsAsset}
+            modalOpen={!!sectorWeightingsAsset}
+            onClose={handleSectorWeightingsClose}
           />
         )}
         {portfolioBreakdownData && (
