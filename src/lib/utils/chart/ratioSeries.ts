@@ -4,8 +4,10 @@
  * A ratio overlay divides one price series by another — RSP/SPY (equal-weight
  * vs cap-weight S&P 500, a market-breadth read) being the canonical example.
  * The raw quotient is meaningless on a price axis (RSP/SPY sits near 0.28), so
- * the series is rebased to 100 at the first date both legs cover. Every point
- * then reads as "percent of where the ratio started this range".
+ * the series is rebased to 1.0 at the first date both legs cover. Every point
+ * then reads as "where the ratio stands against where it started this range" —
+ * the same index the chart puts price on when an overlay is showing, which is
+ * what lets one axis carry both.
  */
 
 export interface RatioLegPoint {
@@ -13,7 +15,7 @@ export interface RatioLegPoint {
   close: number
 }
 
-const REBASE_AT = 100
+const REBASE_AT = 1
 
 // How long a leg's last close may stand in for a missing one *inside* its own
 // series — enough to cover a holiday one feed skipped and the other did not.
@@ -97,51 +99,61 @@ export function buildRatioSeries(
   })
 }
 
-// Narrowest band the ratio axis will show, in rebased points. A ratio against
-// a benchmark the asset largely *is* — VOO against SPY — moves a fraction of a
-// percent, and scaling the axis to the data drew that noise as a crash. Five
-// points is wide enough that a flat ratio reads flat and a real divergence
-// still stands out.
-const MIN_AXIS_SPAN = 5
+// Narrowest band the indexed axis will show, as a fraction of the base. A
+// ratio against a benchmark the asset largely *is* — VOO against SPY — moves a
+// fraction of a percent, and on a short range its price barely moves either;
+// scaling the axis to the data drew that noise as a crash. 5% is wide enough
+// that a flat pair reads flat and a real divergence still stands out.
+const MIN_AXIS_SPAN = 0.05
 const AXIS_PADDING = 0.08
 
-function plottedValues(values: (number | undefined)[]): number[] {
-  // Not `typeof v === "number"`: NaN and Infinity pass that, and either one
-  // reaching Math.min/Math.max gives a NaN domain and no axis at all.
-  return values.filter((v): v is number => Number.isFinite(v))
+/**
+ * Bounds of every finite value across the given series, or undefined if none
+ * is plottable.
+ *
+ * A loop rather than `Math.min(...values)`: one axis can carry price, its SMA,
+ * two marker series and the ratio, and spreading that many points into a call
+ * risks the engine's argument limit on the longer ranges.
+ *
+ * Not `typeof v === "number"` either — NaN and Infinity pass that, and either
+ * one reaching the bounds gives a NaN domain and no axis at all.
+ */
+function extent(
+  series: (number | undefined)[][],
+): { min: number; max: number } | undefined {
+  let min = Number.POSITIVE_INFINITY
+  let max = Number.NEGATIVE_INFINITY
+  let seen = false
+  for (const values of series) {
+    for (const v of values) {
+      if (typeof v !== "number" || !Number.isFinite(v)) continue
+      if (v < min) min = v
+      if (v > max) max = v
+      seen = true
+    }
+  }
+  return seen ? { min, max } : undefined
 }
 
 /**
- * Y-axis bounds for the ratio line: the data's own range, widened to at least
- * MIN_AXIS_SPAN around its midpoint, then padded so the line does not graze
- * the frame. Centred on the data rather than on 100 — a leg that starts late
- * rebases well away from 100 and is still flat.
+ * Y-axis bounds for a set of series that all share one indexed scale — price
+ * indexed to its own first close, plus whatever ratio is overlaid.
+ *
+ * The domain spans every series given, widened to at least MIN_AXIS_SPAN
+ * around its midpoint, then padded so no line grazes the frame. One axis is
+ * the point: separate scales let the eye read crossings between price and
+ * ratio that exist only because the two scales were chosen that way.
  */
-export function ratioAxisDomain(
-  values: (number | undefined)[],
+export function indexedAxisDomain(
+  series: (number | undefined)[][],
 ): [number, number] {
-  const plotted = plottedValues(values)
-  if (plotted.length === 0) {
+  const plotted = extent(series)
+  if (plotted === undefined) {
     return [REBASE_AT - MIN_AXIS_SPAN / 2, REBASE_AT + MIN_AXIS_SPAN / 2]
   }
-  const min = Math.min(...plotted)
-  const max = Math.max(...plotted)
+  const { min, max } = plotted
   const mid = (min + max) / 2
   const half = Math.max((max - min) / 2, MIN_AXIS_SPAN / 2)
   const padded = half * (1 + AXIS_PADDING)
   return [mid - padded, mid + padded]
-}
-
-/**
- * Decimal places a ratio readout needs to change from point to point. The axis
- * has a floored span so whole numbers separate its ticks, but the tooltip
- * reports actual values — at 0dp a flat ratio would read "100" all the way
- * across.
- */
-export function ratioValuePrecision(values: (number | undefined)[]): number {
-  const plotted = plottedValues(values)
-  if (plotted.length === 0) return 0
-  const span = Math.max(...plotted) - Math.min(...plotted)
-  if (span >= 5) return 0
-  return span >= 0.5 ? 1 : 2
 }

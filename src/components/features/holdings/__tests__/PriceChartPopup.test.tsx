@@ -67,8 +67,22 @@ jest.mock("recharts", () => ({
       <g data-testid={`refline-y-${y}`} />
     ),
   XAxis: () => <g />,
-  YAxis: ({ yAxisId }: { yAxisId?: string }) => (
-    <g data-testid={`yaxis-${yAxisId ?? "default"}`} />
+  // The tick label is what says whether the axis is money or an index, so the
+  // stub runs the formatter over a sample value and publishes the result.
+  YAxis: ({
+    yAxisId,
+    tickFormatter,
+    domain,
+  }: {
+    yAxisId?: string
+    tickFormatter?: (v: number) => string
+    domain?: [number, number]
+  }) => (
+    <g
+      data-testid={`yaxis-${yAxisId ?? "default"}`}
+      data-tick={tickFormatter ? tickFormatter(1.05) : ""}
+      data-domain={JSON.stringify(domain)}
+    />
   ),
   // Render the tooltip's own content against the last charted point, so what
   // the user would actually read on hover is assertable.
@@ -300,10 +314,16 @@ describe("PriceChartPopup", () => {
     )
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
     expect(screen.queryByTestId("yaxis-ratio")).not.toBeInTheDocument()
+    // Nothing to compare against, so the axis stays in money.
+    expect(screen.getByTestId("yaxis-price")).toHaveAttribute(
+      "data-tick",
+      "$1.05",
+    )
+    expect(screen.getByTestId("area-close")).toBeInTheDocument()
     expect(resolveKeys()).toHaveLength(0)
   })
 
-  it("plots RSP/SPY rebased to 100 on its own axis when selected", () => {
+  it("plots price and RSP/SPY on one scale, both indexed to 1.0", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
         overlayLegs: {
@@ -331,18 +351,147 @@ describe("PriceChartPopup", () => {
       ]),
     )
     expect(screen.getByTestId("line-ratio")).toBeInTheDocument()
-    // Ratio shares the plot with price, so it needs its own right-hand axis.
+    // One scale, not two. A second axis lets the eye read crossings between
+    // price and ratio that only exist because the scales were chosen that way.
     expect(screen.getByTestId("yaxis-price")).toBeInTheDocument()
-    expect(screen.getByTestId("yaxis-ratio")).toBeInTheDocument()
+    expect(screen.queryByTestId("yaxis-ratio")).not.toBeInTheDocument()
+    // Money is no longer what the axis measures, so the symbol comes off.
+    expect(screen.getByTestId("yaxis-price")).toHaveAttribute(
+      "data-tick",
+      "1.05",
+    )
 
     const rows = JSON.parse(
       screen.getByTestId("chart").getAttribute("data-series") as string,
-    ) as Array<{ ratio?: number }>
+    ) as Array<{ ratio?: number; close: number; closeIndex?: number }>
     expect(rows.map((r) => r.ratio)).toEqual([
-      100,
-      expect.closeTo(102, 6),
-      expect.closeTo(93.33, 2),
+      1,
+      expect.closeTo(1.02, 6),
+      expect.closeTo(0.9333, 4),
     ])
+    // Price is indexed against its own first close, and keeps the money value
+    // for the header and tooltip.
+    expect(rows.map((r) => r.closeIndex)).toEqual([
+      1,
+      expect.closeTo(1.025, 6),
+      expect.closeTo(1.05, 6),
+    ])
+    expect(rows.map((r) => r.close)).toEqual([400, 410, 420])
+    expect(screen.getByTestId("area-closeIndex")).toBeInTheDocument()
+    expect(screen.queryByTestId("area-close")).not.toBeInTheDocument()
+    // An index of 0.93 reads as a 6.7% fall, and the legend says so in percent
+    // rather than making the reader subtract from 1.
+    expect(screen.getByText(/-6\.7% over range/)).toBeInTheDocument()
+  })
+
+  it("indexes the limit line, the SMA and the trade markers with the price", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 500 },
+            { priceDate: "2026-04-20", close: 525 },
+          ],
+        },
+        tradesResult: {
+          data: {
+            data: [
+              {
+                id: "t1",
+                trnType: "BUY",
+                tradeDate: "2026-04-01",
+                quantity: 5,
+                price: 380,
+              },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+      }) as typeof useSwr,
+    )
+
+    // Base close is 400, so a 420 limit indexes to 1.05 and a 380 fill to 0.95.
+    renderPopup({ limitPrice: 420 })
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ buyIndex?: number | null; smaIndex?: number }>
+    expect(rows.find((r) => r.buyIndex != null)?.buyIndex).toBeCloseTo(0.95, 6)
+    expect(rows[0].smaIndex).toBeCloseTo(1, 6)
+    expect(screen.getByTestId("scatter-buyIndex")).toBeInTheDocument()
+    expect(screen.getByTestId("line-smaIndex")).toBeInTheDocument()
+    // Anything left on the money scale would sit at the wrong height.
+    expect(screen.getByTestId("refline-y-1.05")).toBeInTheDocument()
+    // The label still quotes the limit in money — that is what was entered.
+    expect(screen.getByText(/\$420\.00/)).toBeInTheDocument()
+  })
+
+  it("keeps a decimal for an overlay that barely moves, instead of reading flat", () => {
+    // An asset against a benchmark it largely *is* moves fractions of a
+    // percent. At one decimal every day of that reads "+0.0%", which says the
+    // overlay is flat when it is not.
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 512.5 },
+            { priceDate: "2026-04-20", close: 524.79 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    // MSFT is up 5.00% on the range, SPY 4.958% — four hundredths of a percent
+    // of relative strength.
+    expect(screen.getByText(/\+0\.04% over range/)).toBeInTheDocument()
+  })
+
+  it("leaves a malformed close out of the indexed series rather than plotting NaN", () => {
+    // A close that arrives unparseable is NaN, which passes `typeof "number"`.
+    // Divided by the base it stays NaN, and recharts draws NaN as a dropped
+    // segment or a marker at the wrong height rather than as a gap.
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        pricesResult: {
+          data: {
+            asset,
+            prices: [
+              { priceDate: "2026-03-21", close: 400 },
+              { priceDate: "2026-04-01", close: Number.NaN },
+              { priceDate: "2026-04-20", close: 420 },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+        overlayLegs: {
+          "spy-id": [
+            { priceDate: "2026-03-21", close: 500 },
+            { priceDate: "2026-04-01", close: 500 },
+            { priceDate: "2026-04-20", close: 525 },
+          ],
+        },
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    const rows = JSON.parse(
+      screen.getByTestId("chart").getAttribute("data-series") as string,
+    ) as Array<{ closeIndex?: number | null }>
+    // JSON drops an undefined key and writes NaN as null, so this tells the
+    // two apart.
+    expect(rows[1].closeIndex).toBeUndefined()
+    expect(rows[0].closeIndex).toBe(1)
+    expect(rows[2].closeIndex).toBeCloseTo(1.05, 6)
   })
 
   it("uses the charted asset as the numerator for a relative-strength overlay", () => {
@@ -370,9 +519,9 @@ describe("PriceChartPopup", () => {
     ) as Array<{ ratio?: number }>
     // MSFT 400→410→420 against SPY 500→500→525: ahead, then behind.
     expect(rows.map((r) => r.ratio)).toEqual([
-      100,
-      expect.closeTo(102.5, 6),
-      expect.closeTo(100, 6),
+      1,
+      expect.closeTo(1.025, 6),
+      expect.closeTo(1, 6),
     ])
   })
 
@@ -399,9 +548,9 @@ describe("PriceChartPopup", () => {
       screen.getByTestId("chart").getAttribute("data-series") as string,
     ) as Array<{ ratio?: number }>
     expect(rows[0].ratio).toBeUndefined()
-    expect(rows[1].ratio).toBe(100)
+    expect(rows[1].ratio).toBe(1)
     expect(rows[2]).toEqual(
-      expect.objectContaining({ ratio: expect.closeTo(105, 6) }),
+      expect.objectContaining({ ratio: expect.closeTo(1.05, 6) }),
     )
   })
 
