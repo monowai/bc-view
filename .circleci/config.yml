@@ -4,7 +4,7 @@ orbs:
 
 # Global variables
 variables:
-  node_version: &node_version "24.18"
+  node_version: &node_version "24.19"
   node_image: &node_image "cimg/node:24.19"
   resource_class: &resource_class "medium"
   container_registry: &container_registry "ghcr.io"
