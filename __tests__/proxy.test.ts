@@ -39,17 +39,34 @@ describe("proxy", () => {
     expect(auth0Middleware).toHaveBeenCalledWith(request)
   })
 
-  it("keeps static assets, the favicon and the ping probe off the auth path", () => {
+  // The matcher is a Next inline-regex path pattern, which is a valid JS
+  // regex as written. Asserting on the compiled pattern rather than on
+  // substrings of the source is what catches an over-broad exclusion.
+  const runsThroughProxy = (pathname: string): boolean =>
+    new RegExp(`^${proxyModule.config.matcher[0]}$`).test(pathname)
+
+  it("keeps static assets, the favicon and the ping page off the auth path", () => {
     expect(proxyModule.config.matcher).toHaveLength(1)
-    const [matcher] = proxyModule.config.matcher
-    for (const excluded of [
-      "_next/static",
-      "_next/image",
-      "favicon.ico",
-      "ping",
+    for (const bypassed of [
+      "/_next/static/chunk.js",
+      "/_next/image",
+      "/favicon.ico",
+      "/ping",
     ]) {
-      expect(matcher).toContain(excluded)
+      expect(runsThroughProxy(bypassed)).toBe(false)
     }
+  })
+
+  it("routes everything else through the auth path", () => {
+    for (const guarded of ["/", "/portfolios", "/api/me", "/api/ping"]) {
+      expect(runsThroughProxy(guarded)).toBe(true)
+    }
+  })
+
+  it("does not let an unescaped dot widen the favicon exclusion", () => {
+    // `favicon.ico` written with a bare `.` matches any character, so paths
+    // like /faviconXico silently skipped the auth path too.
+    expect(runsThroughProxy("/faviconXico")).toBe(true)
   })
 
   it("declares no route segment runtime — proxy is Node.js only", () => {

@@ -9,6 +9,9 @@ export function proxy(request: Request): Promise<Response> {
   return auth0.middleware(request)
 }
 
+// The exclusions are regex, not literals, so the dot in `favicon.ico` has to
+// be escaped — unescaped it matches any character and drops /faviconXico off
+// the auth path as well.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|ping).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|ping).*)"],
 }
