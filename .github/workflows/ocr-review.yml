@@ -15,10 +15,13 @@ name: AI Code Review
 # To re-review after pushing fixes, dispatch this workflow with the PR number.
 # Re-running the original job would re-review the head SHA it first saw.
 #
-# Required repository secret:
+# Required secret (organisation-level, or per-repo):
 #   OCR_LLM_AUTH_TOKEN  - DeepSeek API key
 # The endpoint and model are not secrets and live in `env` below, so they can
 # be changed in review rather than through the settings UI.
+#
+# This file is kept byte-identical across beancounter, bc-view, svc-retire and
+# svc-rebalance. Change it in one place and sync the others.
 
 on:
   pull_request:
@@ -48,6 +51,13 @@ jobs:
     name: OpenCodeReview
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Fork PRs never receive secrets under the `pull_request` trigger, so the
+    # review would fail with an empty token rather than say anything useful.
+    # Skip them explicitly. Only relevant where the repo is public, but kept
+    # everywhere so this file stays identical across repos.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       # workflow_dispatch carries no pull_request payload, so the base ref and
       # head SHA have to be resolved from the PR number. On ready_for_review
