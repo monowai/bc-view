@@ -48,7 +48,10 @@ export function useIndependencePlanCurrency(
         const fxResponse: FxResponse = await response.json()
         const rateKey = `${planCurrency}:${displayCurrency}`
         const rate = fxResponse.data?.rates?.[rateKey]?.rate
-        if (rate !== undefined) {
+        // A present-but-unusable rate is treated exactly like a missing one.
+        // Multiplying by 0, null or NaN renders a confident wrong figure
+        // ("≈ NZ$0") where declining the conversion is the honest outcome.
+        if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
           setFxRate(rate)
           setFxRateLoaded(true)
         } else {

@@ -87,6 +87,38 @@ describe("useIndependencePlanCurrency", () => {
     consoleErrorSpy.mockRestore()
   })
 
+  // A rate that is present but unusable is the same outcome as a missing one:
+  // multiplying by it would render a confident, wrong figure (S$6,890 → "≈ NZ$0")
+  // rather than simply not offering the conversion.
+  it.each([
+    ["zero", 0],
+    ["negative", -1.4],
+    ["null", null],
+  ])("falls back when the response carries a %s rate", async (_label, rate) => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { rates: { "NZD:USD": { rate } } },
+        }),
+    })
+
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
+
+    // Async act so the fetch settles before we assert — mid-flight the hook
+    // is legitimately un-loaded, which would let this pass for the wrong reason.
+    await act(async () => {
+      result.current.setDisplayCurrency("USD")
+      await Promise.resolve()
+    })
+
+    expect(global.fetch).toHaveBeenCalled()
+    expect(result.current.fxRateLoaded).toBe(false)
+    expect(result.current.effectiveCurrency).toBe("NZD")
+    expect(result.current.effectiveFxRate).toBe(1)
+    expect(result.current.fxRate).toBe(1)
+  })
+
   it("falls back when rate not found in response", async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
