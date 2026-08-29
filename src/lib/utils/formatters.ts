@@ -100,17 +100,34 @@ export const formatCurrencySymbol = (value: number, symbol = "$"): string =>
   `${symbol}${value.toLocaleString()}`
 
 /**
- * Display symbol for a currency code. Disambiguates the dollar currencies the
- * product actually plans in; anything else falls back to a bare "$" rather
- * than pretending to be a full currency table.
+ * Symbols for the currencies svc-data cannot disambiguate: it serves a bare
+ * "$" for every member of the dollar family alike. The display-currency
+ * overlay puts two amounts side by side, and "S$4,200 ≈ $5,460" reads as
+ * though nothing was converted — so these are spelled out locally.
+ */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NZD: "NZ$",
+  SGD: "S$",
+  AUD: "A$",
+  CAD: "C$",
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+  JPY: "¥",
+}
+
+/**
+ * Display symbol for a currency code.
  * @param currency - ISO currency code (e.g. "NZD")
+ * @param backendSymbol - Symbol as served by svc-data, used for any currency
+ *   the local map doesn't need to disambiguate (MYR, THB, …). The map still
+ *   wins for the dollar family, where the backend's "$" is the problem.
  * @returns Symbol prefix (e.g. "NZ$")
  */
-export const currencySymbolFor = (currency: string | undefined): string => {
-  if (currency === "NZD") return "NZ$"
-  if (currency === "SGD") return "S$"
-  return "$"
-}
+export const currencySymbolFor = (
+  currency: string | undefined,
+  backendSymbol?: string,
+): string => (currency && CURRENCY_SYMBOLS[currency]) || backendSymbol || "$"
 
 /**
  * Format a number with sign prefix for display.
