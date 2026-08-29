@@ -4,6 +4,7 @@
  */
 
 import {
+  currencySymbolFor,
   formatCurrency,
   formatCurrencySymbol,
   formatPercent,
@@ -87,6 +88,44 @@ describe("formatCurrencySymbol", () => {
 
   it("formats zero", () => {
     expect(formatCurrencySymbol(0)).toBe("$0")
+  })
+})
+
+describe("currencySymbolFor", () => {
+  // Every currency the Independence wizard offers has to render as itself.
+  // A display-currency overlay puts two amounts side by side, so the dollar
+  // family must never collapse to a bare "$" — "S$4,200 ≈ $5,460" reads as
+  // if nothing was converted.
+  it.each([
+    ["NZD", "NZ$"],
+    ["SGD", "S$"],
+    ["AUD", "A$"],
+    ["CAD", "C$"],
+    ["USD", "$"],
+    ["GBP", "£"],
+    ["EUR", "€"],
+    ["JPY", "¥"],
+  ])("renders %s as %s", (code, symbol) => {
+    expect(currencySymbolFor(code)).toBe(symbol)
+  })
+
+  it("falls back to $ rather than inventing a symbol", () => {
+    expect(currencySymbolFor("ZAR")).toBe("$")
+    expect(currencySymbolFor(undefined)).toBe("$")
+  })
+
+  // svc-data serves a symbol per currency, but returns a bare "$" for every
+  // member of the dollar family (NZD/AUD/SGD/CAD/USD alike). So the local map
+  // wins where disambiguation matters and the backend fills in the rest —
+  // MYR and THB are offered as display currencies and are not in the map.
+  it("prefers the backend symbol for currencies the map does not disambiguate", () => {
+    expect(currencySymbolFor("MYR", "RM")).toBe("RM")
+    expect(currencySymbolFor("THB", "฿")).toBe("฿")
+  })
+
+  it("keeps the disambiguated symbol even when the backend says plain $", () => {
+    expect(currencySymbolFor("SGD", "$")).toBe("S$")
+    expect(currencySymbolFor("NZD", "$")).toBe("NZ$")
   })
 })
 

@@ -58,7 +58,26 @@ let catalogSwrReturn = {
   isLoading: true,
 }
 
+// Backend-driven currency list (/api/currencies) that feeds the display
+// currency picker.
+const mockCurrencies = {
+  data: [
+    { code: "SGD", name: "Singapore Dollar", symbol: "$" },
+    { code: "NZD", name: "New Zealand Dollar", symbol: "$" },
+    { code: "GBP", name: "British Pound", symbol: "£" },
+  ],
+}
+let currenciesSwrReturn = {
+  data: null as typeof mockCurrencies | null,
+  error: null,
+  isLoading: true,
+}
+
 const swrKeySpy = jest.fn()
+
+// /api/fx is a POST, so it goes through fetch rather than SWR.
+const mockFetch = jest.fn()
+global.fetch = mockFetch
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -66,6 +85,9 @@ jest.mock("swr", () => ({
     swrKeySpy(key)
     if (typeof key === "string" && key.includes("lifestyle-catalog")) {
       return catalogSwrReturn
+    }
+    if (typeof key === "string" && key.includes("/currencies")) {
+      return currenciesSwrReturn
     }
     return categoriesSwrReturn
   },
@@ -116,6 +138,7 @@ describe("ExpensesStep", () => {
   beforeEach(() => {
     categoriesSwrReturn = { data: null, error: null, isLoading: true }
     catalogSwrReturn = { data: null, error: null, isLoading: true }
+    currenciesSwrReturn = { data: null, error: null, isLoading: true }
     swrKeySpy.mockClear()
   })
 
@@ -155,7 +178,8 @@ describe("ExpensesStep", () => {
     goToDetailedTab()
 
     expect(screen.getByText(/total monthly expenses/i)).toBeInTheDocument()
-    expect(screen.getByText("$0")).toBeInTheDocument()
+    // TestWrapper's plan is NZD — the hero renders the plan's own symbol.
+    expect(screen.getByText("NZ$0")).toBeInTheDocument()
   })
 
   it("hides the total monthly expenses hero on the Mood Board tab — the board header is the single total", () => {
@@ -297,7 +321,7 @@ describe("ExpensesStep", () => {
         fireEvent.click(screen.getByRole("button", { name: /apply/i }))
 
         await waitFor(() => {
-          expect(screen.getByText("$3,040")).toBeInTheDocument()
+          expect(screen.getByText("NZ$3,040")).toBeInTheDocument()
         })
       })
 
@@ -320,7 +344,7 @@ describe("ExpensesStep", () => {
         fireEvent.click(screen.getByRole("button", { name: /apply/i }))
 
         await waitFor(() => {
-          expect(screen.getByText("$2,660")).toBeInTheDocument()
+          expect(screen.getByText("NZ$2,660")).toBeInTheDocument()
         })
       })
 
@@ -355,7 +379,7 @@ describe("ExpensesStep", () => {
 
         fireEvent.click(screen.getByRole("button", { name: /^apply$/i }))
         await waitFor(() => {
-          expect(screen.getByText("$3,040")).toBeInTheDocument()
+          expect(screen.getByText("NZ$3,040")).toBeInTheDocument()
         })
 
         expect(
@@ -369,7 +393,7 @@ describe("ExpensesStep", () => {
           screen.getByRole("button", { name: /re-apply working expenses/i }),
         )
         await waitFor(() => {
-          expect(screen.getByText("$3,040")).toBeInTheDocument()
+          expect(screen.getByText("NZ$3,040")).toBeInTheDocument()
         })
       })
 
@@ -462,6 +486,181 @@ describe("ExpensesStep", () => {
       // The "now" anchor must still show the original 1,500 snapshot, not
       // the freshly-seeded 2,200 board value.
       expect(screen.getByText(/now.*1,500/i)).toBeInTheDocument()
+    })
+  })
+
+  describe("Display currency overlay", () => {
+    const expenses = [
+      {
+        categoryLabelId: "cat-1",
+        categoryName: "Housing",
+        monthlyAmount: 2000,
+      },
+      { categoryLabelId: "cat-2", categoryName: "Food", monthlyAmount: 900 },
+    ]
+
+    beforeEach(() => {
+      categoriesSwrReturn = {
+        data: mockCategories,
+        error: null,
+        isLoading: false,
+      }
+      catalogSwrReturn = { data: mockCatalog, error: null, isLoading: false }
+      currenciesSwrReturn = {
+        data: mockCurrencies,
+        error: null,
+        isLoading: false,
+      }
+      mockFetch.mockReset()
+      mockFetch.mockResolvedValue({
+        json: () =>
+          Promise.resolve({ data: { rates: { "SGD:NZD": { rate: 1.3 } } } }),
+      })
+    })
+
+    it("renders amounts in the plan's own currency symbol, not a bare $", () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      expect(screen.getByText("S$2,900")).toBeInTheDocument()
+    })
+
+    it("defaults the display currency to the plan currency and converts nothing", () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      expect(screen.getByRole("combobox", { name: /view in/i })).toHaveValue(
+        "SGD",
+      )
+      expect(screen.queryByTestId("converted-total")).not.toBeInTheDocument()
+      expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it("converts the total and every row when a different display currency is picked", async () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      fireEvent.change(screen.getByRole("combobox", { name: /view in/i }), {
+        target: { value: "NZD" },
+      })
+
+      await waitFor(() => {
+        // 2900 * 1.3 = 3770
+        expect(screen.getByTestId("converted-total")).toHaveTextContent(
+          "NZ$3,770",
+        )
+      })
+
+      const rows = screen.getAllByTestId("converted-row-amount")
+      // 2000 * 1.3 = 2600, 900 * 1.3 = 1170
+      expect(rows[0]).toHaveTextContent("NZ$2,600")
+      expect(rows[1]).toHaveTextContent("NZ$1,170")
+    })
+
+    it("asks svc-data for the plan→display pair as of today", async () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      fireEvent.change(screen.getByRole("combobox", { name: /view in/i }), {
+        target: { value: "NZD" },
+      })
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+      const [url, init] = mockFetch.mock.calls[0]
+      expect(url).toBe("/api/fx")
+      expect(JSON.parse(init.body)).toEqual({
+        rateDate: "today",
+        pairs: [{ from: "SGD", to: "NZD" }],
+      })
+    })
+
+    it("leaves the editable amounts in plan currency — the overlay is view-only", async () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      fireEvent.change(screen.getByRole("combobox", { name: /view in/i }), {
+        target: { value: "NZD" },
+      })
+
+      await waitFor(() =>
+        expect(screen.getByTestId("converted-total")).toBeInTheDocument(),
+      )
+
+      // Inputs still hold the stored SGD amounts, untouched by the overlay.
+      expect(screen.getByDisplayValue("2000")).toBeInTheDocument()
+      expect(screen.getByDisplayValue("900")).toBeInTheDocument()
+    })
+
+    it("uses svc-data's symbol for a currency the local map doesn't disambiguate", async () => {
+      currenciesSwrReturn = {
+        data: {
+          data: [
+            ...mockCurrencies.data,
+            { code: "MYR", name: "Ringgit", symbol: "RM" },
+          ],
+        },
+        error: null,
+        isLoading: false,
+      }
+      mockFetch.mockResolvedValue({
+        json: () =>
+          Promise.resolve({ data: { rates: { "SGD:MYR": { rate: 3.3 } } } }),
+      })
+
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      fireEvent.change(screen.getByRole("combobox", { name: /view in/i }), {
+        target: { value: "MYR" },
+      })
+
+      await waitFor(() => {
+        // 2900 * 3.3 = 9570
+        expect(screen.getByTestId("converted-total")).toHaveTextContent(
+          "RM9,570",
+        )
+      })
+    })
+
+    it("shows the rate it converted at so the number is auditable", async () => {
+      render(
+        <TestWrapper expensesCurrency="SGD" expenses={expenses}>
+          <div />
+        </TestWrapper>,
+      )
+      goToDetailedTab()
+
+      fireEvent.change(screen.getByRole("combobox", { name: /view in/i }), {
+        target: { value: "NZD" },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-fx-rate")).toHaveTextContent(/1\.3/)
+      })
     })
   })
 })

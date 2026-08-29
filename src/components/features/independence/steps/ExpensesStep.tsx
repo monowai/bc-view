@@ -9,7 +9,7 @@ import {
   UseFormGetValues,
 } from "react-hook-form"
 import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import {
   WizardFormData,
   CategoryLabelsResponse,
@@ -17,7 +17,10 @@ import {
   LifestyleCatalogResponse,
   TierSelectionChange,
 } from "types/independence"
+import { Currency } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import { currencySymbolFor } from "@lib/formatters"
+import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import MathInput from "@components/ui/MathInput"
 import Spinner from "@components/ui/Spinner"
 import LifestyleMoodBoard from "./LifestyleMoodBoard"
@@ -89,6 +92,37 @@ export default function ExpensesStep({
     simpleFetcher(lifestyleCatalogKey),
   )
   const lifestyleCategories = catalogData?.categories || []
+
+  // Display-currency overlay. Amounts are entered and stored in the plan's
+  // own currency; picking a different currency here only adds a converted
+  // read-out beside each one. Ephemeral — it is a way to sanity-check what
+  // this lifestyle costs somewhere else, not a plan setting.
+  const { displayCurrency, setDisplayCurrency, fxRate, fxRateLoaded } =
+    useIndependencePlanCurrency(expensesCurrency)
+  const isConverted =
+    Boolean(displayCurrency) &&
+    displayCurrency !== expensesCurrency &&
+    fxRateLoaded
+  const { data: currenciesData } = useSwr<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
+  const currencies = currenciesData?.data || []
+  const symbolFor = (code: string): string =>
+    currencySymbolFor(code, currencies.find((c) => c.code === code)?.symbol)
+  const planSymbol = symbolFor(expensesCurrency)
+  const displaySymbol = symbolFor(displayCurrency ?? expensesCurrency)
+  // The plan's own currency leads the list and is always present, even
+  // before /api/currencies resolves — a controlled <select> whose value has
+  // no matching option renders blank.
+  const currencyOptions = [
+    expensesCurrency,
+    ...currencies
+      .map((c) => c.code)
+      .filter((code) => code !== expensesCurrency),
+  ]
+  const inDisplayCurrency = (amount: number): string =>
+    `${displaySymbol}${Math.round(amount * fxRate).toLocaleString()}`
 
   const categories = categoriesData?.data || []
   const systemCategories = categories.filter(
@@ -240,10 +274,53 @@ export default function ExpensesStep({
             </div>
             <div className="shrink-0 text-right">
               <p className="text-3xl font-bold tabular-nums text-independence-800">
-                ${totalMonthlyExpenses.toLocaleString()}
+                {`${planSymbol}${totalMonthlyExpenses.toLocaleString()}`}
               </p>
               <p className="text-xs text-independence-500 mt-0.5">per month</p>
             </div>
+          </div>
+
+          {/* Display-currency overlay — read-only second opinion on the same
+              stored amounts. */}
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+            {isConverted && (
+              <>
+                <span
+                  data-testid="converted-total"
+                  className="text-lg font-semibold tabular-nums text-independence-600"
+                >
+                  ≈ {inDisplayCurrency(totalMonthlyExpenses)}
+                </span>
+                <span
+                  data-testid="display-fx-rate"
+                  className="text-xs tabular-nums text-independence-400"
+                >
+                  @ {fxRate.toFixed(4)}
+                </span>
+              </>
+            )}
+            <label
+              htmlFor="expensesDisplayCurrency"
+              className="text-xs text-independence-600"
+            >
+              View in
+            </label>
+            <select
+              id="expensesDisplayCurrency"
+              value={displayCurrency ?? expensesCurrency}
+              onChange={(e) =>
+                setDisplayCurrency(
+                  e.target.value === expensesCurrency ? null : e.target.value,
+                )
+              }
+              className="rounded-lg border border-independence-300 bg-white px-2 py-1 text-xs text-independence-700 focus:border-independence-500 focus:ring-2 focus:ring-independence-500"
+            >
+              {currencyOptions.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Copy from working — surfaced when relevant */}
@@ -409,11 +486,22 @@ export default function ExpensesStep({
                       )}
                     </div>
 
+                    {/* Converted read-out — never editable, so it sits
+                        outside the input rather than replacing its value. */}
+                    {isConverted && (
+                      <span
+                        data-testid="converted-row-amount"
+                        className="shrink-0 text-xs tabular-nums text-gray-400"
+                      >
+                        ≈ {inDisplayCurrency(amount)}
+                      </span>
+                    )}
+
                     {/* Amount input */}
                     <div className="shrink-0 w-32">
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-xs text-gray-400 pointer-events-none">
-                          $
+                          {planSymbol}
                         </span>
                         <Controller
                           name={`expenses.${index}.monthlyAmount`}
