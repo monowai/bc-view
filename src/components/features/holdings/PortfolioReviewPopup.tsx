@@ -3,6 +3,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
+import { describeAgentError, AgentErrorCopy } from "@utils/agent/agentErrors"
 
 export type PortfolioReviewTarget =
   | { kind: "portfolio"; id: string; code: string; name: string }
@@ -90,27 +91,12 @@ function buildRequest(target: PortfolioReviewTarget): {
   }
 }
 
-function describeStreamError(code: string): string {
-  switch (code) {
-    case "provider-quota":
-      return "the AI provider has run out of credit. Please ask the site owner to top up the Anthropic billing balance."
-    case "provider-rate":
-      return "the AI provider is rate-limiting requests. Please wait a moment and try again."
-    case "provider-timeout":
-      return "the AI provider took too long to respond. Please try again."
-    case "agent-error":
-      return "the agent failed to process your request. Please try again."
-    default:
-      return code
-  }
-}
-
 export default function PortfolioReviewPopup({
   target,
   onClose,
 }: PortfolioReviewPopupProps): React.ReactElement {
   const [response, setResponse] = useState<string>("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<AgentErrorCopy | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -211,7 +197,7 @@ export default function PortfolioReviewPopup({
         if (buffer.trim().length > 0) flush(buffer)
 
         if (streamError) {
-          setError(describeStreamError(streamError))
+          setError(describeAgentError(streamError))
         } else if (accumulated.length > 0) {
           reviewCache.set(key, {
             response: accumulated,
@@ -220,7 +206,7 @@ export default function PortfolioReviewPopup({
         }
       } catch (e: unknown) {
         if (controller.signal.aborted) return
-        setError(e instanceof Error ? e.message : "Failed to fetch review")
+        setError(describeAgentError(e))
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
@@ -292,7 +278,9 @@ export default function PortfolioReviewPopup({
         </div>
       )}
       <Dialog.ErrorAlert
-        message={error ? `Sorry, an error occurred: ${error}` : null}
+        title={error?.title}
+        tone={error?.tone}
+        message={error?.message ?? null}
       />
     </Dialog>
   )

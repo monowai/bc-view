@@ -164,14 +164,29 @@ Dialog.SubmitButton = function SubmitButton({
 
 interface ErrorAlertProps {
   message: string | null
+  /** Optional bold lead-in above the message. */
+  title?: string
+  /**
+   * `error` (default) is a red failure. `service` is an amber notice for a
+   * backend/administration outage the reader did not cause and cannot fix —
+   * red there reads as "you broke something".
+   */
+  tone?: "error" | "service"
 }
 
 Dialog.ErrorAlert = function ErrorAlert({
   message,
+  title,
+  tone = "error",
 }: ErrorAlertProps): React.ReactElement | null {
   if (!message) return null
+  const palette =
+    tone === "service"
+      ? "bg-amber-50 border-amber-200 text-amber-800"
+      : "bg-red-50 border-red-200 text-red-700"
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+    <div className={`${palette} border rounded-lg p-3 text-sm`}>
+      {title ? <p className="font-semibold mb-1">{title}</p> : null}
       {message}
     </div>
   )

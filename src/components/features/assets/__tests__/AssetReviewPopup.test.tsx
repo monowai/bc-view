@@ -56,6 +56,45 @@ describe("AssetReviewPopup", () => {
     )
   })
 
+  it("names an out-of-credit provider as an administration issue, not a failed request", async () => {
+    // svc-agent answers an exhausted balance with 402 + error=provider-quota;
+    // createApiHandler passes that code through as the message.
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      json: () =>
+        Promise.resolve({
+          error: "provider-quota",
+          message: "provider-quota",
+          code: "Payment Required",
+        }),
+    })
+    render(<AssetReviewPopup ticker="AAPL" onClose={jest.fn()} />)
+
+    await waitFor(() =>
+      expect(screen.getByText(/AI features are paused/i)).toBeInTheDocument(),
+    )
+    const alert = screen.getByText(/run out of credit/i)
+    expect(alert).toBeInTheDocument()
+    // Reads as a service notice (amber), not the red alert that tells the
+    // user their own request was wrong.
+    expect(alert.closest("div")).toHaveClass("bg-amber-50")
+  })
+
+  it("still explains a 402 whose body never reached the browser", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      json: () => Promise.reject(new Error("not json")),
+    })
+    render(<AssetReviewPopup ticker="AAPL" onClose={jest.fn()} />)
+
+    await waitFor(() =>
+      expect(screen.getByText(/run out of credit/i)).toBeInTheDocument(),
+    )
+    expect(screen.queryByText(/HTTP 402/)).not.toBeInTheDocument()
+  })
+
   it("shows error on fetch failure", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

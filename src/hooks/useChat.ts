@@ -1,28 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react"
+import { describeAgentError } from "@utils/agent/agentErrors"
 import { ChatMessage, ChatTurn } from "types/agent"
 
 /** Trailing turns sent as history — mirrors svc-agent's server-side cap. */
 const MAX_HISTORY_TURNS = 6
-
-/**
- * Human-readable rendering of svc-agent's opaque SSE error codes. Codes are
- * stable contracts emitted by AgentController.classifyError; the message
- * text is UI copy and may evolve.
- */
-function describeError(code: string): string {
-  switch (code) {
-    case "provider-quota":
-      return "the AI provider has run out of credit. Please ask the site owner to top up the Anthropic billing balance."
-    case "provider-rate":
-      return "the AI provider is rate-limiting requests. Please wait a moment and try again."
-    case "provider-timeout":
-      return "the AI provider took too long to respond. Please try again — heavy queries may need a second attempt."
-    case "agent-error":
-      return "the agent failed to process your request. Please try again or simplify the question."
-    default:
-      return code
-  }
-}
 
 interface UseChatReturn {
   messages: ChatMessage[]
@@ -143,7 +124,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         if (!res.ok || !res.body) {
           const message = `HTTP ${res.status}`
           finalize(() => ({
-            content: `Sorry, I encountered an error: ${message}`,
+            content: describeAgentError(message, res.status).message,
             error: message,
           }))
           return
@@ -186,7 +167,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
               content:
                 m.content.length > 0
                   ? m.content
-                  : `Sorry, I encountered an error: ${describeError(code)}`,
+                  : describeAgentError(code).message,
               error: code,
             }))
           }
@@ -218,7 +199,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         }
         const message = error instanceof Error ? error.message : "Unknown error"
         finalize(() => ({
-          content: `Sorry, I encountered an error: ${message}`,
+          content: describeAgentError(error).message,
           error: message,
         }))
       } finally {

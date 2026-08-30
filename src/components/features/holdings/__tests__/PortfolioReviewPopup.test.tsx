@@ -148,7 +148,9 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() => expect(screen.getByText(/error/i)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/AI features are paused/i)).toBeInTheDocument(),
+    )
     expect(screen.getByText(/run out of credit/i)).toBeInTheDocument()
   })
 
