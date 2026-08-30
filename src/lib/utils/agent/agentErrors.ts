@@ -24,6 +24,12 @@ export interface AgentErrorCopy {
   message: string
   /** false when trying again cannot help — someone has to act first. */
   retryable: boolean
+  /**
+   * The raw text the failure carried, before any copy was chosen. Callers that
+   * also record the failure (chat messages, logs) use this so the recorded
+   * value and the rendered copy come from one extraction, not two.
+   */
+  detail: string
 }
 
 const CODES = [
@@ -34,7 +40,10 @@ const CODES = [
   "agent-error",
 ] as const
 
-const COPY: Record<(typeof CODES)[number], Omit<AgentErrorCopy, "code">> = {
+const COPY: Record<
+  (typeof CODES)[number],
+  Omit<AgentErrorCopy, "code" | "detail">
+> = {
   "provider-quota": {
     tone: "service",
     title: "AI features are paused",
@@ -84,9 +93,27 @@ const STATUS_CODES: Record<number, (typeof CODES)[number]> = {
 }
 
 /**
+ * Find a code in free text. Bounded on both sides so an unrelated string that
+ * merely contains one — `"not-agent-error related"` — is not classified as it.
+ * The pattern is built from the literal codes above, never from input.
+ */
+function matchCode(text: string): (typeof CODES)[number] | undefined {
+  return CODES.find((code) =>
+    new RegExp(`(^|[^a-z0-9-])${code}([^a-z0-9-]|$)`, "i").test(text),
+  )
+}
+
+/**
  * Pull whatever text a failure carries. Handles the several shapes an agent
  * error arrives in: a bare SSE code, an `Error` thrown by a fetch wrapper, and
- * the JSON body `createApiHandler` writes (`{error, message, code, path}`).
+ * the JSON body `createApiHandler` writes (`{error, message, code, path}` —
+ * where `error` and `message` both hold svc-agent's `AgentResponse.error`, and
+ * `code` holds the HTTP status text).
+ *
+ * The two passes read those keys in deliberately different orders. Looking for
+ * a *code*, `code` outranks `message` because it is the machine field. Falling
+ * back to *text to show a human*, `message` outranks `code` because `code` is
+ * only ever a status phrase like "Payment Required".
  */
 function textOf(raw: unknown): string {
   if (raw == null) return ""
@@ -107,7 +134,7 @@ function textOf(raw: unknown): string {
     for (const key of ["error", "code", "message", "detail"]) {
       const value = body[key]
       if (typeof value === "string" && value.length > 0) {
-        const found = CODES.find((code) => value.includes(code))
+        const found = matchCode(value)
         if (found) return found
       }
     }
@@ -140,14 +167,15 @@ export function describeAgentError(
   httpStatus?: number,
 ): AgentErrorCopy {
   const text = textOf(raw)
-  const matched = CODES.find((code) => text.includes(code))
+  const matched = matchCode(text)
   const status = httpStatus ?? statusOf(raw)
   const code = matched ?? (status ? STATUS_CODES[status] : undefined)
 
-  if (code) return { code, ...COPY[code] }
+  if (code) return { code, detail: text, ...COPY[code] }
 
   return {
     code: "unknown",
+    detail: text,
     tone: "error",
     title: "Something went wrong",
     message: text

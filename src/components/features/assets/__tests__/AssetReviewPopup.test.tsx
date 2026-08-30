@@ -76,9 +76,9 @@ describe("AssetReviewPopup", () => {
     )
     const alert = screen.getByText(/run out of credit/i)
     expect(alert).toBeInTheDocument()
-    // Reads as a service notice (amber), not the red alert that tells the
-    // user their own request was wrong.
-    expect(alert.closest("div")).toHaveClass("bg-amber-50")
+    // Reads as DESIGN.md's warning variant, not the red error alert that
+    // tells the user their own request was wrong.
+    expect(alert.closest("div")).toHaveClass("bg-yellow-50")
   })
 
   it("still explains a 402 whose body never reached the browser", async () => {

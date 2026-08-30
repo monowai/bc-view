@@ -122,10 +122,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
           signal: controller.signal,
         })
         if (!res.ok || !res.body) {
-          const message = `HTTP ${res.status}`
+          // One extraction feeds both fields: `content` is the copy, `error`
+          // is the raw signal it was derived from, so a recorded failure and
+          // the message on screen can never describe different things.
+          const failure = describeAgentError(`HTTP ${res.status}`, res.status)
           finalize(() => ({
-            content: describeAgentError(message, res.status).message,
-            error: message,
+            content: failure.message,
+            error: failure.detail,
           }))
           return
         }
@@ -197,10 +200,10 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
           }))
           return
         }
-        const message = error instanceof Error ? error.message : "Unknown error"
+        const failure = describeAgentError(error)
         finalize(() => ({
-          content: describeAgentError(error).message,
-          error: message,
+          content: failure.message,
+          error: failure.detail || "Unknown error",
         }))
       } finally {
         if (abortRef.current === controller) abortRef.current = null

@@ -180,9 +180,11 @@ Dialog.ErrorAlert = function ErrorAlert({
   tone = "error",
 }: ErrorAlertProps): React.ReactElement | null {
   if (!message) return null
+  // DESIGN.md "Alerts": four variants on the 50/200/700 ramp of their hue.
+  // A service outage is the warning variant, not error.
   const palette =
     tone === "service"
-      ? "bg-amber-50 border-amber-200 text-amber-800"
+      ? "bg-yellow-50 border-yellow-200 text-yellow-700"
       : "bg-red-50 border-red-200 text-red-700"
   return (
     <div className={`${palette} border rounded-lg p-3 text-sm`}>

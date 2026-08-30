@@ -68,6 +68,27 @@ describe("describeAgentError", () => {
     expect(copy.message).toMatch(/again/i)
   })
 
+  it("does not classify text that merely contains a code", () => {
+    // Substring matching would read this as agent-error and replace the real
+    // text with canned copy.
+    const copy = describeAgentError("not-agent-error related failure")
+
+    expect(copy.code).toBe("unknown")
+    expect(copy.message).toContain("not-agent-error related failure")
+  })
+
+  it("reports the raw text it derived the copy from", () => {
+    // Callers that record the failure alongside the copy use `detail`, so the
+    // recorded value and the rendered copy come from one extraction.
+    expect(describeAgentError(new Error("Network error")).detail).toBe(
+      "Network error",
+    )
+    expect(describeAgentError({ error: "provider-quota" }).detail).toBe(
+      "provider-quota",
+    )
+    expect(describeAgentError("HTTP 402", 402).detail).toBe("HTTP 402")
+  })
+
   it("passes an unrecognised message through instead of swallowing it", () => {
     const copy = describeAgentError("ECONNREFUSED 127.0.0.1:9520")
 
