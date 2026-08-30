@@ -3,6 +3,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
+import { describeAgentError, AgentErrorCopy } from "@utils/agent/agentErrors"
 import { AgentResponse } from "types/agent"
 
 interface AssetReviewPopupProps {
@@ -58,7 +59,10 @@ async function performFetch(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || `HTTP ${res.status}`)
+    throw Object.assign(
+      new Error(err.error || err.message || `HTTP ${res.status}`),
+      { status: res.status },
+    )
   }
   const data: AgentResponse = await res.json()
   reviewCache.set(key, { response: data.response, fetchedAt: Date.now() })
@@ -103,7 +107,7 @@ export default function AssetReviewPopup({
   // useEffect body — only the async fetch on a cache miss runs there.
   const initial = useState(() => readCachedReview(ticker, market))[0]
   const [response, setResponse] = useState<string | null>(initial)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<AgentErrorCopy | null>(null)
   const [isLoading, setIsLoading] = useState(initial === null)
 
   useEffect(() => {
@@ -115,8 +119,7 @@ export default function AssetReviewPopup({
         if (!cancelled) setResponse(text)
       })
       .catch((e: unknown) => {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Failed to fetch review")
+        if (!cancelled) setError(describeAgentError(e))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -151,7 +154,9 @@ export default function AssetReviewPopup({
         </div>
       )}
       <Dialog.ErrorAlert
-        message={error ? `Sorry, an error occurred: ${error}` : null}
+        title={error?.title}
+        tone={error?.tone}
+        message={error?.message ?? null}
       />
       {response && (
         <div

@@ -3,6 +3,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
+import { describeAgentError, AgentErrorCopy } from "@utils/agent/agentErrors"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { AssetInsightPromptOverride } from "types/beancounter"
 
@@ -36,21 +37,6 @@ export function clearAssetInsightCache(): void {
   insightCache.clear()
 }
 
-function describeStreamError(code: string): string {
-  switch (code) {
-    case "provider-quota":
-      return "the AI provider has run out of credit. Please ask the site owner to top up the Anthropic billing balance."
-    case "provider-rate":
-      return "the AI provider is rate-limiting requests. Please wait a moment and try again."
-    case "provider-timeout":
-      return "the AI provider took too long to respond. Please try again."
-    case "agent-error":
-      return "the agent failed to process your request. Please try again."
-    default:
-      return code
-  }
-}
-
 export default function AssetInsightPopup({
   asset,
   modelName,
@@ -58,7 +44,7 @@ export default function AssetInsightPopup({
   promptOverride,
 }: AssetInsightPopupProps): React.ReactElement {
   const [response, setResponse] = useState<string>("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<AgentErrorCopy | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -131,12 +117,7 @@ export default function AssetInsightPopup({
             accumulated += data
             setResponse(accumulated)
           } else if (event === "error") {
-            try {
-              const parsed = JSON.parse(data) as { code?: string }
-              streamError = parsed.code || data || "stream-error"
-            } catch {
-              streamError = data || "stream-error"
-            }
+            streamError = data || "stream-error"
           }
         }
 
@@ -166,7 +147,7 @@ export default function AssetInsightPopup({
         if (buffer.trim().length > 0) flush(buffer)
 
         if (streamError) {
-          setError(describeStreamError(streamError))
+          setError(describeAgentError(streamError))
         } else if (accumulated.length > 0) {
           insightCache.set(cacheKey, {
             response: accumulated,
@@ -175,7 +156,7 @@ export default function AssetInsightPopup({
         }
       } catch (e: unknown) {
         if (controller.signal.aborted) return
-        setError(e instanceof Error ? e.message : "Failed to fetch insight")
+        setError(describeAgentError(e))
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
@@ -257,7 +238,9 @@ export default function AssetInsightPopup({
         </div>
       )}
       <Dialog.ErrorAlert
-        message={error ? `Sorry, an error occurred: ${error}` : null}
+        title={error?.title}
+        tone={error?.tone}
+        message={error?.message ?? null}
       />
     </Dialog>
   )
