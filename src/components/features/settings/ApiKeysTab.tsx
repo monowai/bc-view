@@ -248,6 +248,7 @@ export default function ApiKeysTab(): React.ReactElement {
             <input
               id="apiKeyName"
               type="text"
+              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={"e.g., Portfolio Agent"}

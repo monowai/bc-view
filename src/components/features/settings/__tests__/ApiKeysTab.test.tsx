@@ -78,6 +78,16 @@ describe("ApiKeysTab", () => {
     expect(screen.getByText("Never")).toBeInTheDocument()
   })
 
+  it("focuses the name field when the create dialog opens", () => {
+    setupHook()
+
+    render(<ApiKeysTab />)
+
+    fireEvent.click(screen.getByRole("button", { name: /create api key/i }))
+
+    expect(screen.getByLabelText(/name/i)).toHaveFocus()
+  })
+
   it("creates a key and shows the raw key exactly once with the shown-only-once warning", async () => {
     const created = {
       data: makeApiKey({ id: "k4", name: "New Agent" }),
