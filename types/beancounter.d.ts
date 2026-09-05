@@ -1257,3 +1257,37 @@ export interface PerformanceData {
 export interface PerformanceResponse {
   data: PerformanceData
 }
+
+// ============ API Keys (BC-issued, for external agent/MCP access) ============
+
+export interface ApiKey {
+  id: string
+  name: string
+  /** First 11 characters of the key, e.g. "bc_a1b2c3d4" — for display only. */
+  prefix: string
+  scopes: string[]
+  createdAt: string
+  expiresAt: string | null
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
+
+export interface ApiKeyRequest {
+  name: string
+  scopes: string[]
+  expiresAt?: string
+}
+
+export interface ApiKeysResponse {
+  data: ApiKey[]
+}
+
+/** Response from POST /me/api-keys — `apiKey` is the raw key, shown only here. */
+export interface ApiKeyCreatedResponse {
+  data: ApiKey
+  apiKey: string
+}
+
+export interface ApiKeyResponse {
+  data: ApiKey
+}

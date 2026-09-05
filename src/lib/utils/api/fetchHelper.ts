@@ -126,6 +126,9 @@ export const executionsKey = `${apiRoot}/rebalance/executions`
 export const modelKey = (id: string): string => `${modelsKey}/${id}`
 export const executionKey = (id: string): string => `${executionsKey}/${id}`
 
+// API keys (BC-issued, for external agent/MCP access)
+export const apiKeysKey = `${apiRoot}/me/api-keys`
+
 // Shares API keys
 export const sharesPendingKey = `${apiRoot}/shares/pending`
 export const sharesManagedKey = `${apiRoot}/shares/managed`

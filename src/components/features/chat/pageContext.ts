@@ -148,11 +148,13 @@ const routeContextMap: Record<string, PageContext> = {
   },
   "/settings": {
     page: "Settings",
-    description: "The user is viewing their account settings",
+    description:
+      "The user is viewing their account settings, including API keys for external agent access",
     placeholder: "Ask about settings...",
     suggestions: [
       "What currencies are supported?",
       "How do I change my base currency?",
+      "What can an API key be used for?",
     ],
   },
 }

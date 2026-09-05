@@ -5,8 +5,12 @@ interface ConfirmDialogProps {
   title: string
   message: string
   confirmLabel?: string
+  /** Shown on the confirm button while isSubmitting is true. */
+  loadingLabel?: string
   cancelLabel?: string
   variant?: "red" | "amber" | "blue"
+  /** Keeps the dialog's confirm button disabled while an async confirm runs. */
+  isSubmitting?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -15,8 +19,10 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = "Confirm",
+  loadingLabel,
   cancelLabel = "Cancel",
   variant = "red",
+  isSubmitting = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): React.ReactElement {
@@ -31,6 +37,8 @@ export default function ConfirmDialog({
           <Dialog.SubmitButton
             onClick={onConfirm}
             label={confirmLabel}
+            loadingLabel={loadingLabel}
+            isSubmitting={isSubmitting}
             variant={variant}
           />
         </>
