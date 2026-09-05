@@ -95,6 +95,21 @@ describe("/api/me/api-keys/[id] route", () => {
     )
   })
 
+  it("rejects a traversal id without calling the backend", async () => {
+    const req = makeReq("DELETE", "../portfolios")
+    const res = makeRes()
+
+    await apiKeyHandler(
+      req as unknown as Parameters<typeof apiKeyHandler>[0],
+      res as unknown as Parameters<typeof apiKeyHandler>[1],
+    )
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    // sanitizePathParam throws; the handler routes it through fetchError.
+    const responseWriter = jest.requireMock("@utils/api/responseWriter")
+    expect(responseWriter.fetchError).toHaveBeenCalled()
+  })
+
   it("rejects GET with 405 and does not call the backend", async () => {
     const req = makeReq("GET")
     const res = makeRes()

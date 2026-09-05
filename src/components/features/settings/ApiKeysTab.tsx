@@ -95,7 +95,17 @@ export default function ApiKeysTab(): React.ReactElement {
     await handleSubmit(async () => {
       const request: ApiKeyRequest = { name: trimmed, scopes: [] }
       if (expiresDate) {
-        request.expiresAt = new Date(`${expiresDate}T23:59:59Z`).toISOString()
+        // End of the picked day in the user's own timezone, so the expiry
+        // date shown in the list matches the date they chose.
+        const [year, month, day] = expiresDate.split("-").map(Number)
+        request.expiresAt = new Date(
+          year,
+          month - 1,
+          day,
+          23,
+          59,
+          59,
+        ).toISOString()
       }
       const created = await createKey(request)
       setCreatedKey(created)
@@ -119,7 +129,6 @@ export default function ApiKeysTab(): React.ReactElement {
   const handleRevokeConfirm = async (): Promise<void> => {
     if (!revokeTarget) return
     const id = revokeTarget.id
-    setRevokeTarget(null)
     setBusyId(id)
     setRevokeError(null)
     try {
@@ -128,6 +137,7 @@ export default function ApiKeysTab(): React.ReactElement {
       setRevokeError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusyId(null)
+      setRevokeTarget(null)
     }
   }
 
@@ -314,8 +324,10 @@ export default function ApiKeysTab(): React.ReactElement {
             "Revoking is immediate — anything using this key loses access on its next request."
           }
           confirmLabel={"Revoke Key"}
+          loadingLabel={"Revoking…"}
           cancelLabel={"Cancel"}
           variant="red"
+          isSubmitting={busyId === revokeTarget.id}
           onConfirm={handleRevokeConfirm}
           onCancel={() => setRevokeTarget(null)}
         />

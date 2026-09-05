@@ -1,7 +1,13 @@
-import { createApiHandler } from "@utils/api/createApiHandler"
+import {
+  createApiHandler,
+  sanitizePathParam,
+} from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
-  url: (req) => getDataUrl(`/me/api-keys/${req.query.id}`),
+  url: (req) => {
+    const id = sanitizePathParam(req.query.id, "id")
+    return getDataUrl(`/me/api-keys/${id}`)
+  },
   methods: ["DELETE"],
 })

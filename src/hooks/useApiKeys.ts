@@ -29,7 +29,7 @@ export function useApiKeys(): UseApiKeysResult {
 
   const revokeKey = useCallback(
     async (id: string): Promise<void> => {
-      const response = await fetch(`/api/me/api-keys/${id}`, {
+      const response = await fetch(`${apiKeysKey}/${id}`, {
         method: "DELETE",
       })
       if (!response.ok) {

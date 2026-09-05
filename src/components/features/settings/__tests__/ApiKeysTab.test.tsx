@@ -115,6 +115,34 @@ describe("ApiKeysTab", () => {
     expect(screen.getByText(/shown only once/i)).toBeInTheDocument()
   })
 
+  it("sends the expiry as end-of-day in the user's own timezone", async () => {
+    const created = {
+      data: makeApiKey({ id: "k4b", name: "Expiring Agent" }),
+      apiKey: RAW_KEY,
+    }
+    const { createKey } = setupHook()
+    createKey.mockResolvedValue(created)
+
+    render(<ApiKeysTab />)
+
+    fireEvent.click(screen.getByRole("button", { name: /create api key/i }))
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: "Expiring Agent" },
+    })
+    fireEvent.change(screen.getByLabelText(/expires/i), {
+      target: { value: "2030-01-15" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(createKey).toHaveBeenCalledWith({
+        name: "Expiring Agent",
+        scopes: [],
+        expiresAt: new Date(2030, 0, 15, 23, 59, 59).toISOString(),
+      })
+    })
+  })
+
   it("copies the raw key to the clipboard", async () => {
     const created = {
       data: makeApiKey({ id: "k5", name: "New Agent" }),
@@ -165,6 +193,40 @@ describe("ApiKeysTab", () => {
 
     expect(await screen.findByText(/copy failed/i)).toBeInTheDocument()
     expect(screen.queryByText("Copied!")).not.toBeInTheDocument()
+  })
+
+  it("keeps the confirm dialog open with a loading label while the revoke is in flight", async () => {
+    let resolveRevoke: () => void = () => undefined
+    const { revokeKey } = setupHook({
+      keys: [makeApiKey({ id: "k6b", name: "Slow Revoke" })],
+    })
+    revokeKey.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRevoke = resolve
+        }),
+    )
+
+    render(<ApiKeysTab />)
+
+    fireEvent.click(screen.getByRole("button", { name: /^revoke$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /revoke key/i }))
+
+    // Dialog stays open while the revoke runs; its confirm button (and the
+    // table row behind it) shows the loading label, disabled.
+    expect(screen.getByText(/revoking is immediate/i)).toBeInTheDocument()
+    const revokingButtons = await screen.findAllByRole("button", {
+      name: /revoking/i,
+    })
+    revokingButtons.forEach((button) => expect(button).toBeDisabled())
+
+    resolveRevoke()
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/revoking is immediate/i),
+      ).not.toBeInTheDocument()
+    })
   })
 
   it("revokes a key after confirming in the ConfirmDialog", async () => {
