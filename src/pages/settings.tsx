@@ -22,13 +22,15 @@ import {
   ValueInOption,
 } from "types/constants"
 import { usePermissions } from "@hooks/usePermissions"
+import ApiKeysTab from "@components/features/settings/ApiKeysTab"
 
-type SettingsTab = "profile" | "wealth" | "tax" | "account"
+type SettingsTab = "profile" | "wealth" | "tax" | "apikeys" | "account"
 
 const TABS: { id: SettingsTab; label: string; icon: string }[] = [
   { id: "profile", label: "Profile", icon: "fa-user" },
   { id: "wealth", label: "Wealth", icon: "fa-chart-pie" },
   { id: "tax", label: "Tax", icon: "fa-percent" },
+  { id: "apikeys", label: "API Keys", icon: "fa-key" },
   { id: "account", label: "Account", icon: "fa-cog" },
 ]
 
@@ -841,6 +843,9 @@ function SettingsPage(): React.ReactElement {
           </div>
         </div>
       )}
+
+      {/* API Keys Tab */}
+      {activeTab === "apikeys" && <ApiKeysTab />}
 
       {/* Account Tab */}
       {activeTab === "account" && (

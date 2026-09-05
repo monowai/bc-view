@@ -10,6 +10,7 @@
  *   const holdings = makeHoldings({ holdingGroups: { Equity: makeHoldingGroup([position]) } })
  */
 import {
+  ApiKey,
   Asset,
   AssetHolding,
   Currency,
@@ -302,4 +303,18 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
       ...totals,
     },
   } as unknown as Holdings
+}
+
+export function makeApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
+  return {
+    id: "key-1",
+    name: "My Agent",
+    prefix: "bc_a1b2c3d4",
+    scopes: ["beancounter:read"],
+    createdAt: "2026-01-01T00:00:00Z",
+    expiresAt: null,
+    lastUsedAt: null,
+    revokedAt: null,
+    ...overrides,
+  }
 }
