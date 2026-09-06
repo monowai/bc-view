@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PayslipModal from "../PayslipModal"
 import { SGD, makePortfolio } from "@test-fixtures/beancounter"
+import { todayIso } from "@lib/formatters"
 
 // Two portfolios by default → "master" mode where the Portfolio selector is
 // shown. Zen mode (a single portfolio, selector hidden) is exercised below by
@@ -443,6 +444,53 @@ describe("PayslipModal", () => {
       expect(meCall).toBeDefined()
       expect(meCall![1].method).toBe("PATCH")
     })
+  })
+
+  it("defaults Pay date to today", () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect((screen.getByLabelText("Pay date") as HTMLInputElement).value).toBe(
+      todayIso(),
+    )
+  })
+
+  it("submits the chosen Pay date as the tradeDate on every leg", async () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "4000" },
+    })
+    fireEvent.change(screen.getByLabelText("Tax deducted"), {
+      target: { value: "300" },
+    })
+    fireEvent.change(screen.getByLabelText("Pay date"), {
+      target: { value: "2026-08-25" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() => {
+      const trnCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c) => c[0] === "/api/trns",
+      )
+      expect(trnCall).toBeDefined()
+    })
+    const trnCall = (global.fetch as jest.Mock).mock.calls.find(
+      (c) => c[0] === "/api/trns",
+    )!
+    const body = JSON.parse(trnCall[1].body)
+    expect(body.data.length).toBeGreaterThan(0)
+    body.data.forEach((leg: { tradeDate: string }) => {
+      expect(leg.tradeDate).toBe("2026-08-25")
+    })
+  })
+
+  it("blocks save when Pay date is cleared", () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "4000" },
+    })
+    fireEvent.change(screen.getByLabelText("Pay date"), {
+      target: { value: "" },
+    })
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
   })
 
   it("submits salary + optional tax only when no CPF asset", async () => {
