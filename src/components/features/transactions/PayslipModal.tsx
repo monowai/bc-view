@@ -184,6 +184,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     () => preferences?.defaultPayslipCashAssetId ?? "",
   )
   const [tax, setTax] = useState<string>("")
+  // Pay date the legs post on. Defaults to today; editable so a payslip can be
+  // recorded on the day it was actually paid.
+  const [payDate, setPayDate] = useState<string>(() => todayIso())
   // Per-bucket overrides keyed by bucket code; undefined = use computed value.
   const [bucketOverrides, setBucketOverrides] = useState<
     Record<string, string>
@@ -203,6 +206,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       setGrossSalary(defaultGross)
       setGrossTouched(false)
       setTax("")
+      setPayDate(todayIso())
       setBucketOverrides({})
       reset()
       setPortfolioId("")
@@ -295,7 +299,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   const buildPayload = (): PayslipPayload =>
     buildPayslipPayload({
       portfolioId: effectivePortfolioId,
-      tradeDate: todayIso(),
+      tradeDate: payDate,
       grossSalary: grossNum,
       tax: parseNum(tax),
       cashAssetId: effectiveCashAssetId,
@@ -307,7 +311,10 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     })
 
   const canSubmit =
-    grossNum > 0 && !!effectivePortfolioId && !!effectiveCashAssetId
+    grossNum > 0 &&
+    !!effectivePortfolioId &&
+    !!effectiveCashAssetId &&
+    !!payDate
 
   const handleSave = async (): Promise<void> => {
     if (!canSubmit) return
@@ -402,6 +409,23 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           placeholder={"0.00"}
           aria-label={"Gross salary"}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border"
+        />
+      </div>
+
+      {/* Pay date */}
+      <div>
+        <label
+          htmlFor="payslip-pay-date"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {"Pay date"}
+        </label>
+        <input
+          id="payslip-pay-date"
+          type="date"
+          value={payDate}
+          onChange={(e) => setPayDate(e.target.value)}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
         />
       </div>
 
