@@ -164,6 +164,16 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
                 m.id === assistantId ? { ...m, content: m.content + data } : m,
               ),
             )
+          } else if (event === "reset") {
+            // Emitted after a narration turn (the LLM's "I'll gather the
+            // data…" preamble before tool calls). Discard the in-progress
+            // assistant message's content — the final answer arrives after
+            // the last reset — leaving earlier chat history untouched.
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: "" } : m,
+              ),
+            )
           } else if (event === "error") {
             const code = data || "stream-error"
             finalize((m) => ({

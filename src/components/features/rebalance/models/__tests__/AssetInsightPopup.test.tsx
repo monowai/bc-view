@@ -191,4 +191,35 @@ describe("AssetInsightPopup", () => {
     expect(body.query).toBe("Custom draft-rebalance question about LSE:VUAA")
     expect(body.context).toEqual({ draft: true, portfolioId: "portfolio-1" })
   })
+
+  it("discards narration text after a reset event, keeping only the post-reset content", async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(encoder.encode("event:token\ndata:I'll gather the data…\n\n"))
+        c.enqueue(encoder.encode("event:reset\ndata:\n\n"))
+        c.enqueue(
+          encoder.encode("event:token\ndata:# Summary\ndata:Real content\n\n"),
+        )
+        c.enqueue(encoder.encode("event:done\ndata:{}\n\n"))
+        c.close()
+      },
+    })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+    render(
+      <AssetInsightPopup
+        asset={sampleAsset()}
+        modelName="My Model"
+        onClose={jest.fn()}
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId("markdown").textContent).toBe(
+        "# Summary\nReal content",
+      ),
+    )
+    expect(screen.getByTestId("markdown").textContent).not.toContain(
+      "gather the data",
+    )
+  })
 })
