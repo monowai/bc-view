@@ -200,4 +200,58 @@ describe("PortfolioReviewPopup", () => {
     )
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
+
+  it("discards narration after a reset, and caches only the post-reset text", async () => {
+    const encoder = new TextEncoder()
+    const streamBytes = (): ReadableStream<Uint8Array> =>
+      new ReadableStream<Uint8Array>({
+        start(c) {
+          c.enqueue(
+            encoder.encode("event:token\ndata:I'll gather the data…\n\n"),
+          )
+          c.enqueue(encoder.encode("event:reset\ndata:\n\n"))
+          c.enqueue(
+            encoder.encode(
+              "event:token\ndata:# Summary\ndata:Real content\n\n",
+            ),
+          )
+          c.enqueue(encoder.encode("event:done\ndata:{}\n\n"))
+          c.close()
+        },
+      })
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      body: streamBytes(),
+    })
+    const target = {
+      kind: "portfolio" as const,
+      id: "p-reset",
+      code: "R",
+      name: "R",
+    }
+    const { unmount } = render(
+      <PortfolioReviewPopup target={target} onClose={jest.fn()} />,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId("markdown").textContent).toBe(
+        "# Summary\nReal content",
+      ),
+    )
+    expect(screen.getByTestId("markdown").textContent).not.toContain(
+      "gather the data",
+    )
+
+    // Reopening the same target renders from cache — the cached text must be
+    // the post-reset content only, proving the accumulator (not just the
+    // rendered state) was cleared on reset.
+    unmount()
+    render(<PortfolioReviewPopup target={target} onClose={jest.fn()} />)
+    await waitFor(() =>
+      expect(screen.getAllByTestId("markdown")[0].textContent).toBe(
+        "# Summary\nReal content",
+      ),
+    )
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
 })

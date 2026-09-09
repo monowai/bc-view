@@ -166,6 +166,14 @@ export default function PortfolioReviewPopup({
           if (event === "token") {
             accumulated += data
             setResponse(accumulated)
+          } else if (event === "reset") {
+            // Emitted after a narration turn (the LLM's "I'll gather the
+            // data…" preamble before tool calls). Discard everything
+            // accumulated so far — the final answer arrives after the last
+            // reset — so this must clear both the accumulator (what the
+            // cache below persists) and the rendered state.
+            accumulated = ""
+            setResponse("")
           } else if (event === "error") {
             streamError = data || "stream-error"
           }

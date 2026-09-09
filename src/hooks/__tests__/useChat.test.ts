@@ -407,4 +407,28 @@ describe("useChat", () => {
       content: "answer 3",
     })
   })
+
+  it("discards narration content after a reset event, keeping only what streams after it", async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(encoder.encode("event:token\ndata:I'll gather the data…\n\n"))
+        c.enqueue(encoder.encode("event:reset\ndata:\n\n"))
+        c.enqueue(
+          encoder.encode("event:token\ndata:# Summary\ndata:Real content\n\n"),
+        )
+        c.enqueue(encoder.encode("event:done\ndata:{}\n\n"))
+        c.close()
+      },
+    })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hi")
+    })
+
+    expect(result.current.messages[1].content).toBe("# Summary\nReal content")
+  })
 })
