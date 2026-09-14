@@ -101,4 +101,37 @@ describe("describeAgentError", () => {
     expect(describeAgentError(undefined).message).not.toHaveLength(0)
     expect(describeAgentError("").message).not.toHaveLength(0)
   })
+
+  it("tells the reader to narrow the question when the answer was truncated", () => {
+    // svc-agent emits this when a turn hits the model's token cap with no
+    // answer — on Independence that is the context window filling with
+    // projection data. Until this copy existed the chat rendered an empty
+    // bubble and said nothing at all.
+    const copy = describeAgentError("answer-truncated")
+
+    expect(copy.code).toBe("answer-truncated")
+    expect(copy.tone).toBe("error")
+    // Retrying the same question hits the same ceiling; asking a narrower one
+    // is the move, so the copy has to say so.
+    expect(copy.message).toMatch(/one (plan|phase|holding)|narrower|smaller/i)
+  })
+
+  it("says so plainly when the model finished without answering", () => {
+    const copy = describeAgentError("empty-answer")
+
+    expect(copy.code).toBe("empty-answer")
+    expect(copy.tone).toBe("error")
+    expect(copy.retryable).toBe(true)
+    expect(copy.message).not.toHaveLength(0)
+  })
+
+  it("reads the new codes out of an SSE error payload", () => {
+    // The streaming path delivers a bare code as the `error` event's data.
+    expect(describeAgentError({ error: "answer-truncated" }).code).toBe(
+      "answer-truncated",
+    )
+    expect(describeAgentError(new Error("empty-answer")).code).toBe(
+      "empty-answer",
+    )
+  })
 })
