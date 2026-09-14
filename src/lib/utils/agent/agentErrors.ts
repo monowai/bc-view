@@ -37,6 +37,8 @@ const CODES = [
   "provider-rate",
   "provider-timeout",
   "no-llm",
+  "answer-truncated",
+  "empty-answer",
   "agent-error",
 ] as const
 
@@ -75,6 +77,25 @@ const COPY: Record<
       "No AI provider is configured for this environment, so AI features can't run. " +
       "That's a deployment setting the site owner controls — nothing to do with your account or data.",
     retryable: false,
+  },
+  "answer-truncated": {
+    tone: "error",
+    title: "That question needed too much data",
+    message:
+      "The AI ran out of room before it could answer — gathering everything the " +
+      "question touched filled the space it had to think in. Asking about one plan, " +
+      "one phase or one holding at a time will get you an answer.",
+    // Retryable in the literal sense, but the same question hits the same
+    // ceiling — the copy points at narrowing rather than at the retry button.
+    retryable: true,
+  },
+  "empty-answer": {
+    tone: "error",
+    title: "The AI didn't answer",
+    message:
+      "The AI finished without saying anything. Nothing was lost at your end — " +
+      "try again, or rephrase the question.",
+    retryable: true,
   },
   "agent-error": {
     tone: "error",
