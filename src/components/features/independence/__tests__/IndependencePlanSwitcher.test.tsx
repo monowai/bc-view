@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import "@testing-library/jest-dom"
 import IndependencePlanSwitcher from "../IndependencePlanSwitcher"
@@ -182,6 +182,58 @@ describe("IndependencePlanSwitcher", () => {
     expect(
       screen.queryByRole("button", { name: /Make default/ }),
     ).not.toBeInTheDocument()
+  })
+
+  describe("submitting the name dialog", () => {
+    const twoPlans = [
+      makeJourney({ id: "j1", name: "With Property", isPrimary: true }),
+      makeJourney({ id: "j2", name: "No Property" }),
+    ]
+
+    it("creates on Enter in the name field", async () => {
+      const { create } = mockSwitcher({ plans: twoPlans, activeId: "j1" })
+      render(<IndependencePlanSwitcher />)
+
+      await userEvent.click(screen.getByRole("button", { name: /New/ }))
+      const input = screen.getByLabelText("Plan name")
+      await userEvent.type(input, "Renting")
+      fireEvent.keyDown(input, { key: "Enter" })
+
+      expect(create).toHaveBeenCalledWith({ name: "Renting" })
+    })
+
+    it("ignores Enter while the create is still in flight", async () => {
+      // The submit button disables itself while submitting; Enter didn't, so
+      // holding the key fired a create per repeat and left the user with a
+      // pile of identically named plans.
+      const { create } = mockSwitcher({ plans: twoPlans, activeId: "j1" })
+      create.mockImplementation(() => new Promise(() => {}))
+      render(<IndependencePlanSwitcher />)
+
+      await userEvent.click(screen.getByRole("button", { name: /New/ }))
+      const input = screen.getByLabelText("Plan name")
+      await userEvent.type(input, "Renting")
+
+      fireEvent.keyDown(input, { key: "Enter" })
+      fireEvent.keyDown(input, { key: "Enter" })
+      fireEvent.keyDown(input, { key: "Enter" })
+
+      expect(create).toHaveBeenCalledTimes(1)
+    })
+
+    it("ignores Enter while a rename is still in flight", async () => {
+      const { update } = mockSwitcher({ plans: twoPlans, activeId: "j2" })
+      update.mockImplementation(() => new Promise(() => {}))
+      render(<IndependencePlanSwitcher />)
+
+      await userEvent.click(screen.getByRole("button", { name: /Rename/ }))
+      const input = screen.getByLabelText("Plan name")
+
+      fireEvent.keyDown(input, { key: "Enter" })
+      fireEvent.keyDown(input, { key: "Enter" })
+
+      expect(update).toHaveBeenCalledTimes(1)
+    })
   })
 
   it("deletes the active plan after confirmation", async () => {

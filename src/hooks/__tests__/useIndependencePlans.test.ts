@@ -39,14 +39,19 @@ function mockJourneys(journeys: IndependencePlan[]): jest.Mock {
   return mutate
 }
 
-function mockRouter(query: Record<string, string | string[]> = {}): jest.Mock {
+function mockRouter(query: Record<string, string | string[]> = {}): {
+  push: jest.Mock
+  replace: jest.Mock
+} {
   const push = jest.fn()
+  const replace = jest.fn()
   mockUseRouter.mockReturnValue({
     pathname: "/independence",
     query,
     push,
+    replace,
   } as unknown as ReturnType<typeof useRouter>)
-  return push
+  return { push, replace }
 }
 
 describe("useActiveIndependencePlan — resolution order", () => {
@@ -122,7 +127,7 @@ describe("useActiveIndependencePlan — resolution order", () => {
       makeJourney({ id: "j1", name: "With Property", isPrimary: true }),
       makeJourney({ id: "j2", name: "No Property" }),
     ])
-    const push = mockRouter({ view: "composite" })
+    const { push } = mockRouter({ view: "composite" })
 
     const { result } = renderHook(() => useActiveIndependencePlan())
     act(() => result.current.setActivePlan("j2"))
@@ -135,6 +140,100 @@ describe("useActiveIndependencePlan — resolution order", () => {
       undefined,
       { shallow: true },
     )
+  })
+})
+
+describe("useActiveIndependencePlan — a ?plan that no longer resolves", () => {
+  beforeEach(() => {
+    mockUseSwr.mockReset()
+    mockUseRouter.mockReset()
+    global.fetch = jest.fn()
+  })
+
+  afterEach(() => jest.restoreAllMocks())
+
+  it("rewrites the URL to the journey actually being shown", () => {
+    // Deleting a journey in another tab leaves this one pointing at a dead
+    // id. Resolution falls back silently, so without this the URL and the
+    // switcher disagree and a reload repeats the whole thing.
+    mockJourneys([
+      makeJourney({ id: "j1", name: "With Property" }),
+      makeJourney({ id: "j2", name: "No Property", isPrimary: true }),
+    ])
+    const { replace } = mockRouter({ view: "composite", plan: "deleted" })
+
+    renderHook(() => useActiveIndependencePlan())
+
+    expect(replace).toHaveBeenCalledWith(
+      {
+        pathname: "/independence",
+        query: { view: "composite", plan: "j2" },
+      },
+      undefined,
+      { shallow: true },
+    )
+  })
+
+  it("drops the parameter entirely when nothing resolves", () => {
+    mockJourneys([])
+    const { replace } = mockRouter({ view: "phases", plan: "deleted" })
+
+    renderHook(() => useActiveIndependencePlan())
+
+    expect(replace).toHaveBeenCalledWith(
+      { pathname: "/independence", query: { view: "phases" } },
+      undefined,
+      { shallow: true },
+    )
+  })
+
+  it("leaves a ?plan that does resolve alone", () => {
+    mockJourneys([
+      makeJourney({ id: "j1", name: "With Property", isPrimary: true }),
+      makeJourney({ id: "j2", name: "No Property" }),
+    ])
+    const { replace } = mockRouter({ plan: "j2" })
+
+    renderHook(() => useActiveIndependencePlan())
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it("leaves the URL alone when there is no ?plan at all", () => {
+    mockJourneys([makeJourney({ id: "j1", isPrimary: true })])
+    const { replace } = mockRouter({ view: "phases" })
+
+    renderHook(() => useActiveIndependencePlan())
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it("waits for the journeys to load rather than clearing on an empty cache", () => {
+    // "Not fetched yet" is not "not owned" — correcting here would strip a
+    // perfectly good ?plan off a cold load.
+    mockUseSwr.mockReturnValue({
+      data: undefined,
+      mutate: jest.fn(),
+      error: undefined,
+      isLoading: true,
+      isValidating: true,
+    } as unknown as ReturnType<typeof useSwr>)
+    const { replace } = mockRouter({ plan: "j2" })
+
+    renderHook(() => useActiveIndependencePlan())
+
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it("corrects once, not on every render", () => {
+    mockJourneys([makeJourney({ id: "j1", isPrimary: true })])
+    const { replace } = mockRouter({ plan: "deleted" })
+
+    const { rerender } = renderHook(() => useActiveIndependencePlan())
+    rerender()
+    rerender()
+
+    expect(replace).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -247,5 +346,67 @@ describe("useIndependencePlans — mutators", () => {
     await expect(result.current.update("j1", { name: "boom" })).rejects.toThrow(
       "Failed to update plan",
     )
+  })
+
+  // Every mutator reads the backend's reason, not just the ones returning a
+  // body. "Failed to delete plan" tells the user nothing they can act on.
+  describe("surfacing the backend's reason", () => {
+    function rejectWith(body: Record<string, string>): void {
+      ;(global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve(body),
+      })
+    }
+
+    it("update prefers `message`", async () => {
+      mockJourneys([makeJourney()])
+      rejectWith({ message: "liquidationCostsPercent must be under 1" })
+      const { result } = renderHook(() => useIndependencePlans())
+
+      await expect(
+        result.current.update("j1", { liquidationCostsPercent: 2 }),
+      ).rejects.toThrow("liquidationCostsPercent must be under 1")
+    })
+
+    it("setPrimary surfaces the reason rather than a generic message", async () => {
+      mockJourneys([makeJourney()])
+      rejectWith({ message: "Plan is shared and cannot be the default" })
+      const { result } = renderHook(() => useIndependencePlans())
+
+      await expect(result.current.setPrimary("j1")).rejects.toThrow(
+        "Plan is shared and cannot be the default",
+      )
+    })
+
+    it("remove surfaces the reason rather than a generic message", async () => {
+      mockJourneys([makeJourney()])
+      rejectWith({ message: "Plan still has 3 phases" })
+      const { result } = renderHook(() => useIndependencePlans())
+
+      await expect(result.current.remove("j1")).rejects.toThrow(
+        "Plan still has 3 phases",
+      )
+    })
+
+    it("falls back to `error` when there is no `message`", async () => {
+      mockJourneys([makeJourney()])
+      rejectWith({ error: "Forbidden" })
+      const { result } = renderHook(() => useIndependencePlans())
+
+      await expect(result.current.remove("j1")).rejects.toThrow("Forbidden")
+    })
+
+    it("falls back to the generic message on an unreadable body", async () => {
+      mockJourneys([makeJourney()])
+      ;(global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: () => Promise.reject(new Error("not JSON")),
+      })
+      const { result } = renderHook(() => useIndependencePlans())
+
+      await expect(result.current.setPrimary("j1")).rejects.toThrow(
+        "Failed to set default plan",
+      )
+    })
   })
 })

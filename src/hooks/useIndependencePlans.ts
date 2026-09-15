@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import type { KeyedMutator } from "swr"
@@ -10,6 +10,7 @@ import type {
   IndependencePlansResponse,
 } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { primaryJourney } from "@lib/independence/journeyPhases"
 
 /** SWR key for the user's journeys. Every mutator revalidates it. */
 export const independencePlansKey = "/api/independence/independence-plans"
@@ -40,20 +41,31 @@ export interface UseIndependencePlansResult {
  * responseWriter). Validation failures — a `liquidationCostsPercent` outside
  * [0, 1), say — only mean something if that message reaches the user, so the
  * generic text is a fallback rather than the answer.
+ *
+ * Every mutator below goes through this, including the two that return no
+ * body: "Failed to delete plan" tells the user nothing, while the backend's
+ * own reason ("plan is shared with 2 people") tells them what to do next.
  */
+async function throwIfFailed(
+  response: Response,
+  failure: string,
+): Promise<void> {
+  if (response.ok) return
+  const body = await response.json().catch(() => undefined)
+  const detail =
+    body && typeof body === "object"
+      ? ((body as { message?: string; error?: string }).message ??
+        (body as { error?: string }).error)
+      : undefined
+  throw new Error(detail || failure)
+}
+
+/** As {@link throwIfFailed}, for the mutators that return the updated plan. */
 async function readPlan(
   response: Response,
   failure: string,
 ): Promise<IndependencePlan> {
-  if (!response.ok) {
-    const body = await response.json().catch(() => undefined)
-    const detail =
-      body && typeof body === "object"
-        ? ((body as { message?: string; error?: string }).message ??
-          (body as { error?: string }).error)
-        : undefined
-    throw new Error(detail || failure)
-  }
+  await throwIfFailed(response, failure)
   const body: IndependencePlanResponse = await response.json()
   return body.data
 }
@@ -107,7 +119,7 @@ export function useIndependencePlans(): UseIndependencePlansResult {
       const response = await fetch(`${independencePlansKey}/${id}/primary`, {
         method: "POST",
       })
-      if (!response.ok) throw new Error("Failed to set default plan")
+      await throwIfFailed(response, "Failed to set default plan")
       await mutate()
     },
     [mutate],
@@ -135,7 +147,7 @@ export function useIndependencePlans(): UseIndependencePlansResult {
       const response = await fetch(`${independencePlansKey}/${id}`, {
         method: "DELETE",
       })
-      if (!response.ok) throw new Error("Failed to delete plan")
+      await throwIfFailed(response, "Failed to delete plan")
       await mutate()
     },
     [mutate],
@@ -160,19 +172,19 @@ export function useIndependencePlans(): UseIndependencePlansResult {
  *   2. the journey flagged `isPrimary`
  *   3. the first journey by name
  *   4. none
+ *
+ * Steps 2-4 are {@link primaryJourney} — "the journey that stands for the
+ * user" is one rule, defined once, so /wealth and /independence can't drift.
+ * `?plan=` is the only thing this adds.
  */
 function resolveActivePlan(
   plans: IndependencePlan[],
   requestedId: string | undefined,
 ): IndependencePlan | undefined {
-  if (plans.length === 0) return undefined
   const requested = requestedId
     ? plans.find((plan) => plan.id === requestedId)
     : undefined
-  if (requested) return requested
-  const primary = plans.find((plan) => plan.isPrimary)
-  if (primary) return primary
-  return [...plans].sort((a, b) => a.name.localeCompare(b.name))[0]
+  return requested ?? primaryJourney(plans)
 }
 
 export interface UseActiveIndependencePlanResult extends UseIndependencePlansResult {
@@ -191,7 +203,7 @@ export interface UseActiveIndependencePlanResult extends UseIndependencePlansRes
 export function useActiveIndependencePlan(): UseActiveIndependencePlanResult {
   const router = useRouter()
   const plansResult = useIndependencePlans()
-  const { plans } = plansResult
+  const { plans, isLoading } = plansResult
 
   const requestedId = Array.isArray(router.query?.[ACTIVE_PLAN_QUERY_PARAM])
     ? (router.query[ACTIVE_PLAN_QUERY_PARAM] as string[])[0]
@@ -201,6 +213,37 @@ export function useActiveIndependencePlan(): UseActiveIndependencePlanResult {
     () => resolveActivePlan(plans, requestedId),
     [plans, requestedId],
   )
+
+  // A `?plan=` naming a journey the user no longer owns — deleted in another
+  // tab, or a stale bookmark — resolves silently to the default, leaving the
+  // URL and the switcher disagreeing and the dead id surviving every reload.
+  // Write the resolution back: to the journey actually being shown, or drop
+  // the parameter when nothing resolves at all.
+  //
+  // `correctedFor` latches per requested id so the replace fires once and
+  // never loops, and so a user who navigates to another dead id still gets
+  // corrected. Nothing happens while the journeys request is in flight —
+  // "not loaded yet" is not "not owned".
+  const correctedFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (isLoading || !requestedId) {
+      correctedFor.current = null
+      return
+    }
+    if (activePlan?.id === requestedId) {
+      correctedFor.current = null
+      return
+    }
+    if (correctedFor.current === requestedId) return
+    correctedFor.current = requestedId
+
+    const query = { ...router.query }
+    delete query[ACTIVE_PLAN_QUERY_PARAM]
+    if (activePlan) query[ACTIVE_PLAN_QUERY_PARAM] = activePlan.id
+    router.replace({ pathname: router.pathname, query }, undefined, {
+      shallow: true,
+    })
+  }, [isLoading, requestedId, activePlan, router])
 
   const setActivePlan = useCallback(
     (id: string): void => {

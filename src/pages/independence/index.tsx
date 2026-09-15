@@ -462,9 +462,16 @@ function RetirementPlanning(): React.ReactElement {
 
   // The row this plan would be phased from — only while it has no composite
   // of its own to clobber.
+  //
+  // With no journey at all there is nothing for `activeJourneyPlans` to be
+  // scoped to, so it is empty and sourcing the candidate from it withheld the
+  // offer entirely — a legacy user with ungrouped rows and no journey lost an
+  // affordance they used to have. `phaseTabPlans` is what that user is
+  // actually looking at, so phase from what is on screen.
+  const phasingCandidates = activeJourney ? activeJourneyPlans : phaseTabPlans
   const planToPhase = activeJourneyPhased
     ? undefined
-    : (activeJourneyPlans.find((p) => p.isPrimary) ?? activeJourneyPlans[0])
+    : (phasingCandidates.find((p) => p.isPrimary) ?? phasingCandidates[0])
 
   // The Plan tab shows the active plan's composite, so it needs that plan to
   // be phased. While either request is in flight, honour the stored view so
@@ -965,22 +972,24 @@ function RetirementPlanning(): React.ReactElement {
               </div>
             )}
 
-          {!isLoading && phaseTabPlans.length > 0 && effectiveView === "phases" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {phaseTabPlans.map((plan: RetirementPlan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  assets={assets}
-                  hideValues={hideValues}
-                  onDelete={setDeletePlanId}
-                  onExport={handleExportPlan}
-                  onCopy={handleCopyClick}
-                  onSetPrimary={handleSetPrimary}
-                />
-              ))}
-            </div>
-          )}
+          {!isLoading &&
+            phaseTabPlans.length > 0 &&
+            effectiveView === "phases" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {phaseTabPlans.map((plan: RetirementPlan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    assets={assets}
+                    hideValues={hideValues}
+                    onDelete={setDeletePlanId}
+                    onExport={handleExportPlan}
+                    onCopy={handleCopyClick}
+                    onSetPrimary={handleSetPrimary}
+                  />
+                ))}
+              </div>
+            )}
 
           {!isLoading && effectiveView === "shared" && (
             <>
@@ -1022,8 +1031,15 @@ function RetirementPlanning(): React.ReactElement {
           {!isLoading &&
             activeJourneyPhased &&
             effectiveView === "composite" && (
+              // Journey-scoped, not every owned row: `plans` flows through
+              // useCompositeProjection into context and on to
+              // PhaseConfigList, which offers each entry as a timeline
+              // candidate and distributes ages across all of them. Passing
+              // every owned row put the *other* journey's phases on this
+              // journey's Plan tab, one click from being seeded and saved
+              // into this journey's composite.
               <CompositeTab
-                plans={plans}
+                plans={phaseTabPlans}
                 settings={settings}
                 activePlanId={activePlanId}
               />

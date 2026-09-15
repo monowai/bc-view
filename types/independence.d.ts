@@ -276,8 +276,14 @@ export interface IndependencePlan {
 }
 
 /**
- * Create / update payload. `name` is required on create; on PATCH an absent
- * or null field is left alone and a blank string clears it.
+ * Create / update payload, shared by POST and PATCH. Every field is optional
+ * here because PATCH is partial; `name` is required on create and svc-retire
+ * enforces that, so a missing name comes back as a 400 rather than a
+ * compile error.
+ *
+ * On PATCH, an **omitted** field is left alone and a blank string clears it.
+ * Omit is the only way to say "leave this alone" — these fields do not admit
+ * `null`, so don't send one expecting it to be ignored.
  */
 export interface IndependencePlanRequest {
   name?: string

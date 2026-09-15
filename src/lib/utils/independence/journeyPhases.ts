@@ -8,6 +8,11 @@ import type {
  * A journey's composite timeline. `phases` arrives as a serialised JSON
  * string, and is absent on a plan that has never been phased; anything
  * unparseable reads as "not phased" rather than throwing at render time.
+ *
+ * `fromAge` is validated, not just `planId`: the timeline is *ordered* by it
+ * (see {@link journeyPhasePlans}), and a phase carrying a missing or
+ * non-numeric age would sort on `NaN` and scramble the order of every phase
+ * around it. A phase without a usable age is not a phase.
  */
 export function parseJourneyPhases(
   journey: IndependencePlan | undefined,
@@ -18,7 +23,10 @@ export function parseJourneyPhases(
     if (!Array.isArray(parsed)) return []
     return parsed.filter(
       (phase): phase is CompositePhase =>
-        typeof phase?.planId === "string" && phase.planId.length > 0,
+        typeof phase?.planId === "string" &&
+        phase.planId.length > 0 &&
+        typeof phase.fromAge === "number" &&
+        Number.isFinite(phase.fromAge),
     )
   } catch {
     return []
@@ -72,8 +80,13 @@ export function journeyPhasePlans(
 /**
  * The plan whose numbers stand for the user wherever no plan was chosen —
  * the one flagged primary, else the first by name so the pick is at least
- * stable. Mirrors the fallback order in `useActiveIndependencePlan` minus
- * the `?plan=` query parameter, which only /independence carries.
+ * stable.
+ *
+ * This is the single definition of that order. `useActiveIndependencePlan`
+ * delegates here for its fallback rather than restating it, so the journey
+ * /wealth reads and the one /independence lands on can never drift apart;
+ * `?plan=` is the only thing that hook adds on top, and only /independence
+ * carries it.
  */
 export function primaryJourney(
   journeys: IndependencePlan[],

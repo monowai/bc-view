@@ -56,9 +56,16 @@ jest.mock("@components/features/independence", () => ({
   useFiProjectionSimple: () => ({ projection: undefined, isLoading: false }),
 }))
 
+// Records the props the Plan tab is handed — which plans it is given is the
+// whole question in "the Plan tab is scoped to the active plan" below.
+const mockCompositeTab = jest.fn()
+
 jest.mock("@components/features/independence/CompositeTab", () => ({
   __esModule: true,
-  default: () => <div data-testid="composite-tab" />,
+  default: (props: { plans: RetirementPlan[] }) => {
+    mockCompositeTab(props)
+    return <div data-testid="composite-tab" />
+  },
 }))
 jest.mock("@components/features/independence/IndependencePlanSwitcher", () => ({
   __esModule: true,
@@ -241,6 +248,22 @@ describe("/independence — phasing offer follows the active plan", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("still offers phasing to a legacy user who has no plan at all", () => {
+    // Before journeys existed, rows carried no `independencePlanId` and there
+    // was no journey row either. Such a user sees their ungrouped rows on the
+    // Phases tab, so the offer has to come from those — sourcing it from the
+    // (empty) active journey withheld an affordance they already had.
+    mockActiveJourney = undefined
+    mockSwr([
+      makePhasePlan({ id: "plan-legacy-a", name: "Legacy A" }),
+      makePhasePlan({ id: "plan-legacy-b", name: "Legacy B", isPrimary: true }),
+    ])
+
+    render(<Page />)
+
+    expect(screen.getByRole("button", { name: OFFER })).toBeInTheDocument()
+  })
+
   it("posts the active plan's id and never forces", async () => {
     mockActiveJourney = makeJourney({ id: "jrn-owning" })
     mockSwr([...otherPhases, ownedPhase])
@@ -327,5 +350,48 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
 
     expect(screen.getAllByText("Go-Go")).toHaveLength(1)
     expect(screen.queryByText("Slow Go")).not.toBeInTheDocument()
+  })
+
+  it("hands the Plan tab only this plan's phase rows", () => {
+    // `plans` flows through useCompositeProjection into context and down to
+    // PhaseConfigList, which offers every entry as a timeline candidate and
+    // spreads ages across all of them. Handing it every owned row put the
+    // other plan's phases on this plan's timeline, one click from being
+    // seeded and saved into this plan's composite.
+    mockActiveJourney = makeJourney({
+      id: "jrn-owning",
+      phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+    })
+    mockSwr([...otherPhases, ownedPhase])
+
+    render(<Page />)
+
+    expect(mockCompositeTab).toHaveBeenCalled()
+    const { plans } = mockCompositeTab.mock.calls[0][0] as {
+      plans: RetirementPlan[]
+    }
+    expect(plans.map((p) => p.id)).toEqual(["plan-owning"])
+  })
+
+  it("keeps an ungrouped legacy row available to the timeline", () => {
+    // Scoping must not strand a row that predates `independencePlanId` — it
+    // belongs to no plan, so it stays offered rather than becoming
+    // unreachable from every timeline.
+    mockActiveJourney = makeJourney({
+      id: "jrn-owning",
+      phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+    })
+    mockSwr([
+      ...otherPhases,
+      ownedPhase,
+      makePhasePlan({ id: "plan-legacy", name: "Legacy Plan" }),
+    ])
+
+    render(<Page />)
+
+    const { plans } = mockCompositeTab.mock.calls[0][0] as {
+      plans: RetirementPlan[]
+    }
+    expect(plans.map((p) => p.id)).toEqual(["plan-owning", "plan-legacy"])
   })
 })

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Portfolio } from "types/beancounter"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { useNetWorthData } from "@components/features/wealth/useNetWorthData"
@@ -82,6 +82,22 @@ const NO_PLAN = "__no-plan__"
 /** Sale costs are a fraction on the wire; the backend rejects outside [0, 1). */
 const COSTS_PERCENT_LIMIT = 100
 
+/**
+ * Typed values are saved on a trailing edge, not per keystroke. Matches
+ * useCompositeProjection's save debounce — typing "12" fired a PATCH for 1
+ * and another for 12, both fire-and-forget, so whichever *response* landed
+ * last won and the box could disagree with what was stored.
+ */
+const SAVE_DEBOUNCE_MS = 1000
+
+/** Arrow keys that move the selection within a treatment radiogroup. */
+const ARROW_STEP: Record<string, number> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+}
+
 function parseJsonStringArray(raw: string | null | undefined): string[] {
   if (!raw) return []
   try {
@@ -159,6 +175,33 @@ export default function NetWorthTab(): React.ReactElement {
   const [costsInput, setCostsInput] = useState("0")
   const [costsError, setCostsError] = useState<string | null>(null)
   const [costsSeededFor, setCostsSeededFor] = useState<string | null>(null)
+
+  // Debounced saves for the two typed fields. Each keystroke cancels the
+  // pending write, so exactly one PATCH goes out per pause and the last
+  // *keystroke* wins rather than the last response to arrive.
+  const costsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const manualAssetsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
+  // Edits made while a save is pending, so typing into two categories inside
+  // one debounce window doesn't drop the first — `manualAssetsRecord` still
+  // reads the plan as the server last returned it.
+  const pendingManualAssets = useRef<Record<string, number> | null>(null)
+
+  // A queued write belongs to the plan it was typed into. Keying the cleanup
+  // on the plan id cancels it both on unmount and the moment the user switches
+  // plan — otherwise a number half-typed against "With Property" would land on
+  // "No Property" a second after selecting it. (Refs can't be touched during
+  // render, so this can't live in the seeding latch below.)
+  useEffect(
+    () => () => {
+      if (costsSaveTimer.current) clearTimeout(costsSaveTimer.current)
+      if (manualAssetsSaveTimer.current)
+        clearTimeout(manualAssetsSaveTimer.current)
+      pendingManualAssets.current = null
+    },
+    [activePlanId],
+  )
 
   // Render-phase run-once seeding, latched on the plan id — the same pattern
   // useCompositeProjection uses. Keyed by plan rather than a boolean so
@@ -256,6 +299,9 @@ export default function NetWorthTab(): React.ReactElement {
 
   const handleCostsChange = (raw: string): void => {
     setCostsInput(raw)
+    // Cancel first, unconditionally: clearing the box or typing something
+    // invalid must also call off the write the previous keystroke queued.
+    if (costsSaveTimer.current) clearTimeout(costsSaveTimer.current)
     if (raw.trim() === "") {
       setCostsError(null)
       return
@@ -271,20 +317,53 @@ export default function NetWorthTab(): React.ReactElement {
     }
     setCostsError(null)
     if (!activePlanId) return
-    update(activePlanId, {
-      liquidationCostsPercent: percent / COSTS_PERCENT_LIMIT,
-    }).catch((e) =>
-      setCostsError(toErrorMessage(e, "Failed to save sale costs")),
-    )
+    const planId = activePlanId
+    costsSaveTimer.current = setTimeout(() => {
+      update(planId, {
+        liquidationCostsPercent: percent / COSTS_PERCENT_LIMIT,
+      }).catch((e) =>
+        setCostsError(toErrorMessage(e, "Failed to save sale costs")),
+      )
+    }, SAVE_DEBOUNCE_MS)
   }
 
   const handleManualAssetChange = (key: string, value: number): void => {
     if (!activePlanId) return
-    const next = { ...manualAssetsRecord, [key]: value }
+    const planId = activePlanId
+    const next = {
+      ...(pendingManualAssets.current ?? manualAssetsRecord),
+      [key]: value,
+    }
+    pendingManualAssets.current = next
     setSaveError(null)
-    update(activePlanId, { manualAssets: JSON.stringify(next) }).catch((e) =>
-      setSaveError(toErrorMessage(e, "Failed to save estimated assets")),
-    )
+    if (manualAssetsSaveTimer.current)
+      clearTimeout(manualAssetsSaveTimer.current)
+    manualAssetsSaveTimer.current = setTimeout(() => {
+      pendingManualAssets.current = null
+      update(planId, { manualAssets: JSON.stringify(next) }).catch((e) =>
+        setSaveError(toErrorMessage(e, "Failed to save estimated assets")),
+      )
+    }, SAVE_DEBOUNCE_MS)
+  }
+
+  /**
+   * Arrow-key navigation for a treatment radiogroup (ARIA radio-group
+   * pattern): one tab stop into the group — the checked button — with the
+   * arrows moving focus *and* selection, wrapping at both ends.
+   */
+  const handleTreatmentKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    portfolioId: string,
+    index: number,
+  ): void => {
+    const step = ARROW_STEP[e.key]
+    if (!step) return
+    e.preventDefault()
+    const nextIndex = (index + step + TREATMENTS.length) % TREATMENTS.length
+    // The buttons are the radiogroup's only children, in TREATMENTS order.
+    const next = e.currentTarget.parentElement?.children[nextIndex]
+    if (next instanceof HTMLElement) next.focus()
+    applyTreatment(portfolioId, TREATMENTS[nextIndex].key)
   }
 
   if (isLoading) {
@@ -361,13 +440,15 @@ export default function NetWorthTab(): React.ReactElement {
                       {Math.round(portfolio.marketValue || 0).toLocaleString()}
                     </span>
                     {/* Buttons carrying the radio role, not labels wrapping
-                        inputs — the wrapped form double-fires. */}
+                        inputs — the wrapped form double-fires. Roving
+                        tabindex: Tab reaches the group once, landing on the
+                        checked option, and the arrows move from there. */}
                     <div
                       role="radiogroup"
                       aria-label={`How ${portfolio.code} counts in this plan`}
                       className="inline-flex shrink-0 divide-x divide-gray-200 overflow-hidden rounded-md border border-gray-200 dark:divide-gray-700 dark:border-gray-700"
                     >
-                      {TREATMENTS.map((option) => {
+                      {TREATMENTS.map((option, optionIndex) => {
                         const selected = option.key === treatment
                         return (
                           <button
@@ -376,9 +457,17 @@ export default function NetWorthTab(): React.ReactElement {
                             role="radio"
                             aria-checked={selected}
                             aria-label={`${option.label} ${portfolio.code}`}
+                            tabIndex={selected ? 0 : -1}
                             disabled={!activePlanId}
                             onClick={() =>
                               applyTreatment(portfolio.id, option.key)
+                            }
+                            onKeyDown={(e) =>
+                              handleTreatmentKeyDown(
+                                e,
+                                portfolio.id,
+                                optionIndex,
+                              )
                             }
                             className={`${TREATMENT_BUTTON_CLASS} ${
                               selected

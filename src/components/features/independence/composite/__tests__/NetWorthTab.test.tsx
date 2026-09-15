@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { act, render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { Portfolio } from "types/beancounter"
 import type { IndependencePlan } from "types/independence"
@@ -143,8 +143,16 @@ function lastUpdateBody(): Record<string, unknown> {
   return call[1] as Record<string, unknown>
 }
 
+/** Typed fields save on a trailing edge — let the debounce window elapse. */
+function flushDebouncedSave(): void {
+  act(() => {
+    jest.advanceTimersByTime(1000)
+  })
+}
+
 describe("NetWorthTab", () => {
   beforeEach(() => {
+    jest.useFakeTimers()
     jest.clearAllMocks()
     mockUpdate.mockResolvedValue({})
     mockActivePlan = makePlan()
@@ -154,6 +162,10 @@ describe("NetWorthTab", () => {
     }
     mockUseNetWorthData.mockImplementation(() => mockNetWorthData)
     mockWealthSummaryFn.mockReturnValue(makeSummary(150000))
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   describe("rendering", () => {
@@ -358,9 +370,81 @@ describe("NetWorthTab", () => {
       fireEvent.change(screen.getByLabelText("Sale costs"), {
         target: { value: "4" },
       })
+      flushDebouncedSave()
       expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
         liquidationCostsPercent: 0.04,
       })
+    })
+
+    it("saves once for a burst of keystrokes, carrying the last one", () => {
+      // Typing "12" used to PATCH 1 and then 12, both fire-and-forget: the
+      // last *response* won, so the stored fraction could disagree with the
+      // box the user is looking at.
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "1" } })
+      fireEvent.change(input, { target: { value: "12" } })
+      fireEvent.change(input, { target: { value: "12.5" } })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        liquidationCostsPercent: 0.125,
+      })
+    })
+
+    it("calls off a queued save when the box is cleared", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "4" } })
+      fireEvent.change(input, { target: { value: "" } })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("calls off a queued save when the value turns invalid", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "4" } })
+      fireEvent.change(input, { target: { value: "400" } })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("does not land a queued save on the plan the user just switched to", () => {
+      mockActivePlan = makePlan({
+        id: "jrn-1",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      const { rerender } = render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "9" },
+      })
+
+      mockActivePlan = makePlan({
+        id: "jrn-2",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.02,
+      })
+      rerender(<NetWorthTab />)
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
     })
 
     it("rejects 100% or more without saving", () => {
@@ -402,6 +486,7 @@ describe("NetWorthTab", () => {
       fireEvent.change(screen.getByLabelText("Sale costs"), {
         target: { value: "7" },
       })
+      flushDebouncedSave()
       expect(
         await screen.findByText(
           "liquidationCostsPercent must be between 0 and 1",
@@ -554,6 +639,7 @@ describe("NetWorthTab", () => {
       fireEvent.change(screen.getByLabelText(/Cash & Bank Accounts/), {
         target: { value: "10000" },
       })
+      flushDebouncedSave()
       expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
         manualAssets: JSON.stringify({ CASH: 10000 }),
       })
@@ -568,8 +654,47 @@ describe("NetWorthTab", () => {
       fireEvent.change(screen.getByLabelText(/ETFs/), {
         target: { value: "1000" },
       })
+      flushDebouncedSave()
       expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
         manualAssets: JSON.stringify({ CASH: 5000, EQUITY: 20000, ETF: 1000 }),
+      })
+    })
+
+    it("saves once for a burst of keystrokes in one box", () => {
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
+      render(<NetWorthTab />)
+      const cash = screen.getByLabelText(/Cash & Bank Accounts/)
+      fireEvent.change(cash, { target: { value: "1" } })
+      fireEvent.change(cash, { target: { value: "10" } })
+      fireEvent.change(cash, { target: { value: "100" } })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        manualAssets: JSON.stringify({ CASH: 100 }),
+      })
+    })
+
+    it("keeps both categories edited inside one debounce window", () => {
+      // The plan only re-reads once the PATCH lands, so a second category
+      // typed before then would otherwise be merged onto a stale record and
+      // drop the first.
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText(/Cash & Bank Accounts/), {
+        target: { value: "5000" },
+      })
+      fireEvent.change(screen.getByLabelText(/ETFs/), {
+        target: { value: "1000" },
+      })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        manualAssets: JSON.stringify({ CASH: 5000, ETF: 1000 }),
       })
     })
 
@@ -580,6 +705,88 @@ describe("NetWorthTab", () => {
       })
       render(<NetWorthTab />)
       expect(screen.getByLabelText(/Cash & Bank Accounts/)).toHaveValue(5000)
+    })
+  })
+
+  // ARIA radiogroup pattern: the group is one tab stop, and the arrows move
+  // within it. Without this the buttons were three separate tab stops and a
+  // keyboard user could not change the selection with the arrows at all.
+  describe("keyboard navigation over the treatment group", () => {
+    it("is a single tab stop, landing on the checked option", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+
+      expect(keep("ALPHA")).toHaveAttribute("tabindex", "-1")
+      expect(sell("ALPHA")).toHaveAttribute("tabindex", "0")
+      expect(exclude("ALPHA")).toHaveAttribute("tabindex", "-1")
+    })
+
+    it("ArrowRight moves the selection on", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowRight" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      expect(sell("ALPHA")).toHaveFocus()
+    })
+
+    it("ArrowDown moves the selection on as well", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowDown" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+    })
+
+    it("ArrowLeft wraps back round to the last option", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowLeft" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+      expect(exclude("ALPHA")).toHaveFocus()
+    })
+
+    it("ArrowRight wraps forward from the last option", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.keyDown(exclude("ALPHA"), { key: "ArrowRight" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+      expect(keep("ALPHA")).toHaveFocus()
+    })
+
+    it("stays inside the portfolio's own group", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("BETA"), { key: "ArrowRight" })
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
+      expect(sell("BETA")).toHaveFocus()
+    })
+
+    it("leaves other keys to the browser", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "Tab" })
+      fireEvent.keyDown(keep("ALPHA"), { key: "a" })
+
+      expect(mockUpdate).not.toHaveBeenCalled()
     })
   })
 

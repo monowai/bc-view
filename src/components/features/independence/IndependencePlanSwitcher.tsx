@@ -80,7 +80,11 @@ export default function IndependencePlanSwitcher(): React.ReactElement | null {
 
   const handleNameSubmit = (): void => {
     const name = nameValue.trim()
-    if (!name || !nameDialog) return
+    // The in-flight guard lives here rather than on each caller: the submit
+    // button disables itself while submitting, but Enter in the name field
+    // doesn't, so holding it fired a create per repeat and left the user with
+    // a pile of identically named plans.
+    if (!name || !nameDialog || isSubmitting) return
     void run(async () => {
       if (nameDialog === "create") {
         const created = await create({ name })
