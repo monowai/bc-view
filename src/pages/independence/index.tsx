@@ -442,6 +442,24 @@ function RetirementPlanning(): React.ReactElement {
   // while either plan on its own may still be a single unphased row.
   const activeJourneyPhased = isJourneyPhased(activeJourney)
   const activeJourneyPlans = journeyPhasePlans(activeJourney, ownedPlans)
+  // The Phases tab lists the phases of the plan being viewed. Listing every
+  // owned row showed both plans' phases side by side — after duplicating
+  // "with property" into "renting" that is the same three names twice, with
+  // no way to tell which belongs to which. Ungrouped rows stay visible so a
+  // legacy plan that predates the grouping column cannot become unreachable.
+  // Plain derivation, not useMemo: its inputs are themselves per-render
+  // derivations, so a manual memo here cannot be preserved and costs the whole
+  // component its React Compiler optimization.
+  const ungroupedPlans = ownedPlans.filter((p) => !p.independencePlanId)
+  const phaseTabPlans = !activeJourney
+    ? ownedPlans
+    : [
+        ...activeJourneyPlans,
+        ...ungroupedPlans.filter(
+          (u) => !activeJourneyPlans.some((a) => a.id === u.id),
+        ),
+      ]
+
   // The row this plan would be phased from — only while it has no composite
   // of its own to clobber.
   const planToPhase = activeJourneyPhased
@@ -876,7 +894,7 @@ function RetirementPlanning(): React.ReactElement {
 
           {!isLoading &&
             !error &&
-            plans.length === 0 &&
+            phaseTabPlans.length === 0 &&
             effectiveView === "phases" && (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -911,7 +929,7 @@ function RetirementPlanning(): React.ReactElement {
           {effectiveView === "profile" && (
             <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
               <IndependenceSettingsPanel />
-              <CompositePlanSettingsCard plans={plans} />
+              <CompositePlanSettingsCard plans={phaseTabPlans} />
             </div>
           )}
 
@@ -947,9 +965,9 @@ function RetirementPlanning(): React.ReactElement {
               </div>
             )}
 
-          {!isLoading && plans.length > 0 && effectiveView === "phases" && (
+          {!isLoading && phaseTabPlans.length > 0 && effectiveView === "phases" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plans.map((plan: RetirementPlan) => (
+              {phaseTabPlans.map((plan: RetirementPlan) => (
                 <PlanCard
                   key={plan.id}
                   plan={plan}

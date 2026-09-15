@@ -299,4 +299,33 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
     // Falls back to Phases rather than rendering an empty Plan tab.
     expect(screen.getByRole("button", { name: OFFER })).toBeInTheDocument()
   })
+
+  it("lists only the active plan's phases, not every owned row", () => {
+    // After duplicating a plan, both plans' phases carry the same names.
+    // Listing every owned row showed each name twice with nothing to say
+    // which plan it belonged to.
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([
+      makePhasePlan({
+        id: "own-go",
+        name: "Go-Go",
+        independencePlanId: "jrn-owning",
+      }),
+      makePhasePlan({
+        id: "rent-go",
+        name: "Go-Go",
+        independencePlanId: "jrn-renting",
+      }),
+      makePhasePlan({
+        id: "rent-slow",
+        name: "Slow Go",
+        independencePlanId: "jrn-renting",
+      }),
+    ])
+
+    render(<Page />)
+
+    expect(screen.getAllByText("Go-Go")).toHaveLength(1)
+    expect(screen.queryByText("Slow Go")).not.toBeInTheDocument()
+  })
 })
