@@ -35,11 +35,25 @@ export interface UseIndependencePlansResult {
   remove: (id: string) => Promise<void>
 }
 
+/**
+ * The BFF forwards a backend rejection as `{ error, message, code }` (see
+ * responseWriter). Validation failures — a `liquidationCostsPercent` outside
+ * [0, 1), say — only mean something if that message reaches the user, so the
+ * generic text is a fallback rather than the answer.
+ */
 async function readPlan(
   response: Response,
   failure: string,
 ): Promise<IndependencePlan> {
-  if (!response.ok) throw new Error(failure)
+  if (!response.ok) {
+    const body = await response.json().catch(() => undefined)
+    const detail =
+      body && typeof body === "object"
+        ? ((body as { message?: string; error?: string }).message ??
+          (body as { error?: string }).error)
+        : undefined
+    throw new Error(detail || failure)
+  }
   const body: IndependencePlanResponse = await response.json()
   return body.data
 }
