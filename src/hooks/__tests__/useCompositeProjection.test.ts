@@ -3,11 +3,43 @@ import {
   buildInitialPhases,
   useCompositeProjection,
 } from "../useCompositeProjection"
-import type { RetirementPlan } from "types/independence"
+import type {
+  IndependencePlan,
+  RetirementPlan,
+  UserIndependenceSettings,
+} from "types/independence"
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
-  useIndependenceSettings: () => ({ updateSettings: jest.fn() }),
+const mockUpdateJourney = jest.fn().mockResolvedValue({})
+let mockJourneys: IndependencePlan[] = []
+let mockJourneysLoading = false
+
+jest.mock("@hooks/useIndependencePlans", () => ({
+  useIndependencePlans: () => ({
+    plans: mockJourneys,
+    isLoading: mockJourneysLoading,
+    error: undefined,
+    mutate: jest.fn(),
+    create: jest.fn(),
+    update: mockUpdateJourney,
+    setPrimary: jest.fn(),
+    duplicate: jest.fn(),
+    remove: jest.fn(),
+  }),
 }))
+
+function makeJourney(
+  overrides: Partial<IndependencePlan> = {},
+): IndependencePlan {
+  return {
+    id: "j1",
+    ownerId: "owner-1",
+    name: "With Property",
+    isPrimary: true,
+    createdDate: "2026-01-01",
+    updatedDate: "2026-01-01",
+    ...overrides,
+  }
+}
 
 function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
   return {
@@ -203,5 +235,140 @@ describe("useCompositeProjection — currentAge", () => {
 
     expect(result.current.projection?.currentAge).toBe(47)
     expect(result.current.currentAge).toBe(47)
+  })
+})
+
+// bc-view #1190: the composite timeline, display currency, exclusions and
+// work scenario belong to the independence plan ("journey") being viewed —
+// not to the single-row user settings. Demographics stay on /settings.
+describe("useCompositeProjection — composite config lives on the journey", () => {
+  const plans = [
+    makePlan({ id: "p1", name: "Singapore" }),
+    makePlan({ id: "p2", name: "Thailand" }),
+    makePlan({ id: "p3", name: "New Zealand" }),
+  ]
+
+  const journeyPhases = [
+    { planId: "p1", fromAge: 61, toAge: 70 },
+    { planId: "p2", fromAge: 70 },
+  ]
+
+  // Settings deliberately carry a *different* composite: the journey has to
+  // win, otherwise the transition shim would keep driving the UI.
+  const settings = {
+    yearOfBirth: 1970,
+    lifeExpectancy: 90,
+    compositeDisplayCurrency: "USD",
+    compositePhases: JSON.stringify([{ planId: "p3", fromAge: 50 }]),
+    compositeExcludedPlanIds: JSON.stringify(["p1"]),
+    compositeWorkScenarioId: "ws-from-settings",
+  } as unknown as UserIndependenceSettings
+
+  beforeEach(() => {
+    jest.useFakeTimers()
+    mockUpdateJourney.mockClear()
+    mockJourneysLoading = false
+    mockJourneys = [
+      makeJourney({
+        id: "j1",
+        displayCurrency: "NZD",
+        phases: JSON.stringify(journeyPhases),
+        excludedPlanIds: JSON.stringify(["p3"]),
+        workScenarioId: "ws-journey",
+      }),
+      makeJourney({
+        id: "j2",
+        name: "No Property",
+        isPrimary: false,
+        displayCurrency: "THB",
+        phases: JSON.stringify([{ planId: "p3", fromAge: 61 }]),
+        excludedPlanIds: JSON.stringify(["p1", "p2"]),
+      }),
+    ]
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { yearlyProjections: [] } }),
+    })
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+    jest.restoreAllMocks()
+  })
+
+  it("seeds the composite from the active journey, not from settings", () => {
+    const { result } = renderHook(() =>
+      useCompositeProjection(plans, settings, "j1"),
+    )
+
+    expect(result.current.phases).toEqual(journeyPhases)
+    expect(result.current.displayCurrency).toBe("NZD")
+    expect(Array.from(result.current.excludedPlanIds)).toEqual(["p3"])
+    expect(result.current.compositeWorkScenarioId).toBe("ws-journey")
+  })
+
+  it("saves composite config by PATCHing the journey, never /settings", async () => {
+    renderHook(() => useCompositeProjection(plans, settings, "j1"))
+
+    await act(async () => {
+      jest.advanceTimersByTime(1100)
+      await Promise.resolve()
+    })
+
+    expect(mockUpdateJourney).toHaveBeenCalledWith("j1", {
+      displayCurrency: "NZD",
+      phases: JSON.stringify(journeyPhases),
+      excludedPlanIds: JSON.stringify(["p3"]),
+      workScenarioId: "ws-journey",
+    })
+    const fetchedUrls = (global.fetch as jest.Mock).mock.calls.map(
+      (call) => call[0],
+    )
+    expect(fetchedUrls).not.toContain("/api/independence/settings")
+  })
+
+  it("writes nothing when there is no journey to write to", async () => {
+    mockJourneys = []
+    const { result } = renderHook(() =>
+      useCompositeProjection(plans, settings, undefined),
+    )
+
+    await act(async () => {
+      jest.advanceTimersByTime(1100)
+      await Promise.resolve()
+    })
+
+    // Composite still works in-session, it just has nowhere to persist.
+    expect(result.current.phases.length).toBeGreaterThan(0)
+    expect(mockUpdateJourney).not.toHaveBeenCalled()
+  })
+
+  it("re-seeds when the user switches journey rather than saving the old timeline over the new one", async () => {
+    const { result, rerender } = renderHook(
+      ({ activeId }: { activeId: string }) =>
+        useCompositeProjection(plans, settings, activeId),
+      { initialProps: { activeId: "j1" } },
+    )
+    expect(result.current.phases).toEqual(journeyPhases)
+
+    rerender({ activeId: "j2" })
+    expect(result.current.phases).toEqual([{ planId: "p3", fromAge: 61 }])
+    expect(result.current.displayCurrency).toBe("THB")
+    expect(Array.from(result.current.excludedPlanIds)).toEqual(["p1", "p2"])
+    // j2 carries no work scenario — it must clear, not inherit j1's.
+    expect(result.current.compositeWorkScenarioId).toBeUndefined()
+
+    await act(async () => {
+      jest.advanceTimersByTime(1100)
+      await Promise.resolve()
+    })
+
+    expect(mockUpdateJourney).toHaveBeenCalledTimes(1)
+    expect(mockUpdateJourney).toHaveBeenCalledWith("j2", {
+      displayCurrency: "THB",
+      phases: JSON.stringify([{ planId: "p3", fromAge: 61 }]),
+      excludedPlanIds: JSON.stringify(["p1", "p2"]),
+      workScenarioId: undefined,
+    })
   })
 })

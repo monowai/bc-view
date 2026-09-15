@@ -24,6 +24,7 @@ import {
 } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import {
@@ -32,6 +33,7 @@ import {
   AssetBreakdown,
 } from "@components/features/independence"
 import CompositeTab from "@components/features/independence/CompositeTab"
+import IndependencePlanSwitcher from "@components/features/independence/IndependencePlanSwitcher"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
@@ -276,6 +278,9 @@ function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
   const { settings, mutateSettings } = useIndependenceSettings()
+  // The journey being viewed — `?plan=<id>`, else the default, else the
+  // first by name. Owns the composite config the Plan tab reads and writes.
+  const { activePlanId } = useActiveIndependencePlan()
   const { data: scenariosData } = useSwr<WorkScenariosResponse>(
     "/api/independence/work-scenarios",
     simpleFetcher("/api/independence/work-scenarios"),
@@ -728,6 +733,8 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
+          <IndependencePlanSwitcher />
+
           {/* Tab Switcher */}
           <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
             {plans.length > 1 && (
@@ -965,7 +972,11 @@ function RetirementPlanning(): React.ReactElement {
           )}
 
           {!isLoading && plans.length > 1 && effectiveView === "composite" && (
-            <CompositeTab plans={plans} settings={settings} />
+            <CompositeTab
+              plans={plans}
+              settings={settings}
+              activePlanId={activePlanId}
+            />
           )}
         </div>
       </div>

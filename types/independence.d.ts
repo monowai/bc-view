@@ -128,6 +128,11 @@ export interface RetirementPlan {
   createdDate: string
   updatedDate: string
   /**
+   * Id of the {@link IndependencePlan} (the "journey") this plan is a phase
+   * of. Absent on legacy rows that pre-date the independence_plan table.
+   */
+  independencePlanId?: string
+  /**
    * Plan owner's SystemUser.id, dual-populated on write. Null for legacy
    * rows pre-dating the system_user_id column; svc-retire lazy-backfills
    * during shared-plan projection. Used by bc-view to drive
@@ -232,6 +237,71 @@ export interface PlansResponse {
    * for. Used to populate the Shared tab on /independence.
    */
   sharedPlanIds?: string[]
+}
+
+// ============ Independence Plan (journey) ============
+/**
+ * A whole journey the user maps out — "With Property" against "No Property".
+ * Owns its composite timeline, display currency, work scenario and wealth
+ * definition. {@link RetirementPlan} rows are the *phases* within a journey
+ * and point back via `independencePlanId`.
+ *
+ * The JSON-shaped fields (`phases`, `excludedPlanIds`, `excludedPortfolioIds`,
+ * `liquidatedPortfolioIds`, `manualAssets`) arrive as serialised **strings**,
+ * matching how `compositePhases` has always been handled on settings. Parse
+ * with JSON.parse and guard against null/blank.
+ */
+export interface IndependencePlan {
+  id: string
+  ownerId: string
+  name: string
+  isPrimary: boolean
+  displayCurrency?: string
+  workScenarioId?: string
+  /** JSON string[] of phase plan ids excluded from the composite. */
+  excludedPlanIds?: string
+  /** JSON {@link CompositePhase}[] — the composite timeline. */
+  phases?: string
+  /** JSON string[] of portfolio ids excluded from this journey's wealth. */
+  excludedPortfolioIds?: string
+  /** JSON string[] of portfolio ids sold at t0, proceeds seeding cash. */
+  liquidatedPortfolioIds?: string
+  /** Fraction, not percent — 0.05 is 5% of the liquidated value. */
+  liquidationCostsPercent?: number
+  /** JSON Record<string,number> of manual asset estimates by category. */
+  manualAssets?: string
+  createdDate: string
+  updatedDate: string
+  systemUserId?: string
+}
+
+/**
+ * Create / update payload. `name` is required on create; on PATCH an absent
+ * or null field is left alone and a blank string clears it.
+ */
+export interface IndependencePlanRequest {
+  name?: string
+  displayCurrency?: string
+  workScenarioId?: string
+  excludedPlanIds?: string
+  phases?: string
+  excludedPortfolioIds?: string
+  liquidatedPortfolioIds?: string
+  liquidationCostsPercent?: number
+  manualAssets?: string
+}
+
+export interface IndependencePlanResponse {
+  data: IndependencePlan
+}
+
+export interface IndependencePlansResponse {
+  data: IndependencePlan[]
+}
+
+/** Body for POST /independence-plans/{id}/duplicate — deep copy. */
+export interface IndependencePlanCopyRequest {
+  name: string
 }
 
 // ============ Category Labels ============
