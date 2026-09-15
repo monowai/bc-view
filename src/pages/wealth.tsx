@@ -19,6 +19,11 @@ import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useFxRates } from "@hooks/useFxRates"
+import { useIndependencePlans } from "@hooks/useIndependencePlans"
+import {
+  journeyPhasePlans,
+  primaryJourney,
+} from "@lib/independence/journeyPhases"
 import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
 import IndependenceMetrics from "@components/features/wealth/IndependenceMetrics"
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
@@ -85,14 +90,31 @@ function WealthDashboard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
 
-  // Fetch independence plans
+  // Fetch phase plans (every journey's, flat) and the journeys themselves
   const { data: plansData } = useSwr<IndependencePlansResponse>(
     "/api/independence/plans",
     simpleFetcher("/api/independence/plans"),
   )
+  const { plans: journeys } = useIndependencePlans()
 
-  // Backend returns plans sorted: primary first, then by name
-  const primaryPlan = plansData?.data?.[0]
+  const phasePlans = useMemo(() => plansData?.data ?? [], [plansData?.data])
+
+  // The phase plan whose numbers drive the independence headline.
+  // `/plans` returns phase plans across *every* plan the user owns, so an
+  // index into that list picks whichever journey happens to sort first —
+  // "life renting" reported under a dashboard the user reads as "life owning
+  // the house". Resolve through the primary journey and take a phase of its
+  // own. With no journey at all (legacy account, or the list still loading)
+  // degrade to the plan the user flagged primary, and to nothing rather than
+  // an arbitrary row — the section below is hidden when nothing resolves.
+  const primaryPlan = useMemo(() => {
+    const ownPhases = journeyPhasePlans(primaryJourney(journeys), phasePlans)
+    return (
+      ownPhases.find((plan) => plan.isPrimary) ??
+      ownPhases[0] ??
+      phasePlans.find((plan) => plan.isPrimary)
+    )
+  }, [journeys, phasePlans])
 
   const currencies = useMemo(
     () => currencyData?.data || [],

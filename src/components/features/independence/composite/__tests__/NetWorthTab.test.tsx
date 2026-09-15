@@ -1,28 +1,41 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { act, render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { Portfolio } from "types/beancounter"
+import type { IndependencePlan } from "types/independence"
 import type { WealthSummary } from "@lib/wealth/liquidityGroups"
 import type { UseNetWorthDataResult } from "@components/features/wealth/useNetWorthData"
 
-// ── Data hooks ───────────────────────────────────────────────────────────────
+// ── The active independence plan (journey) ───────────────────────────────────
 
-const mockUpdateSettings = jest.fn().mockResolvedValue({})
-const mockMutateSettings = jest.fn()
+const mockUpdate = jest.fn().mockResolvedValue({})
 
-let mockSettings: {
-  excludedPortfolioIds?: string | null
-  manualAssets?: string | null
-} = {}
+function makePlan(overrides: Partial<IndependencePlan> = {}): IndependencePlan {
+  return {
+    id: "jrn-1",
+    ownerId: "owner-1",
+    name: "With Property",
+    isPrimary: true,
+    createdDate: "2026-01-01",
+    updatedDate: "2026-01-01",
+    ...overrides,
+  }
+}
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
-  useIndependenceSettings: () => ({
-    settings: mockSettings,
-    updateSettings: mockUpdateSettings,
-    mutateSettings: mockMutateSettings,
+let mockActivePlan: IndependencePlan | undefined = makePlan()
+
+jest.mock("@hooks/useIndependencePlans", () => ({
+  useActiveIndependencePlan: () => ({
+    plans: mockActivePlan ? [mockActivePlan] : [],
+    activePlan: mockActivePlan,
+    activePlanId: mockActivePlan?.id,
+    setActivePlan: jest.fn(),
+    update: mockUpdate,
     isLoading: false,
   }),
 }))
+
+// ── Net-worth data ───────────────────────────────────────────────────────────
 
 const mockPortfolio1: Portfolio = {
   id: "pf-1",
@@ -59,7 +72,7 @@ const defaultNetWorthData: UseNetWorthDataResult = {
 
 let mockNetWorthData: UseNetWorthDataResult = { ...defaultNetWorthData }
 
-// Spy so tests can assert which excludedPortfolioIds were passed
+// Spy so tests can assert which excluded ids scope the holdings fetch
 const mockUseNetWorthData = jest.fn()
 
 jest.mock("@components/features/wealth/useNetWorthData", () => ({
@@ -113,14 +126,36 @@ jest.mock("@components/ui/Spinner", () => ({
   ),
 }))
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 import NetWorthTab from "../tabs/NetWorthTab"
 
+const keep = (code: string): HTMLElement =>
+  screen.getByRole("radio", { name: `Keep ${code}` })
+const sell = (code: string): HTMLElement =>
+  screen.getByRole("radio", { name: `Sell ${code}` })
+const exclude = (code: string): HTMLElement =>
+  screen.getByRole("radio", { name: `Exclude ${code}` })
+
+/** The single request body the component PATCHed onto the active plan. */
+function lastUpdateBody(): Record<string, unknown> {
+  const call = mockUpdate.mock.calls[mockUpdate.mock.calls.length - 1]
+  return call[1] as Record<string, unknown>
+}
+
+/** Typed fields save on a trailing edge — let the debounce window elapse. */
+function flushDebouncedSave(): void {
+  act(() => {
+    jest.advanceTimersByTime(1000)
+  })
+}
+
 describe("NetWorthTab", () => {
   beforeEach(() => {
+    jest.useFakeTimers()
     jest.clearAllMocks()
-    mockSettings = {}
+    mockUpdate.mockResolvedValue({})
+    mockActivePlan = makePlan()
     mockNetWorthData = {
       ...defaultNetWorthData,
       portfolios: [mockPortfolio1, mockPortfolio2],
@@ -129,156 +164,458 @@ describe("NetWorthTab", () => {
     mockWealthSummaryFn.mockReturnValue(makeSummary(150000))
   })
 
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
   describe("rendering", () => {
-    it("renders the portfolio inclusion editor as the primary content", () => {
+    it("renders the per-portfolio treatment editor as the primary content", () => {
       render(<NetWorthTab />)
       expect(
-        screen.getByText(/Which portfolios count toward your wealth/),
+        screen.getByText(/How each portfolio counts in this plan/),
       ).toBeInTheDocument()
     })
 
-    it("renders a spinner while data is loading and hides the inclusion editor", () => {
+    it("names the plan whose wealth definition is being edited", () => {
+      mockActivePlan = makePlan({ name: "No Property" })
+      render(<NetWorthTab />)
+      expect(screen.getByText(/Wealth for No Property/)).toBeInTheDocument()
+    })
+
+    it("renders a spinner while data is loading and hides the editor", () => {
       mockNetWorthData = { ...defaultNetWorthData, isLoading: true }
       render(<NetWorthTab />)
       expect(screen.getByTestId("spinner")).toBeInTheDocument()
       expect(
-        screen.queryByText(/Which portfolios count toward your wealth/),
+        screen.queryByText(/How each portfolio counts in this plan/),
       ).not.toBeInTheDocument()
     })
 
-    it("renders checkboxes for each portfolio", () => {
+    it("offers keep / sell / exclude for every portfolio", () => {
       render(<NetWorthTab />)
-      expect(screen.getByLabelText(/ALPHA/)).toBeInTheDocument()
-      expect(screen.getByLabelText(/BETA/)).toBeInTheDocument()
-    })
-
-    it("all portfolios are checked by default when no exclusions in settings", () => {
-      mockSettings = { excludedPortfolioIds: null }
-      render(<NetWorthTab />)
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      const betaCheckbox = screen.getByRole("checkbox", { name: /BETA/ })
-      expect(alphaCheckbox).toBeChecked()
-      expect(betaCheckbox).toBeChecked()
-    })
-
-    it("excluded portfolio checkbox is unchecked when in settings", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
-      render(<NetWorthTab />)
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      const betaCheckbox = screen.getByRole("checkbox", { name: /BETA/ })
-      expect(alphaCheckbox).not.toBeChecked()
-      expect(betaCheckbox).toBeChecked()
+      for (const code of ["ALPHA", "BETA"]) {
+        expect(keep(code)).toBeInTheDocument()
+        expect(sell(code)).toBeInTheDocument()
+        expect(exclude(code)).toBeInTheDocument()
+      }
     })
   })
 
-  describe("portfolio exclusion toggling", () => {
-    it("unchecking a portfolio calls updateSettings with its id in excludedPortfolioIds", () => {
-      mockSettings = {}
+  describe("reading the plan's wealth definition", () => {
+    it("a portfolio in neither array reads as Keep", () => {
       render(<NetWorthTab />)
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      fireEvent.click(alphaCheckbox)
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
+      expect(keep("ALPHA")).toHaveAttribute("aria-checked", "true")
+      expect(sell("ALPHA")).toHaveAttribute("aria-checked", "false")
+      expect(exclude("ALPHA")).toHaveAttribute("aria-checked", "false")
+    })
+
+    it("a portfolio in excludedPortfolioIds reads as Exclude, not Sell", () => {
+      mockActivePlan = makePlan({
         excludedPortfolioIds: JSON.stringify(["pf-1"]),
       })
+      render(<NetWorthTab />)
+      expect(exclude("ALPHA")).toHaveAttribute("aria-checked", "true")
+      expect(sell("ALPHA")).toHaveAttribute("aria-checked", "false")
+      expect(keep("BETA")).toHaveAttribute("aria-checked", "true")
     })
 
-    it("re-checking an excluded portfolio removes it from excluded list", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
+    it("a portfolio in liquidatedPortfolioIds reads as Sell, not Exclude", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
       render(<NetWorthTab />)
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      fireEvent.click(alphaCheckbox)
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
+      expect(sell("ALPHA")).toHaveAttribute("aria-checked", "true")
+      expect(exclude("ALPHA")).toHaveAttribute("aria-checked", "false")
+    })
+
+    it("explains a sold portfolio differently from an ignored one", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        excludedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
+      render(<NetWorthTab />)
+      expect(
+        screen.getByText(/Sold at the start of this plan/),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(/Not part of this plan's wealth at all/),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe("writing the plan's wealth definition", () => {
+    it("Exclude writes the id to excludedPortfolioIds on the active plan", () => {
+      render(<NetWorthTab />)
+      fireEvent.click(exclude("ALPHA"))
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+    })
+
+    it("Sell writes the id to liquidatedPortfolioIds on the active plan", () => {
+      render(<NetWorthTab />)
+      fireEvent.click(sell("ALPHA"))
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
         excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
       })
     })
 
-    it("adding a second exclusion preserves the first", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
+    it("moving Exclude -> Sell leaves excludedPortfolioIds clean", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
       render(<NetWorthTab />)
-      const betaCheckbox = screen.getByRole("checkbox", { name: /BETA/ })
-      fireEvent.click(betaCheckbox)
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
+      fireEvent.click(sell("ALPHA"))
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+    })
+
+    it("moving Sell -> Exclude leaves liquidatedPortfolioIds clean", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.click(exclude("ALPHA"))
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+    })
+
+    it("Keep removes the id from both arrays", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1", "pf-2"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.click(keep("ALPHA"))
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
+    })
+
+    it("a second exclusion preserves the first, and the other array stays empty", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.click(exclude("BETA"))
+      expect(lastUpdateBody()).toEqual({
         excludedPortfolioIds: JSON.stringify(["pf-1", "pf-2"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
       })
     })
 
-    it("mutateSettings is called after updateSettings", async () => {
-      mockSettings = {}
+    it("selling one portfolio while another stays excluded keeps them apart", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
       render(<NetWorthTab />)
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      fireEvent.click(alphaCheckbox)
-      // Wait for the async chain to settle
-      await new Promise((r) => setTimeout(r, 0))
-      expect(mockMutateSettings).toHaveBeenCalled()
+      fireEvent.click(sell("ALPHA"))
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify(["pf-2"]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+    })
+
+    it("re-picking the state a portfolio is already in saves nothing", () => {
+      render(<NetWorthTab />)
+      fireEvent.click(keep("ALPHA"))
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("surfaces a rejected save instead of swallowing it", async () => {
+      mockUpdate.mockRejectedValue(new Error("Plan is read-only"))
+      render(<NetWorthTab />)
+      fireEvent.click(exclude("ALPHA"))
+      expect(await screen.findByText("Plan is read-only")).toBeInTheDocument()
+    })
+  })
+
+  describe("liquidation costs", () => {
+    it("is hidden when nothing is being sold", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      expect(screen.queryByLabelText("Sale costs")).not.toBeInTheDocument()
+    })
+
+    it("appears once a portfolio is being sold", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      expect(screen.getByLabelText("Sale costs")).toBeInTheDocument()
+    })
+
+    it("shows the stored fraction as a percentage", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.05,
+      })
+      render(<NetWorthTab />)
+      expect(screen.getByLabelText("Sale costs")).toHaveValue(5)
+    })
+
+    it("saves a typed percentage back as a fraction", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "4" },
+      })
+      flushDebouncedSave()
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        liquidationCostsPercent: 0.04,
+      })
+    })
+
+    it("saves once for a burst of keystrokes, carrying the last one", () => {
+      // Typing "12" used to PATCH 1 and then 12, both fire-and-forget: the
+      // last *response* won, so the stored fraction could disagree with the
+      // box the user is looking at.
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "1" } })
+      fireEvent.change(input, { target: { value: "12" } })
+      fireEvent.change(input, { target: { value: "12.5" } })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        liquidationCostsPercent: 0.125,
+      })
+    })
+
+    it("calls off a queued save when the box is cleared", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "4" } })
+      fireEvent.change(input, { target: { value: "" } })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("calls off a queued save when the value turns invalid", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      const input = screen.getByLabelText("Sale costs")
+      fireEvent.change(input, { target: { value: "4" } })
+      fireEvent.change(input, { target: { value: "400" } })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("does not land a queued save on the plan the user just switched to", () => {
+      mockActivePlan = makePlan({
+        id: "jrn-1",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      const { rerender } = render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "9" },
+      })
+
+      mockActivePlan = makePlan({
+        id: "jrn-2",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.02,
+      })
+      rerender(<NetWorthTab />)
+      flushDebouncedSave()
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("rejects 100% or more without saving", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "120" },
+      })
+      expect(
+        screen.getByText(/Sale costs must be at least 0% and under 100%/),
+      ).toBeInTheDocument()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("rejects a negative percentage without saving", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "-1" },
+      })
+      expect(
+        screen.getByText(/Sale costs must be at least 0% and under 100%/),
+      ).toBeInTheDocument()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("surfaces the backend's rejection of an out-of-range fraction", async () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      mockUpdate.mockRejectedValue(
+        new Error("liquidationCostsPercent must be between 0 and 1"),
+      )
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "7" },
+      })
+      flushDebouncedSave()
+      expect(
+        await screen.findByText(
+          "liquidationCostsPercent must be between 0 and 1",
+        ),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe("holdings breakdown scoping", () => {
+    it("drops excluded portfolios from the aggregated-holdings fetch", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      // useNetWorthData derives ids=<all minus these> for
+      // /api/holdings/aggregated — see its own tests.
+      expect(mockUseNetWorthData).toHaveBeenCalledWith(["pf-1"])
+    })
+
+    it("keeps liquidated portfolios in the aggregated-holdings fetch", () => {
+      // Liquidated is still the user's money, as cash — dropping it from ids=
+      // would make the charts disagree with the headline.
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
+    })
+
+    it("drops only the excluded one when a plan both sells and excludes", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        excludedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
+      render(<NetWorthTab />)
+      expect(mockUseNetWorthData).toHaveBeenCalledWith(["pf-2"])
+    })
+
+    it("passes no exclusions when the plan has none", () => {
+      render(<NetWorthTab />)
+      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
     })
   })
 
   describe("wealth summary filtering", () => {
-    it("passes only included portfolios to useWealthSummary", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
+    it("excluded portfolios leave the summary", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
       render(<NetWorthTab />)
-      const callArgs = mockWealthSummaryFn.mock.calls[0]
-      const portfoliosArg = callArgs[0] as Portfolio[]
-      expect(portfoliosArg).toHaveLength(1)
-      expect(portfoliosArg[0].id).toBe("pf-2")
+      const portfoliosArg = mockWealthSummaryFn.mock.calls[0][0] as Portfolio[]
+      expect(portfoliosArg.map((p) => p.id)).toEqual(["pf-2"])
     })
 
-    it("passes all portfolios when no exclusions set", () => {
-      mockSettings = {}
+    it("liquidated portfolios stay in the summary", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
       render(<NetWorthTab />)
-      const callArgs = mockWealthSummaryFn.mock.calls[0]
-      const portfoliosArg = callArgs[0] as Portfolio[]
-      expect(portfoliosArg).toHaveLength(2)
+      const portfoliosArg = mockWealthSummaryFn.mock.calls[0][0] as Portfolio[]
+      expect(portfoliosArg.map((p) => p.id)).toEqual(["pf-1", "pf-2"])
     })
   })
 
-  describe("holdings fetch scoping via useNetWorthData", () => {
-    it("passes excluded ids to useNetWorthData so the holdings URL is scoped", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-1"]) }
-      render(<NetWorthTab />)
-      // The hook receives the excluded list; it builds ids= from portfolios minus this set
-      expect(mockUseNetWorthData).toHaveBeenCalledWith(["pf-1"])
-    })
-
-    it("passes empty excluded ids when no exclusions are configured", () => {
-      mockSettings = {}
-      render(<NetWorthTab />)
-      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
-    })
-
-    it("excluded portfolio id is absent from the list passed to useNetWorthData", () => {
-      mockSettings = { excludedPortfolioIds: JSON.stringify(["pf-2"]) }
-      render(<NetWorthTab />)
-      const args = mockUseNetWorthData.mock.calls[0][0] as string[]
-      // pf-2 is excluded so it should be in the excluded-ids arg, not filtered out here —
-      // the hook is responsible for deriving included from portfolios minus excluded.
-      expect(args).toEqual(["pf-2"])
-    })
-
-    it("toggling exclusion then calling mutateSettings triggers a re-render with updated excluded ids", async () => {
-      mockSettings = {}
-      render(<NetWorthTab />)
-      // Initially no exclusions
-      expect(mockUseNetWorthData).toHaveBeenCalledWith([])
-
-      const alphaCheckbox = screen.getByRole("checkbox", { name: /ALPHA/ })
-      fireEvent.click(alphaCheckbox)
-      await new Promise((r) => setTimeout(r, 0))
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
-        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+  describe("switching plan", () => {
+    it("shows the newly selected plan's wealth definition", () => {
+      mockActivePlan = makePlan({
+        id: "jrn-1",
+        name: "With Property",
+        liquidatedPortfolioIds: JSON.stringify([]),
       })
-      expect(mockMutateSettings).toHaveBeenCalled()
+      const { rerender } = render(<NetWorthTab />)
+      expect(keep("ALPHA")).toHaveAttribute("aria-checked", "true")
+
+      mockActivePlan = makePlan({
+        id: "jrn-2",
+        name: "No Property",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.03,
+      })
+      rerender(<NetWorthTab />)
+
+      expect(screen.getByText(/Wealth for No Property/)).toBeInTheDocument()
+      expect(sell("ALPHA")).toHaveAttribute("aria-checked", "true")
+      expect(keep("ALPHA")).toHaveAttribute("aria-checked", "false")
+      expect(screen.getByLabelText("Sale costs")).toHaveValue(3)
+    })
+
+    it("re-seeds sale costs from the new plan rather than keeping a typed value", () => {
+      mockActivePlan = makePlan({
+        id: "jrn-1",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.05,
+      })
+      const { rerender } = render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText("Sale costs"), {
+        target: { value: "9" },
+      })
+      expect(screen.getByLabelText("Sale costs")).toHaveValue(9)
+
+      mockActivePlan = makePlan({
+        id: "jrn-2",
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidationCostsPercent: 0.02,
+      })
+      rerender(<NetWorthTab />)
+      expect(screen.getByLabelText("Sale costs")).toHaveValue(2)
+    })
+
+    it("writes go to the plan now selected", () => {
+      mockActivePlan = makePlan({ id: "jrn-1" })
+      const { rerender } = render(<NetWorthTab />)
+      mockActivePlan = makePlan({ id: "jrn-2" })
+      rerender(<NetWorthTab />)
+      fireEvent.click(exclude("ALPHA"))
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-2", {
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
     })
   })
 
   describe("manual assets editor", () => {
-    it("does NOT show manual assets editor when portfolios have balances", () => {
-      // Both portfolios have non-zero marketValue
+    it("does NOT show the manual assets editor when portfolios have balances", () => {
       render(<NetWorthTab />)
       expect(screen.queryByText(/Estimated Assets/)).not.toBeInTheDocument()
     })
 
-    it("shows manual assets editor when no portfolios have balances", () => {
+    it("shows the manual assets editor when no portfolios have balances", () => {
       mockNetWorthData = {
         ...defaultNetWorthData,
         portfolios: [
@@ -290,36 +627,176 @@ describe("NetWorthTab", () => {
       expect(screen.getByText(/Estimated Assets/)).toBeInTheDocument()
     })
 
-    it("shows manual assets editor when portfolio list is empty", () => {
+    it("shows the manual assets editor when the portfolio list is empty", () => {
       mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
       render(<NetWorthTab />)
       expect(screen.getByText(/Estimated Assets/)).toBeInTheDocument()
     })
 
-    it("manual asset input change calls updateSettings with serialised record", () => {
-      mockNetWorthData = {
-        ...defaultNetWorthData,
-        portfolios: [],
-      }
-      mockSettings = { manualAssets: null }
+    it("writes manualAssets to the active plan, not to settings", () => {
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
       render(<NetWorthTab />)
-      const cashInput = screen.getByLabelText(/Cash & Bank Accounts/)
-      fireEvent.change(cashInput, { target: { value: "10000" } })
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
+      fireEvent.change(screen.getByLabelText(/Cash & Bank Accounts/), {
+        target: { value: "10000" },
+      })
+      flushDebouncedSave()
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
         manualAssets: JSON.stringify({ CASH: 10000 }),
       })
     })
 
-    it("pre-populates manual asset inputs from settings", () => {
+    it("merges into the plan's existing manual assets", () => {
       mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
-      mockSettings = {
+      mockActivePlan = makePlan({
         manualAssets: JSON.stringify({ CASH: 5000, EQUITY: 20000 }),
-      }
+      })
       render(<NetWorthTab />)
-      const cashInput = screen.getByLabelText(
-        /Cash & Bank Accounts/,
-      ) as HTMLInputElement
-      expect(cashInput.value).toBe("5000")
+      fireEvent.change(screen.getByLabelText(/ETFs/), {
+        target: { value: "1000" },
+      })
+      flushDebouncedSave()
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        manualAssets: JSON.stringify({ CASH: 5000, EQUITY: 20000, ETF: 1000 }),
+      })
+    })
+
+    it("saves once for a burst of keystrokes in one box", () => {
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
+      render(<NetWorthTab />)
+      const cash = screen.getByLabelText(/Cash & Bank Accounts/)
+      fireEvent.change(cash, { target: { value: "1" } })
+      fireEvent.change(cash, { target: { value: "10" } })
+      fireEvent.change(cash, { target: { value: "100" } })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        manualAssets: JSON.stringify({ CASH: 100 }),
+      })
+    })
+
+    it("keeps both categories edited inside one debounce window", () => {
+      // The plan only re-reads once the PATCH lands, so a second category
+      // typed before then would otherwise be merged onto a stale record and
+      // drop the first.
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
+      render(<NetWorthTab />)
+      fireEvent.change(screen.getByLabelText(/Cash & Bank Accounts/), {
+        target: { value: "5000" },
+      })
+      fireEvent.change(screen.getByLabelText(/ETFs/), {
+        target: { value: "1000" },
+      })
+
+      flushDebouncedSave()
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(mockUpdate).toHaveBeenCalledWith("jrn-1", {
+        manualAssets: JSON.stringify({ CASH: 5000, ETF: 1000 }),
+      })
+    })
+
+    it("pre-populates manual asset inputs from the plan", () => {
+      mockNetWorthData = { ...defaultNetWorthData, portfolios: [] }
+      mockActivePlan = makePlan({
+        manualAssets: JSON.stringify({ CASH: 5000, EQUITY: 20000 }),
+      })
+      render(<NetWorthTab />)
+      expect(screen.getByLabelText(/Cash & Bank Accounts/)).toHaveValue(5000)
+    })
+  })
+
+  // ARIA radiogroup pattern: the group is one tab stop, and the arrows move
+  // within it. Without this the buttons were three separate tab stops and a
+  // keyboard user could not change the selection with the arrows at all.
+  describe("keyboard navigation over the treatment group", () => {
+    it("is a single tab stop, landing on the checked option", () => {
+      mockActivePlan = makePlan({
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+
+      expect(keep("ALPHA")).toHaveAttribute("tabindex", "-1")
+      expect(sell("ALPHA")).toHaveAttribute("tabindex", "0")
+      expect(exclude("ALPHA")).toHaveAttribute("tabindex", "-1")
+    })
+
+    it("ArrowRight moves the selection on", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowRight" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      expect(sell("ALPHA")).toHaveFocus()
+    })
+
+    it("ArrowDown moves the selection on as well", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowDown" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+    })
+
+    it("ArrowLeft wraps back round to the last option", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "ArrowLeft" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+      expect(exclude("ALPHA")).toHaveFocus()
+    })
+
+    it("ArrowRight wraps forward from the last option", () => {
+      mockActivePlan = makePlan({
+        excludedPortfolioIds: JSON.stringify(["pf-1"]),
+      })
+      render(<NetWorthTab />)
+      fireEvent.keyDown(exclude("ALPHA"), { key: "ArrowRight" })
+
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify([]),
+      })
+      expect(keep("ALPHA")).toHaveFocus()
+    })
+
+    it("stays inside the portfolio's own group", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("BETA"), { key: "ArrowRight" })
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+      expect(lastUpdateBody()).toEqual({
+        excludedPortfolioIds: JSON.stringify([]),
+        liquidatedPortfolioIds: JSON.stringify(["pf-2"]),
+      })
+      expect(sell("BETA")).toHaveFocus()
+    })
+
+    it("leaves other keys to the browser", () => {
+      render(<NetWorthTab />)
+      fireEvent.keyDown(keep("ALPHA"), { key: "Tab" })
+      fireEvent.keyDown(keep("ALPHA"), { key: "a" })
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("with no plan to write to", () => {
+    it("disables the treatment controls rather than dropping the write", () => {
+      mockActivePlan = undefined
+      render(<NetWorthTab />)
+      expect(keep("ALPHA")).toBeDisabled()
+      fireEvent.click(exclude("ALPHA"))
+      expect(mockUpdate).not.toHaveBeenCalled()
     })
   })
 })

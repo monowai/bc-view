@@ -21,6 +21,11 @@ import { compositeOutlook } from "@lib/independence/compositeOutlook"
 interface CompositeTabProps {
   plans: RetirementPlan[]
   settings: UserIndependenceSettings | undefined
+  /**
+   * Active independence plan ("journey") — the row that owns this composite.
+   * Resolved by the page from `?plan=`; see useActiveIndependencePlan.
+   */
+  activePlanId?: string
 }
 
 type CompositeSubTabId =
@@ -131,8 +136,9 @@ function CompositeSubTabNavigation({
 export default function CompositeTab({
   plans,
   settings,
+  activePlanId,
 }: CompositeTabProps): React.ReactElement {
-  const projectionState = useCompositeProjection(plans, settings)
+  const projectionState = useCompositeProjection(plans, settings, activePlanId)
   // Summary is the landing tab: it answers "does this hold together, and what
   // does each phase cost" without the user touching a control. Phases is one
   // click away for when they want to change the shape.

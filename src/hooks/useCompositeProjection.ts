@@ -7,7 +7,7 @@ import type {
   CompositeProjectionResult,
   CompositeScenarioComparison,
 } from "types/independence"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { toErrorMessage } from "@lib/formatters"
 import { currentAgeFromSettings } from "@lib/independence/age"
 
@@ -93,9 +93,23 @@ function parseSavedExclusions(json: string | undefined): Set<string> | null {
   return null
 }
 
+/**
+ * Seeding latch value used when the user has no independence plan (journey)
+ * at all — the composite still works, it just has nowhere to persist to.
+ */
+const NO_JOURNEY = "__no-journey__"
+
 export function useCompositeProjection(
   plans: RetirementPlan[],
   settings: UserIndependenceSettings | undefined,
+  /**
+   * Id of the active independence plan ("journey") — the row that owns this
+   * composite timeline, currency, exclusions and work scenario. Resolved by
+   * the page from `?plan=` (see useActiveIndependencePlan). Composite config
+   * is seeded from, and saved back to, that journey; demographics stay on
+   * /settings.
+   */
+  activePlanId?: string,
 ): UseCompositeProjectionResult {
   const primaryPlan = plans.find((p) => p.isPrimary) || plans[0]
   const defaultCurrency = primaryPlan?.expensesCurrency || "USD"
@@ -124,7 +138,24 @@ export function useCompositeProjection(
   const phaseSeedAge = localCurrentAge ?? 60
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
-  const { updateSettings } = useIndependenceSettings()
+  const {
+    plans: journeys,
+    isLoading: journeysLoading,
+    update: updateJourney,
+  } = useIndependencePlans()
+  // Memoized rather than a bare const for the same reason as
+  // `localCurrentAge` above: an inline `.find()` reads as opaque to the
+  // React Compiler's memoization-preservation check and costs the whole
+  // hook its optimization (it stops treating the useState setters
+  // `toggleExclusion` closes over as stable).
+  const activeJourney = useMemo(
+    () =>
+      activePlanId
+        ? journeys.find((journey) => journey.id === activePlanId)
+        : undefined,
+    [journeys, activePlanId],
+  )
+  const seedKey = activePlanId ?? NO_JOURNEY
 
   const [excludedPlanIds, setExcludedPlanIds] = useState<Set<string>>(new Set())
   const [phases, setPhases] = useState<CompositePhase[]>([])
@@ -132,7 +163,7 @@ export function useCompositeProjection(
   const [compositeWorkScenarioId, setCompositeWorkScenarioId] = useState<
     string | undefined
   >(undefined)
-  const [initialized, setInitialized] = useState(false)
+  const [seededFor, setSeededFor] = useState<string | null>(null)
   const [projection, setProjection] = useState<
     CompositeProjectionResult | undefined
   >()
@@ -144,23 +175,32 @@ export function useCompositeProjection(
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize from saved settings or build defaults. Render-phase run-once
-  // pattern: `initialized` is the latch, so we perform the one-time seeding
-  // during render (guarded by !initialized) instead of in an effect, avoiding
-  // a cascading render. Behaviour matches the prior effect keyed on
-  // [plans, settings, phaseSeedAge, lifeExpectancy, initialized].
-  if (!initialized && plans.length > 0 && settings) {
-    const savedExclusions = parseSavedExclusions(
-      settings.compositeExcludedPlanIds,
-    )
-    const savedPhases = parseSavedPhases(settings.compositePhases)
-    const savedCurrency = settings.compositeDisplayCurrency
-    const savedWorkScenarioId = settings.compositeWorkScenarioId
+  // Initialize from the active journey or build defaults. Render-phase
+  // run-once pattern: `seededFor` is the latch, so we perform the seeding
+  // during render instead of in an effect, avoiding a cascading render.
+  //
+  // The latch is keyed by journey rather than a plain boolean: switching
+  // journeys must re-seed from that journey's own saved composite, otherwise
+  // the previous journey's timeline would linger on screen and — worse — be
+  // saved straight over the one just selected. Waiting for the journeys
+  // request to settle (`!journeysLoading`) keeps the seed deterministic when
+  // settings resolve first.
+  if (
+    seededFor !== seedKey &&
+    plans.length > 0 &&
+    settings &&
+    !journeysLoading
+  ) {
+    const savedExclusions = parseSavedExclusions(activeJourney?.excludedPlanIds)
+    const savedPhases = parseSavedPhases(activeJourney?.phases)
+    const savedCurrency = activeJourney?.displayCurrency
+    const savedWorkScenarioId = activeJourney?.workScenarioId
 
-    if (savedExclusions) setExcludedPlanIds(savedExclusions)
-    if (savedCurrency) setDisplayCurrency(savedCurrency)
-    if (savedWorkScenarioId != null)
-      setCompositeWorkScenarioId(savedWorkScenarioId)
+    // Set unconditionally — anything the journey doesn't carry has to reset
+    // to its default, not inherit from whichever journey was shown before.
+    setExcludedPlanIds(savedExclusions ?? new Set<string>())
+    setDisplayCurrency(savedCurrency || defaultCurrency)
+    setCompositeWorkScenarioId(savedWorkScenarioId ?? undefined)
 
     // Validate saved phases — all planIds must still exist
     const planIds = new Set(plans.map((p) => p.id))
@@ -180,21 +220,25 @@ export function useCompositeProjection(
       setPhases(initial)
     }
 
-    setInitialized(true)
+    setSeededFor(seedKey)
   }
 
-  // Save composite config to settings (debounced)
+  // Save composite config to the active journey (debounced). Demographics
+  // (yearOfBirth / lifeExpectancy / targetIndependenceAge) stay on /settings;
+  // the composite belongs to the journey that owns it. With no journey there
+  // is nowhere to persist to, so the composite stays session-local.
   useEffect(() => {
-    if (!initialized || phases.length === 0) return undefined
+    if (seededFor !== seedKey || phases.length === 0 || !activePlanId)
+      return undefined
 
     if (saveTimer.current) clearTimeout(saveTimer.current)
 
     saveTimer.current = setTimeout(() => {
-      updateSettings({
-        compositeDisplayCurrency: displayCurrency,
-        compositePhases: JSON.stringify(phases),
-        compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
-        compositeWorkScenarioId: compositeWorkScenarioId,
+      updateJourney(activePlanId, {
+        displayCurrency,
+        phases: JSON.stringify(phases),
+        excludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
+        workScenarioId: compositeWorkScenarioId,
       }).catch(() => {
         // Silent save failure — not critical
       })
@@ -208,8 +252,10 @@ export function useCompositeProjection(
     displayCurrency,
     excludedPlanIds,
     compositeWorkScenarioId,
-    initialized,
-    updateSettings,
+    seededFor,
+    seedKey,
+    activePlanId,
+    updateJourney,
   ])
 
   const toggleExclusion = useCallback(
