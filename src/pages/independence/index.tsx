@@ -26,6 +26,10 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
+import {
+  isJourneyPhased,
+  journeyPhasePlans,
+} from "@lib/independence/journeyPhases"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import {
   useAssetBreakdown,
@@ -280,7 +284,12 @@ function RetirementPlanning(): React.ReactElement {
   const { settings, mutateSettings } = useIndependenceSettings()
   // The journey being viewed — `?plan=<id>`, else the default, else the
   // first by name. Owns the composite config the Plan tab reads and writes.
-  const { activePlanId } = useActiveIndependencePlan()
+  const {
+    activePlan: activeJourney,
+    activePlanId,
+    isLoading: journeysLoading,
+    mutate: mutateJourneys,
+  } = useActiveIndependencePlan()
   const { data: scenariosData } = useSwr<WorkScenariosResponse>(
     "/api/independence/work-scenarios",
     simpleFetcher("/api/independence/work-scenarios"),
@@ -428,10 +437,25 @@ function RetirementPlanning(): React.ReactElement {
   // plans; sharing UI references sharedPlans directly.
   const plans = ownedPlans
 
-  // Composite tab requires >1 plan. While loading, honour the stored view so
-  // we don't flash to phases and back. Once loaded with <=1 plan, fall back.
+  // "Phased" belongs to the plan being viewed, not to a count of rows: a user
+  // who owns "with property" and "renting" has six phase plans between them
+  // while either plan on its own may still be a single unphased row.
+  const activeJourneyPhased = isJourneyPhased(activeJourney)
+  const activeJourneyPlans = journeyPhasePlans(activeJourney, ownedPlans)
+  // The row this plan would be phased from — only while it has no composite
+  // of its own to clobber.
+  const planToPhase = activeJourneyPhased
+    ? undefined
+    : (activeJourneyPlans.find((p) => p.isPrimary) ?? activeJourneyPlans[0])
+
+  // The Plan tab shows the active plan's composite, so it needs that plan to
+  // be phased. While either request is in flight, honour the stored view so
+  // we don't flash to phases and back.
   const effectiveView: typeof activeView =
-    activeView === "composite" && !isLoading && plans.length <= 1
+    activeView === "composite" &&
+    !isLoading &&
+    !journeysLoading &&
+    !activeJourneyPhased
       ? "phases"
       : activeView
 
@@ -619,19 +643,22 @@ function RetirementPlanning(): React.ReactElement {
   }
 
   const handleGeneratePhases = async (): Promise<void> => {
-    if (ownedPlans.length !== 1) return
-    const planId = ownedPlans[0].id
+    if (!planToPhase || !activePlanId) return
     setIsGeneratingPhases(true)
     setGeneratePhasesError(null)
     try {
-      const response = await fetch(`/api/independence/plans/${planId}/phases`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // force: with a single owned plan, any existing composite is necessarily
-        // stale (a real phased composite references three plans), so overwrite it
-        // rather than letting the backend reject with "composite already exists".
-        body: JSON.stringify({ force: true }),
-      })
+      const response = await fetch(
+        `/api/independence/plans/${planToPhase.id}/phases`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // Name the plan being phased. The backend refuses per plan now, and
+          // the offer only shows for a plan with no composite, so there is
+          // nothing here to overwrite — `force` would only put a tuned
+          // composite on another plan at risk.
+          body: JSON.stringify({ independencePlanId: activePlanId }),
+        },
+      )
       if (!response.ok) {
         const body = await response.text()
         setGeneratePhasesError(
@@ -639,7 +666,9 @@ function RetirementPlanning(): React.ReactElement {
         )
         return
       }
-      await Promise.all([mutate(), mutateSettings()])
+      // The journey carries the composite the Plan tab gates on, so revalidate
+      // it too — otherwise the new phases exist but nothing on screen moves.
+      await Promise.all([mutate(), mutateSettings(), mutateJourneys()])
     } catch (err) {
       setGeneratePhasesError(
         err instanceof Error ? err.message : "Failed to generate phases",
@@ -737,7 +766,7 @@ function RetirementPlanning(): React.ReactElement {
 
           {/* Tab Switcher */}
           <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-            {plans.length > 1 && (
+            {activeJourneyPhased && (
               <button
                 onClick={() => setActiveView("composite")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -854,11 +883,11 @@ function RetirementPlanning(): React.ReactElement {
                   <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  No independence plans yet
+                  No phases yet
                 </h2>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Answer a few quick questions to create your first independence
-                  plan and start projecting your financial freedom timeline.
+                  Answer a few quick questions to create your first phase and
+                  start projecting your financial freedom timeline.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
@@ -902,15 +931,16 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {/* Offer phasing to any single-plan user. With one owned plan there is
-              no valid phased composite yet, so the offer stays available even if
-              a stale composite lingers; clicking it converts the plan to Go-Go. */}
+          {/* Offer phasing while the plan being viewed has no composite of its
+              own. A second plan is phased on its own terms — the user's other
+              plans, and their phase counts, say nothing about this one. */}
           {!isLoading &&
-            ownedPlans.length === 1 &&
+            !journeysLoading &&
+            planToPhase &&
             effectiveView === "phases" && (
               <div className="mb-6">
                 <GeneratePhasesOffer
-                  plan={ownedPlans[0]}
+                  plan={planToPhase}
                   onGenerate={handleGeneratePhases}
                   isLoading={isGeneratingPhases}
                 />
@@ -971,13 +1001,15 @@ function RetirementPlanning(): React.ReactElement {
             />
           )}
 
-          {!isLoading && plans.length > 1 && effectiveView === "composite" && (
-            <CompositeTab
-              plans={plans}
-              settings={settings}
-              activePlanId={activePlanId}
-            />
-          )}
+          {!isLoading &&
+            activeJourneyPhased &&
+            effectiveView === "composite" && (
+              <CompositeTab
+                plans={plans}
+                settings={settings}
+                activePlanId={activePlanId}
+              />
+            )}
         </div>
       </div>
 
@@ -991,8 +1023,8 @@ function RetirementPlanning(): React.ReactElement {
       )}
       {deletePlanId && (
         <ConfirmDialog
-          title="Delete Plan"
-          message="Are you sure you want to delete this plan?"
+          title="Delete Phase"
+          message="Are you sure you want to delete this phase?"
           confirmLabel="Delete"
           cancelLabel="Cancel"
           variant="red"
@@ -1016,7 +1048,7 @@ function RetirementPlanning(): React.ReactElement {
       )}
       {copyPlan && (
         <Dialog
-          title="Copy Plan"
+          title="Copy Phase"
           onClose={() => setCopyPlan(null)}
           maxWidth="sm"
           footer={
@@ -1036,7 +1068,7 @@ function RetirementPlanning(): React.ReactElement {
             contributions.
           </p>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            New plan name
+            New phase name
           </label>
           <input
             type="text"

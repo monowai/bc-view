@@ -8,10 +8,12 @@
  * non-fatal at the call site — the base plan stands on its own if this fails.
  *
  * `force` controls what happens when the user already has a composite:
- * - `true` (default) — onboarding / the single-plan offer establish the
- *   canonical phased structure authoritatively, overwriting any stale composite
+ * - `true` (default) — onboarding establishes the canonical phased structure
+ *   for a brand-new user authoritatively, overwriting any stale composite
  *   (otherwise the backend rejects with "composite already exists" and the user
- *   is silently left with one plan).
+ *   is silently left with one plan). The phasing offer on /independence does
+ *   not come through here: it names its journey and never forces, so a tuned
+ *   composite on another journey cannot be clobbered.
  * - `false` — "Create Plan" for a user who may already have a real composite:
  *   the backend rejects (composite exists) and the new plan is left single
  *   rather than clobbering the existing phased setup.
