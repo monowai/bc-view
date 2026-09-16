@@ -73,15 +73,44 @@ describe("IndependencePlanSwitcher", () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it("offers only a quiet create affordance when the user owns one plan", () => {
+  it("offers only quiet create and duplicate affordances when the user owns one plan", () => {
     mockSwitcher({ plans: [makeJourney()] })
     render(<IndependencePlanSwitcher />)
 
+    // Still no switcher and no destructive actions — there is nothing to
+    // switch between, and deleting the only plan is not an affordance we want
+    // one click away.
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Rename/ })).toBeNull()
     expect(
       screen.getByRole("button", { name: /Add a plan to compare/ }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Duplicate this plan/ }),
+    ).toBeInTheDocument()
+  })
+
+  it("duplicates the only plan and switches to the copy", async () => {
+    // A user with one journey could not fork it: duplicating appeared only
+    // once a second journey existed, which is the wrong way round — the fork
+    // IS how the second one gets made (svc-retire#260).
+    const { duplicate, setActivePlan } = mockSwitcher({
+      plans: [
+        makeJourney({ id: "j1", name: "With Property", isPrimary: true }),
+      ],
+    })
+    render(<IndependencePlanSwitcher />)
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Duplicate this plan/ }),
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Copy" }))
+
+    expect(duplicate).toHaveBeenCalledWith("j1", {
+      name: "With Property (copy)",
+    })
+    expect(setActivePlan).toHaveBeenCalledWith("copy")
   })
 
   it("lists every plan and marks the default one", () => {
