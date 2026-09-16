@@ -13,6 +13,7 @@ import {
 import ChartFrame from "@components/features/independence/ChartFrame"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import { deriveFiStack } from "@lib/independence/fiStack"
+import { landingPlan } from "@lib/independence/journeyPhases"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -129,11 +130,9 @@ export default function FiOverviewTab(): React.ReactElement | null {
   } = useCompositeMonteCarloSimulation()
   const [mcIterations, setMcIterations] = useState(1000)
 
-  // Primary plan for income/expense breakdown
-  const primaryPlan = useMemo(
-    () => plans.find((p) => p.isPrimary) ?? plans[0],
-    [plans],
-  )
+  // Landing plan of the journey on screen — `plans` arrives journey-scoped
+  // through the composite context — for the income/expense breakdown.
+  const primaryPlan = useMemo(() => landingPlan(plans), [plans])
 
   // Net monthly retirement expenses — for the income breakdown display only
   const netMonthlyExpenses = primaryPlan

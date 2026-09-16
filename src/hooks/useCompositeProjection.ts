@@ -10,6 +10,7 @@ import type {
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { toErrorMessage } from "@lib/formatters"
 import { currentAgeFromSettings } from "@lib/independence/age"
+import { landingPlan } from "@lib/independence/journeyPhases"
 
 const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
 const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
@@ -111,7 +112,9 @@ export function useCompositeProjection(
    */
   activePlanId?: string,
 ): UseCompositeProjectionResult {
-  const primaryPlan = plans.find((p) => p.isPrimary) || plans[0]
+  // `plans` is already scoped to the active journey by the page, which is what
+  // makes this resolve that journey's default rather than another's.
+  const primaryPlan = landingPlan(plans)
   const defaultCurrency = primaryPlan?.expensesCurrency || "USD"
   // Month-of-birth aware local derivation (settings first, plan as
   // fallback — plans don't carry monthOfBirth, only yearOfBirth). Used
