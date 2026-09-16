@@ -20,6 +20,10 @@ const NAME_DIALOG_COPY: Record<
   },
 }
 
+/** Understated link-style action, used while there is only one plan. */
+const QUIET_LINK_CLASS =
+  "text-sm font-medium text-independence-600 hover:text-independence-700 focus:outline-none focus:ring-1 focus:ring-independence-500 rounded"
+
 const ACTION_BUTTON_CLASS =
   "inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 disabled:opacity-50 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
 
@@ -144,15 +148,32 @@ export default function IndependencePlanSwitcher(): React.ReactElement | null {
   if (plans.length === 1) {
     return (
       <>
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-4">
           <button
             type="button"
             onClick={() => openNameDialog("create")}
-            className="text-sm font-medium text-independence-600 hover:text-independence-700 focus:outline-none focus:ring-1 focus:ring-independence-500 rounded"
+            className={QUIET_LINK_CLASS}
             title="Map out an alternative plan alongside this one"
           >
             <i className="fas fa-plus mr-1.5 text-xs"></i>
             Add a plan to compare
+          </button>
+          {/*
+           * Forking the only plan is how the second one usually gets made —
+           * "the same life, but renting" starts from the figures already
+           * captured, not from an empty plan. Offering Duplicate only once a
+           * second plan existed had it backwards (svc-retire#260). Rename and
+           * Delete stay behind the switcher: with one plan there is nothing to
+           * disambiguate, and deleting it is not a one-click affordance.
+           */}
+          <button
+            type="button"
+            onClick={() => openNameDialog("duplicate")}
+            className={QUIET_LINK_CLASS}
+            title="Copy this plan and its phases under a new name"
+          >
+            <i className="fas fa-copy mr-1.5 text-xs"></i>
+            Duplicate this plan
           </button>
         </div>
         {nameDialogNode}
