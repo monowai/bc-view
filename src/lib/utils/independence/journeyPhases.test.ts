@@ -2,6 +2,7 @@ import type { IndependencePlan, RetirementPlan } from "types/independence"
 import {
   isJourneyPhased,
   journeyPhasePlans,
+  landingPlan,
   parseJourneyPhases,
   primaryJourney,
 } from "./journeyPhases"
@@ -178,5 +179,45 @@ describe("primaryJourney", () => {
 
   it("yields nothing when the user owns none", () => {
     expect(primaryJourney([])).toBeUndefined()
+  })
+})
+
+describe("landingPlan", () => {
+  it("prefers the plan flagged primary", () => {
+    const plans = [
+      makePlan({ id: "slow-go" }),
+      makePlan({ id: "go-go", isPrimary: true }),
+    ]
+
+    expect(landingPlan(plans)?.id).toBe("go-go")
+  })
+
+  it("falls back to the first plan in the list", () => {
+    const plans = [makePlan({ id: "slow-go" }), makePlan({ id: "no-go" })]
+
+    expect(landingPlan(plans)?.id).toBe("slow-go")
+  })
+
+  it("resolves within the list it is given, not across journeys", () => {
+    // `isPrimary` is scoped per journey (svc-retire#248), so an account can
+    // hold several primaries at once. Scoping is the caller's job: pass one
+    // journey's phase plans and only that journey's default can win.
+    const owning = makePlan({
+      id: "own-go-go",
+      isPrimary: true,
+      independencePlanId: "j-own",
+    })
+    const renting = makePlan({
+      id: "rent-go-go",
+      isPrimary: true,
+      independencePlanId: "j-rent",
+    })
+
+    expect(landingPlan([renting, owning])?.id).toBe("rent-go-go")
+    expect(landingPlan([owning])?.id).toBe("own-go-go")
+  })
+
+  it("yields nothing for an empty list", () => {
+    expect(landingPlan([])).toBeUndefined()
   })
 })

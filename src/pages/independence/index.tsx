@@ -29,6 +29,7 @@ import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
 import {
   isJourneyPhased,
   journeyPhasePlans,
+  landingPlan,
 } from "@lib/independence/journeyPhases"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import {
@@ -471,7 +472,7 @@ function RetirementPlanning(): React.ReactElement {
   const phasingCandidates = activeJourney ? activeJourneyPlans : phaseTabPlans
   const planToPhase = activeJourneyPhased
     ? undefined
-    : (phasingCandidates.find((p) => p.isPrimary) ?? phasingCandidates[0])
+    : landingPlan(phasingCandidates)
 
   // The Plan tab shows the active plan's composite, so it needs that plan to
   // be phased. While either request is in flight, honour the stored view so
@@ -1022,9 +1023,10 @@ function RetirementPlanning(): React.ReactElement {
 
           {effectiveView === "work" && (
             <ScenarioList
-              defaultCurrency={
-                (plans.find((p) => p.isPrimary) ?? plans[0])?.expensesCurrency
-              }
+              // Journey-scoped: with a primary per journey (svc-retire#248),
+              // searching every owned row defaults the currency to whichever
+              // journey happens to sort first.
+              defaultCurrency={landingPlan(phaseTabPlans)?.expensesCurrency}
             />
           )}
 

@@ -88,6 +88,23 @@ export function journeyPhasePlans(
  * `?plan=` is the only thing that hook adds on top, and only /independence
  * carries it.
  */
+/**
+ * The plan a journey opens at — the one flagged primary, else the first of the
+ * list so the pick is at least stable.
+ *
+ * Resolves *within the list it is handed*, and that list is the caller's
+ * responsibility: `RetirementPlan.isPrimary` is scoped to the journey a plan
+ * belongs to, not the account (svc-retire#248), so a user running "life owning
+ * the house" alongside "life renting" has one primary per journey. Searching
+ * every owned row lands on whichever journey happens to sort first — pass
+ * {@link journeyPhasePlans} output, not the raw `/plans` response.
+ */
+export function landingPlan(
+  plans: RetirementPlan[],
+): RetirementPlan | undefined {
+  return plans.find((plan) => plan.isPrimary) ?? plans[0]
+}
+
 export function primaryJourney(
   journeys: IndependencePlan[],
 ): IndependencePlan | undefined {

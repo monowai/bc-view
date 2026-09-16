@@ -22,6 +22,7 @@ import { useFxRates } from "@hooks/useFxRates"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import {
   journeyPhasePlans,
+  landingPlan,
   primaryJourney,
 } from "@lib/independence/journeyPhases"
 import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
@@ -109,11 +110,7 @@ function WealthDashboard(): React.ReactElement {
   // an arbitrary row — the section below is hidden when nothing resolves.
   const primaryPlan = useMemo(() => {
     const ownPhases = journeyPhasePlans(primaryJourney(journeys), phasePlans)
-    return (
-      ownPhases.find((plan) => plan.isPrimary) ??
-      ownPhases[0] ??
-      phasePlans.find((plan) => plan.isPrimary)
-    )
+    return landingPlan(ownPhases) ?? phasePlans.find((plan) => plan.isPrimary)
   }, [journeys, phasePlans])
 
   const currencies = useMemo(
