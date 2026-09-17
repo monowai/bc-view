@@ -62,10 +62,20 @@ describe("formatCompact", () => {
   })
 
   it("switches scale at a million and a thousand", () => {
-    expect(formatCompact(999_999, "USD")).toBe("$1000K")
     expect(formatCompact(1_000_000, "USD")).toBe("$1.00M")
     expect(formatCompact(999, "USD")).toBe("$999")
     expect(formatCompact(1_000, "USD")).toBe("$1K")
+  })
+
+  it("never prints a four-digit K", () => {
+    // 999,999 / 1,000 rounds to 1000, so the naive form said "$1000K" — a
+    // number the reader has to divide by a thousand to understand. An earlier
+    // version of this test asserted that as correct.
+    expect(formatCompact(999_999, "USD")).toBe("$1.00M")
+    expect(formatCompact(999_500, "USD")).toBe("$1.00M")
+    expect(formatCompact(999_499, "USD")).toBe("$999K")
+    expect(formatCompactBare(999_999)).toBe("1.0M")
+    expect(formatCompactBare(999_499)).toBe("999K")
   })
 
   it("renders zero without a sign", () => {

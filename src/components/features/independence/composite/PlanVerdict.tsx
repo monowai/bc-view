@@ -45,6 +45,42 @@ export default function PlanVerdict(): React.ReactElement | null {
 
   const successRate = mc.result?.successRate
 
+  // Privacy mode hides amounts AND ages. An age is the other half of the same
+  // disclosure: "your money runs out at 78" tells a shoulder-surfer as much as
+  // the balance does, and masking only the headline left it in plain sight in
+  // the supporting sentence and the milestone tile.
+  //
+  // Percentages stay visible on purpose. A survival rate carries no amount and
+  // no date — it is the one figure here that says nothing about this person's
+  // wealth — and blanking it would leave the verdict with nothing readable.
+  const milestone = ((): { label: string; value: string; sub: string } => {
+    if (hideValues) {
+      return { label: "You get there at", value: HIDDEN_VALUE, sub: "hidden" }
+    }
+    if (answers.fiCrossingAge == null) {
+      return {
+        label: "Money lasts",
+        value:
+          projection.runwayYears > 50
+            ? "50+ yrs"
+            : `${projection.runwayYears} yrs`,
+        sub: "at this rate of spending",
+      }
+    }
+    if (answers.yearsToFi == null || answers.yearsToFi <= 0) {
+      return {
+        label: "You get there at",
+        value: `age ${answers.fiCrossingAge}`,
+        sub: "already there",
+      }
+    }
+    return {
+      label: "You get there at",
+      value: `age ${answers.fiCrossingAge}`,
+      sub: `${answers.yearsToFi} year${answers.yearsToFi === 1 ? "" : "s"} from now`,
+    }
+  })()
+
   return (
     <section
       aria-labelledby="plan-verdict-headline"
@@ -59,8 +95,11 @@ export default function PlanVerdict(): React.ReactElement | null {
             {hideValues ? "Your plan is hidden." : outlook.headline}
           </h2>
           <p className="mt-1.5 max-w-prose text-sm text-gray-600 dark:text-gray-400">
-            {outlook.statement}
-            {answers.dipsBelow &&
+            {hideValues
+              ? "Turn off privacy mode to see where this plan lands."
+              : outlook.statement}
+            {!hideValues &&
+              answers.dipsBelow &&
               " Your balance does dip back below the target later on."}
           </p>
         </div>
@@ -96,21 +135,9 @@ export default function PlanVerdict(): React.ReactElement | null {
           sub={answers.isAchieved ? "past the target" : "to reach the target"}
         />
         <KpiCard
-          label={answers.fiCrossingAge ? "You get there at" : "Money lasts"}
-          value={
-            answers.fiCrossingAge
-              ? `age ${answers.fiCrossingAge}`
-              : projection.runwayYears > 50
-                ? "50+ yrs"
-                : `${projection.runwayYears} yrs`
-          }
-          sub={
-            answers.fiCrossingAge
-              ? answers.yearsToFi != null && answers.yearsToFi > 0
-                ? `${answers.yearsToFi} year${answers.yearsToFi === 1 ? "" : "s"} from now`
-                : "already there"
-              : "at this rate of spending"
-          }
+          label={milestone.label}
+          value={milestone.value}
+          sub={milestone.sub}
         />
         <KpiCard
           label="Survives bad markets"

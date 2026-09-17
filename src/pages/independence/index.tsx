@@ -97,6 +97,13 @@ function setupSectionFor(view: unknown): SetupSectionId | null {
   }
 }
 
+/** Which destination a `?view=` value names. Anything unrecognised reads the plan. */
+function resolvePageView(view: unknown): PageView {
+  if (setupSectionFor(view) != null) return "setup"
+  if (view === "shared") return "shared"
+  return "plan"
+}
+
 const SETUP_SECTIONS: SetupSection[] = [
   {
     id: "stages",
@@ -389,12 +396,7 @@ function RetirementPlanning(): React.ReactElement {
   // button work.
   const requestedView = router.query.view
   const setupSection = setupSectionFor(requestedView) ?? "stages"
-  const activeView: PageView =
-    setupSectionFor(requestedView) != null
-      ? "setup"
-      : requestedView === "shared"
-        ? "shared"
-        : "plan"
+  const activeView = resolvePageView(requestedView)
 
   const goTo = (view: PageView | SetupSectionId): void => {
     void router.replace(

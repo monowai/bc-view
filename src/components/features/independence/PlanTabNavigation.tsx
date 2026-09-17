@@ -8,11 +8,6 @@ interface PlanTabNavigationProps {
   onTabChange: (tabId: TabId) => void
   /** Whether the plan has assets loaded (some sections need them) */
   hasAssets: boolean
-  /**
-   * Show the FI target inside "Where you stand". Only relevant to FIRE and
-   * self-funded plans; a pure pension plan has no FI number to aim at.
-   */
-  showFiTab?: boolean
 }
 
 /** Sections that need assets before they can say anything true. */

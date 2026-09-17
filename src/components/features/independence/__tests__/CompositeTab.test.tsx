@@ -52,7 +52,7 @@ jest.mock("@hooks/useCompositeProjection", () => ({
 }))
 
 jest.mock("@hooks/usePrivacyMode", () => ({
-  usePrivacyMode: () => ({ hideValues: false }),
+  usePrivacyMode: jest.fn(() => ({ hideValues: false })),
 }))
 
 jest.mock("@hooks/useIndependenceSettings", () => ({
@@ -302,6 +302,28 @@ describe("CompositeTab", () => {
     rerender(<CompositeTab plans={plans} settings={settings} mode="stages" />)
     expect(screen.getByTestId("phases-layout")).toBeInTheDocument()
     expect(screen.queryByText(/Your money lasts/)).not.toBeInTheDocument()
+  })
+
+  it("hides the age as well as the amounts in privacy mode", () => {
+    // Masking only the headline left the depletion/FI age in plain sight in
+    // the supporting sentence and the milestone tile — an age discloses as
+    // much to a shoulder-surfer as a balance does.
+    const { usePrivacyMode } = jest.requireMock("@hooks/usePrivacyMode")
+    usePrivacyMode.mockReturnValue({ hideValues: true })
+    mockProjection({
+      projection: {
+        ...makeProjection(),
+        isSustainable: false,
+        depletionAge: 78,
+      } as never,
+    })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(screen.queryByText(/age 78/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/runs out at age/)).not.toBeInTheDocument()
+    expect(screen.getByText("Your plan is hidden.")).toBeInTheDocument()
+
+    usePrivacyMode.mockReturnValue({ hideValues: false })
   })
 
   it("carries no composite narrative field", () => {

@@ -47,9 +47,14 @@ export function ageAxisTicks(
   max: number,
   extras: number[] = [],
 ): number[] {
-  // A non-finite bound would otherwise escape into the tick array and Recharts
-  // renders it as a blank label, so the axis looks like it has simply vanished.
+  // Guard BOTH bounds. A non-finite value escaping into the tick array renders
+  // as a blank label, so the axis looks like it has simply vanished — and an
+  // infinite `max` never terminates the step loop below, hanging the tab.
+  // Callers today come through ageAxisDomain, which sanitises both ends, but
+  // this is exported and the asymmetry was a trap waiting for the first caller
+  // that isn't.
   if (!Number.isFinite(min)) return Number.isFinite(max) ? [max] : []
+  if (!Number.isFinite(max)) return [min]
   if (!(max > min)) return [min]
   const step = max - min <= 30 ? 5 : 10
   const ticks: number[] = [min]

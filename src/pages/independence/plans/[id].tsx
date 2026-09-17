@@ -67,6 +67,10 @@ function PlanView(): React.ReactElement {
   const hasCategoriesInitialized = useRef(false)
   // Land on "Where you stand" — the question someone opens a stage to answer.
   const [activeTab, setActiveTab] = useState<TabId>("standing")
+  // The stress test lives in a disclosure inside "Your path". "Full stress
+  // test →" used to switch section and leave the disclosure shut, so the
+  // control appeared to do nothing.
+  const [stressOpen, setStressOpen] = useState(false)
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<string[]>([])
   const [spendableCategories, setSpendableCategories] = useState<string[]>([])
 
@@ -964,7 +968,6 @@ function PlanView(): React.ReactElement {
             activeTab={effectiveTab}
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
-            showFiTab={showFiTab}
           />
 
           {/* ——— Where you stand ——— */}
@@ -1009,7 +1012,10 @@ function PlanView(): React.ReactElement {
                   currentAge={displayCurrentAge}
                   isCalculating={isCalculating}
                   hideValues={hideValues}
-                  onOpenStressTest={() => setActiveTab("path")}
+                  onOpenStressTest={() => {
+                    setActiveTab("path")
+                    setStressOpen(true)
+                  }}
                 />
               )}
 
@@ -1059,7 +1065,13 @@ function PlanView(): React.ReactElement {
                   normally" and "what happens when it doesn't" feel like
                   unrelated subjects. It is the same path under worse
                   conditions, so it sits with the path. */}
-              <details className="group rounded-xl border border-gray-200 bg-white">
+              <details
+                className="group rounded-xl border border-gray-200 bg-white"
+                open={stressOpen}
+                onToggle={(e) =>
+                  setStressOpen((e.currentTarget as HTMLDetailsElement).open)
+                }
+              >
                 <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 sm:px-6">
                   <i
                     aria-hidden="true"

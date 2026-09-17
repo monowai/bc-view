@@ -49,13 +49,14 @@ export function compositeAnswers(
   const currentLiquid = projection.liquidAssets ?? 0
   const rows = projection.yearlyProjections ?? []
 
-  const fiCrossingAge =
-    fiNumber > 0
-      ? (rows.find((r) => r.endingBalance >= fiNumber)?.age ?? null)
-      : null
-
+  // One scan, one predicate. These used to be a separate `find` and
+  // `findIndex` carrying the same `>= fiNumber` test, so changing the crossing
+  // rule in one place would have left the headline age and the "dips below"
+  // warning quietly answering different questions.
   const firstAbove =
     fiNumber > 0 ? rows.findIndex((r) => r.endingBalance >= fiNumber) : -1
+  const fiCrossingAge =
+    firstAbove === -1 ? null : (rows[firstAbove].age ?? null)
   const dipsBelow =
     firstAbove !== -1 &&
     rows.slice(firstAbove + 1).some((r) => r.endingBalance < fiNumber)
