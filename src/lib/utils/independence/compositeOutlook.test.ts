@@ -51,6 +51,37 @@ describe("compositeOutlook", () => {
     )
   })
 
+  describe("headline", () => {
+    // The page leads with this line at display size, so it has to read as an
+    // answer on its own — no "phases", no plan vocabulary, just the money and
+    // the age. `statement` stays the explanatory second line.
+    it("answers in the user's own terms when the money lasts", () => {
+      expect(compositeOutlook(projection())!.headline).toBe(
+        "Your money lasts to age 90.",
+      )
+    })
+
+    it("answers in the user's own terms when it doesn't", () => {
+      expect(
+        compositeOutlook(
+          projection({ isSustainable: false, depletionAge: 78 }),
+        )!.headline,
+      ).toBe("Your money runs out at age 78.")
+    })
+
+    it("drops the age rather than printing a question mark", () => {
+      // "Your money lasts to age ?." is worse than saying less.
+      expect(
+        compositeOutlook(projection({ yearlyProjections: [] }))!.headline,
+      ).toBe("Your money lasts the whole plan.")
+      expect(
+        compositeOutlook(
+          projection({ isSustainable: false, depletionAge: undefined }),
+        )!.headline,
+      ).toBe("Your money runs out before the plan ends.")
+    })
+  })
+
   it("says nothing without a projection", () => {
     expect(compositeOutlook(undefined)).toBeNull()
   })

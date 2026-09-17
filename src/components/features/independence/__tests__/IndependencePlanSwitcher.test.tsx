@@ -64,6 +64,14 @@ function mockSwitcher(overrides: HookOverrides = {}): {
   return fns
 }
 
+/**
+ * Rename / Duplicate / New / Delete used to be four buttons beside the plan
+ * picker; they now live behind one overflow. Same actions, one affordance.
+ */
+const openPlanMenu = async (): Promise<void> => {
+  await userEvent.click(screen.getByRole("button", { name: "Plan actions" }))
+}
+
 describe("IndependencePlanSwitcher", () => {
   beforeEach(() => mockHook.mockReset())
 
@@ -158,7 +166,10 @@ describe("IndependencePlanSwitcher", () => {
     })
     render(<IndependencePlanSwitcher />)
 
-    await userEvent.click(screen.getByRole("button", { name: /Rename/ }))
+    await openPlanMenu()
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: /Rename this plan/ }),
+    )
     const input = screen.getByLabelText("Plan name")
     expect(input).toHaveValue("No Property")
     await userEvent.clear(input)
@@ -178,7 +189,10 @@ describe("IndependencePlanSwitcher", () => {
     })
     render(<IndependencePlanSwitcher />)
 
-    await userEvent.click(screen.getByRole("button", { name: /Duplicate/ }))
+    await openPlanMenu()
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: /Duplicate this plan/ }),
+    )
     await userEvent.click(screen.getByRole("button", { name: "Copy" }))
 
     expect(duplicate).toHaveBeenCalledWith("j1", {
@@ -197,7 +211,10 @@ describe("IndependencePlanSwitcher", () => {
     })
     const { rerender } = render(<IndependencePlanSwitcher />)
 
-    await userEvent.click(screen.getByRole("button", { name: /Make default/ }))
+    await openPlanMenu()
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: /Make this the default/ }),
+    )
     expect(setPrimary).toHaveBeenCalledWith("j2")
 
     mockSwitcher({
@@ -208,8 +225,9 @@ describe("IndependencePlanSwitcher", () => {
       activeId: "j1",
     })
     rerender(<IndependencePlanSwitcher />)
+    await openPlanMenu()
     expect(
-      screen.queryByRole("button", { name: /Make default/ }),
+      screen.queryByRole("menuitem", { name: /Make this the default/ }),
     ).not.toBeInTheDocument()
   })
 
@@ -223,7 +241,10 @@ describe("IndependencePlanSwitcher", () => {
       const { create } = mockSwitcher({ plans: twoPlans, activeId: "j1" })
       render(<IndependencePlanSwitcher />)
 
-      await userEvent.click(screen.getByRole("button", { name: /New/ }))
+      await openPlanMenu()
+      await userEvent.click(
+        screen.getByRole("menuitem", { name: /Create another plan/ }),
+      )
       const input = screen.getByLabelText("Plan name")
       await userEvent.type(input, "Renting")
       fireEvent.keyDown(input, { key: "Enter" })
@@ -239,7 +260,10 @@ describe("IndependencePlanSwitcher", () => {
       create.mockImplementation(() => new Promise(() => {}))
       render(<IndependencePlanSwitcher />)
 
-      await userEvent.click(screen.getByRole("button", { name: /New/ }))
+      await openPlanMenu()
+      await userEvent.click(
+        screen.getByRole("menuitem", { name: /Create another plan/ }),
+      )
       const input = screen.getByLabelText("Plan name")
       await userEvent.type(input, "Renting")
 
@@ -255,7 +279,10 @@ describe("IndependencePlanSwitcher", () => {
       update.mockImplementation(() => new Promise(() => {}))
       render(<IndependencePlanSwitcher />)
 
-      await userEvent.click(screen.getByRole("button", { name: /Rename/ }))
+      await openPlanMenu()
+      await userEvent.click(
+        screen.getByRole("menuitem", { name: /Rename this plan/ }),
+      )
       const input = screen.getByLabelText("Plan name")
 
       fireEvent.keyDown(input, { key: "Enter" })
@@ -275,10 +302,11 @@ describe("IndependencePlanSwitcher", () => {
     })
     render(<IndependencePlanSwitcher />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete" }))
+    await openPlanMenu()
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: /Delete this plan/ }),
+    )
     expect(screen.getByText(/Its phases are kept and detached/)).toBeVisible()
-    // Toolbar button and the confirm dialog's button share the label; the
-    // dialog's is the one rendered last.
     const deleteButtons = screen.getAllByRole("button", { name: "Delete" })
     await userEvent.click(deleteButtons[deleteButtons.length - 1])
 

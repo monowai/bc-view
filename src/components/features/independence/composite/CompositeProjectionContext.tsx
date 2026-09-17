@@ -3,8 +3,26 @@ import type {
   CompositePhase,
   CompositeProjectionResult,
   CompositeScenarioComparison,
+  MonteCarloResult,
   RetirementPlan,
 } from "types/independence"
+import type { CompositeMonteCarloRunArgs } from "@hooks/useCompositeMonteCarloSimulation"
+
+/**
+ * The single stress run for this plan.
+ *
+ * Lives on the context because its result is read in two places — the
+ * confidence figure in the verdict and the bands on the chart. It used to be
+ * two independent `useCompositeMonteCarloSimulation()` calls behind two tabs,
+ * each with its own iteration picker, so the same plan could show 87% in one
+ * place and 74% in another depending on which tab you had last visited.
+ */
+export interface CompositeMonteCarloState {
+  result: MonteCarloResult | null
+  isRunning: boolean
+  error: Error | null
+  run: (args: CompositeMonteCarloRunArgs) => Promise<void>
+}
 
 /**
  * Context value exposed by {@link CompositeProjectionProvider}.
@@ -39,6 +57,9 @@ export interface CompositeProjectionValue {
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
   error: string | null
+
+  /** The one stress run shared by the verdict and the chart. */
+  mc: CompositeMonteCarloState
 }
 
 const CompositeProjectionCtx = createContext<CompositeProjectionValue | null>(

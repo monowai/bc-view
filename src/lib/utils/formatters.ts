@@ -130,6 +130,55 @@ export const currencySymbolFor = (
 ): string => (currency && CURRENCY_SYMBOLS[currency]) || backendSymbol || "$"
 
 /**
+ * Compact money, for headline figures and chart axes.
+ *
+ * Takes a currency code rather than assuming dollars: a plan held in SGD was
+ * previously charted as "$2.14M", which reads as USD and understates the
+ * number by a third. Magnitudes round to two significant-ish digits because
+ * these are projections — "S$2.14M" claims precision the model doesn't have,
+ * but it is the established scale on this surface, so keep 2dp at millions
+ * and drop the decimal at thousands.
+ *
+ * @param value - Numeric value
+ * @param currency - ISO currency code (e.g. "SGD"). Omit for a bare "$".
+ * @returns Compact string (e.g. "S$2.14M", "NZ$180K", "£950")
+ */
+export const formatCompact = (value: number, currency?: string): string => {
+  const symbol = currencySymbolFor(currency)
+  const sign = value < 0 ? "-" : ""
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000 || roundsIntoMillions(abs)) {
+    return `${sign}${symbol}${(abs / 1_000_000).toFixed(2)}M`
+  }
+  if (abs >= 1_000) return `${sign}${symbol}${Math.round(abs / 1_000)}K`
+  return `${sign}${symbol}${Math.round(abs).toLocaleString()}`
+}
+
+/**
+ * True when rounding to whole thousands would read as "1000K".
+ *
+ * 999,999 / 1,000 is 999.999, which rounds to 1000 — so the naive form printed
+ * "$1000K", a figure the reader has to divide by a thousand to understand.
+ * Anything that rounds that far has reached the millions scale.
+ */
+const roundsIntoMillions = (abs: number): boolean =>
+  abs >= 1_000 && Math.round(abs / 1_000) >= 1_000
+
+/**
+ * Compact money without the currency symbol — for chart axis ticks, where the
+ * symbol repeats on every gridline and earns nothing.
+ */
+export const formatCompactBare = (value: number): string => {
+  const sign = value < 0 ? "-" : ""
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000 || roundsIntoMillions(abs)) {
+    return `${sign}${(abs / 1_000_000).toFixed(1)}M`
+  }
+  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)}K`
+  return `${sign}${Math.round(abs)}`
+}
+
+/**
  * Format a number with sign prefix for display.
  * @param value - Numeric value
  * @param fractionDigits - Number of decimal places (default: 2)

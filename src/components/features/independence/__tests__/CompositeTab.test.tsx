@@ -52,7 +52,7 @@ jest.mock("@hooks/useCompositeProjection", () => ({
 }))
 
 jest.mock("@hooks/usePrivacyMode", () => ({
-  usePrivacyMode: () => ({ hideValues: false }),
+  usePrivacyMode: jest.fn(() => ({ hideValues: false })),
 }))
 
 jest.mock("@hooks/useIndependenceSettings", () => ({
@@ -160,7 +160,7 @@ describe("CompositeTab", () => {
     makePlan({ id: "p2", name: "Europe Plan" }),
   ]
 
-  beforeEach(() => {
+  const mockProjection = (overrides: Record<string, unknown> = {}): void => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",
     )
@@ -174,146 +174,162 @@ describe("CompositeTab", () => {
       setDisplayCurrency: jest.fn(),
       excludedPlanIds: new Set(),
       toggleExclusion: jest.fn(),
+      compositeWorkScenarioId: undefined,
+      setCompositeWorkScenarioId: jest.fn(),
+      currentAge: 58,
       projection: undefined,
       scenarios: undefined,
       isLoading: false,
       error: null,
+      ...overrides,
     })
-  })
+  }
 
-  it("carries no composite narrative field", () => {
-    render(<CompositeTab plans={plans} settings={settings} />)
-    // Narrative belongs to each phase's own plan, not the composite.
-    expect(screen.queryByText(/Plan narrative/)).not.toBeInTheDocument()
-    expect(document.querySelector("textarea")).toBeNull()
-  })
+  beforeEach(() => mockProjection())
 
-  it("renders all sub-tabs in the navigation", () => {
+  it("leads with the verdict, not with a tab bar", () => {
+    // The old shape put seven sub-tabs above everything and landed on a list
+    // of spending boards; whether the plan worked was four tabs away.
+    mockProjection({ projection: makeProjection() })
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.getByRole("tab", { name: /FI Overview/ })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: /Phases/ })).toBeInTheDocument()
+
     expect(
-      screen.getByRole("tab", { name: /Wealth Journey/ }),
+      screen.getByRole("heading", { name: /Your money lasts to age/ }),
     ).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: /Stress Test/ })).toBeInTheDocument()
-    expect(
-      screen.getByRole("tab", { name: /Year-by-Year/ }),
-    ).toBeInTheDocument()
+    expect(screen.queryAllByRole("tab")).toHaveLength(0)
   })
 
-  it("defaults to the Summary tab", () => {
+  it("states the verdict in the reader's words and backs it with numbers", () => {
+    mockProjection({ projection: makeProjection() })
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.getByRole("tab", { name: /Summary/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    )
-    expect(screen.getByRole("tab", { name: /Phases/ })).toHaveAttribute(
-      "aria-selected",
-      "false",
-    )
+
+    expect(screen.getByText("Your money lasts to age 61.")).toBeInTheDocument()
+    expect(screen.getByText("Holds up")).toBeInTheDocument()
+    expect(screen.getByText("Target to retire on")).toBeInTheDocument()
   })
 
-  it("switches to the Wealth Journey tab when clicked", async () => {
-    const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
-    )
-    const projectionState = {
-      phases: [{ planId: "p1", fromAge: 60 }],
-      setPhases: jest.fn(),
-      displayCurrency: "SGD",
-      setDisplayCurrency: jest.fn(),
-      excludedPlanIds: new Set(),
-      toggleExclusion: jest.fn(),
-      projection: makeProjection(),
-      scenarios: undefined,
-      isLoading: false,
-      error: null,
-    }
-    useCompositeProjection.mockReturnValue(projectionState)
-
-    render(<CompositeTab plans={plans} settings={settings} />)
-    const wealthTab = screen.getByRole("tab", { name: /Wealth Journey/ })
-    await userEvent.click(wealthTab)
-
-    expect(wealthTab).toHaveAttribute("aria-selected", "true")
-  })
-
-  it("switches to the Stress Test tab when clicked", async () => {
-    render(<CompositeTab plans={plans} settings={settings} />)
-    await userEvent.click(screen.getByRole("tab", { name: /Stress Test/ }))
-    expect(
-      screen.getByRole("button", { name: /Run Stress Test/ }),
-    ).toBeInTheDocument()
-  })
-
-  it("shows 'Savings deplete at age N' badge when projection is not sustainable", () => {
-    const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
-    )
-    useCompositeProjection.mockReturnValue({
-      phases: [{ planId: "p1", fromAge: 60 }],
-      setPhases: jest.fn(),
-      displayCurrency: "SGD",
-      setDisplayCurrency: jest.fn(),
-      excludedPlanIds: new Set(),
-      toggleExclusion: jest.fn(),
+  it("pairs the verdict status with a word, never colour alone", () => {
+    mockProjection({
       projection: {
         ...makeProjection(),
         isSustainable: false,
-        depletionAge: 70,
-      },
-      scenarios: undefined,
-      isLoading: false,
-      error: null,
+        depletionAge: 78,
+      } as never,
     })
-
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.getByText(/Savings deplete at age 70/)).toBeInTheDocument()
+
+    expect(
+      screen.getByText("Your money runs out at age 78."),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Needs a look")).toBeInTheDocument()
   })
 
-  it("renders error inside Phases tab when present", async () => {
-    const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
-    )
-    // Not `...Once`: the tab switch re-renders, and the error must survive it.
-    useCompositeProjection.mockReturnValue({
-      phases: [],
-      setPhases: jest.fn(),
-      displayCurrency: "SGD",
-      setDisplayCurrency: jest.fn(),
-      excludedPlanIds: new Set(),
-      toggleExclusion: jest.fn(),
-      projection: undefined,
-      scenarios: undefined,
-      isLoading: false,
-      error: "Something went wrong",
-    })
-
+  it("offers one chart with two lenses instead of three chart tabs", async () => {
+    mockProjection({ projection: makeProjection() })
     render(<CompositeTab plans={plans} settings={settings} />)
-    // Phases is no longer the landing tab — switch to it to read its error.
-    await userEvent.click(screen.getByRole("tab", { name: /Phases/ }))
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument()
+
+    const lasts = screen.getByRole("button", { name: "Will it last?" })
+    const madeOf = screen.getByRole("button", { name: "What it's made of" })
+    expect(lasts).toHaveAttribute("aria-pressed", "true")
+    expect(madeOf).toHaveAttribute("aria-pressed", "false")
+
+    await userEvent.click(madeOf)
+    expect(madeOf).toHaveAttribute("aria-pressed", "true")
+    expect(lasts).toHaveAttribute("aria-pressed", "false")
   })
 
-  it("renders loading spinner on FI Overview tab when loading", async () => {
-    const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
-    )
-    useCompositeProjection.mockReturnValue({
-      phases: [{ planId: "p1", fromAge: 60 }],
-      setPhases: jest.fn(),
-      displayCurrency: "SGD",
-      setDisplayCurrency: jest.fn(),
-      excludedPlanIds: new Set(),
-      toggleExclusion: jest.fn(),
-      projection: undefined,
-      scenarios: undefined,
-      isLoading: true,
-      error: null,
-    })
-
+  it("attaches the stress test to the chart it changes", () => {
+    mockProjection({ projection: makeProjection() })
     render(<CompositeTab plans={plans} settings={settings} />)
-    await userEvent.click(screen.getByRole("tab", { name: /FI Overview/ }))
-    expect(screen.getByText("Computing projection…")).toBeInTheDocument()
+
+    // Previously its own tab, running the same simulation as the FI tab with
+    // a second, independent iteration picker.
+    expect(screen.getByText("Test it against bad markets")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Run the test" }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole("combobox")).toHaveLength(1)
+  })
+
+  it("keeps the year-by-year ledger closed until asked for", () => {
+    mockProjection({ projection: makeProjection() })
+    const { container } = render(
+      <CompositeTab plans={plans} settings={settings} />,
+    )
+
+    const disclosure = container.querySelector("details")
+    expect(disclosure).not.toBeNull()
+    expect(disclosure).not.toHaveAttribute("open")
+    expect(
+      screen.getByText("Show the year-by-year numbers"),
+    ).toBeInTheDocument()
+  })
+
+  it("says what is missing rather than rendering an empty page", () => {
+    // With no stages useCompositeProjection returns early without setting an
+    // error, so every section rendered null and the page went silent.
+    mockProjection({ phases: [], projection: undefined })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(screen.getByText("Nothing to project yet")).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /Set up your stages/ }),
+    ).toBeInTheDocument()
+  })
+
+  it("owns up when stages exist but no projection came back", () => {
+    mockProjection({ projection: undefined })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(
+      screen.getByText(/couldn't work out your projection/),
+    ).toBeInTheDocument()
+  })
+
+  it("surfaces a projection error", () => {
+    mockProjection({ error: "svc-retire said no" })
+    render(<CompositeTab plans={plans} settings={settings} />)
+    expect(screen.getByText("svc-retire said no")).toBeInTheDocument()
+  })
+
+  it("renders settings in setup mode, never alongside the charts", () => {
+    mockProjection({ projection: makeProjection() })
+    const { rerender } = render(
+      <CompositeTab plans={plans} settings={settings} mode="plan" />,
+    )
+    expect(screen.queryByTestId("phases-layout")).not.toBeInTheDocument()
+
+    rerender(<CompositeTab plans={plans} settings={settings} mode="stages" />)
+    expect(screen.getByTestId("phases-layout")).toBeInTheDocument()
+    expect(screen.queryByText(/Your money lasts/)).not.toBeInTheDocument()
+  })
+
+  it("hides the age as well as the amounts in privacy mode", () => {
+    // Masking only the headline left the depletion/FI age in plain sight in
+    // the supporting sentence and the milestone tile — an age discloses as
+    // much to a shoulder-surfer as a balance does.
+    const { usePrivacyMode } = jest.requireMock("@hooks/usePrivacyMode")
+    usePrivacyMode.mockReturnValue({ hideValues: true })
+    mockProjection({
+      projection: {
+        ...makeProjection(),
+        isSustainable: false,
+        depletionAge: 78,
+      } as never,
+    })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(screen.queryByText(/age 78/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/runs out at age/)).not.toBeInTheDocument()
+    expect(screen.getByText("Your plan is hidden.")).toBeInTheDocument()
+
+    usePrivacyMode.mockReturnValue({ hideValues: false })
+  })
+
+  it("carries no composite narrative field", () => {
+    // Narrative belongs to each phase's own plan, not the composite.
+    render(<CompositeTab plans={plans} settings={settings} />)
+    expect(screen.queryByText(/Plan narrative/)).not.toBeInTheDocument()
+    expect(document.querySelector("textarea")).toBeNull()
   })
 })

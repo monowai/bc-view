@@ -49,9 +49,87 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
+import ActionMenu from "@components/ui/ActionMenu"
 
 const plansKey = "/api/independence/plans"
 const HIDDEN_VALUE = "****"
+
+/**
+ * Two destinations, not five tabs.
+ *
+ * The page used to offer Plan / Work / Phases / Shared / Profile in one row,
+ * with seven more sub-tabs underneath — and nothing on screen said which of
+ * them would show you an answer and which would quietly change one. Reading
+ * the plan is now one destination; everything that edits it is the other.
+ */
+type PageView = "plan" | "setup" | "shared"
+
+type SetupSectionId = "stages" | "wealth" | "work" | "profile"
+
+interface SetupSection {
+  id: SetupSectionId
+  label: string
+  hint: string
+  icon: string
+}
+
+/**
+ * Which Set up section a `?view=` value names, or null if it names none.
+ *
+ * Every view that used to be its own tab still resolves, so old links and
+ * bookmarks keep working after the collapse to two destinations.
+ */
+function setupSectionFor(view: unknown): SetupSectionId | null {
+  switch (view) {
+    case "profile":
+      return "profile"
+    case "work":
+      return "work"
+    case "stages":
+    // Legacy: both of these named a tab of their own before the collapse.
+    case "phases":
+    case "plans":
+      return "stages"
+    case "wealth":
+      return "wealth"
+    default:
+      return null
+  }
+}
+
+/** Which destination a `?view=` value names. Anything unrecognised reads the plan. */
+function resolvePageView(view: unknown): PageView {
+  if (setupSectionFor(view) != null) return "setup"
+  if (view === "shared") return "shared"
+  return "plan"
+}
+
+const SETUP_SECTIONS: SetupSection[] = [
+  {
+    id: "stages",
+    label: "Stages",
+    hint: "The ages each stage covers, and what changes between them.",
+    icon: "fa-clipboard-list",
+  },
+  {
+    id: "wealth",
+    label: "What counts as wealth",
+    hint: "Which portfolios this plan draws on, and how each one is treated.",
+    icon: "fa-wallet",
+  },
+  {
+    id: "work",
+    label: "Working years",
+    hint: "What you earn and spend before you stop working.",
+    icon: "fa-briefcase",
+  },
+  {
+    id: "profile",
+    label: "About you",
+    hint: "Your age and how long to plan for. Every projection rests on these.",
+    icon: "fa-user",
+  },
+]
 
 // Plan card component that uses shared assets for consistent FI calculation
 function PlanCard({
@@ -307,22 +385,29 @@ function RetirementPlanning(): React.ReactElement {
       !settings.targetIndependenceAge ||
       !settings.lifeExpectancy)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // Allow deep-linking to a view, e.g. `/independence?view=profile` from the
-  // "set your date of birth" notice on the plan page.
-  // Legacy `?view=plans` links map to the renamed `phases` view.
-  const requestedView =
-    router.query.view === "plans" ? "phases" : router.query.view
-  const initialView =
-    requestedView === "profile" ||
-    requestedView === "work" ||
-    requestedView === "phases" ||
-    requestedView === "shared" ||
-    requestedView === "composite"
-      ? requestedView
-      : "composite"
-  const [activeView, setActiveView] = useState<
-    "profile" | "work" | "phases" | "shared" | "composite"
-  >(initialView)
+  // Deep links keep working after the collapse from five views to two
+  // destinations: everything that used to be its own tab is now a section of
+  // Set up, so `?view=profile` lands on Set up with Profile selected.
+  // The URL owns which destination is showing, rather than local state.
+  // Holding it in state meant a `?view=` link into this page — including the
+  // "Set up your stages" button on an empty plan — changed the address bar
+  // and nothing else, because the component never remounts on a query-only
+  // navigation. Deriving it also makes a destination shareable and the back
+  // button work.
+  const requestedView = router.query.view
+  const setupSection = setupSectionFor(requestedView) ?? "stages"
+  const activeView = resolvePageView(requestedView)
+
+  const goTo = (view: PageView | SetupSectionId): void => {
+    void router.replace(
+      { pathname: router.pathname, query: { ...router.query, view } },
+      undefined,
+      { shallow: true },
+    )
+  }
+  const setActiveView = (view: PageView): void =>
+    goTo(view === "setup" ? setupSection : view)
+  const setSetupSection = goTo
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -474,16 +559,17 @@ function RetirementPlanning(): React.ReactElement {
     ? undefined
     : landingPlan(phasingCandidates)
 
-  // The Plan tab shows the active plan's composite, so it needs that plan to
-  // be phased. While either request is in flight, honour the stored view so
-  // we don't flash to phases and back.
-  const effectiveView: typeof activeView =
-    activeView === "composite" &&
-    !isLoading &&
-    !journeysLoading &&
-    !activeJourneyPhased
-      ? "phases"
+  // Reading the plan needs a phased plan to read. Until there is one, Set up
+  // is the honest destination — it's where the stages get created. While
+  // either request is in flight, honour the stored view so we don't flash to
+  // Set up and back.
+  const planReadable = activeJourneyPhased
+  const effectiveView: PageView =
+    activeView === "plan" && !isLoading && !journeysLoading && !planReadable
+      ? "setup"
       : activeView
+  const effectiveSection: SetupSectionId =
+    effectiveView === "setup" && activeView === "plan" ? "stages" : setupSection
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {
@@ -712,16 +798,18 @@ function RetirementPlanning(): React.ReactElement {
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
+          {/* One primary action; the rest behind an overflow. Four buttons of
+              equal weight sat here before a single number was on screen. */}
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Independence Planning
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                Your independence plan
               </h1>
-              <p className="text-gray-600">
-                Plan your financial future with projections and scenarios.
+              <p className="mt-1 max-w-prose text-gray-600">
+                Where your money takes you, and when.
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex shrink-0 items-center gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -729,46 +817,43 @@ function RetirementPlanning(): React.ReactElement {
                 accept=".json"
                 className="hidden"
               />
-              {plans.length > 0 && (
-                <button
-                  onClick={() => setShowShareDialog(true)}
-                  className="hidden sm:flex border border-blue-300 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-50 font-medium items-center"
-                >
-                  <i className="fas fa-share-alt mr-2"></i>
-                  Share
-                </button>
-              )}
-              <button
-                onClick={handleImportClick}
-                disabled={isImporting}
-                className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center disabled:opacity-50"
-              >
-                {isImporting ? (
-                  <Spinner label="Importing..." />
-                ) : (
-                  <>
-                    <i className="fas fa-upload mr-2"></i>
-                    Import
-                  </>
-                )}
-              </button>
-              {process.env.NODE_ENV === "development" && (
-                <Link
-                  href="/independence/debug"
-                  className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center"
-                  title="Cross-check svc-retire metrics against local formulas"
-                >
-                  <i className="fas fa-bug mr-2"></i>
-                  Debug
-                </Link>
-              )}
               <Link
                 href="/independence/wizard"
-                className="bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium flex items-center"
+                className="flex items-center rounded-lg bg-independence-600 px-4 py-2.5 font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
               >
-                <i className="fas fa-plus mr-2"></i>
-                Create Phase
+                <i aria-hidden="true" className="fas fa-plus mr-2" />
+                Add a stage
               </Link>
+              <ActionMenu
+                label="Plan options"
+                items={[
+                  ...(plans.length > 0
+                    ? [
+                        {
+                          label: "Share this plan",
+                          icon: "fa-share-alt",
+                          onSelect: () => setShowShareDialog(true),
+                        },
+                      ]
+                    : []),
+                  {
+                    label: isImporting ? "Importing…" : "Import a plan file",
+                    icon: "fa-upload",
+                    disabled: isImporting,
+                    onSelect: handleImportClick,
+                  },
+                  ...(process.env.NODE_ENV === "development"
+                    ? [
+                        {
+                          label: "Debug projections",
+                          icon: "fa-bug",
+                          onSelect: () => router.push("/independence/debug"),
+                        },
+                      ]
+                    : []),
+                ]}
+                triggerClassName="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-gray-600 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-independence-500 motion-reduce:transition-none"
+              />
             </div>
           </div>
 
@@ -790,98 +875,66 @@ function RetirementPlanning(): React.ReactElement {
 
           <IndependencePlanSwitcher />
 
-          {/* Tab Switcher */}
-          <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+          {/* Two destinations: read the plan, or change it. */}
+          <div className="mb-6 flex w-fit gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
             {activeJourneyPhased && (
               <button
-                onClick={() => setActiveView("composite")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  effectiveView === "composite"
-                    ? "bg-white text-independence-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-800"
+                type="button"
+                aria-current={effectiveView === "plan" ? "page" : undefined}
+                onClick={() => setActiveView("plan")}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
+                  effectiveView === "plan"
+                    ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
+                    : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 }`}
               >
-                <i className="fas fa-layer-group mr-2"></i>
-                Plan
+                <i aria-hidden="true" className="fas fa-chart-line mr-2" />
+                Your plan
               </button>
             )}
             <button
-              onClick={() => setActiveView("work")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                effectiveView === "work"
-                  ? "bg-white text-independence-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
+              type="button"
+              aria-current={effectiveView === "setup" ? "page" : undefined}
+              onClick={() => setActiveView("setup")}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
+                effectiveView === "setup"
+                  ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
               }`}
-              title={
-                hasNoWorkScenarios
-                  ? "Add a work scenario — your pre-independence income, salary and expenses"
-                  : "Work scenarios — pre-independence income, salary and expenses"
-              }
             >
-              <i className="fas fa-briefcase mr-2"></i>
-              Work
-              {hasNoWorkScenarios && (
+              <i aria-hidden="true" className="fas fa-sliders-h mr-2" />
+              Set up
+              {(profileIncomplete || hasNoWorkScenarios) && (
                 <span
-                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-amber-400"
-                  aria-label="No work scenario configured"
+                  className={`ml-1.5 inline-block h-2 w-2 rounded-full ${
+                    profileIncomplete ? "bg-red-500" : "bg-amber-400"
+                  }`}
+                  aria-label={
+                    profileIncomplete
+                      ? "Something needed is missing"
+                      : "Something is worth filling in"
+                  }
                 />
               )}
             </button>
-            <button
-              onClick={() => setActiveView("phases")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                effectiveView === "phases"
-                  ? "bg-white text-independence-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              <i className="fas fa-th-large mr-2"></i>
-              Phases
-            </button>
             {sharedPlans.length > 0 && (
               <button
+                type="button"
+                aria-current={effectiveView === "shared" ? "page" : undefined}
                 onClick={() => setActiveView("shared")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
                   effectiveView === "shared"
-                    ? "bg-white text-independence-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-800"
+                    ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
+                    : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 }`}
               >
-                <i className="fas fa-share-alt mr-2"></i>
-                Shared
+                <i aria-hidden="true" className="fas fa-share-alt mr-2" />
+                Shared with you
                 <span className="ml-1.5 text-xs text-gray-500">
                   ({sharedPlans.length})
                 </span>
               </button>
             )}
-            <button
-              onClick={() => setActiveView("profile")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                effectiveView === "profile"
-                  ? profileIncomplete
-                    ? "bg-white text-red-600 shadow-sm"
-                    : "bg-white text-independence-700 shadow-sm"
-                  : profileIncomplete
-                    ? "text-red-600 hover:text-red-700"
-                    : "text-gray-600 hover:text-gray-800"
-              }`}
-              title={
-                profileIncomplete
-                  ? "Set your date of birth, target age and life expectancy for accurate projections"
-                  : "Profile settings"
-              }
-            >
-              <i
-                className={`fas ${profileIncomplete ? "fa-triangle-exclamation" : "fa-cog"} mr-2`}
-              ></i>
-              Profile
-              {profileIncomplete && (
-                <span
-                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500"
-                  aria-label="Profile incomplete"
-                />
-              )}
-            </button>
           </div>
 
           {pendingResourceShares && (
@@ -900,97 +953,205 @@ function RetirementPlanning(): React.ReactElement {
 
           {error && <Alert>Failed to load plans. Please try again.</Alert>}
 
-          {!isLoading &&
-            !error &&
-            phaseTabPlans.length === 0 &&
-            effectiveView === "phases" && (
-              <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  No phases yet
-                </h2>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Answer a few quick questions to create your first phase and
-                  start projecting your financial freedom timeline.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link
-                    href="/independence/setup"
-                    className="inline-flex items-center bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium"
-                  >
-                    <i className="fas fa-magic mr-2"></i>
-                    Get Started
-                  </Link>
-                  <Link
-                    href="/independence/wizard"
-                    className="inline-flex items-center border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium"
-                  >
-                    <i className="fas fa-sliders-h mr-2"></i>
-                    Advanced Setup
-                  </Link>
-                </div>
-              </div>
-            )}
+          {/* ——— Set up: everything that changes the plan ———
+              A vertical rail, deliberately unlike the horizontal row the
+              reading surface uses, so settings never look like answers. */}
+          {effectiveView === "setup" && (
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <nav
+                aria-label="Plan settings"
+                className="shrink-0 lg:sticky lg:top-4 lg:w-56"
+              >
+                <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
+                  {SETUP_SECTIONS.map((s) => {
+                    const flagged =
+                      (s.id === "profile" && profileIncomplete) ||
+                      (s.id === "work" && hasNoWorkScenarios)
+                    return (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          aria-current={
+                            effectiveSection === s.id ? "page" : undefined
+                          }
+                          onClick={() => setSetupSection(s.id)}
+                          className={`flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
+                            effectiveSection === s.id
+                              ? "bg-independence-50 text-independence-800 dark:bg-gray-800 dark:text-independence-300"
+                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                          }`}
+                        >
+                          <i
+                            aria-hidden="true"
+                            className={`fas ${s.icon} w-4 text-center text-xs`}
+                          />
+                          <span className="flex-1">{s.label}</span>
+                          {flagged && (
+                            <span
+                              className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                                s.id === "profile"
+                                  ? "bg-red-500"
+                                  : "bg-amber-400"
+                              }`}
+                              aria-label="Needs your attention"
+                            />
+                          )}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </nav>
 
-          {effectiveView === "profile" && (
-            <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
-              <IndependenceSettingsPanel />
-              <CompositePlanSettingsCard plans={phaseTabPlans} />
-            </div>
-          )}
+              <div className="min-w-0 flex-1">
+                {SETUP_SECTIONS.filter((s) => s.id === effectiveSection).map(
+                  (s) => (
+                    <div key={s.id} className="mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {s.label}
+                      </h2>
+                      <p className="mt-0.5 max-w-prose text-sm text-gray-600 dark:text-gray-400">
+                        {s.hint}
+                      </p>
+                    </div>
+                  ),
+                )}
 
-          {generatePhasesError && effectiveView === "phases" && (
-            <div className="mb-6">
-              <Alert>
-                <div className="flex justify-between items-center">
-                  <span>{generatePhasesError}</span>
-                  <button
-                    onClick={() => setGeneratePhasesError(null)}
-                    className="text-red-500 hover:text-red-700 ml-2"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                </div>
-              </Alert>
-            </div>
-          )}
+                {effectiveSection === "profile" && (
+                  <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
+                    <IndependenceSettingsPanel />
+                    <CompositePlanSettingsCard plans={phaseTabPlans} />
+                  </div>
+                )}
 
-          {/* Offer phasing while the plan being viewed has no composite of its
-              own. A second plan is phased on its own terms — the user's other
-              plans, and their phase counts, say nothing about this one. */}
-          {!isLoading &&
-            !journeysLoading &&
-            planToPhase &&
-            effectiveView === "phases" && (
-              <div className="mb-6">
-                <GeneratePhasesOffer
-                  plan={planToPhase}
-                  onGenerate={handleGeneratePhases}
-                  isLoading={isGeneratingPhases}
-                />
-              </div>
-            )}
-
-          {!isLoading &&
-            phaseTabPlans.length > 0 &&
-            effectiveView === "phases" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {phaseTabPlans.map((plan: RetirementPlan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    assets={assets}
-                    hideValues={hideValues}
-                    onDelete={setDeletePlanId}
-                    onExport={handleExportPlan}
-                    onCopy={handleCopyClick}
-                    onSetPrimary={handleSetPrimary}
+                {effectiveSection === "work" && (
+                  <ScenarioList
+                    // Journey-scoped: with a primary per journey
+                    // (svc-retire#248), searching every owned row defaults the
+                    // currency to whichever journey happens to sort first.
+                    defaultCurrency={
+                      landingPlan(phaseTabPlans)?.expensesCurrency
+                    }
                   />
-                ))}
+                )}
+
+                {effectiveSection === "wealth" && activeJourneyPhased && (
+                  <CompositeTab
+                    plans={phaseTabPlans}
+                    settings={settings}
+                    activePlanId={activePlanId}
+                    mode="wealth"
+                  />
+                )}
+
+                {effectiveSection === "stages" && (
+                  <div className="space-y-6">
+                    {generatePhasesError && (
+                      <Alert>
+                        <div className="flex items-center justify-between">
+                          <span>{generatePhasesError}</span>
+                          <button
+                            onClick={() => setGeneratePhasesError(null)}
+                            className="ml-2 text-red-500 hover:text-red-700"
+                            aria-label="Dismiss"
+                          >
+                            <i aria-hidden="true" className="fas fa-times" />
+                          </button>
+                        </div>
+                      </Alert>
+                    )}
+
+                    {/* Offer phasing while the plan being viewed has no
+                        composite of its own. A second plan is phased on its own
+                        terms — the user's other plans, and their phase counts,
+                        say nothing about this one. */}
+                    {!isLoading && !journeysLoading && planToPhase && (
+                      <GeneratePhasesOffer
+                        plan={planToPhase}
+                        onGenerate={handleGeneratePhases}
+                        isLoading={isGeneratingPhases}
+                      />
+                    )}
+
+                    {/* The timeline and the stage list were two separate tabs
+                        both called "Phases", one level apart. They are one
+                        thing: the shape of the plan, and the stages it's made
+                        of. */}
+                    {activeJourneyPhased && (
+                      <CompositeTab
+                        plans={phaseTabPlans}
+                        settings={settings}
+                        activePlanId={activePlanId}
+                        mode="stages"
+                      />
+                    )}
+
+                    {!isLoading && !error && phaseTabPlans.length === 0 && (
+                      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
+                        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-independence-100">
+                          <i
+                            aria-hidden="true"
+                            className="fas fa-umbrella-beach text-3xl text-independence-600"
+                          />
+                        </div>
+                        <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                          Nothing mapped out yet
+                        </h3>
+                        <p className="mx-auto mb-6 max-w-md text-gray-600">
+                          Answer a few questions and we&apos;ll build your first
+                          stage, then show you where the money takes you.
+                        </p>
+                        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                          <Link
+                            href="/independence/setup"
+                            className="inline-flex items-center rounded-lg bg-independence-600 px-6 py-3 font-medium text-white hover:bg-independence-700"
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="fas fa-magic mr-2"
+                            />
+                            Get started
+                          </Link>
+                          <Link
+                            href="/independence/wizard"
+                            className="inline-flex items-center rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="fas fa-sliders-h mr-2"
+                            />
+                            Set it up myself
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+
+                    {!isLoading && phaseTabPlans.length > 0 && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                          Your stages
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          {phaseTabPlans.map((plan: RetirementPlan) => (
+                            <PlanCard
+                              key={plan.id}
+                              plan={plan}
+                              assets={assets}
+                              hideValues={hideValues}
+                              onDelete={setDeletePlanId}
+                              onExport={handleExportPlan}
+                              onCopy={handleCopyClick}
+                              onSetPrimary={handleSetPrimary}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
           {!isLoading && effectiveView === "shared" && (
             <>
@@ -1021,31 +1182,20 @@ function RetirementPlanning(): React.ReactElement {
             </>
           )}
 
-          {effectiveView === "work" && (
-            <ScenarioList
-              // Journey-scoped: with a primary per journey (svc-retire#248),
-              // searching every owned row defaults the currency to whichever
-              // journey happens to sort first.
-              defaultCurrency={landingPlan(phaseTabPlans)?.expensesCurrency}
+          {!isLoading && activeJourneyPhased && effectiveView === "plan" && (
+            // Journey-scoped, not every owned row: `plans` flows through
+            // useCompositeProjection into context and on to PhaseConfigList,
+            // which offers each entry as a timeline candidate and distributes
+            // ages across all of them. Passing every owned row put the *other*
+            // journey's phases on this journey's plan, one click from being
+            // seeded and saved into this journey's composite.
+            <CompositeTab
+              plans={phaseTabPlans}
+              settings={settings}
+              activePlanId={activePlanId}
+              mode="plan"
             />
           )}
-
-          {!isLoading &&
-            activeJourneyPhased &&
-            effectiveView === "composite" && (
-              // Journey-scoped, not every owned row: `plans` flows through
-              // useCompositeProjection into context and on to
-              // PhaseConfigList, which offers each entry as a timeline
-              // candidate and distributes ages across all of them. Passing
-              // every owned row put the *other* journey's phases on this
-              // journey's Plan tab, one click from being seeded and saved
-              // into this journey's composite.
-              <CompositeTab
-                plans={phaseTabPlans}
-                settings={settings}
-                activePlanId={activePlanId}
-              />
-            )}
         </div>
       </div>
 

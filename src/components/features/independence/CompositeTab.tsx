@@ -1,22 +1,30 @@
-import React, { useState } from "react"
+import React from "react"
+import Link from "next/link"
+import Alert from "@components/ui/Alert"
 import type {
   RetirementPlan,
   UserIndependenceSettings,
 } from "types/independence"
 import { useCompositeProjection } from "@hooks/useCompositeProjection"
+import { useCompositeMonteCarloSimulation } from "@hooks/useCompositeMonteCarloSimulation"
 import {
   CompositeProjectionProvider,
   CompositeProjectionValue,
   useCompositeProjectionContext,
 } from "./composite/CompositeProjectionContext"
+import PlanVerdict from "./composite/PlanVerdict"
+import WealthOverTime from "./composite/WealthOverTime"
+import PhaseSpendList from "./composite/PhaseSpendList"
+import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
-import WealthJourneyTab from "./composite/tabs/WealthJourneyTab"
-import StressTestTab from "./composite/tabs/StressTestTab"
-import YearByYearTab from "./composite/tabs/YearByYearTab"
-import FiOverviewTab from "./composite/tabs/FiOverviewTab"
 import NetWorthTab from "./composite/tabs/NetWorthTab"
-import SummaryTab from "./composite/tabs/SummaryTab"
-import { compositeOutlook } from "@lib/independence/compositeOutlook"
+
+/**
+ * `plan` reads the projection; `stages` and `wealth` change it. The page keeps
+ * the two kinds apart — settings live behind Set up, never in the same row as
+ * the charts — but both need this provider, so both are rendered from here.
+ */
+export type CompositeMode = "plan" | "stages" | "wealth"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -26,144 +34,116 @@ interface CompositeTabProps {
    * Resolved by the page from `?plan=`; see useActiveIndependencePlan.
    */
   activePlanId?: string
-}
-
-type CompositeSubTabId =
-  | "summary"
-  | "overview"
-  | "phases"
-  | "wealth"
-  | "networth"
-  | "stress"
-  | "timeline"
-
-interface CompositeSubTabConfig {
-  id: CompositeSubTabId
-  label: string
-  icon: string
-}
-
-const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
-  { id: "summary", label: "Summary", icon: "fa-list-ul" },
-  { id: "phases", label: "Phases", icon: "fa-clipboard-list" },
-  { id: "networth", label: "Net Worth", icon: "fa-wallet" },
-  { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
-  { id: "wealth", label: "Wealth Journey", icon: "fa-chart-line" },
-  { id: "stress", label: "Stress Test", icon: "fa-dice" },
-  { id: "timeline", label: "Year-by-Year", icon: "fa-table" },
-]
-
-interface CompositeSubTabNavigationProps {
-  activeTab: CompositeSubTabId
-  onTabChange: (tabId: CompositeSubTabId) => void
+  mode?: CompositeMode
 }
 
 /**
- * Sub-tab navigation for the Composite view. Shows the sustainability badge
- * right-aligned in the tab bar. Reads projection from context.
- */
-function CompositeSubTabNavigation({
-  activeTab,
-  onTabChange,
-}: CompositeSubTabNavigationProps): React.ReactElement {
-  const { projection } = useCompositeProjectionContext()
-
-  const sustainabilityText = compositeOutlook(projection)?.badge ?? null
-
-  return (
-    <div className="border-b border-gray-200 mb-4">
-      <nav className="flex items-center" role="tablist">
-        <div className="flex space-x-6 overflow-x-auto flex-1">
-          {COMPOSITE_SUB_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`
-                py-2 px-1 border-b-2 font-medium text-sm flex items-center whitespace-nowrap
-                ${
-                  activeTab === tab.id
-                    ? "border-independence-500 text-independence-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }
-              `}
-            >
-              <i className={`fas ${tab.icon} mr-1.5 text-xs`}></i>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        {sustainabilityText && (
-          <>
-            {/* Mobile: color-only status dot — the full text pill crowds the
-                scrollable tab row on narrow screens. Colour carries the
-                status; aria-label/title keep it accessible. */}
-            <span
-              role="img"
-              aria-label={sustainabilityText}
-              title={sustainabilityText}
-              className={`ml-3 shrink-0 inline-block h-2.5 w-2.5 rounded-full sm:hidden ${
-                projection?.isSustainable ? "bg-green-500" : "bg-red-500"
-              }`}
-            ></span>
-            {/* sm+: full text pill */}
-            <span
-              className={`ml-4 hidden shrink-0 items-center rounded-full px-3 py-1 text-sm font-medium sm:inline-flex ${
-                projection?.isSustainable
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              <i
-                className={`fas ${projection?.isSustainable ? "fa-check-circle" : "fa-exclamation-triangle"} mr-1`}
-              ></i>
-              {sustainabilityText}
-            </span>
-          </>
-        )}
-      </nav>
-    </div>
-  )
-}
-
-/**
- * Composite view across multiple retirement plans.
+ * A phased independence plan, as one page.
  *
- * Acts as a tab container: owns the {@link CompositeProjectionProvider},
- * and switches between sub-tabs. Sub-tabs read all data from the context.
+ * This used to be seven sub-tabs — Summary, Phases, Net Worth, FI Overview,
+ * Wealth Journey, Stress Test, Year-by-Year — sitting under another five at
+ * page level. Two of the seven were settings, three drew wealth against age,
+ * and two ran the same Monte Carlo behind separate controls, so the reader had
+ * to visit four of them to assemble an answer the tool already had.
+ *
+ * It now reads top to bottom as one argument: here is whether your plan works,
+ * here is the picture it comes from, here is what it buys you — with the
+ * ledger and the settings a deliberate step away rather than a peer of the
+ * verdict.
  */
 export default function CompositeTab({
   plans,
   settings,
   activePlanId,
+  mode = "plan",
 }: CompositeTabProps): React.ReactElement {
   const projectionState = useCompositeProjection(plans, settings, activePlanId)
-  // Summary is the landing tab: it answers "does this hold together, and what
-  // does each phase cost" without the user touching a control. Phases is one
-  // click away for when they want to change the shape.
-  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("summary")
+  const { result, isRunning, error, runSimulation } =
+    useCompositeMonteCarloSimulation()
 
   const contextValue: CompositeProjectionValue = {
     plans,
     ...projectionState,
+    mc: { result, isRunning, error, run: runSimulation },
   }
 
   return (
     <CompositeProjectionProvider value={contextValue}>
-      <div>
-        <CompositeSubTabNavigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        {activeTab === "summary" && <SummaryTab />}
-        {activeTab === "overview" && <FiOverviewTab />}
-        {activeTab === "phases" && <PhasesTab />}
-        {activeTab === "wealth" && <WealthJourneyTab />}
-        {activeTab === "networth" && <NetWorthTab />}
-        {activeTab === "stress" && <StressTestTab />}
-        {activeTab === "timeline" && <YearByYearTab />}
-      </div>
+      {mode === "stages" && <PhasesTab />}
+      {mode === "wealth" && <NetWorthTab />}
+      {mode === "plan" && <PlanNarrative />}
     </CompositeProjectionProvider>
+  )
+}
+
+function PlanNarrative(): React.ReactElement {
+  const { projection, phases, isLoading, error } =
+    useCompositeProjectionContext()
+  const hasRows = (projection?.yearlyProjections?.length ?? 0) > 0
+
+  // Without stages there is no projection to run, and useCompositeProjection
+  // returns early without setting an error — so every section below renders
+  // null and the page goes silent. Say what's missing instead: this is the
+  // state a new plan starts in, and an empty page teaches nobody anything.
+  if (!isLoading && !error && phases.length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-10 text-center dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Nothing to project yet
+        </h2>
+        <p className="mx-auto mt-1.5 max-w-md text-sm text-gray-600 dark:text-gray-400">
+          Your plan needs at least one stage — a stretch of years with its own
+          spending — before we can work out whether the money lasts.
+        </p>
+        <Link
+          href="/independence?view=phases"
+          className="mt-5 inline-flex items-center rounded-lg bg-independence-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
+        >
+          <i aria-hidden="true" className="fas fa-sliders-h mr-2" />
+          Set up your stages
+        </Link>
+      </div>
+    )
+  }
+
+  // One projection, so one failure message. Reported here rather than inside
+  // each section: the verdict and the chart both read the same `error`, so
+  // letting each render it printed the same sentence twice.
+  if (error) return <Alert>{error}</Alert>
+
+  // Stages exist but nothing came back and nothing is in flight — the
+  // projection service is unreachable or refused the request. Previously this
+  // also rendered as an empty page.
+  if (!isLoading && !projection) {
+    return (
+      <Alert>
+        We couldn&apos;t work out your projection just now. Refresh to try again
+        — your plan and its stages are safe.
+      </Alert>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      <PlanVerdict />
+      <WealthOverTime />
+
+      {hasRows && (
+        <details className="group rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 sm:px-6 dark:text-gray-300 dark:hover:text-gray-100">
+            <i
+              aria-hidden="true"
+              className="fas fa-chevron-right text-xs text-gray-400 transition-transform duration-150 group-open:rotate-90 motion-reduce:transition-none"
+            />
+            Show the year-by-year numbers
+          </summary>
+          <div className="border-t border-gray-100 px-4 py-4 sm:px-6 dark:border-gray-800">
+            <YearByYearTable />
+          </div>
+        </details>
+      )}
+
+      <PhaseSpendList />
+    </div>
   )
 }

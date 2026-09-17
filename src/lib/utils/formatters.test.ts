@@ -1,4 +1,4 @@
-import { formatDate } from "./formatters"
+import { formatCompact, formatCompactBare, formatDate } from "./formatters"
 
 describe("formatDate", () => {
   // Locale decides ordering ("4 Aug 2026" vs "Aug 4, 2026"), so assert on the
@@ -40,5 +40,54 @@ describe("formatDate", () => {
     const result = formatDate("2026-08-04T12:00:00Z")
     expect(result).toMatch(/Aug/)
     expect(result).toMatch(/2026/)
+  })
+})
+
+describe("formatCompact", () => {
+  it("uses the currency it was given, not a bare dollar", () => {
+    // A plan held in SGD was charted as "$2.14M", which reads as USD and
+    // understates the figure by about a third.
+    expect(formatCompact(2_140_000, "SGD")).toBe("S$2.14M")
+    expect(formatCompact(180_000, "NZD")).toBe("NZ$180K")
+    expect(formatCompact(950, "GBP")).toBe("£950")
+  })
+
+  it("falls back to a plain dollar with no currency", () => {
+    expect(formatCompact(1_500_000)).toBe("$1.50M")
+  })
+
+  it("keeps the sign on negative amounts", () => {
+    expect(formatCompact(-2_000_000, "SGD")).toBe("-S$2.00M")
+    expect(formatCompact(-4_500, "SGD")).toBe("-S$5K")
+  })
+
+  it("switches scale at a million and a thousand", () => {
+    expect(formatCompact(1_000_000, "USD")).toBe("$1.00M")
+    expect(formatCompact(999, "USD")).toBe("$999")
+    expect(formatCompact(1_000, "USD")).toBe("$1K")
+  })
+
+  it("never prints a four-digit K", () => {
+    // 999,999 / 1,000 rounds to 1000, so the naive form said "$1000K" — a
+    // number the reader has to divide by a thousand to understand. An earlier
+    // version of this test asserted that as correct.
+    expect(formatCompact(999_999, "USD")).toBe("$1.00M")
+    expect(formatCompact(999_500, "USD")).toBe("$1.00M")
+    expect(formatCompact(999_499, "USD")).toBe("$999K")
+    expect(formatCompactBare(999_999)).toBe("1.0M")
+    expect(formatCompactBare(999_499)).toBe("999K")
+  })
+
+  it("renders zero without a sign", () => {
+    expect(formatCompact(0, "SGD")).toBe("S$0")
+  })
+})
+
+describe("formatCompactBare", () => {
+  it("drops the symbol — axis gridlines repeat it for nothing", () => {
+    expect(formatCompactBare(2_140_000)).toBe("2.1M")
+    expect(formatCompactBare(180_000)).toBe("180K")
+    expect(formatCompactBare(950)).toBe("950")
+    expect(formatCompactBare(-1_200_000)).toBe("-1.2M")
   })
 })

@@ -8,55 +8,41 @@ describe("types constants", () => {
   })
 
   describe("TABS", () => {
-    it("has all expected tabs", () => {
-      expect(TABS).toHaveLength(6)
-      expect(TABS.map((t) => t.id)).toEqual([
-        "details",
-        "breakdown",
-        "fi",
-        "assets",
-        "timeline",
-        "simulation",
+    it("offers two reading sections and one place to change things", () => {
+      expect(TABS.map((t) => t.id)).toEqual(["standing", "path", "setup"])
+    })
+
+    it("names sections in plain language, not FIRE jargon", () => {
+      // The reader is someone learning to manage a plan, not an adviser.
+      // "FI Overview" and "Metrics" told them nothing about what they'd find.
+      expect(TABS.map((t) => t.label)).toEqual([
+        "Where you stand",
+        "Your path",
+        "Set up",
       ])
     })
 
-    it("has correct labels", () => {
-      expect(TABS.find((t) => t.id === "fi")?.label).toBe("FI Overview")
-      expect(TABS.find((t) => t.id === "details")?.label).toBe("Summary")
-      expect(TABS.find((t) => t.id === "assets")?.label).toBe("Metrics")
-      expect(TABS.find((t) => t.id === "breakdown")?.label).toBe("Assets")
-      expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
-      expect(TABS.find((t) => t.id === "simulation")?.label).toBe("Stress Test")
+    it("does not reuse a label that means something else on the plan page", () => {
+      // "Summary", "FI Overview" and "Stress Test" each named a tab here AND
+      // a different tab one level up on the composite plan. Same word, two
+      // meanings, one click apart.
+      const collisions = ["Summary", "FI Overview", "Stress Test", "Phases"]
+      for (const label of TABS.map((t) => t.label)) {
+        expect(collisions).not.toContain(label)
+      }
     })
 
-    it("has correct icons", () => {
-      expect(TABS.find((t) => t.id === "fi")?.icon).toBe("fa-bullseye")
-      expect(TABS.find((t) => t.id === "details")?.icon).toBe(
-        "fa-clipboard-list",
-      )
-      expect(TABS.find((t) => t.id === "assets")?.icon).toBe("fa-wallet")
-      expect(TABS.find((t) => t.id === "timeline")?.icon).toBe("fa-chart-line")
-      expect(TABS.find((t) => t.id === "simulation")?.icon).toBe("fa-dice")
-    })
-
-    it("has bylines for each tab", () => {
+    it("gives every section a byline saying what it answers", () => {
       for (const tab of TABS) {
         expect(tab.byline).toBeDefined()
         expect(tab.byline.length).toBeGreaterThan(0)
       }
-      expect(TABS.find((t) => t.id === "fi")?.byline).toContain("FI target")
-      expect(TABS.find((t) => t.id === "details")?.byline).toContain(
-        "at a glance",
-      )
-      expect(TABS.find((t) => t.id === "assets")?.byline).toContain(
-        "independence",
-      )
-      expect(TABS.find((t) => t.id === "timeline")?.byline).toContain(
-        "wealth grows",
-      )
-      expect(TABS.find((t) => t.id === "simulation")?.byline).toContain(
-        "markets",
-      )
+    })
+
+    it("has an icon for each section", () => {
+      for (const tab of TABS) {
+        expect(tab.icon).toMatch(/^fa-/)
+      }
     })
   })
 })

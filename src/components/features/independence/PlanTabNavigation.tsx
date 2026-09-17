@@ -2,64 +2,73 @@ import React from "react"
 import { TabId, TABS } from "./types"
 
 interface PlanTabNavigationProps {
-  /** Currently active tab */
+  /** Currently active section */
   activeTab: TabId
-  /** Callback when tab is changed */
+  /** Callback when the section is changed */
   onTabChange: (tabId: TabId) => void
-  /** Whether the plan has assets loaded (some tabs require assets) */
+  /** Whether the plan has assets loaded (some sections need them) */
   hasAssets: boolean
-  /** Show the FI Overview tab. Only relevant to FIRE-strategy plans. */
-  showFiTab?: boolean
 }
 
-/** Tabs that require assets to show meaningful data */
-const TABS_REQUIRING_ASSETS: TabId[] = ["breakdown", "timeline", "simulation"]
+/** Sections that need assets before they can say anything true. */
+const TABS_REQUIRING_ASSETS: TabId[] = ["path"]
 
 /**
- * Tab navigation for plan view.
- * Some tabs are disabled when no assets are loaded.
+ * Section navigation for one stage of a plan.
+ *
+ * Two reading sections and a Set up destination, matching the shape of the
+ * composite plan page — the reader crosses between the two surfaces
+ * constantly, and until now each taught a different vocabulary for the same
+ * ideas.
  */
 export default function PlanTabNavigation({
   activeTab,
   onTabChange,
   hasAssets,
-  showFiTab = true,
 }: PlanTabNavigationProps): React.ReactElement {
-  const visibleTabs = TABS.filter((tab) => tab.id !== "fi" || showFiTab)
-  return (
-    <div className="border-b border-gray-200 mb-4">
-      <nav className="flex space-x-6 overflow-x-auto">
-        {visibleTabs.map((tab) => {
-          const requiresAssets = TABS_REQUIRING_ASSETS.includes(tab.id)
-          const isDisabled = requiresAssets && !hasAssets
+  const active = TABS.find((t) => t.id === activeTab)
 
+  return (
+    <div className="mb-5">
+      <div className="flex w-fit gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+        {TABS.map((tab) => {
+          const isDisabled =
+            TABS_REQUIRING_ASSETS.includes(tab.id) && !hasAssets
+          const isActive = activeTab === tab.id
           return (
             <button
               key={tab.id}
+              type="button"
               onClick={() => !isDisabled && onTabChange(tab.id)}
               disabled={isDisabled}
+              aria-current={isActive ? "page" : undefined}
               title={
                 isDisabled
-                  ? "Assets must be loaded to view this tab"
+                  ? "Add some holdings and this will have something to chart"
                   : undefined
               }
-              className={`
-                py-2 px-1 border-b-2 font-medium text-sm flex items-center whitespace-nowrap
-                ${
-                  isDisabled
-                    ? "border-transparent text-gray-300 cursor-not-allowed"
-                    : activeTab === tab.id
-                      ? "border-independence-500 text-independence-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }
-              `}
+              className={`flex items-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
+                isDisabled
+                  ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
+                  : isActive
+                    ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
+                    : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              }`}
             >
-              <i className={`fas ${tab.icon} mr-1.5 text-xs`}></i>
+              <i
+                aria-hidden="true"
+                className={`fas ${tab.icon} mr-2 text-xs`}
+              />
               {tab.label}
             </button>
           )
         })}
-      </nav>
+      </div>
+      {active && (
+        <p className="mt-2 max-w-prose text-sm text-gray-600 dark:text-gray-400">
+          {active.byline}
+        </p>
+      )}
     </div>
   )
 }

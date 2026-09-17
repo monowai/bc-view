@@ -65,9 +65,12 @@ function PlanView(): React.ReactElement {
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
   const hasCategoriesInitialized = useRef(false)
-  // Land on "My Plan" by default — the FI Overview is only the home tab for
-  // FIRE-strategy plans (see resolvedStrategyView / showFiTab below).
-  const [activeTab, setActiveTab] = useState<TabId>("details")
+  // Land on "Where you stand" — the question someone opens a stage to answer.
+  const [activeTab, setActiveTab] = useState<TabId>("standing")
+  // The stress test lives in a disclosure inside "Your path". "Full stress
+  // test →" used to switch section and leave the disclosure shut, so the
+  // control appeared to do nothing.
+  const [stressOpen, setStressOpen] = useState(false)
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<string[]>([])
   const [spendableCategories, setSpendableCategories] = useState<string[]>([])
 
@@ -597,18 +600,16 @@ function PlanView(): React.ReactElement {
     isAllocationValid &&
     !isCalculating
 
-  // The FI Overview tab is only relevant to FIRE-strategy plans; pension /
-  // hybrid plans lead with "My Plan". Hide it otherwise and bounce the user
-  // back to My Plan if it was the active tab.
   const resolvedStrategyView =
     strategyView ?? defaultStrategyView(adjustedProjection?.effectiveStrategy)
-  // FI Overview is relevant to FIRE and Self-funded (HYBRID) plans — and the
-  // "All" lens — but not to pure Pension plans, which lead with My Plan.
+  // The FI target is relevant to FIRE and Self-funded (HYBRID) plans — and the
+  // "All" lens — but not to a pure Pension plan, which has no number to aim
+  // at. It is now a section of "Where you stand" rather than a tab, so this
+  // only decides whether that block appears.
   const showFiTab = resolvedStrategyView !== "PENSION"
-  // Derive (don't mutate) the displayed tab so a hidden FI Overview never
-  // leaves the view blank if the strategy flips while it was active.
+  // "Your path" needs assets before it can chart anything true.
   const effectiveTab: TabId =
-    !showFiTab && activeTab === "fi" ? "details" : activeTab
+    activeTab === "path" && !hasAssets ? "standing" : activeTab
 
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
@@ -967,53 +968,142 @@ function PlanView(): React.ReactElement {
             activeTab={effectiveTab}
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
-            showFiTab={showFiTab}
           />
 
-          {/* Tab Content */}
-          {effectiveTab === "fi" && (
-            <PlanFiOverviewTab
-              plan={plan}
-              projection={adjustedProjection}
-              scenario={scenario}
-              assets={{
-                liquidAssets,
-                nonSpendableAssets,
-                totalAssets,
-                hasAssets,
-                isLoaded: true,
-              }}
-              monthlyInvestment={monthlyInvestment}
-              rentalIncome={rentalIncome}
-              displayCurrency={displayCurrency ?? undefined}
-              effectiveCurrency={effectiveCurrency}
-              currentAge={displayCurrentAge}
-              isCalculating={isCalculating}
-              hideValues={hideValues}
-              onOpenStressTest={() => setActiveTab("simulation")}
-            />
+          {/* ——— Where you stand ——— */}
+          {effectiveTab === "standing" && (
+            <div className="space-y-6">
+              <DetailsTabContent
+                plan={plan}
+                scenario={scenario}
+                projection={adjustedProjection}
+                rentalIncome={rentalIncome}
+                effectiveCurrency={effectiveCurrency}
+                planCurrency={planCurrency}
+                onEditDetails={() => setShowEditDetailsModal(true)}
+                liquidAssets={displayLiquidAssets}
+                blendedReturnRate={blendedReturnRate}
+                currentAge={displayCurrentAge}
+                retirementAge={displayRetirementAge}
+                effectiveFxRate={effectiveFxRate}
+                excludedPensionFV={excludedPensionFV}
+                includedPensionFvDifferential={includedPensionFvDifferential}
+              />
+
+              {/* The FI target used to be a tab of its own, one across from
+                  the summary that answers the same question. It belongs under
+                  the same heading. */}
+              {showFiTab && (
+                <PlanFiOverviewTab
+                  plan={plan}
+                  projection={adjustedProjection}
+                  scenario={scenario}
+                  assets={{
+                    liquidAssets,
+                    nonSpendableAssets,
+                    totalAssets,
+                    hasAssets,
+                    isLoaded: true,
+                  }}
+                  monthlyInvestment={monthlyInvestment}
+                  rentalIncome={rentalIncome}
+                  displayCurrency={displayCurrency ?? undefined}
+                  effectiveCurrency={effectiveCurrency}
+                  currentAge={displayCurrentAge}
+                  isCalculating={isCalculating}
+                  hideValues={hideValues}
+                  onOpenStressTest={() => {
+                    setActiveTab("path")
+                    setStressOpen(true)
+                  }}
+                />
+              )}
+
+              {/* "Metrics" was a sixth tab holding the working behind these
+                  figures. It is evidence, so it opens on request. */}
+              <details className="group rounded-xl border border-gray-200 bg-white">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 sm:px-6">
+                  <i
+                    aria-hidden="true"
+                    className="fas fa-chevron-right text-xs text-gray-400 transition-transform duration-150 group-open:rotate-90 motion-reduce:transition-none"
+                  />
+                  Show the working behind these numbers
+                </summary>
+                <div className="border-t border-gray-100 px-4 py-4 sm:px-6">
+                  <AssetsTabContent
+                    projection={adjustedProjection}
+                    effectivePlanValues={effectivePlanValues}
+                    blendedReturnRate={blendedReturnRate}
+                    currentAge={displayCurrentAge}
+                    retirementAge={displayRetirementAge}
+                    effectiveCurrency={effectiveCurrency}
+                    fireDataReady={fireDataReady}
+                    view={
+                      strategyView ??
+                      defaultStrategyView(adjustedProjection?.effectiveStrategy)
+                    }
+                  />
+                </div>
+              </details>
+            </div>
           )}
 
-          {effectiveTab === "details" && (
-            <DetailsTabContent
-              plan={plan}
-              scenario={scenario}
-              projection={adjustedProjection}
-              rentalIncome={rentalIncome}
-              effectiveCurrency={effectiveCurrency}
-              planCurrency={planCurrency}
-              onEditDetails={() => setShowEditDetailsModal(true)}
-              liquidAssets={displayLiquidAssets}
-              blendedReturnRate={blendedReturnRate}
-              currentAge={displayCurrentAge}
-              retirementAge={displayRetirementAge}
-              effectiveFxRate={effectiveFxRate}
-              excludedPensionFV={excludedPensionFV}
-              includedPensionFvDifferential={includedPensionFvDifferential}
-            />
+          {/* ——— Your path ——— */}
+          {effectiveTab === "path" && (
+            <div className="space-y-6">
+              <TimelineTabContent
+                projection={adjustedProjection}
+                baselineProjection={baselineProjection}
+                retirementAge={displayRetirementAge}
+                lifeExpectancy={displayLifeExpectancy}
+                hideValues={hideValues}
+                isCalculating={isCalculating}
+                effectiveCurrency={effectiveCurrency}
+              />
+
+              {/* The stress test was its own tab, which made "what happens
+                  normally" and "what happens when it doesn't" feel like
+                  unrelated subjects. It is the same path under worse
+                  conditions, so it sits with the path. */}
+              <details
+                className="group rounded-xl border border-gray-200 bg-white"
+                open={stressOpen}
+                onToggle={(e) =>
+                  setStressOpen((e.currentTarget as HTMLDetailsElement).open)
+                }
+              >
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 sm:px-6">
+                  <i
+                    aria-hidden="true"
+                    className="fas fa-chevron-right text-xs text-gray-400 transition-transform duration-150 group-open:rotate-90 motion-reduce:transition-none"
+                  />
+                  Test this path against bad markets
+                </summary>
+                <div className="border-t border-gray-100 px-4 py-4 sm:px-6">
+                  <MonteCarloTab
+                    plan={plan}
+                    assets={{
+                      liquidAssets,
+                      nonSpendableAssets,
+                      totalAssets,
+                      hasAssets,
+                      isLoaded: true,
+                    }}
+                    monthlyInvestment={monthlyInvestment}
+                    scenario={scenario}
+                    rentalIncome={rentalIncome}
+                    displayCurrency={displayCurrency ?? undefined}
+                    hideValues={hideValues}
+                    currency={effectiveCurrency}
+                    displayProjection={adjustedProjection}
+                  />
+                </div>
+              </details>
+            </div>
           )}
 
-          {effectiveTab === "breakdown" &&
+          {/* ——— Set up: what this stage can spend ——— */}
+          {effectiveTab === "setup" &&
             (isSharedPlan && displayCategorySlices.length === 0 ? (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
                 <p className="font-medium mb-1">
@@ -1045,55 +1135,6 @@ function PlanView(): React.ReactElement {
                 cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
               />
             ))}
-
-          {effectiveTab === "assets" && (
-            <AssetsTabContent
-              projection={adjustedProjection}
-              effectivePlanValues={effectivePlanValues}
-              blendedReturnRate={blendedReturnRate}
-              currentAge={displayCurrentAge}
-              retirementAge={displayRetirementAge}
-              effectiveCurrency={effectiveCurrency}
-              fireDataReady={fireDataReady}
-              view={
-                strategyView ??
-                defaultStrategyView(adjustedProjection?.effectiveStrategy)
-              }
-            />
-          )}
-
-          {effectiveTab === "timeline" && (
-            <TimelineTabContent
-              projection={adjustedProjection}
-              baselineProjection={baselineProjection}
-              retirementAge={displayRetirementAge}
-              lifeExpectancy={displayLifeExpectancy}
-              hideValues={hideValues}
-              isCalculating={isCalculating}
-              effectiveCurrency={effectiveCurrency}
-            />
-          )}
-
-          {/* Simulation Tab - Monte Carlo Analysis */}
-          {effectiveTab === "simulation" && (
-            <MonteCarloTab
-              plan={plan}
-              assets={{
-                liquidAssets,
-                nonSpendableAssets,
-                totalAssets,
-                hasAssets,
-                isLoaded: true,
-              }}
-              monthlyInvestment={monthlyInvestment}
-              scenario={scenario}
-              rentalIncome={rentalIncome}
-              displayCurrency={displayCurrency ?? undefined}
-              hideValues={hideValues}
-              currency={effectiveCurrency}
-              displayProjection={adjustedProjection}
-            />
-          )}
         </div>
       </div>
 

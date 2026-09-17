@@ -17,6 +17,7 @@ jest.mock("next/router", () => ({
     query: mockQuery,
     pathname: "/independence",
     push: jest.fn(),
+    replace: jest.fn(),
     events: { on: jest.fn(), off: jest.fn() },
   }),
 }))
@@ -289,10 +290,42 @@ describe("/independence — phasing offer follows the active plan", () => {
 describe("/independence — the Plan tab follows the active plan's phases", () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockQuery = { view: "composite" }
+    mockQuery = { view: "plan" }
     global.fetch = mockFetch
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve("") })
   })
+
+  it.each([
+    ["phases", "Stages"],
+    ["plans", "Stages"],
+    ["profile", "About you"],
+    ["work", "Working years"],
+    ["wealth", "What counts as wealth"],
+  ])(
+    "follows ?view=%s into Set up, so old links keep working",
+    (view, section) => {
+      // The destination is derived from the URL, not held in state. Held in
+      // state, a query-only navigation changed the address bar and nothing
+      // else — which made the "Set up your stages" button on an empty plan a
+      // link that visibly did nothing.
+      mockQuery = { view }
+      mockActiveJourney = makeJourney({
+        id: "jrn-owning",
+        phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+      })
+      mockSwr([ownedPhase])
+
+      render(<Page />)
+
+      expect(screen.getByRole("button", { name: /Set up/ })).toHaveAttribute(
+        "aria-current",
+        "page",
+      )
+      expect(
+        screen.getByRole("button", { name: new RegExp(section) }),
+      ).toHaveAttribute("aria-current", "page")
+    },
+  )
 
   it("shows the composite for a phased plan holding a single phase row", () => {
     mockActiveJourney = makeJourney({
@@ -303,7 +336,9 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
 
     render(<Page />)
 
-    expect(screen.getByRole("button", { name: /^Plan$/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Your plan/ }),
+    ).toBeInTheDocument()
     expect(screen.getByTestId("composite-tab")).toBeInTheDocument()
   })
 
@@ -316,10 +351,11 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
     render(<Page />)
 
     expect(
-      screen.queryByRole("button", { name: /^Plan$/ }),
+      screen.queryByRole("button", { name: /Your plan/ }),
     ).not.toBeInTheDocument()
     expect(screen.queryByTestId("composite-tab")).not.toBeInTheDocument()
-    // Falls back to Phases rather than rendering an empty Plan tab.
+    // Falls back to Set up — where stages get made — rather than offering
+    // a reading surface with nothing to read.
     expect(screen.getByRole("button", { name: OFFER })).toBeInTheDocument()
   })
 
