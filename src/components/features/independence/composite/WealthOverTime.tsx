@@ -148,9 +148,14 @@ export default function WealthOverTime(): React.ReactElement | null {
   // per-render derivations, so a manual memo here cannot be preserved and
   // costs the whole component its React Compiler optimization.
   const ageAxis = ((): { domain: [number, number]; ticks: number[] } => {
-    const lifeExpectancy = plans.length
-      ? Math.max(...plans.map((p) => p.lifeExpectancy))
-      : undefined
+    // Plan rows don't always carry a lifeExpectancy — svc-retire's list
+    // response omits it — and Math.max over a missing field yields NaN, which
+    // used to collapse the axis to a single tick. Undefined lets ageAxisDomain
+    // fall back to the projected age range, which ends at the horizon anyway.
+    const horizons = plans
+      .map((p) => p.lifeExpectancy)
+      .filter((v): v is number => Number.isFinite(v))
+    const lifeExpectancy = horizons.length ? Math.max(...horizons) : undefined
     const [minAge, maxAge] = ageAxisDomain(
       currentAge,
       lifeExpectancy,

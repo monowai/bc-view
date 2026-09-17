@@ -42,4 +42,32 @@ describe("ageAxisTicks", () => {
   it("ignores extras outside the range", () => {
     expect(ageAxisTicks(45, 60, [90])).not.toContain(90)
   })
+
+  it("survives a life expectancy that isn't a number", () => {
+    // Plan rows served by svc-retire carry no `lifeExpectancy`, so callers
+    // doing Math.max(...plans.map(p => p.lifeExpectancy)) hand us NaN. That
+    // collapsed the domain and left the chart with a single tick at the
+    // current age — the whole age axis silently disappeared.
+    const [min, max] = ageAxisDomain(59, NaN, [61, 70, 80, 90])
+    expect(min).toBe(59)
+    expect(max).toBe(90)
+    expect(ageAxisTicks(min, max).length).toBeGreaterThan(1)
+  })
+
+  it("survives a NaN current age", () => {
+    const [min, max] = ageAxisDomain(NaN, 90, [61, 70, 90])
+    expect(Number.isFinite(min)).toBe(true)
+    expect(max).toBe(90)
+    expect(min).toBeLessThan(max)
+  })
+
+  it("never emits a non-finite tick", () => {
+    for (const ticks of [
+      ageAxisTicks(59, NaN),
+      ageAxisTicks(NaN, 90),
+      ageAxisTicks(NaN, NaN),
+    ]) {
+      expect(ticks.every((t) => Number.isFinite(t))).toBe(true)
+    }
+  })
 })

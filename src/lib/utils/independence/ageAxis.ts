@@ -17,13 +17,21 @@ export function ageAxisDomain(
   lifeExpectancy: number | undefined,
   ages: number[] = [],
 ): [number, number] {
+  // NaN, not just undefined. Plan rows served by svc-retire carry no
+  // `lifeExpectancy`, so the usual call — Math.max(...plans.map(p =>
+  // p.lifeExpectancy)) — hands us NaN rather than undefined. NaN then fails
+  // every comparison below, silently collapsing the domain and leaving the
+  // chart with one tick at the current age.
+  const finite = (v: number | undefined): number | undefined =>
+    typeof v === "number" && Number.isFinite(v) ? v : undefined
+  const from = finite(currentAge)
+  const to = finite(lifeExpectancy)
+
   const valid = ages.filter((a) => Number.isFinite(a))
-  const dataMin = valid.length ? Math.min(...valid) : (currentAge ?? 0)
-  const dataMax = valid.length
-    ? Math.max(...valid)
-    : (lifeExpectancy ?? dataMin)
-  const min = currentAge ?? dataMin
-  const max = lifeExpectancy ?? dataMax
+  const dataMin = valid.length ? Math.min(...valid) : (from ?? 0)
+  const dataMax = valid.length ? Math.max(...valid) : (to ?? dataMin)
+  const min = from ?? dataMin
+  const max = to ?? dataMax
   if (min < max) return [min, max]
   // Degenerate (missing/equal/inverted) — widen to cover whatever we have.
   return [Math.min(min, dataMin), Math.max(max, dataMax, min + 1)]
@@ -39,6 +47,9 @@ export function ageAxisTicks(
   max: number,
   extras: number[] = [],
 ): number[] {
+  // A non-finite bound would otherwise escape into the tick array and Recharts
+  // renders it as a blank label, so the axis looks like it has simply vanished.
+  if (!Number.isFinite(min)) return Number.isFinite(max) ? [max] : []
   if (!(max > min)) return [min]
   const step = max - min <= 30 ? 5 : 10
   const ticks: number[] = [min]
