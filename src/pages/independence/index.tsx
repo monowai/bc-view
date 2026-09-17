@@ -67,13 +67,10 @@ type PageView = "plan" | "setup" | "shared"
 /**
  * Where "Add a stage" goes, carrying the journey it was pressed from.
  *
- * A stage belongs to one journey, and the wizard can only stamp the one it is
- * told about — without `?plan=` the new stage lands ungrouped, which shows it
- * in *every* journey's stage list (see `phaseTabPlans`). Defined once because
- * two entry points offer the wizard: this heading and the empty state.
- *
- * No journey yet (a first-run account) is the one case where ungrouped is
- * correct: there is nothing to belong to.
+ * A stage belongs to one journey and the wizard can only stamp the one it is
+ * told about, so the parameter is not decoration: without it the stage lands
+ * ungrouped, which shows it in *every* journey's stage list (`phaseTabPlans`).
+ * Omitted only when there is no journey to belong to yet.
  */
 function addStageHref(journeyId: string | undefined): string {
   return journeyId
@@ -815,12 +812,9 @@ function RetirementPlanning(): React.ReactElement {
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          {/* The header belongs to the journey it names. "Add a stage" lived
-              here as the loudest control on the page while being scoped a level
-              below it — and, pressed from the reading view or Shared-with-you,
-              had no unambiguous journey to add to, which is how stages ended up
-              ungrouped. It now sits with the stage list it appends to, under
-              Set up. The destination tabs are this page's call to action. */}
+          {/* The header carries journey-level actions only — stage actions live
+              with the stage list, under Set up. The destination tabs are this
+              page's call to action, so there is no primary button here. */}
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
