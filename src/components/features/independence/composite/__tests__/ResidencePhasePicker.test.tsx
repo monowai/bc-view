@@ -102,6 +102,12 @@ function makeCtx(
     scenarios: undefined,
     isLoading: false,
     error: null,
+    mc: {
+      result: null,
+      isRunning: false,
+      error: null,
+      run: jest.fn(),
+    },
     ...overrides,
   }
 }

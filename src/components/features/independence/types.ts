@@ -7,11 +7,21 @@ import {
 // Re-export for backwards compatibility
 export { DEFAULT_NON_SPENDABLE_CATEGORIES, INCOME_STREAM_CATEGORIES }
 
-// Tab identifiers for plan view
-export type TabId =
-  "fi" | "details" | "assets" | "breakdown" | "timeline" | "simulation"
+/**
+ * Sections of a single stage's drill-down.
+ *
+ * This was six tabs — Summary, Assets, FI Overview, Metrics, My Path, Stress
+ * Test — three of whose names ("Summary", "FI Overview", "Stress Test") also
+ * named tabs one level up on the composite plan, meaning different things in
+ * each place. One of the six ("Assets") was a settings screen wearing an
+ * output tab's clothes.
+ *
+ * Now: two sections that read the stage, and everything that changes it lives
+ * behind Set up. Names are deliberately plain and deliberately unlike the
+ * parent surface's, because they are not the same thing.
+ */
+export type TabId = "standing" | "path" | "setup"
 
-// Tab configuration
 export interface TabConfig {
   id: TabId
   label: string
@@ -21,44 +31,23 @@ export interface TabConfig {
 
 export const TABS: TabConfig[] = [
   {
-    id: "details",
-    label: "Summary",
-    icon: "fa-clipboard-list",
-    byline:
-      "Where you stand at a glance — verdict, key numbers, and your plan inputs.",
-  },
-  {
-    id: "breakdown",
-    label: "Assets",
-    icon: "fa-layer-group",
-    byline:
-      "Your holdings by category — choose which are spendable in retirement.",
-  },
-  {
-    id: "fi",
-    label: "FI Overview",
+    id: "standing",
+    label: "Where you stand",
     icon: "fa-bullseye",
-    byline: "Your FI target, trajectory, and Monte Carlo confidence bands.",
+    byline: "What this stage is worth today, and what it needs to be.",
   },
   {
-    id: "assets",
-    label: "Metrics",
-    icon: "fa-wallet",
-    byline:
-      "What you have today, what it could become, and what it means for independence.",
-  },
-  {
-    id: "timeline",
-    label: "My Path",
+    id: "path",
+    label: "Your path",
     icon: "fa-chart-line",
     byline:
-      "How your wealth grows, sustains, and evolves across your lifetime.",
+      "How your wealth moves across your lifetime — and how it copes when markets don't co-operate.",
   },
   {
-    id: "simulation",
-    label: "Stress Test",
-    icon: "fa-dice",
-    byline: "How does your plan hold up when markets don't follow the script?",
+    id: "setup",
+    label: "Set up",
+    icon: "fa-sliders-h",
+    byline: "Which of your holdings this stage can actually spend.",
   },
 ]
 

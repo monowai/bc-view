@@ -16,10 +16,18 @@ export interface CompositeOutlook {
   sustainable: boolean
   /** Age the money lasts to, or the age it runs out. Null when unknowable. */
   age: number | null
-  /** Terse, for the tab bar. */
+  /** Terse, for a badge. */
   badge: string
-  /** A sentence, for the Summary header. */
+  /** A sentence, explaining in plan vocabulary. */
   statement: string
+  /**
+   * The answer at display size, in the reader's own words.
+   *
+   * The page leads with this, so it says "your money" rather than "your
+   * phases" — someone learning to manage a plan should not have to know what
+   * a phase is to read the verdict. {@link statement} stays the second line.
+   */
+  headline: string
 }
 
 export function compositeOutlook(
@@ -38,6 +46,10 @@ export function compositeOutlook(
         age != null
           ? `Your phases hold together — the money lasts to age ${age}.`
           : "Your phases hold together.",
+      headline:
+        age != null
+          ? `Your money lasts to age ${age}.`
+          : "Your money lasts the whole plan.",
     }
   }
 
@@ -50,5 +62,9 @@ export function compositeOutlook(
       age != null
         ? `These phases run out of money at age ${age}.`
         : "These phases run out of money before the end of the plan.",
+    headline:
+      age != null
+        ? `Your money runs out at age ${age}.`
+        : "Your money runs out before the plan ends.",
   }
 }

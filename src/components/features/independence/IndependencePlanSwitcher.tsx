@@ -4,6 +4,7 @@ import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Dialog from "@components/ui/Dialog"
+import ActionMenu, { ActionMenuItem } from "@components/ui/ActionMenu"
 
 type NameDialogMode = "create" | "rename" | "duplicate"
 
@@ -181,6 +182,49 @@ export default function IndependencePlanSwitcher(): React.ReactElement | null {
     )
   }
 
+  // Five equally-weighted buttons used to sit beside the picker. Switching
+  // plans is the frequent act; renaming or deleting one is not, and laying
+  // them out as peers charged the reader attention on every visit for actions
+  // they take once.
+  const menuItems: ActionMenuItem[] = [
+    ...(activePlan && !activePlan.isPrimary
+      ? [
+          {
+            label: "Make this the default",
+            icon: "fa-star",
+            disabled: isSubmitting,
+            onSelect: () => void run(() => setPrimary(activePlan.id)),
+          },
+        ]
+      : []),
+    {
+      label: "Rename this plan",
+      icon: "fa-pen",
+      onSelect: () => openNameDialog("rename"),
+    },
+    {
+      label: "Duplicate this plan",
+      icon: "fa-copy",
+      title: "Copy this plan and its stages",
+      onSelect: () => openNameDialog("duplicate"),
+    },
+    {
+      label: "Create another plan",
+      icon: "fa-plus",
+      onSelect: () => openNameDialog("create"),
+    },
+    {
+      label: "Delete this plan",
+      icon: "fa-trash",
+      destructive: true,
+      disabled: isSubmitting,
+      onSelect: () => {
+        setError(null)
+        setConfirmDelete(true)
+      },
+    },
+  ]
+
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -203,58 +247,11 @@ export default function IndependencePlanSwitcher(): React.ReactElement | null {
             </option>
           ))}
         </select>
-        {activePlan && !activePlan.isPrimary && (
-          <button
-            type="button"
-            className={ACTION_BUTTON_CLASS}
-            title="Make this the default plan"
-            onClick={() => void run(() => setPrimary(activePlan.id))}
-            disabled={isSubmitting}
-          >
-            <i className="fas fa-star text-[10px]"></i>
-            Make default
-          </button>
-        )}
-        <button
-          type="button"
-          className={ACTION_BUTTON_CLASS}
-          title="Rename this plan"
-          onClick={() => openNameDialog("rename")}
-        >
-          <i className="fas fa-pen text-[10px]"></i>
-          Rename
-        </button>
-        <button
-          type="button"
-          className={ACTION_BUTTON_CLASS}
-          title="Copy this plan and its phases"
-          onClick={() => openNameDialog("duplicate")}
-        >
-          <i className="fas fa-copy text-[10px]"></i>
-          Duplicate
-        </button>
-        <button
-          type="button"
-          className={ACTION_BUTTON_CLASS}
-          title="Create another plan"
-          onClick={() => openNameDialog("create")}
-        >
-          <i className="fas fa-plus text-[10px]"></i>
-          New
-        </button>
-        <button
-          type="button"
-          className={ACTION_BUTTON_CLASS}
-          title="Delete this plan"
-          onClick={() => {
-            setError(null)
-            setConfirmDelete(true)
-          }}
-          disabled={isSubmitting}
-        >
-          <i className="fas fa-trash text-[10px]"></i>
-          Delete
-        </button>
+        <ActionMenu
+          items={menuItems}
+          label="Plan actions"
+          triggerClassName={ACTION_BUTTON_CLASS}
+        />
       </div>
       {error && !nameDialog && (
         <div className="mb-6">
