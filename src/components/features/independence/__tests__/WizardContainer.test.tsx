@@ -261,4 +261,38 @@ describe("buildWizardPlanRequest", () => {
     })
     expect("clientId" in updated).toBe(false)
   })
+
+  it("names the journey the stage is being added to, on create only", () => {
+    // "Add a stage" is pressed from inside a journey. Unsent, the stage lands
+    // ungrouped and svc-retire shows it in EVERY journey's list. Moving an
+    // existing stage between journeys is not the wizard's job, so edit-mode
+    // must not carry the key at all.
+    const created = buildWizardPlanRequest(formData, {
+      isEditMode: false,
+      plan: null,
+      planningHorizonYears: 30,
+      independencePlanId: "j-own",
+    })
+    expect(created.independencePlanId).toBe("j-own")
+
+    const updated = buildWizardPlanRequest(formData, {
+      isEditMode: true,
+      plan,
+      planningHorizonYears: 30,
+      independencePlanId: "j-own",
+    })
+    expect("independencePlanId" in updated).toBe(false)
+  })
+
+  it("omits the journey rather than sending an empty one", () => {
+    // `?plan=` is absent on a first-run account. Sending "" would 404 on the
+    // ownership check instead of landing ungrouped as it should.
+    const payload = buildWizardPlanRequest(formData, {
+      isEditMode: false,
+      plan: null,
+      planningHorizonYears: 30,
+      independencePlanId: "",
+    })
+    expect(payload.independencePlanId).toBeUndefined()
+  })
 })

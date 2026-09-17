@@ -431,3 +431,68 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
     expect(plans.map((p) => p.id)).toEqual(["plan-owning", "plan-legacy"])
   })
 })
+
+describe("/independence — Add a stage belongs to the journey on screen", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockQuery = { view: "stages" }
+    global.fetch = mockFetch
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve("") })
+  })
+
+  const addStage = (): HTMLElement =>
+    screen.getByRole("link", { name: /Add a stage/i })
+
+  it("carries the active journey so the new stage is stamped into it", () => {
+    // Unstamped, svc-retire lands the stage ungrouped and every journey's
+    // stage list then shows it — the wizard can only stamp what it is told.
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    expect(addStage()).toHaveAttribute(
+      "href",
+      "/independence/wizard?plan=jrn-owning",
+    )
+  })
+
+  it("names no journey when the user has none yet", () => {
+    // First run: ungrouped is correct, there is nothing to belong to. Sending
+    // an empty `plan=` would fail svc-retire's ownership check instead.
+    mockActiveJourney = undefined
+    mockSwr([makePhasePlan({ id: "plan-legacy", name: "Legacy Plan" })])
+
+    render(<Page />)
+
+    expect(addStage()).toHaveAttribute("href", "/independence/wizard")
+  })
+
+  it("keeps the action out of the page header", () => {
+    // The header names the journey; a stage action there is a level below it,
+    // and from the reading view it had no unambiguous journey to add to.
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    const { container } = render(<Page />)
+
+    const header = container.querySelector("h1")?.closest("div")?.parentElement
+    expect(header).not.toBeNull()
+    expect(header?.textContent).not.toMatch(/Add a stage/i)
+  })
+
+  it("offers no stage action at all while reading the plan", () => {
+    mockActiveJourney = makeJourney({
+      id: "jrn-owning",
+      phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+    })
+    mockQuery = { view: "plan" }
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    expect(
+      screen.queryByRole("link", { name: /Add a stage/i }),
+    ).not.toBeInTheDocument()
+  })
+})

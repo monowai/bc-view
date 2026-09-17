@@ -30,6 +30,7 @@ import {
 import { WizardFormData, RetirementPlan } from "types/independence"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { ACTIVE_PLAN_QUERY_PARAM } from "@hooks/useIndependencePlans"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 
 interface WizardContainerProps {
@@ -70,6 +71,13 @@ export function buildWizardPlanRequest(
     plan?: RetirementPlan | null
     planningHorizonYears: number
     clientId?: string
+    /**
+     * Journey this stage is being added to, from `?plan=` — "Add a stage" is
+     * pressed from inside one. Create only, like clientId: re-homing an
+     * existing stage is a different decision and belongs to the timeline
+     * editor, not a wizard save.
+     */
+    independencePlanId?: string
   },
 ): Record<string, unknown> {
   const monthlyExpenses = formData.expenses.reduce(
@@ -117,6 +125,9 @@ export function buildWizardPlanRequest(
     primaryStrategy: formData.primaryStrategy || undefined,
     headlineMetric: formData.headlineMetric || undefined,
     ...(!ctx.isEditMode && { clientId: ctx.clientId?.trim() || undefined }),
+    ...(!ctx.isEditMode && {
+      independencePlanId: ctx.independencePlanId?.trim() || undefined,
+    }),
   }
 }
 
@@ -128,6 +139,13 @@ export default function WizardContainer({
 }: WizardContainerProps): React.ReactElement {
   const isEditMode = Boolean(planId)
   const router = useRouter()
+  // The journey "Add a stage" was pressed from, carried on `?plan=` the same
+  // way /independence carries it. Absent (a first-run account, or a hand-typed
+  // URL) means no journey to belong to, and the stage lands ungrouped.
+  const requestedJourney = router.query?.[ACTIVE_PLAN_QUERY_PARAM]
+  const journeyId = Array.isArray(requestedJourney)
+    ? requestedJourney[0]
+    : requestedJourney
   const [currentStep, setCurrentStep] = useState(() =>
     isEditMode && initialStep && initialStep >= 1 && initialStep <= TOTAL_STEPS
       ? initialStep
@@ -274,6 +292,7 @@ export default function WizardContainer({
         plan,
         planningHorizonYears,
         clientId,
+        independencePlanId: journeyId,
       })
 
       const url = isEditMode
