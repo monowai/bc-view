@@ -17,7 +17,10 @@ import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import { compositeAnswers } from "@lib/independence/compositeAnswers"
-import { buildWealthJourneyChartData } from "@lib/independence/wealthJourneyChartData"
+import {
+  buildWealthJourneyChartData,
+  WealthJourneyChartRow,
+} from "@lib/independence/wealthJourneyChartData"
 import {
   deriveJourneyRibbon,
   fromCompositeRows,
@@ -39,6 +42,27 @@ const PHASE_TINTS = [
 ]
 
 type Lens = "lasts" | "madeOf"
+
+/**
+ * One row of whichever lens is showing.
+ *
+ * The two lenses feed the same chart different shapes: "lasts" carries the
+ * liquid balance plus the Monte Carlo bands once they exist, "made of" carries
+ * the stacked wealth components. Recharts reads by `dataKey` and draws nothing
+ * for a key a row lacks, so one chart over a union is correct — but typing
+ * `data` off whichever member TypeScript saw first is not, and it is what left
+ * `yarn typecheck` red while CI (tests + build only) stayed green.
+ */
+type LensRow = { age: number; endingBalance: number } & Partial<
+  Omit<WealthJourneyChartRow, "age" | "endingBalance">
+> &
+  Partial<{
+    p10Base: number
+    outerWidth: number
+    p25Base: number
+    innerWidth: number
+    p50: number
+  }>
 
 const LENSES: { id: Lens; label: string; hint: string }[] = [
   {
@@ -86,7 +110,7 @@ export default function WealthOverTime(): React.ReactElement | null {
   const answers = compositeAnswers(projection, currentAge)
 
   // ——— "Will it last?" rows: liquid balance, plus MC bands once run ———
-  const trajectory = useMemo(() => {
+  const trajectory = useMemo<LensRow[]>(() => {
     if (!projection?.yearlyProjections) return []
     const bandByYear = new Map(
       (mc.result?.yearlyBands ?? []).map((b) => [b.year, b]),
@@ -141,7 +165,7 @@ export default function WealthOverTime(): React.ReactElement | null {
     [projection],
   )
 
-  const rows = lens === "lasts" ? trajectory : madeOf.chartData
+  const rows: LensRow[] = lens === "lasts" ? trajectory : madeOf.chartData
   const fiNumber = answers?.fiNumber ?? 0
 
   // Plain derivation, not useMemo: `rows` and `answers` are themselves

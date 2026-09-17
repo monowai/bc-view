@@ -64,6 +64,20 @@ const HIDDEN_VALUE = "****"
  */
 type PageView = "plan" | "setup" | "shared"
 
+/**
+ * Where "Add a stage" goes, carrying the journey it was pressed from.
+ *
+ * A stage belongs to one journey and the wizard can only stamp the one it is
+ * told about, so the parameter is not decoration: without it the stage lands
+ * ungrouped, which shows it in *every* journey's stage list (`phaseTabPlans`).
+ * Omitted only when there is no journey to belong to yet.
+ */
+function addStageHref(journeyId: string | undefined): string {
+  return journeyId
+    ? `/independence/wizard?plan=${encodeURIComponent(journeyId)}`
+    : "/independence/wizard"
+}
+
 type SetupSectionId = "stages" | "wealth" | "work" | "profile"
 
 interface SetupSection {
@@ -798,8 +812,9 @@ function RetirementPlanning(): React.ReactElement {
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          {/* One primary action; the rest behind an overflow. Four buttons of
-              equal weight sat here before a single number was on screen. */}
+          {/* The header carries journey-level actions only — stage actions live
+              with the stage list, under Set up. The destination tabs are this
+              page's call to action, so there is no primary button here. */}
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -817,13 +832,6 @@ function RetirementPlanning(): React.ReactElement {
                 accept=".json"
                 className="hidden"
               />
-              <Link
-                href="/independence/wizard"
-                className="flex items-center rounded-lg bg-independence-600 px-4 py-2.5 font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
-              >
-                <i aria-hidden="true" className="fas fa-plus mr-2" />
-                Add a stage
-              </Link>
               <ActionMenu
                 label="Plan options"
                 items={[
@@ -1113,7 +1121,7 @@ function RetirementPlanning(): React.ReactElement {
                             Get started
                           </Link>
                           <Link
-                            href="/independence/wizard"
+                            href={addStageHref(activePlanId)}
                             className="inline-flex items-center rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 hover:bg-gray-50"
                           >
                             <i
@@ -1128,9 +1136,21 @@ function RetirementPlanning(): React.ReactElement {
 
                     {!isLoading && phaseTabPlans.length > 0 && (
                       <div>
-                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                          Your stages
-                        </h3>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                            Your stages
+                          </h3>
+                          <Link
+                            href={addStageHref(activePlanId)}
+                            className="inline-flex items-center rounded-lg bg-independence-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="fas fa-plus mr-2"
+                            />
+                            Add a stage
+                          </Link>
+                        </div>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                           {phaseTabPlans.map((plan: RetirementPlan) => (
                             <PlanCard

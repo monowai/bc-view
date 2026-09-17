@@ -224,6 +224,12 @@ export interface PlanRequest {
   primaryStrategy?: PrimaryStrategy
   /** Optional explicit headline metric override. */
   headlineMetric?: HeadlineMetric
+  /**
+   * Journey ("independence plan") this stage is created in. Create only —
+   * svc-retire ignores it on PATCH. Omitted, the stage lands ungrouped and
+   * appears in every journey's stage list.
+   */
+  independencePlanId?: string
 }
 
 export interface PlanResponse {
