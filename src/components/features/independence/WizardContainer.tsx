@@ -30,6 +30,7 @@ import { portfoliosForJourney } from "@lib/independence/journeyPhases"
 import { WizardFormData, RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { resolveReturnTo } from "@lib/independence/editPhase"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import {
@@ -182,6 +183,10 @@ export default function WizardContainer({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
+  // Which step's changes are saved, cleared the moment that stops being true.
+  // Keying it to the step only *hid* the message elsewhere: returning to the
+  // step brought back a "Saved" that no longer described the form.
+  const [savedStep, setSavedStep] = useState<number | null>(null)
   const { preferences } = useUserPreferences()
   const { settings } = useIndependenceSettings()
 
@@ -245,7 +250,9 @@ export default function WizardContainer({
     [trigger],
   )
 
+  // Any move off the step, and any edit on it, ends the save it described.
   const handleNext = async (): Promise<void> => {
+    setSavedStep(null)
     // Auto-fill plan name if empty on Step 1
     if (currentStep === 1 && !getValues("planName")?.trim()) {
       setValue("planName", "My Independence Plan")
@@ -263,24 +270,34 @@ export default function WizardContainer({
   }
 
   const handleBack = (): void => {
+    setSavedStep(null)
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1)
     }
   }
 
   const handleStepClick = (step: number): void => {
+    setSavedStep(null)
     // In edit mode, allow navigating to any step directly
     if (isEditMode && step >= 1 && step <= TOTAL_STEPS) {
       setCurrentStep(step)
     }
   }
 
+  // Both exits land in the same place: where the reader was when they chose
+  // to edit. Previously Cancel and Save both pushed the stage drill-down
+  // regardless of origin, so editing a stage from the plan moved the reader to
+  // a different page than the one they were reading — and the journey and
+  // section they had open, which live in the query string, were lost with it.
+  const returnTo = resolveReturnTo(router.query?.returnTo)
+  // Whether a caller actually named an origin, as opposed to the fallback. The
+  // create path has no origin to return to when entered from "Add a stage", and
+  // dropping the reader on the plan list after several minutes of work loses
+  // the hand-off to the plan they just made.
+  const hasNamedOrigin = router.query?.returnTo !== undefined
+
   const handleCancel = (): void => {
-    if (isEditMode && planId) {
-      router.push(`/independence/plans/${planId}`)
-    } else {
-      router.push("/independence")
-    }
+    router.push(returnTo)
   }
 
   const handleSave = async (): Promise<void> => {
@@ -395,6 +412,17 @@ export default function WizardContainer({
 
       if (isEditMode) {
         setIsSubmitting(false)
+        // "Save Plan" on the last step is the finisher, so it completes the
+        // detour and hands the reader back their plan. The secondary "Save"
+        // on earlier steps means "save and keep editing" — returning there
+        // would interrupt the edit, so it acknowledges in place instead.
+        // Until now it did neither: the click mutated caches and nothing on
+        // screen moved.
+        if (currentStep === TOTAL_STEPS) {
+          router.push(returnTo)
+        } else {
+          setSavedStep(currentStep)
+        }
       } else {
         // New plan → convert into the default phased trio (go-go / slow-go /
         // no-go). force=false: a user who already has a real composite keeps
@@ -406,7 +434,10 @@ export default function WizardContainer({
         } catch (phaseErr) {
           console.warn("Failed to generate phased plans:", phaseErr)
         }
-        router.push(`/independence/plans/${savedPlanId}`)
+        // Finish at the plan just created unless the caller said where to go.
+        router.push(
+          hasNamedOrigin ? returnTo : `/independence/plans/${savedPlanId}`,
+        )
       }
     } catch (err: unknown) {
       const message =
@@ -483,13 +514,23 @@ export default function WizardContainer({
           </div>
         )}
 
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          onChange={() => setSavedStep(null)}
+        >
           {renderStep()}
 
           {currentStep === 1 && !isEditMode && (
             <div className="mt-6">
               <ClientSelector clientId={clientId} onChange={setClientId} />
             </div>
+          )}
+
+          {savedStep === currentStep && (
+            <p role="status" className="mt-4 text-sm text-gain">
+              <i aria-hidden="true" className="fas fa-check mr-1.5" />
+              Saved. Keep going, or finish on the last step.
+            </p>
           )}
 
           <WizardNavigation

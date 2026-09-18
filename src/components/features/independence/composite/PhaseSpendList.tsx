@@ -1,5 +1,6 @@
 import React from "react"
 import Link from "next/link"
+import { useRouter } from "next/router"
 import LifestyleSummary from "@components/features/independence/LifestyleSummary"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { useExpenseCategories } from "@components/features/independence/useExpenseCategories"
@@ -9,6 +10,7 @@ import { currencySymbolFor } from "@lib/formatters"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import Spinner from "@components/ui/Spinner"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+import { editPhaseHref } from "@lib/independence/editPhase"
 import type { CompositePhaseInfo } from "types/independence"
 
 /**
@@ -60,6 +62,7 @@ function PhaseSpend({
 }: {
   phase: CompositePhaseInfo
 }): React.ReactElement {
+  const router = useRouter()
   const { hideValues } = usePrivacyMode()
   const { expenses, isLoading } = usePlanExpenses(phase.planId)
   const { labels } = useExpenseCategories()
@@ -81,7 +84,7 @@ function PhaseSpend({
         <Link
           // Straight to Expenses: this board is about what the stage spends,
           // so that's the part of the wizard the user came to change.
-          href={`/independence/wizard/${phase.planId}?step=expenses`}
+          href={editPhaseHref(phase.planId, router.asPath, "expenses")}
           aria-label={`Edit ${phase.planName}`}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
         >

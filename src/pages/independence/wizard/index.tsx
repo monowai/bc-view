@@ -2,9 +2,14 @@ import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
+import { useRouter } from "next/router"
+import { resolveReturnTo, returnToLabel } from "@lib/independence/editPhase"
 import WizardContainer from "@components/features/independence/WizardContainer"
 
 function RetirementWizard(): React.ReactElement {
+  const router = useRouter()
+  const returnTo = resolveReturnTo(router.query?.returnTo)
+
   return (
     <>
       <Head>
@@ -15,11 +20,11 @@ function RetirementWizard(): React.ReactElement {
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <Link
-              href="/independence"
-              className="text-independence-600 hover:text-independence-700 font-medium"
+              href={returnTo}
+              className="inline-flex items-center text-sm font-medium text-independence-600 transition-colors duration-150 hover:text-independence-700 motion-reduce:transition-none"
             >
-              <i className="fas fa-arrow-left mr-2"></i>
-              Back to Plans
+              <i aria-hidden="true" className="fas fa-arrow-left mr-2" />
+              {returnToLabel(returnTo)}
             </Link>
           </div>
 

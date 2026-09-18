@@ -3,6 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
+import { editPhaseHref } from "@lib/independence/editPhase"
 import { Position } from "types/beancounter"
 import {
   serverBreakdownToAllocationSlices,
@@ -922,7 +923,7 @@ function PlanView(): React.ReactElement {
                     must equal 100%. Projections are disabled until this is
                     corrected.{" "}
                     <Link
-                      href={`/independence/wizard/${plan.id}`}
+                      href={editPhaseHref(plan.id, router.asPath)}
                       className="underline font-medium hover:text-red-900"
                     >
                       Edit plan to fix
