@@ -25,6 +25,23 @@ describe("resolveReturnTo", () => {
     expect(resolveReturnTo("javascript:alert(1)")).toBe("/independence")
   })
 
+  it("refuses a path that escapes Independence by traversal", () => {
+    // `/independence/../admin` starts with the prefix but the router resolves
+    // it to `/admin`, so a raw startsWith check let a crafted link leave the
+    // surface the allow-list exists to bound. Encoded traversal is the same
+    // attack with different spelling.
+    expect(resolveReturnTo("/independence/../admin")).toBe("/independence")
+    expect(resolveReturnTo("/independence/%2e%2e/admin")).toBe("/independence")
+    expect(resolveReturnTo("/independence/../../etc")).toBe("/independence")
+  })
+
+  it("normalises a traversal that stays inside Independence", () => {
+    // Harmless, but it must be labelled and navigated as what it resolves to.
+    expect(resolveReturnTo("/independence/plans/../wizard/1")).toBe(
+      "/independence/wizard/1",
+    )
+  })
+
   it("refuses a path that only looks like Independence", () => {
     expect(resolveReturnTo("/independencelookalike")).toBe("/independence")
     expect(resolveReturnTo("/wealth")).toBe("/independence")
@@ -65,5 +82,12 @@ describe("returnToLabel", () => {
   it("names the destination rather than saying 'back'", () => {
     expect(returnToLabel("/independence?view=plan")).toBe("Back to your plan")
     expect(returnToLabel("/independence/plans/p1")).toBe("Back to this stage")
+  })
+
+  it("labels what the path resolves to, not how it is spelled", () => {
+    // `/independence/plans/../wizard/1` is not a stage, however it starts.
+    expect(returnToLabel("/independence/plans/../wizard/1")).toBe(
+      "Back to your plan",
+    )
   })
 })

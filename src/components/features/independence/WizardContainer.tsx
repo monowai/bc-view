@@ -183,8 +183,9 @@ export default function WizardContainer({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
-  // Which step's changes are saved. Tied to the step rather than a timer so
-  // moving on clears the acknowledgement by itself.
+  // Which step's changes are saved, cleared the moment that stops being true.
+  // Keying it to the step only *hid* the message elsewhere: returning to the
+  // step brought back a "Saved" that no longer described the form.
   const [savedStep, setSavedStep] = useState<number | null>(null)
   const { preferences } = useUserPreferences()
   const { settings } = useIndependenceSettings()
@@ -249,7 +250,9 @@ export default function WizardContainer({
     [trigger],
   )
 
+  // Any move off the step, and any edit on it, ends the save it described.
   const handleNext = async (): Promise<void> => {
+    setSavedStep(null)
     // Auto-fill plan name if empty on Step 1
     if (currentStep === 1 && !getValues("planName")?.trim()) {
       setValue("planName", "My Independence Plan")
@@ -267,12 +270,14 @@ export default function WizardContainer({
   }
 
   const handleBack = (): void => {
+    setSavedStep(null)
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1)
     }
   }
 
   const handleStepClick = (step: number): void => {
+    setSavedStep(null)
     // In edit mode, allow navigating to any step directly
     if (isEditMode && step >= 1 && step <= TOTAL_STEPS) {
       setCurrentStep(step)
@@ -285,6 +290,11 @@ export default function WizardContainer({
   // a different page than the one they were reading — and the journey and
   // section they had open, which live in the query string, were lost with it.
   const returnTo = resolveReturnTo(router.query?.returnTo)
+  // Whether a caller actually named an origin, as opposed to the fallback. The
+  // create path has no origin to return to when entered from "Add a stage", and
+  // dropping the reader on the plan list after several minutes of work loses
+  // the hand-off to the plan they just made.
+  const hasNamedOrigin = router.query?.returnTo !== undefined
 
   const handleCancel = (): void => {
     router.push(returnTo)
@@ -424,7 +434,10 @@ export default function WizardContainer({
         } catch (phaseErr) {
           console.warn("Failed to generate phased plans:", phaseErr)
         }
-        router.push(returnTo)
+        // Finish at the plan just created unless the caller said where to go.
+        router.push(
+          hasNamedOrigin ? returnTo : `/independence/plans/${savedPlanId}`,
+        )
       }
     } catch (err: unknown) {
       const message =
@@ -501,7 +514,10 @@ export default function WizardContainer({
           </div>
         )}
 
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          onChange={() => setSavedStep(null)}
+        >
           {renderStep()}
 
           {currentStep === 1 && !isEditMode && (
