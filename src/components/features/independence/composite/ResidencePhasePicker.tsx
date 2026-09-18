@@ -28,7 +28,7 @@ function getPlanName(plans: RetirementPlan[], planId: string): string {
  * is the canonical store for it.
  */
 export default function ResidencePhasePicker(): React.ReactElement | null {
-  const { plans, phases } = useCompositeProjectionContext()
+  const { plans, phases, projection } = useCompositeProjectionContext()
   const canonicalPlanId = phases[0]?.planId
 
   const {
@@ -45,10 +45,21 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
 
   const [savingAssetIds, setSavingAssetIds] = useState<Set<string>>(new Set())
 
-  // Rental properties only: pensions/policies (e.g. CPF) also live in
-  // PrivateAssetConfig, and a zero-rent property has no income to suppress.
+  // The properties THIS journey still earns rent from, per the projection that
+  // is on screen. The configs are account-wide and know nothing of journeys, so
+  // filtering on them alone offered a move-in decision about a property the
+  // journey sells at t0 — and quoted rental the projection was not counting.
+  // svc-retire resolves this set against the journey's liquidated and excluded
+  // portfolios and the plan's excluded rentals; nothing is re-derived here.
+  const earningRent = projection?.rentalIncomeByAsset
   const rentalProperties = configs.filter(
-    (c) => !c.isPrimaryResidence && !c.isPension && c.monthlyRentalIncome > 0,
+    (c) =>
+      !c.isPrimaryResidence &&
+      !c.isPension &&
+      c.monthlyRentalIncome > 0 &&
+      // Absent echo means an older response, not "no properties" — fall back to
+      // the previous behaviour rather than hiding every lever.
+      (earningRent === undefined || earningRent[c.assetId] !== undefined),
   )
 
   if (phases.length === 0 || rentalProperties.length === 0) {
@@ -129,7 +140,14 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
                 Earning{" "}
                 <span className="font-mono tabular-nums">
                   {config.rentalCurrency}{" "}
-                  {config.monthlyRentalIncome.toLocaleString()}
+                  {(
+                    earningRent?.[config.assetId] ?? config.monthlyRentalIncome
+                  ).toLocaleString(undefined, {
+                    // The echoed figure is net of tax and FX-converted, so it
+                    // arrives with more precision than money is read in.
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
                 /mo until you do
               </>

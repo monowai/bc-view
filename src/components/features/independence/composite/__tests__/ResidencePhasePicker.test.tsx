@@ -336,4 +336,91 @@ describe("ResidencePhasePicker", () => {
       expect(deletePropertyIncome).toHaveBeenCalledWith("asset-1")
     })
   })
+
+  it("offers no decision about a property this journey has disposed of", () => {
+    // The configs are account-wide. A journey that sells the property at t0
+    // still had it listed here, offering a move-in choice with no possible
+    // effect — and quoting rental the projection was not counting.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt" })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({
+      projection: {
+        rentalIncomeByAsset: {},
+      } as unknown as CompositeProjectionValue["projection"],
+    })
+
+    expect(
+      screen.queryByText(/Move into France St. Apt/),
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers the decision when the journey still earns rent from it", () => {
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt" })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({
+      projection: {
+        rentalIncomeByAsset: { apt: 4333 },
+      } as unknown as CompositeProjectionValue["projection"],
+    })
+
+    expect(screen.getByText(/Move into France St. Apt/)).toBeInTheDocument()
+  })
+
+  it("quotes the income the projection is actually using", () => {
+    // The config's own figure is account-wide and pre-tax of the plan's own
+    // scoping; the echo is what the numbers on screen were built from.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt", monthlyRentalIncome: 2000 })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({
+      projection: {
+        rentalIncomeByAsset: { apt: 4333 },
+      } as unknown as CompositeProjectionValue["projection"],
+    })
+
+    expect(screen.getByText(/4,333/)).toBeInTheDocument()
+    expect(screen.queryByText(/2,000/)).not.toBeInTheDocument()
+  })
+
+  it("keeps every lever when the response predates the echo", () => {
+    // An older backend sends no map at all. That is "unknown", not "none" —
+    // hiding every lever would be a worse answer than the previous behaviour.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt" })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({ projection: undefined })
+
+    expect(screen.getByText(/Move into France St. Apt/)).toBeInTheDocument()
+  })
+
+  it("reads the echoed income as money, not raw precision", () => {
+    // Net-of-tax and FX-converted, the figure arrives as 2551.6167.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt" })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({
+      projection: {
+        rentalIncomeByAsset: { apt: 2551.6167 },
+      } as unknown as CompositeProjectionValue["projection"],
+    })
+
+    expect(screen.getByText(/2,551\.62/)).toBeInTheDocument()
+  })
 })

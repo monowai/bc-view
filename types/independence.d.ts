@@ -1395,6 +1395,14 @@ export interface CompositePhaseInfo {
 }
 
 export interface CompositeProjectionResult {
+  /**
+   * Assets this journey still earns rent from, keyed by assetId, monthly in
+   * the owning phase plan's currency. Unioned across phases by svc-retire,
+   * already scoped to the journey's liquidations and exclusions — read it
+   * rather than filtering account-wide asset configs, which know nothing of
+   * journeys. Absent on responses predating the echo.
+   */
+  rentalIncomeByAsset?: Record<string, number>
   asOfDate: string
   displayCurrency: string
   phases: CompositePhaseInfo[]
