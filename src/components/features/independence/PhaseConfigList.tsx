@@ -1,5 +1,7 @@
 import React, { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/router"
+import { editPhaseHref } from "@lib/independence/editPhase"
 import type { RetirementPlan, CompositePhase } from "types/independence"
 import MathInput from "@components/ui/MathInput"
 import {
@@ -50,6 +52,7 @@ function PhaseNarrative({
   planId: string
   narrative: string | undefined
 }): React.ReactElement {
+  const router = useRouter()
   const [expanded, setExpanded] = useState(false)
 
   if (!narrative) {
@@ -57,7 +60,7 @@ function PhaseNarrative({
       <p className="mt-1 text-sm text-gray-500">
         No context yet —{" "}
         <Link
-          href={`/independence/wizard/${planId}`}
+          href={editPhaseHref(planId, router.asPath)}
           className="font-medium text-independence-700 underline-offset-2 hover:underline"
         >
           describe this phase
@@ -85,7 +88,7 @@ function PhaseNarrative({
           {expanded ? "Show less" : "Show more"}
         </button>
         <Link
-          href={`/independence/wizard/${planId}`}
+          href={editPhaseHref(planId, router.asPath)}
           className="font-medium text-independence-700 underline-offset-2 hover:underline"
         >
           Edit phase

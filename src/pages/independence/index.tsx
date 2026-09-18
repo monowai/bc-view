@@ -3,6 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
+import { editPhaseHref } from "@lib/independence/editPhase"
 import useSwr from "swr"
 import {
   simpleFetcher,
@@ -167,6 +168,9 @@ function PlanCard({
   /** Triggered when viewer revokes their own access; receives planId. */
   onLeaveShare?: (planId: string) => void
 }): React.ReactElement {
+  // Its own router: the card is a module-level component, and the edit link
+  // has to carry the reader's current location so the wizard can hand it back.
+  const router = useRouter()
   // Use unified projection hook with shared assets
   const { projection, isLoading: fiLoading } = useFiProjectionSimple({
     plan,
@@ -258,7 +262,7 @@ function PlanCard({
                 </button>
               )}
               <Link
-                href={`/independence/wizard/${plan.id}`}
+                href={editPhaseHref(plan.id, router.asPath)}
                 className="!text-green-600 hover:!text-green-900 p-1.5"
                 title="Edit plan"
               >
