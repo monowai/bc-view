@@ -3,6 +3,7 @@ import PhaseConfigList from "../../PhaseConfigList"
 import PhaseTimeline, { resolvePhases } from "../PhaseTimeline"
 import ResidencePhasePicker from "../ResidencePhasePicker"
 import BenefitsStartPhasePicker from "../BenefitsStartPhasePicker"
+import DisplayCurrencyPicker from "../../DisplayCurrencyPicker"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -30,6 +31,8 @@ export default function PhasesTab(): React.ReactElement {
     plans,
     phases,
     setPhases,
+    displayCurrency,
+    setDisplayCurrency,
     excludedPlanIds,
     toggleExclusion,
     projection,
@@ -75,6 +78,11 @@ export default function PhasesTab(): React.ReactElement {
             Decisions that land on a phase boundary rather than a single age.
           </p>
           <div className="mt-2 divide-y divide-gray-100">
+            <DisplayCurrencyPicker
+              plans={plans}
+              value={displayCurrency}
+              onChange={setDisplayCurrency}
+            />
             <ResidencePhasePicker />
             <BenefitsStartPhasePicker />
           </div>

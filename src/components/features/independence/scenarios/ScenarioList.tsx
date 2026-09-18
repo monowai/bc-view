@@ -19,10 +19,16 @@ const deletedKey = "/api/independence/work-scenarios/deleted"
 interface ScenarioListProps {
   /** Plan currency used to default a NEW scenario. */
   defaultCurrency?: string
+  /**
+   * Scenario the plan being viewed runs on, so the list can say which one is
+   * actually in use. Distinct from `isCurrent` — see ScenarioCard.
+   */
+  usedScenarioId?: string
 }
 
 export default function ScenarioList({
   defaultCurrency,
+  usedScenarioId,
 }: ScenarioListProps = {}): React.ReactElement {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingScenario, setEditingScenario] = useState<WorkScenario | null>(
@@ -47,6 +53,10 @@ export default function ScenarioList({
   } = useSwr<WorkScenariosResponse>(deletedKey, simpleFetcher(deletedKey))
 
   const scenarios = data?.data || []
+  // Whether the plan's named scenario still resolves. It may name one that has
+  // since been deleted, which svc-retire degrades to the current scenario.
+  const usesNamedScenario =
+    !!usedScenarioId && scenarios.some((s) => s.id === usedScenarioId)
   const deletedScenarios = deletedData?.data || []
 
   const handleCreate = useCallback(() => {
@@ -207,6 +217,15 @@ export default function ScenarioList({
             <ScenarioCard
               key={scenario.id}
               scenario={scenario}
+              usedByPlan={
+                // A journey can name a scenario that has since been deleted.
+                // svc-retire degrades that to the current one, so the list has
+                // to as well — matching on the dead id would mark nothing and
+                // disagree with the numbers the plan is showing.
+                usesNamedScenario
+                  ? scenario.id === usedScenarioId
+                  : scenario.isCurrent
+              }
               onEdit={handleEdit}
               onDelete={setDeleteTarget}
               onSetCurrent={handleSetCurrent}
