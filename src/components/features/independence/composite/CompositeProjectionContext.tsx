@@ -56,6 +56,8 @@ export interface CompositeProjectionValue {
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
+  /** See useCompositeProjection — 'no answer yet' vs 'asked and got nothing'. */
+  isSettled: boolean
   error: string | null
 
   /** The one stress run shared by the verdict and the chart. */

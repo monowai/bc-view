@@ -32,6 +32,7 @@ jest.mock("@hooks/useIndependencePlans", () => ({
     setActivePlan: jest.fn(),
     update: mockUpdate,
     isLoading: false,
+    isSettled: true,
   }),
 }))
 

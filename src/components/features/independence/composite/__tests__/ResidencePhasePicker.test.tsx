@@ -16,6 +16,7 @@ jest.mock("@utils/independence/usePropertyIncomes", () => ({
   usePropertyIncomes: jest.fn(() => ({
     propertyIncomes: [],
     isLoading: false,
+    isSettled: true,
     error: undefined,
     savePropertyIncome,
     deletePropertyIncome,
@@ -101,6 +102,7 @@ function makeCtx(
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
+    isSettled: true,
     error: null,
     mc: {
       result: null,
