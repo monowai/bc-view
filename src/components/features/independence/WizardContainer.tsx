@@ -30,6 +30,7 @@ import { portfoliosForJourney } from "@lib/independence/journeyPhases"
 import { WizardFormData, RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { resolveReturnTo } from "@lib/independence/editPhase"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import {
@@ -182,6 +183,9 @@ export default function WizardContainer({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
+  // Which step's changes are saved. Tied to the step rather than a timer so
+  // moving on clears the acknowledgement by itself.
+  const [savedStep, setSavedStep] = useState<number | null>(null)
   const { preferences } = useUserPreferences()
   const { settings } = useIndependenceSettings()
 
@@ -275,12 +279,15 @@ export default function WizardContainer({
     }
   }
 
+  // Both exits land in the same place: where the reader was when they chose
+  // to edit. Previously Cancel and Save both pushed the stage drill-down
+  // regardless of origin, so editing a stage from the plan moved the reader to
+  // a different page than the one they were reading — and the journey and
+  // section they had open, which live in the query string, were lost with it.
+  const returnTo = resolveReturnTo(router.query?.returnTo)
+
   const handleCancel = (): void => {
-    if (isEditMode && planId) {
-      router.push(`/independence/plans/${planId}`)
-    } else {
-      router.push("/independence")
-    }
+    router.push(returnTo)
   }
 
   const handleSave = async (): Promise<void> => {
@@ -395,6 +402,17 @@ export default function WizardContainer({
 
       if (isEditMode) {
         setIsSubmitting(false)
+        // "Save Plan" on the last step is the finisher, so it completes the
+        // detour and hands the reader back their plan. The secondary "Save"
+        // on earlier steps means "save and keep editing" — returning there
+        // would interrupt the edit, so it acknowledges in place instead.
+        // Until now it did neither: the click mutated caches and nothing on
+        // screen moved.
+        if (currentStep === TOTAL_STEPS) {
+          router.push(returnTo)
+        } else {
+          setSavedStep(currentStep)
+        }
       } else {
         // New plan → convert into the default phased trio (go-go / slow-go /
         // no-go). force=false: a user who already has a real composite keeps
@@ -406,7 +424,7 @@ export default function WizardContainer({
         } catch (phaseErr) {
           console.warn("Failed to generate phased plans:", phaseErr)
         }
-        router.push(`/independence/plans/${savedPlanId}`)
+        router.push(returnTo)
       }
     } catch (err: unknown) {
       const message =
@@ -490,6 +508,13 @@ export default function WizardContainer({
             <div className="mt-6">
               <ClientSelector clientId={clientId} onChange={setClientId} />
             </div>
+          )}
+
+          {savedStep === currentStep && (
+            <p role="status" className="mt-4 text-sm text-gain">
+              <i aria-hidden="true" className="fas fa-check mr-1.5" />
+              Saved. Keep going, or finish on the last step.
+            </p>
           )}
 
           <WizardNavigation

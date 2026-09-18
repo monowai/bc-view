@@ -1,5 +1,7 @@
 import React from "react"
 import Link from "next/link"
+import { useRouter } from "next/router"
+import { editPhaseHref } from "@lib/independence/editPhase"
 
 interface CurrencyOption {
   code: string
@@ -34,6 +36,8 @@ export default function PlanViewHeader({
   planningHorizonYears,
   onExport,
 }: PlanViewHeaderProps): React.ReactElement {
+  const router = useRouter()
+
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-4">
@@ -61,7 +65,7 @@ export default function PlanViewHeader({
           <i className="fas fa-download"></i>
         </button>
         <Link
-          href={`/independence/wizard/${planId}`}
+          href={editPhaseHref(planId, router.asPath)}
           className="text-independence-600 hover:text-independence-700 text-sm font-medium"
         >
           <i className="fas fa-edit mr-1"></i>

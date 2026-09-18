@@ -20,10 +20,16 @@ import {
   parseExcludedRentalAssetIds,
 } from "@lib/independence/planHelpers"
 import { stepIdForSlug } from "@lib/independence/stepConfig"
+import { resolveReturnTo, returnToLabel } from "@lib/independence/editPhase"
+import Link from "next/link"
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
   const { planId, step } = router.query
+  // The page had no way out of its own: only the form's Cancel, which reads as
+  // discarding work rather than as leaving. The link names its destination so
+  // it is obvious this is a detour with a way home.
+  const returnTo = resolveReturnTo(router.query?.returnTo)
   // `?step=expenses` opens the wizard where the caller was looking — the
   // Summary tab's per-phase spend board links straight to Expenses. Unknown
   // tokens resolve to undefined and the wizard opens at step 1 as before.
@@ -161,8 +167,15 @@ function EditPlanWizard(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Edit {plan.name} Plan
+            <Link
+              href={returnTo}
+              className="inline-flex items-center text-sm font-medium text-independence-600 transition-colors duration-150 hover:text-independence-700 motion-reduce:transition-none"
+            >
+              <i aria-hidden="true" className="fas fa-arrow-left mr-2" />
+              {returnToLabel(returnTo)}
+            </Link>
+            <h1 className="mt-3 text-3xl font-bold text-gray-900">
+              Edit {plan.name}
             </h1>
           </div>
 
