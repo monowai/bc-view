@@ -130,6 +130,7 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
 
         const assetLabel = assetNames[config.assetId] || config.assetId
         const saving = savingAssetIds.has(config.assetId)
+        const echoed = earningRent?.[config.assetId]
 
         return (
           <LeverRow
@@ -139,15 +140,20 @@ export default function ResidencePhasePicker(): React.ReactElement | null {
               <>
                 Earning{" "}
                 <span className="font-mono tabular-nums">
-                  {config.rentalCurrency}{" "}
-                  {(
-                    earningRent?.[config.assetId] ?? config.monthlyRentalIncome
-                  ).toLocaleString(undefined, {
-                    // The echoed figure is net of tax and FX-converted, so it
-                    // arrives with more precision than money is read in.
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {echoed !== undefined
+                    ? // Net of tax and converted into the currency the
+                      // projection ran in — which is not the currency the rent
+                      // was entered in. Labelling it config.rentalCurrency
+                      // quotes converted money under the original's name.
+                      `${projection?.displayCurrency} ${echoed.toLocaleString(
+                        undefined,
+                        // Converted figures arrive with more precision than
+                        // money is read in.
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                      )}`
+                    : // No echo: the account-level figure, in its own currency
+                      // and at its own precision, exactly as it always read.
+                      `${config.rentalCurrency} ${config.monthlyRentalIncome.toLocaleString()}`}
                 </span>
                 /mo until you do
               </>

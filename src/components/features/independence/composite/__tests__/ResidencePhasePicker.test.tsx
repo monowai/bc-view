@@ -349,6 +349,7 @@ describe("ResidencePhasePicker", () => {
 
     renderWithCtx({
       projection: {
+        displayCurrency: "USD",
         rentalIncomeByAsset: {},
       } as unknown as CompositeProjectionValue["projection"],
     })
@@ -367,6 +368,7 @@ describe("ResidencePhasePicker", () => {
 
     renderWithCtx({
       projection: {
+        displayCurrency: "USD",
         rentalIncomeByAsset: { apt: 4333 },
       } as unknown as CompositeProjectionValue["projection"],
     })
@@ -385,6 +387,7 @@ describe("ResidencePhasePicker", () => {
 
     renderWithCtx({
       projection: {
+        displayCurrency: "USD",
         rentalIncomeByAsset: { apt: 4333 },
       } as unknown as CompositeProjectionValue["projection"],
     })
@@ -417,10 +420,52 @@ describe("ResidencePhasePicker", () => {
 
     renderWithCtx({
       projection: {
+        displayCurrency: "USD",
         rentalIncomeByAsset: { apt: 2551.6167 },
       } as unknown as CompositeProjectionValue["projection"],
     })
 
     expect(screen.getByText(/2,551\.62/)).toBeInTheDocument()
+  })
+
+  it("labels the echoed income with the currency the projection ran in", () => {
+    // The echo arrives net of tax and converted into the projection's display
+    // currency. The config's own rentalCurrency is what the rent was entered
+    // in — pairing it with a converted figure quotes SGD money as NZD.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [makeConfig({ assetId: "apt", rentalCurrency: "NZD" })],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({
+      projection: {
+        displayCurrency: "SGD",
+        rentalIncomeByAsset: { apt: 1500.5 },
+      } as unknown as CompositeProjectionValue["projection"],
+    })
+
+    expect(screen.getByText(/SGD\s+1,500\.50/)).toBeInTheDocument()
+    expect(screen.queryByText(/NZD/)).not.toBeInTheDocument()
+  })
+
+  it("keeps the config's own currency and precision on the legacy path", () => {
+    // No echo: the figure shown is the account-level config's own amount, in
+    // its own currency, and reads as it always did — whole dollars.
+    usePrivateAssetConfigsMock.mockReturnValue({
+      configs: [
+        makeConfig({
+          assetId: "apt",
+          rentalCurrency: "NZD",
+          monthlyRentalIncome: 2000,
+        }),
+      ],
+      assetNames: { apt: "France St. Apt" },
+      isLoading: false,
+    })
+
+    renderWithCtx({ projection: undefined })
+
+    expect(screen.getByText(/NZD\s+2,000$/)).toBeInTheDocument()
   })
 })
