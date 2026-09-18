@@ -18,6 +18,7 @@ import WealthOverTime from "./composite/WealthOverTime"
 import PhaseSpendList from "./composite/PhaseSpendList"
 import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
+import WorkingYearsSection from "./scenarios/WorkingYearsSection"
 import NetWorthTab from "./composite/tabs/NetWorthTab"
 
 /**
@@ -25,7 +26,7 @@ import NetWorthTab from "./composite/tabs/NetWorthTab"
  * the two kinds apart — settings live behind Set up, never in the same row as
  * the charts — but both need this provider, so both are rendered from here.
  */
-export type CompositeMode = "plan" | "stages" | "wealth"
+export type CompositeMode = "plan" | "stages" | "wealth" | "work"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -72,6 +73,7 @@ export default function CompositeTab({
     <CompositeProjectionProvider value={contextValue}>
       {mode === "stages" && <PhasesTab />}
       {mode === "wealth" && <NetWorthTab />}
+      {mode === "work" && <WorkingYearsSection />}
       {mode === "plan" && <PlanNarrative />}
     </CompositeProjectionProvider>
   )
