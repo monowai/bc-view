@@ -681,18 +681,34 @@ describe("buildLifestyleSummary", () => {
   })
 
   describe("liquidation", () => {
-    it("surfaces the with-liquidation figure when it is better", () => {
+    it("surfaces the with-liquidation figure when it is better, from the what-if age", () => {
       const model = buildLifestyleSummary({
         expenses: mix,
         projection: projection({
           sustainableMonthlyExpense: 5100,
           sustainableWithLiquidation: 6300,
-          liquidationAge: 71,
+          liquidationAge: 83,
+          sustainableLiquidationAge: 79,
         }),
       })!
       expect(model.liquidation).toEqual({
         supportedMonthly: 6300,
-        fromAge: 71,
+        fromAge: 79,
+      })
+    })
+
+    it("stays null on fromAge when only the baseline liquidationAge is set", () => {
+      const model = buildLifestyleSummary({
+        expenses: mix,
+        projection: projection({
+          sustainableMonthlyExpense: 5100,
+          sustainableWithLiquidation: 6300,
+          liquidationAge: 83,
+        }),
+      })!
+      expect(model.liquidation).toEqual({
+        supportedMonthly: 6300,
+        fromAge: null,
       })
     })
 

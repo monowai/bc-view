@@ -480,7 +480,7 @@ function toLiquidation(
     return null
   return {
     supportedMonthly: withLiquidation,
-    fromAge: projection?.liquidationAge ?? null,
+    fromAge: projection?.sustainableLiquidationAge ?? null,
   }
 }
 
