@@ -14,7 +14,7 @@ type SortConfig = {
   direction: "asc" | "desc"
 }
 
-/** Manual asset categories matching the wizard's AssetsStep. */
+/** Manual asset categories, for an account holding no portfolios. */
 const MANUAL_ASSET_CATEGORIES: { key: string; label: string }[] = [
   { key: "CASH", label: "Cash & Bank Accounts" },
   { key: "EQUITY", label: "Stocks & Shares" },

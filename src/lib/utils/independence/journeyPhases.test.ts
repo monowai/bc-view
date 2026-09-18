@@ -1,9 +1,11 @@
 import type { IndependencePlan, RetirementPlan } from "types/independence"
+import type { Portfolio } from "types/beancounter"
 import {
   isJourneyPhased,
   journeyPhasePlans,
   landingPlan,
   parseJourneyPhases,
+  portfoliosForJourney,
   primaryJourney,
 } from "./journeyPhases"
 
@@ -219,5 +221,95 @@ describe("landingPlan", () => {
 
   it("yields nothing for an empty list", () => {
     expect(landingPlan([])).toBeUndefined()
+  })
+})
+
+describe("portfoliosForJourney", () => {
+  const owned = [
+    { id: "p1" },
+    { id: "p2" },
+    { id: "p3" },
+  ] as unknown as Portfolio[]
+  const journey = (
+    overrides: Partial<IndependencePlan> & { id: string },
+  ): IndependencePlan =>
+    ({
+      ownerId: "u1",
+      name: "Life owning",
+      isPrimary: true,
+      createdDate: "2026-01-01",
+      updatedDate: "2026-01-01",
+      ...overrides,
+    }) as IndependencePlan
+
+  it("drops the journey's excluded portfolios", () => {
+    const ids = portfoliosForJourney({
+      portfolios: owned,
+      journeys: [journey({ id: "j1", excludedPortfolioIds: '["p2"]' })],
+      journeyId: "j1",
+      journeysLoading: false,
+    })
+    expect(ids).toEqual(["p1", "p3"])
+  })
+
+  it("waits for the journeys request rather than seeding from everything", () => {
+    // The two SWR requests resolve independently. Answering "all portfolios"
+    // while the journeys are still in flight lets AssumptionsStep seed the
+    // allocation from the unfiltered set and latch, so the corrected list
+    // never gets applied.
+    expect(
+      portfoliosForJourney({
+        portfolios: owned,
+        journeys: [],
+        journeyId: "j1",
+        journeysLoading: true,
+      }),
+    ).toEqual([])
+  })
+
+  it("declines to guess when the named journey cannot be found", () => {
+    // A stale or deleted id. Seeding from every portfolio would silently
+    // describe wealth the journey does not claim.
+    expect(
+      portfoliosForJourney({
+        portfolios: owned,
+        journeys: [journey({ id: "other" })],
+        journeyId: "j1",
+        journeysLoading: false,
+      }),
+    ).toEqual([])
+  })
+
+  it("uses every portfolio when no journey is named at all", () => {
+    expect(
+      portfoliosForJourney({
+        portfolios: owned,
+        journeys: [],
+        journeyId: undefined,
+        journeysLoading: false,
+      }),
+    ).toEqual(["p1", "p2", "p3"])
+  })
+
+  it("treats a journey that defines no exclusions as excluding nothing", () => {
+    expect(
+      portfoliosForJourney({
+        portfolios: owned,
+        journeys: [journey({ id: "j1" })],
+        journeyId: "j1",
+        journeysLoading: false,
+      }),
+    ).toEqual(["p1", "p2", "p3"])
+  })
+
+  it("is empty until the portfolios themselves arrive", () => {
+    expect(
+      portfoliosForJourney({
+        portfolios: [],
+        journeys: [journey({ id: "j1" })],
+        journeyId: "j1",
+        journeysLoading: false,
+      }),
+    ).toEqual([])
   })
 })
