@@ -2,13 +2,12 @@ import React, { useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useRouter } from "next/router"
-import { mutate } from "swr"
+import useSwr, { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import WorkScenarioBanner from "./WorkScenarioBanner"
 import IndependenceSettingsSummary from "./IndependenceSettingsSummary"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
-import AssetsStep from "./steps/AssetsStep"
 import AssumptionsStep from "./steps/AssumptionsStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
@@ -23,14 +22,20 @@ import {
 } from "@lib/independence/stepConfig"
 import { toDecimal } from "@lib/independence/conversions"
 import {
+  parseExcludedPortfolioIds,
   serializeAssetDisposals,
   serializeLifeEvents,
   toPlanRequestPayload,
 } from "@lib/independence/planHelpers"
 import { WizardFormData, RetirementPlan } from "types/independence"
+import { Portfolio } from "types/beancounter"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
-import { ACTIVE_PLAN_QUERY_PARAM } from "@hooks/useIndependencePlans"
+import {
+  ACTIVE_PLAN_QUERY_PARAM,
+  useIndependencePlans,
+} from "@hooks/useIndependencePlans"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 
 interface WizardContainerProps {
@@ -85,16 +90,6 @@ export function buildWizardPlanRequest(
     0,
   )
 
-  // Filter out zero-value manual assets before sending. An empty object
-  // is sent explicitly (not null) so the backend distinguishes "user
-  // cleared all categories" from "field omitted" and wipes the stored
-  // value — see PlanService.updatePlan PATCH semantics.
-  const manualAssets = formData.manualAssets
-    ? Object.fromEntries(
-        Object.entries(formData.manualAssets).filter(([, value]) => value > 0),
-      )
-    : {}
-
   return {
     ...(ctx.isEditMode && ctx.plan ? toPlanRequestPayload(ctx.plan) : {}),
     name: formData.planName,
@@ -117,8 +112,13 @@ export function buildWizardPlanRequest(
     // backend distinguishes "list cleared" from "field omitted".
     lifeEvents: serializeLifeEvents(formData.lifeEvents),
     assetDisposals: serializeAssetDisposals(formData.assetDisposals),
-    manualAssets,
-    excludedPortfolioIds: formData.excludedPortfolioIds || [],
+    // `manualAssets` and `excludedPortfolioIds` are deliberately absent. The
+    // wizard no longer edits either — wealth belongs to the journey — and both
+    // were being sent as an empty default on every save, which on PATCH *wipes*
+    // the stored legacy value rather than leaving it alone. Omitted means
+    // "unchanged" (PlanService.updatePlan), which is the honest answer now that
+    // nothing here can change them. Edit mode still echoes the stored
+    // excludedPortfolioIds via toPlanRequestPayload.
     excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
     country: formData.country?.trim() || undefined,
     narrative: formData.narrative?.trim() || undefined,
@@ -146,6 +146,27 @@ export default function WizardContainer({
   const journeyId = Array.isArray(requestedJourney)
     ? requestedJourney[0]
     : requestedJourney
+
+  // Portfolios the journey draws on, so Assumptions can seed the asset split
+  // from what the user actually holds. This came from the Wealth step's
+  // `selectedPortfolioIds` until that step was removed; the journey is where
+  // the answer really lives, so it is read from there rather than re-offered
+  // as a per-stage choice. A stage with no journey seeds from everything.
+  const { plans: journeys } = useIndependencePlans()
+  const { data: portfolioData } = useSwr<{ data: Portfolio[] }>(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
+  const journeyPortfolioIds = useMemo(() => {
+    const owned = portfolioData?.data ?? []
+    const journey = journeyId
+      ? journeys.find((candidate) => candidate.id === journeyId)
+      : undefined
+    const excluded = new Set(
+      parseExcludedPortfolioIds(journey?.excludedPortfolioIds) ?? [],
+    )
+    return owned.filter((p) => !excluded.has(p.id)).map((p) => p.id)
+  }, [portfolioData, journeys, journeyId])
   const [currentStep, setCurrentStep] = useState(() =>
     isEditMode && initialStep && initialStep >= 1 && initialStep <= TOTAL_STEPS
       ? initialStep
@@ -397,22 +418,15 @@ export default function WizardContainer({
         return <PersonalInfoStep control={control} errors={errors} />
       case 2:
         return (
-          <AssetsStep
-            control={control}
-            setValue={setValue}
-            isEditMode={isEditMode}
-          />
-        )
-      case 3:
-        return (
           <AssumptionsStep
             control={control}
             errors={errors}
             setValue={setValue}
             isEditMode={isEditMode}
+            portfolioIds={journeyPortfolioIds}
           />
         )
-      case 4:
+      case 3:
         return (
           <IncomeSourcesStep
             control={control}
@@ -420,7 +434,7 @@ export default function WizardContainer({
             isEditMode={isEditMode}
           />
         )
-      case 5:
+      case 4:
         return (
           <ExpensesStep
             control={control}
@@ -430,7 +444,7 @@ export default function WizardContainer({
             isEditMode={isEditMode}
           />
         )
-      case 6:
+      case 5:
         return (
           <LifeEventsStep
             control={control}

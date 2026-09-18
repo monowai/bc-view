@@ -22,6 +22,17 @@ interface AssumptionsStepProps {
   errors: FieldErrors<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
   isEditMode?: boolean
+  /**
+   * Portfolios this stage's journey draws on, used to seed the allocation from
+   * what the user actually holds.
+   *
+   * Previously read off a `selectedPortfolioIds` form field that the wizard's
+   * Wealth step wrote. That step is gone — wealth is defined by the journey,
+   * not the stage — so the ids now arrive from the journey. Empty means the
+   * seeding is skipped and the user sets the split by hand, which is what
+   * happened anyway for a journey that excludes everything.
+   */
+  portfolioIds?: string[]
 }
 
 export default function AssumptionsStep({
@@ -29,18 +40,12 @@ export default function AssumptionsStep({
   errors,
   setValue,
   isEditMode,
+  portfolioIds,
 }: AssumptionsStepProps): React.ReactElement {
   const hasAppliedAllocation = useRef(false)
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
 
-  const watchedPortfolioIds = useWatch({
-    control,
-    name: "selectedPortfolioIds",
-  })
-  const selectedPortfolioIds = useMemo(
-    () => watchedPortfolioIds || [],
-    [watchedPortfolioIds],
-  )
+  const selectedPortfolioIds = useMemo(() => portfolioIds ?? [], [portfolioIds])
 
   // Watch current allocation values to determine if they're already set
   const currentCashAllocation =

@@ -33,15 +33,15 @@ export const WIZARD_STEPS: WizardStep[] = [
     icon: "fa-user",
     fields: ["planName", "expensesCurrency", "country", "narrative"],
   },
+  // A "Wealth" step sat here. Wealth is defined by the journey, not the stage
+  // — AllocationResolver reads `journey.excludedPortfolioIds ?: plan.…`, so the
+  // per-stage column it wrote is a legacy fallback that no stage created since
+  // svc-retire#265 can ever reach. The step was read-only, and its own copy
+  // sent you to a "Net Worth tab" that #1194 replaced. Everything else it held
+  // — the retirement-account callout and create form — duplicates the Accounts
+  // page, which is where it already told you to go.
   {
     id: 2,
-    slug: "wealth",
-    name: wizardMessages.steps.assets.name,
-    icon: "fa-piggy-bank",
-    fields: ["selectedPortfolioIds", "manualAssets"],
-  },
-  {
-    id: 3,
     slug: "assumptions",
     name: wizardMessages.steps.assumptions.name,
     icon: "fa-sliders-h",
@@ -57,21 +57,21 @@ export const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: 4,
+    id: 3,
     slug: "income",
     name: wizardMessages.steps.income.name,
     icon: "fa-hand-holding-usd",
     fields: ["pensionMonthly", "socialSecurityMonthly", "otherIncomeMonthly"],
   },
   {
-    id: 5,
+    id: 4,
     slug: "expenses",
     name: wizardMessages.steps.expenses.name,
     icon: "fa-receipt",
     fields: ["expenses"],
   },
   {
-    id: 6,
+    id: 5,
     slug: "life-events",
     name: wizardMessages.steps.lifeEvents.name,
     icon: "fa-calendar-day",

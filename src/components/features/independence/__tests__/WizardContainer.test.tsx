@@ -295,4 +295,30 @@ describe("buildWizardPlanRequest", () => {
     })
     expect(payload.independencePlanId).toBeUndefined()
   })
+
+  it("sends neither manualAssets nor excludedPortfolioIds on create", () => {
+    // Both used to go out as an empty default on every save. On PATCH that
+    // *wipes* the stored legacy value rather than leaving it alone, and no
+    // wizard step edits either any more — wealth belongs to the journey.
+    const payload = buildWizardPlanRequest(formData, {
+      isEditMode: false,
+      plan: null,
+      planningHorizonYears: 30,
+    })
+
+    expect("manualAssets" in payload).toBe(false)
+    expect("excludedPortfolioIds" in payload).toBe(false)
+  })
+
+  it("still echoes the stored excludedPortfolioIds in edit mode", () => {
+    // Omitting the key must not silently clear a legacy value that a plan
+    // predating journeys still relies on.
+    const payload = buildWizardPlanRequest(formData, {
+      isEditMode: true,
+      plan: { ...plan, excludedPortfolioIds: '["house"]' } as RetirementPlan,
+      planningHorizonYears: 30,
+    })
+
+    expect(payload.excludedPortfolioIds).toEqual(["house"])
+  })
 })
