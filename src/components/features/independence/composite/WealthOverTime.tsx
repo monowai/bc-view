@@ -109,6 +109,15 @@ export default function WealthOverTime(): React.ReactElement | null {
 
   const answers = compositeAnswers(projection, currentAge)
 
+  // The crossing worth drawing, if any. `fiCrossingAge` is scanned over the
+  // drawdown rows, which begin at the plan's retirement age — so a plan that
+  // is already past the target crosses on its very first point, and a marker
+  // there labels the start of retirement as the moment the money arrived.
+  // The verdict above this chart says "today"; the chart must not argue.
+  const crossingAge = answers?.isAchieved
+    ? null
+    : (answers?.fiCrossingAge ?? null)
+
   // ——— "Will it last?" rows: liquid balance, plus MC bands once run ———
   const trajectory = useMemo<LensRow[]>(() => {
     if (!projection?.yearlyProjections) return []
@@ -190,7 +199,7 @@ export default function WealthOverTime(): React.ReactElement | null {
       ticks: ageAxisTicks(
         minAge,
         maxAge,
-        answers?.fiCrossingAge != null ? [answers.fiCrossingAge] : [],
+        crossingAge != null ? [crossingAge] : [],
       ),
     }
   })()
@@ -421,14 +430,14 @@ export default function WealthOverTime(): React.ReactElement | null {
                   />
                 )}
 
-                {answers?.fiCrossingAge != null && (
+                {crossingAge != null && (
                   <ReferenceLine
-                    x={answers.fiCrossingAge}
+                    x={crossingAge}
                     stroke="#94a3b8"
                     strokeDasharray="4 3"
                     strokeWidth={1}
                     label={{
-                      value: `Age ${answers.fiCrossingAge}`,
+                      value: `Age ${crossingAge}`,
                       position: "insideTopLeft",
                       fontSize: 11,
                       fill: "#64748b",

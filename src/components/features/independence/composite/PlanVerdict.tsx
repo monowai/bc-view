@@ -57,6 +57,19 @@ export default function PlanVerdict(): React.ReactElement | null {
     if (hideValues) {
       return { label: "You get there at", value: HIDDEN_VALUE, sub: "hidden" }
     }
+    // Already past the target on today's wealth. The crossing age is scanned
+    // over drawdown rows, and those begin at the plan's retirement age — so
+    // someone who is already there matches on the very first row and this tile
+    // would report when the plan starts, dressed up as an arrival. Reading
+    // "you're over by S$619K" beside "2 years from now" makes the page look
+    // broken; both tiles describe the same money.
+    if (answers.isAchieved) {
+      return {
+        label: "You get there at",
+        value: "today",
+        sub: "already past the target",
+      }
+    }
     if (answers.fiCrossingAge == null) {
       return {
         label: "Money lasts",
