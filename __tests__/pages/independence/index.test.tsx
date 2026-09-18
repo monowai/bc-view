@@ -83,13 +83,6 @@ jest.mock(
     default: () => <div data-testid="settings-panel" />,
   }),
 )
-jest.mock(
-  "@components/features/independence/CompositePlanSettingsCard",
-  () => ({
-    __esModule: true,
-    default: () => <div data-testid="composite-settings" />,
-  }),
-)
 jest.mock("@components/features/shares/ResourceShareInviteDialog", () => ({
   __esModule: true,
   default: () => <div data-testid="share-dialog" />,
@@ -494,5 +487,44 @@ describe("/independence — Add a stage belongs to the journey on screen", () =>
     expect(
       screen.queryByRole("link", { name: /Add a stage/i }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("/independence — plan config lives with what it configures", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    global.fetch = mockFetch
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve("") })
+  })
+
+  it("keeps About you to facts about the person", () => {
+    // The plan's display currency and work scenario sat here, under a heading
+    // about the user's age. Both are plan config and moved to the surfaces
+    // they configure.
+    mockQuery = { view: "profile" }
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    expect(screen.getByTestId("settings-panel")).toBeInTheDocument()
+    expect(screen.queryByTestId("composite-settings")).not.toBeInTheDocument()
+  })
+
+  it("renders Working years through the composite, so the picker has one writer", () => {
+    // The scenario picker must sit inside the composite provider: that hook
+    // is the sole writer of journey.workScenarioId, and a second component
+    // PATCHing the row directly is overwritten by its stale copy.
+    mockQuery = { view: "work" }
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    expect(mockCompositeTab).toHaveBeenCalled()
+    const modes = mockCompositeTab.mock.calls.map(
+      (call) => (call[0] as { mode?: string }).mode,
+    )
+    expect(modes).toContain("work")
   })
 })

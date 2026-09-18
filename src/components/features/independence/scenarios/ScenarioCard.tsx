@@ -9,10 +9,28 @@ interface ScenarioCardProps {
   onEdit: (scenario: WorkScenario) => void
   onDelete: (scenario: WorkScenario) => void
   onSetCurrent: (scenarioId: string) => void
+  /**
+   * How this scenario comes to drive the plan being viewed, if it does.
+   *
+   * `"named"` — the plan chose it. `"default"` — the plan named nothing (or
+   * named one since deleted) and svc-retire degrades to whichever is current,
+   * so this is what the projection actually runs on.
+   *
+   * Both earn the outline, because both answer "which scenario is driving the
+   * numbers". They get different words, because "we picked this" and "this is
+   * whatever is current" are different facts — saying "Used by this plan" for
+   * the fallback re-blurs exactly what the outline was changed to mean.
+   *
+   * All of this is distinct from `isCurrent`, the account-wide default. The
+   * outline used to key off that, duplicating the badge beside it and spending
+   * the card's strongest signal on a claim it could not make.
+   */
+  usedByPlan?: "named" | "default" | false
 }
 
 export default function ScenarioCard({
   scenario,
+  usedByPlan = false,
   onEdit,
   onDelete,
   onSetCurrent,
@@ -30,18 +48,29 @@ export default function ScenarioCard({
   return (
     <div
       className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 ${
-        scenario.isCurrent ? "ring-2 ring-independence-500" : ""
+        usedByPlan ? "ring-2 ring-independence-500" : ""
       }`}
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900">
               {scenario.name}
             </h3>
+            {usedByPlan && (
+              <span className="inline-flex items-center whitespace-nowrap rounded-full bg-independence-100 px-2 py-0.5 text-xs font-medium text-independence-700">
+                <i
+                  aria-hidden="true"
+                  className="fas fa-link mr-1 text-[10px] text-independence-500"
+                ></i>
+                {usedByPlan === "named"
+                  ? "Used by this plan"
+                  : "Used by default"}
+              </span>
+            )}
             {scenario.isCurrent && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-independence-100 text-independence-700">
-                <i className="fas fa-check-circle text-independence-500 mr-1 text-[10px]"></i>
+              <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                <i className="fas fa-check-circle mr-1 text-[10px] text-gray-400"></i>
                 Current
               </span>
             )}

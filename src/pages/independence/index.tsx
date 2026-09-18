@@ -40,9 +40,7 @@ import {
 import CompositeTab from "@components/features/independence/CompositeTab"
 import IndependencePlanSwitcher from "@components/features/independence/IndependencePlanSwitcher"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
-import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
-import CompositePlanSettingsCard from "@components/features/independence/CompositePlanSettingsCard"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
@@ -1025,21 +1023,19 @@ function RetirementPlanning(): React.ReactElement {
                   ),
                 )}
 
+                {/* About you is facts about the person. The plan's display
+                    currency and work scenario used to sit here too; both now
+                    live with the thing they configure. */}
                 {effectiveSection === "profile" && (
-                  <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
-                    <IndependenceSettingsPanel />
-                    <CompositePlanSettingsCard plans={phaseTabPlans} />
-                  </div>
+                  <IndependenceSettingsPanel />
                 )}
 
                 {effectiveSection === "work" && (
-                  <ScenarioList
-                    // Journey-scoped: with a primary per journey
-                    // (svc-retire#248), searching every owned row defaults the
-                    // currency to whichever journey happens to sort first.
-                    defaultCurrency={
-                      landingPlan(phaseTabPlans)?.expensesCurrency
-                    }
+                  <CompositeTab
+                    plans={phaseTabPlans}
+                    settings={settings}
+                    activePlanId={activePlanId}
+                    mode="work"
                   />
                 )}
 
