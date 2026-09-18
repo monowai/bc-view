@@ -3,6 +3,8 @@ import type {
   IndependencePlan,
   RetirementPlan,
 } from "types/independence"
+import type { Portfolio } from "types/beancounter"
+import { parseExcludedPortfolioIds } from "./planHelpers"
 
 /**
  * A journey's composite timeline. `phases` arrives as a serialised JSON
@@ -113,4 +115,48 @@ export function primaryJourney(
     journeys.find((journey) => journey.isPrimary) ??
     [...journeys].sort((a, b) => a.name.localeCompare(b.name))[0]
   )
+}
+
+/**
+ * The portfolios a journey draws on — every one the user owns, less the ones
+ * that journey excludes.
+ *
+ * Feeds the wizard's allocation seeding, which reads the real holdings behind
+ * these ids. Two states deliberately answer "nothing yet" rather than "all of
+ * them", because the caller latches after its first non-empty answer and a
+ * premature one is never corrected:
+ *
+ *  - the journeys request is still in flight. It resolves independently of the
+ *    portfolios request, so "no journey found" is not yet the same as "this
+ *    journey excludes nothing".
+ *  - the named journey does not resolve at all — a stale or deleted id. Seeding
+ *    from everything would describe wealth the journey never claimed.
+ *
+ * Naming no journey is different again: there is nothing to narrow by, so every
+ * portfolio counts. That is the legacy ungrouped stage.
+ */
+export function portfoliosForJourney({
+  portfolios,
+  journeys,
+  journeyId,
+  journeysLoading,
+}: {
+  portfolios: Portfolio[]
+  journeys: IndependencePlan[]
+  journeyId: string | undefined
+  journeysLoading: boolean
+}): string[] {
+  if (portfolios.length === 0) return []
+  if (!journeyId) return portfolios.map((portfolio) => portfolio.id)
+  if (journeysLoading) return []
+
+  const journey = journeys.find((candidate) => candidate.id === journeyId)
+  if (!journey) return []
+
+  const excluded = new Set(
+    parseExcludedPortfolioIds(journey.excludedPortfolioIds),
+  )
+  return portfolios
+    .filter((portfolio) => !excluded.has(portfolio.id))
+    .map((portfolio) => portfolio.id)
 }

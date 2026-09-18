@@ -22,11 +22,11 @@ import {
 } from "@lib/independence/stepConfig"
 import { toDecimal } from "@lib/independence/conversions"
 import {
-  parseExcludedPortfolioIds,
   serializeAssetDisposals,
   serializeLifeEvents,
   toPlanRequestPayload,
 } from "@lib/independence/planHelpers"
+import { portfoliosForJourney } from "@lib/independence/journeyPhases"
 import { WizardFormData, RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -150,23 +150,29 @@ export default function WizardContainer({
   // Portfolios the journey draws on, so Assumptions can seed the asset split
   // from what the user actually holds. This came from the Wealth step's
   // `selectedPortfolioIds` until that step was removed; the journey is where
-  // the answer really lives, so it is read from there rather than re-offered
-  // as a per-stage choice. A stage with no journey seeds from everything.
-  const { plans: journeys } = useIndependencePlans()
+  // the answer really lives, so it is read from there instead.
+  //
+  // `?plan=` only exists on the create path. Edit mode navigates to
+  // /independence/wizard/{planId} with no query at all, so the stage's own
+  // `independencePlanId` is the link that has to carry it there — without it,
+  // editing seeded the allocation from every portfolio the user owns and
+  // quietly ignored the journey's exclusions.
+  const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
   const { data: portfolioData } = useSwr<{ data: Portfolio[] }>(
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
-  const journeyPortfolioIds = useMemo(() => {
-    const owned = portfolioData?.data ?? []
-    const journey = journeyId
-      ? journeys.find((candidate) => candidate.id === journeyId)
-      : undefined
-    const excluded = new Set(
-      parseExcludedPortfolioIds(journey?.excludedPortfolioIds) ?? [],
-    )
-    return owned.filter((p) => !excluded.has(p.id)).map((p) => p.id)
-  }, [portfolioData, journeys, journeyId])
+  const effectiveJourneyId = journeyId ?? plan?.independencePlanId
+  const journeyPortfolioIds = useMemo(
+    () =>
+      portfoliosForJourney({
+        portfolios: portfolioData?.data ?? [],
+        journeys,
+        journeyId: effectiveJourneyId,
+        journeysLoading,
+      }),
+    [portfolioData, journeys, effectiveJourneyId, journeysLoading],
+  )
   const [currentStep, setCurrentStep] = useState(() =>
     isEditMode && initialStep && initialStep >= 1 && initialStep <= TOTAL_STEPS
       ? initialStep
