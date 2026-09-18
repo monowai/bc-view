@@ -10,14 +10,22 @@ interface ScenarioCardProps {
   onDelete: (scenario: WorkScenario) => void
   onSetCurrent: (scenarioId: string) => void
   /**
-   * The plan being viewed runs on this scenario.
+   * How this scenario comes to drive the plan being viewed, if it does.
    *
-   * Distinct from `isCurrent`, which is the account-wide default used by any
-   * plan that names none. The outline used to key off `isCurrent`, duplicating
-   * the badge beside it and spending the card's strongest signal on a claim it
-   * could not make — a reader took the ring to mean "this plan uses it".
+   * `"named"` — the plan chose it. `"default"` — the plan named nothing (or
+   * named one since deleted) and svc-retire degrades to whichever is current,
+   * so this is what the projection actually runs on.
+   *
+   * Both earn the outline, because both answer "which scenario is driving the
+   * numbers". They get different words, because "we picked this" and "this is
+   * whatever is current" are different facts — saying "Used by this plan" for
+   * the fallback re-blurs exactly what the outline was changed to mean.
+   *
+   * All of this is distinct from `isCurrent`, the account-wide default. The
+   * outline used to key off that, duplicating the badge beside it and spending
+   * the card's strongest signal on a claim it could not make.
    */
-  usedByPlan?: boolean
+  usedByPlan?: "named" | "default" | false
 }
 
 export default function ScenarioCard({
@@ -51,8 +59,13 @@ export default function ScenarioCard({
             </h3>
             {usedByPlan && (
               <span className="inline-flex items-center whitespace-nowrap rounded-full bg-independence-100 px-2 py-0.5 text-xs font-medium text-independence-700">
-                <i className="fas fa-link mr-1 text-[10px] text-independence-500"></i>
-                Used by this plan
+                <i
+                  aria-hidden="true"
+                  className="fas fa-link mr-1 text-[10px] text-independence-500"
+                ></i>
+                {usedByPlan === "named"
+                  ? "Used by this plan"
+                  : "Used by default"}
               </span>
             )}
             {scenario.isCurrent && (

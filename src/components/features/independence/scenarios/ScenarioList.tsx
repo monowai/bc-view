@@ -221,10 +221,11 @@ export default function ScenarioList({
                 // A journey can name a scenario that has since been deleted.
                 // svc-retire degrades that to the current one, so the list has
                 // to as well — matching on the dead id would mark nothing and
-                // disagree with the numbers the plan is showing.
+                // disagree with the numbers the plan is showing. The two cases
+                // are labelled differently on the card.
                 usesNamedScenario
-                  ? scenario.id === usedScenarioId
-                  : scenario.isCurrent
+                  ? scenario.id === usedScenarioId && "named"
+                  : scenario.isCurrent && "default"
               }
               onEdit={handleEdit}
               onDelete={setDeleteTarget}

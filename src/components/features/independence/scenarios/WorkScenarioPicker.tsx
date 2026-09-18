@@ -22,12 +22,23 @@ const WORK_SCENARIOS_URL = "/api/independence/work-scenarios"
 export default function WorkScenarioPicker(): React.ReactElement | null {
   const { compositeWorkScenarioId, setCompositeWorkScenarioId } =
     useCompositeProjectionContext()
-  const { data } = useSwr<WorkScenariosResponse>(
+  const { data, error, isLoading } = useSwr<WorkScenariosResponse>(
     WORK_SCENARIOS_URL,
     simpleFetcher(WORK_SCENARIOS_URL),
   )
   const scenarios = data?.data ?? []
-  if (scenarios.length === 0) return null
+
+  // SWR reports an empty list while pending and on failure alike. Collapsing
+  // every non-success state to `null` hid the only control that decides which
+  // scenario the projection runs on — so a dropped request looked exactly like
+  // "you have no scenarios", while the plan carried on projecting against the
+  // stored choice with nothing on screen saying so.
+  const unavailable = isLoading
+    ? "Loading your scenarios…"
+    : error
+      ? "Couldn't load your scenarios — the plan is still using its saved choice."
+      : null
+  if (!unavailable && scenarios.length === 0) return null
 
   // A named scenario that no longer resolves reads as "whichever is current",
   // which is what svc-retire actually projects. Relying on the browser to show
@@ -50,24 +61,30 @@ export default function WorkScenarioPicker(): React.ReactElement | null {
           Its income and spending drive the years before you stop working.
         </p>
       </div>
-      <select
-        id="journey-work-scenario"
-        value={selected}
-        onChange={(e) =>
-          setCompositeWorkScenarioId(e.target.value || undefined)
-        }
-        className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-independence-500 focus:ring-2 focus:ring-independence-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-      >
-        {/* Naming none is a real choice, not an empty state: it follows
+      {unavailable ? (
+        <p className="shrink-0 text-sm text-gray-500 dark:text-gray-400">
+          {unavailable}
+        </p>
+      ) : (
+        <select
+          id="journey-work-scenario"
+          value={selected}
+          onChange={(e) =>
+            setCompositeWorkScenarioId(e.target.value || undefined)
+          }
+          className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-independence-500 focus:ring-2 focus:ring-independence-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+        >
+          {/* Naming none is a real choice, not an empty state: it follows
             whichever scenario is current, so the plan tracks the default. */}
-        <option value="">Whichever is current</option>
-        {scenarios.map((scenario) => (
-          <option key={scenario.id} value={scenario.id}>
-            {scenario.name}
-            {scenario.isCurrent ? " (current)" : ""}
-          </option>
-        ))}
-      </select>
+          <option value="">Whichever is current</option>
+          {scenarios.map((scenario) => (
+            <option key={scenario.id} value={scenario.id}>
+              {scenario.name}
+              {scenario.isCurrent ? " (current)" : ""}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   )
 }

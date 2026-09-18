@@ -27,7 +27,7 @@ const scenario = (overrides: Partial<WorkScenario> = {}): WorkScenario =>
 
 const renderCard = (
   s: WorkScenario,
-  usedByPlan = false,
+  usedByPlan: "named" | "default" | false = false,
 ): HTMLElement | null => {
   const { container } = render(
     <ScenarioCard
@@ -45,7 +45,7 @@ describe("ScenarioCard — what the outline means", () => {
   it("outlines the scenario this plan actually uses", () => {
     // The ring is the strongest signal on the card, so it has to carry the
     // per-plan association rather than restate the account-wide default.
-    const card = renderCard(scenario(), true)
+    const card = renderCard(scenario(), "named")
     expect(card?.className).toContain("ring-independence-500")
     expect(screen.getByText(/Used by this plan/i)).toBeInTheDocument()
   })
@@ -60,7 +60,7 @@ describe("ScenarioCard — what the outline means", () => {
   })
 
   it("can say both when the plan uses the account default", () => {
-    renderCard(scenario({ isCurrent: true }), true)
+    renderCard(scenario({ isCurrent: true }), "named")
     expect(screen.getByText("Current")).toBeInTheDocument()
     expect(screen.getByText(/Used by this plan/i)).toBeInTheDocument()
   })
@@ -71,7 +71,24 @@ describe("ScenarioCard — a plan naming a scenario that no longer exists", () =
     // svc-retire degrades an unresolvable workScenarioId to the current
     // scenario. If the list kept matching on the dead id, nothing would be
     // marked and the UI would disagree with the numbers on screen.
-    renderCard(scenario({ isCurrent: true }), true)
+    renderCard(scenario({ isCurrent: true }), "default")
+    expect(screen.getByText(/Used by default/i)).toBeInTheDocument()
+  })
+})
+
+describe("ScenarioCard — chosen versus defaulted", () => {
+  it("distinguishes a scenario the plan named from one it fell back to", () => {
+    // Both drive the projection, so both earn the ring — but "we picked this"
+    // and "this is whatever is current" are different facts, and showing the
+    // same badge for each re-blurs exactly what the ring was fixed to say.
+    renderCard(scenario({ isCurrent: true }), "default")
+    expect(screen.getByText(/Used by default/i)).toBeInTheDocument()
+    expect(screen.queryByText(/^Used by this plan$/i)).not.toBeInTheDocument()
+  })
+
+  it("says the plan named it when it did", () => {
+    renderCard(scenario(), "named")
     expect(screen.getByText(/Used by this plan/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Used by default/i)).not.toBeInTheDocument()
   })
 })

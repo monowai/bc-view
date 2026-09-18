@@ -21,8 +21,17 @@ export default function DisplayCurrencyPicker({
   value,
   onChange,
 }: DisplayCurrencyPickerProps): React.ReactElement | null {
+  const planCurrencies = plans
+    .map((plan) => plan.expensesCurrency)
+    .filter(Boolean)
+  // The journey's saved currency is not guaranteed to still be one a stage
+  // uses — a stage can be re-denominated or removed after the choice was made.
+  // Keeping it in the list is what makes the control honest: dropping it would
+  // leave a controlled select showing the first option while state held
+  // something else, so the plan would be normalised into a currency the screen
+  // never named. It remains a legitimate conversion target either way.
   const currencies = Array.from(
-    new Set(plans.map((plan) => plan.expensesCurrency).filter(Boolean)),
+    new Set([...planCurrencies, value].filter(Boolean)),
   )
   if (currencies.length < 2) return null
 
