@@ -441,11 +441,10 @@ export interface PlanWithExpensesResponse {
  * When present, calculations may be unreliable.
  */
 export type ProjectionWarning =
-  | "ASSETS_FROM_FALLBACK"
   | "RENTAL_INCOME_UNAVAILABLE"
-  | "NO_LIQUID_ASSETS"
-  | "NO_MONTHLY_CONTRIBUTION"
   | "NO_EXPENSES"
+  | "VALUATION_UNAVAILABLE"
+  | "WORK_SCENARIO_MISSING"
 
 // ============ Projections ============
 export interface ProjectionRequest {
@@ -907,8 +906,20 @@ export interface RetirementProjection {
   adjustmentWithLiquidation?: number
   /** Percentage adjustment for the with-liquidation figure */
   adjustmentPercentWithLiquidation?: number
-  /** Age at which illiquid asset disposal begins in the with-liquidation scenario */
+  /**
+   * Age at which the property is actually liquidated in the baseline
+   * projection — the first `yearlyProjections` row with
+   * `propertyLiquidated === true`. See sustainableLiquidationAge for the
+   * with-liquidation what-if.
+   */
   liquidationAge?: number
+  /**
+   * Age at which the property is liquidated in the with-liquidation
+   * what-if scenario — i.e. spending `sustainableWithLiquidation` instead
+   * of the plan's real configured expenses. Distinct from liquidationAge;
+   * the two ages can differ (svc-retire#271).
+   */
+  sustainableLiquidationAge?: number
   /**
    * Statutory CPF LIFE lock age (55) when the OA/SA -> RA annuity fold falls
    * within the horizon; absent when already past the lock or no CPF. Read this
@@ -1205,6 +1216,8 @@ export interface MonteCarloResult {
   nonSpendableAtStart: number
   /** Number of iterations that sold illiquid assets during the run */
   liquidatedCount: number
+  /** Data quality warnings - empty/absent means all data fetched successfully */
+  warnings?: ProjectionWarning[]
 }
 
 export interface PercentileValues {
