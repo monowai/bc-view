@@ -69,6 +69,38 @@ describe("PortfolioReviewPopup", () => {
     expect(body.query).toMatch(/financial columnist/i)
   })
 
+  it("briefing prompt classifies the book and gates XIRR on holding age", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "done", data: "{}" }]),
+    )
+    render(
+      <PortfolioReviewPopup
+        target={{
+          kind: "portfolio",
+          id: "p-bond",
+          code: "BOND",
+          name: "Bond Fund",
+        }}
+        onClose={jest.fn()}
+      />,
+    )
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    // Same prompt for every portfolio — the model must work out whether it
+    // is looking at an equity, fixed-income, mixed, or cash book and pick the
+    // matching vocabulary and yardstick, rather than assuming stocks.
+    expect(body.query).toMatch(/classify the book/i)
+    expect(body.query).toMatch(/fixed-income book/i)
+    expect(body.query).toMatch(/within the mandate/i)
+    // XIRR is annualised; young holdings must not be read as a long arc.
+    expect(body.query).toMatch(/6 months/i)
+    expect(body.query).toMatch(/annualisation noise/i)
+    // Multi-week macro moves are backdrop, never a same-day cause.
+    expect(body.query).toMatch(/match windows/i)
+    // No duration/credit data exists — inferences must be labelled.
+    expect(body.query).toMatch(/NO duration/)
+  })
+
   it("posts portfolioCodes for an aggregated target", async () => {
     mockFetch.mockResolvedValueOnce(
       sseResponse([{ event: "done", data: "{}" }]),
