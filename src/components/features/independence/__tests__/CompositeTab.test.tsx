@@ -180,6 +180,7 @@ describe("CompositeTab", () => {
       projection: undefined,
       scenarios: undefined,
       isLoading: false,
+      isSettled: true,
       error: null,
       ...overrides,
     })
@@ -284,6 +285,30 @@ describe("CompositeTab", () => {
     expect(
       screen.getByText(/couldn't work out your projection/),
     ).toBeInTheDocument()
+  })
+
+  it("waits rather than claiming failure while the projection is still coming", () => {
+    // `setIsLoading(true)` lives inside the fetch debounce, so between seeding
+    // the phases and the timer firing there is a window with no projection and
+    // nothing marked in flight. That window rendered "we couldn't work out
+    // your projection" — a failure notice for a request that had not been
+    // made yet.
+    mockProjection({ isSettled: false, projection: undefined })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(
+      screen.queryByText(/couldn't work out your projection/),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole("status")).toBeInTheDocument()
+  })
+
+  it("does not claim there is nothing to project before the plan has been read", () => {
+    // Phases are empty until the journey is seeded, which is a state the
+    // reader should never be shown — it accuses them of an unbuilt plan.
+    mockProjection({ isSettled: false, phases: [], projection: undefined })
+    render(<CompositeTab plans={plans} settings={settings} />)
+
+    expect(screen.queryByText("Nothing to project yet")).not.toBeInTheDocument()
   })
 
   it("surfaces a projection error", () => {

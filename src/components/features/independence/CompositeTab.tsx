@@ -1,6 +1,7 @@
 import React from "react"
 import Link from "next/link"
 import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import type {
   RetirementPlan,
   UserIndependenceSettings,
@@ -77,15 +78,31 @@ export default function CompositeTab({
 }
 
 function PlanNarrative(): React.ReactElement {
-  const { projection, phases, isLoading, error } =
+  const { projection, phases, isLoading, isSettled, error } =
     useCompositeProjectionContext()
   const hasRows = (projection?.yearlyProjections?.length ?? 0) > 0
+
+  // Nothing is claimed until the hook has settled. Every state below is an
+  // assertion about the plan — that it has no stages, that its projection
+  // failed — and none of them are knowable while the journey is still being
+  // read or its first request is still in the debounce. Rendering them early
+  // flashed a failure notice on a perfectly good plan.
+  if (!isSettled) {
+    return (
+      // role lives here rather than on Spinner: callers already wrap it in
+      // their own status region, and nesting two live regions announces the
+      // same thing twice.
+      <div role="status" className="flex justify-center py-16">
+        <Spinner label="Working out your projection..." size="lg" />
+      </div>
+    )
+  }
 
   // Without stages there is no projection to run, and useCompositeProjection
   // returns early without setting an error — so every section below renders
   // null and the page goes silent. Say what's missing instead: this is the
   // state a new plan starts in, and an empty page teaches nobody anything.
-  if (!isLoading && !error && phases.length === 0) {
+  if (!error && phases.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-10 text-center dark:border-gray-800 dark:bg-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">

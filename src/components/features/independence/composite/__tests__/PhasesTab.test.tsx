@@ -80,6 +80,7 @@ function makeCtx(
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
+    isSettled: true,
     error: null,
     mc: {
       result: null,

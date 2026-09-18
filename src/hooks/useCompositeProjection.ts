@@ -38,6 +38,16 @@ export interface UseCompositeProjectionResult {
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
+  /**
+   * The hook has finished deciding what there is to show for this journey:
+   * the config has been read off it, and either there are no stages to project
+   * or a projection request has come back.
+   *
+   * Consumers need this to tell "no answer yet" from "asked and got nothing".
+   * Without it the render between seeding and the fetch debounce looks
+   * identical to a failed projection.
+   */
+  isSettled: boolean
   error: string | null
 }
 
@@ -174,6 +184,12 @@ export function useCompositeProjection(
     CompositeScenarioComparison | undefined
   >()
   const [isLoading, setIsLoading] = useState(false)
+  // Whether a projection request has come back for the journey being shown.
+  // "No projection and nothing loading" is ambiguous on its own — it is also
+  // true in the gap between seeding the phases and the fetch debounce firing,
+  // and reading that gap as failure put a failure notice on screen for a
+  // request that had not been made yet.
+  const [hasAttempted, setHasAttempted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -223,6 +239,7 @@ export function useCompositeProjection(
       setPhases(initial)
     }
 
+    setHasAttempted(false)
     setSeededFor(seedKey)
   }
 
@@ -354,6 +371,7 @@ export function useCompositeProjection(
         const message = toErrorMessage(err, "Failed to fetch projection")
         reportError(message)
       } finally {
+        setHasAttempted(true)
         setIsLoading(false)
       }
     }, DEBOUNCE_MS)
@@ -384,6 +402,7 @@ export function useCompositeProjection(
     projection,
     scenarios,
     isLoading,
+    isSettled: seededFor === seedKey && (phases.length === 0 || hasAttempted),
     error,
   }
 }

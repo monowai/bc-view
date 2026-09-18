@@ -25,7 +25,10 @@ export default function Spinner({
     <span
       className={`inline-flex items-center ${sizeClasses[size]} ${className}`}
     >
-      <i className={`fas fa-spinner fa-spin${label ? " mr-2" : ""}`}></i>
+      <i
+        aria-hidden="true"
+        className={`fas fa-spinner fa-spin${label ? " mr-2" : ""}`}
+      ></i>
       {label}
     </span>
   )
