@@ -159,7 +159,7 @@ export default function IndependenceMetrics({
             </div>
 
             {/* Headline progress — driven by the plan's effective headline
-                metric. Falls back to Early Retirement Progress when the
+                metric. Falls back to Progress when the
                 selected metric has no value. */}
             {(projectionLoading || projectionData) &&
               (() => {

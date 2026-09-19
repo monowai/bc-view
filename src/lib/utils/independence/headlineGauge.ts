@@ -14,7 +14,7 @@ export interface HeadlineGauge {
 
 /**
  * Picks which metric to feature based on the plan's effective headline metric.
- * Falls back to Early Retirement Progress when the selected metric has no data.
+ * Falls back to Progress when the selected metric has no data.
  * Shared by the plans-list card and the Wealth tab card (IndependenceMetrics).
  *
  * The projection header renders gauges through StrategyGaugesStrip instead —
@@ -27,7 +27,7 @@ export function pickHeadlineGauge(
 ): HeadlineGauge {
   const fiProgress = fi?.fiProgress ?? 0
   const earlyRetirement: HeadlineGauge = {
-    label: "Early Retirement Progress",
+    label: "Progress",
     value: fiProgress,
     display: `${fiProgress.toFixed(1)}%`,
     fillPercent: clamp(fiProgress),

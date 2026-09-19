@@ -288,9 +288,7 @@ export default function FiMetrics({
             <div>
               <div className="flex justify-between items-center mb-1 gap-3 flex-wrap">
                 <InfoTooltip text="Progress toward Financial Independence based on liquid (spendable) assets only. The Pension-Saver View below adds gauges that credit locked retirement-fund assets.">
-                  <span className="text-sm text-gray-600">
-                    Early Retirement Progress
-                  </span>
+                  <span className="text-sm text-gray-600">Progress</span>
                 </InfoTooltip>
                 <span className="flex items-center gap-2 text-xs text-gray-500">
                   <PrivateCurrency
