@@ -58,11 +58,9 @@ describe("FiMetrics", () => {
   it("calculates FI Progress correctly", () => {
     render(<FiMetrics {...defaultProps} />)
     // Progress = 500,000 / 1,500,000 * 100 = 33.3%
-    expect(screen.getByText("Early Retirement Progress")).toBeInTheDocument()
+    expect(screen.getByText("Progress")).toBeInTheDocument()
     // The percentage is in a span, verify it's present
-    const container = screen
-      .getByText("Early Retirement Progress")
-      .closest(".flex")
+    const container = screen.getByText("Progress").closest(".flex")
     expect(container).toHaveTextContent("33.3%")
   })
 
@@ -115,9 +113,7 @@ describe("FiMetrics", () => {
       />,
     )
     // Progress should show actual percentage
-    const progressContainer = screen
-      .getByText("Early Retirement Progress")
-      .closest(".flex")
+    const progressContainer = screen.getByText("Progress").closest(".flex")
     expect(progressContainer).toHaveTextContent("200.0%")
   })
 
@@ -131,9 +127,7 @@ describe("FiMetrics", () => {
   it("shows current assets on progress scale", () => {
     render(<FiMetrics {...defaultProps} />)
     // Find the progress bar footer which shows assets range
-    const progressSection = screen
-      .getByText("Early Retirement Progress")
-      .closest("div")
+    const progressSection = screen.getByText("Progress").closest("div")
     expect(progressSection?.parentElement).toHaveTextContent("500,000")
   })
 
@@ -286,9 +280,7 @@ describe("FiMetrics", () => {
         toggleHideValues: jest.fn(),
       })
       render(<FiMetrics {...defaultProps} />)
-      const progressContainer = screen
-        .getByText("Early Retirement Progress")
-        .closest(".flex")
+      const progressContainer = screen.getByText("Progress").closest(".flex")
       expect(progressContainer).toHaveTextContent("****")
       expect(progressContainer).not.toHaveTextContent("33.3%")
     })
@@ -392,7 +384,7 @@ describe("FiMetrics", () => {
     // Under 50% - orange
     const { rerender } = render(<FiMetrics {...defaultProps} />)
     let progressSpan = screen
-      .getByText("Early Retirement Progress")
+      .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-orange-600")
@@ -400,7 +392,7 @@ describe("FiMetrics", () => {
     // 50-75% - yellow
     rerender(<FiMetrics {...defaultProps} liquidAssets={900000} />)
     progressSpan = screen
-      .getByText("Early Retirement Progress")
+      .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-yellow-600")
@@ -408,7 +400,7 @@ describe("FiMetrics", () => {
     // 75-100% - blue
     rerender(<FiMetrics {...defaultProps} liquidAssets={1200000} />)
     progressSpan = screen
-      .getByText("Early Retirement Progress")
+      .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-blue-600")
@@ -416,7 +408,7 @@ describe("FiMetrics", () => {
     // 100%+ - green
     rerender(<FiMetrics {...defaultProps} liquidAssets={1600000} />)
     progressSpan = screen
-      .getByText("Early Retirement Progress")
+      .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-green-600")
