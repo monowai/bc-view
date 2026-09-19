@@ -900,6 +900,20 @@ export interface RetirementProjection {
   expenseAdjustmentPercent?: number
   /** Target ending balance used for sustainable expense calculation */
   sustainableTargetBalance?: number
+  /**
+   * The same question asked from today rather than from retirement: the one
+   * level monthly spend the plan sustains if the working years are charged
+   * that spend too, not the plan's declared expenses (svc-retire#274).
+   *
+   * Absent when it adds nothing — already retired (no accumulation window),
+   * or the two answers agree within the solver's tolerance. Show one figure
+   * when you receive one; never compare them here.
+   */
+  sustainableFromToday?: number
+  /** Difference: sustainableFromToday − current monthly expenses */
+  adjustmentFromToday?: number
+  /** Percentage adjustment for the from-today figure */
+  adjustmentPercentFromToday?: number
   /** Sustainable monthly expense if illiquid assets are sold when liquid assets are low */
   sustainableWithLiquidation?: number
   /** Adjustment from current expenses for the with-liquidation figure */

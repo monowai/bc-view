@@ -724,6 +724,38 @@ describe("buildLifestyleSummary", () => {
     })
   })
 
+  describe("from today", () => {
+    it("carries the from-today figure when the backend sends one", () => {
+      const model = buildLifestyleSummary({
+        expenses: mix,
+        projection: projection({
+          sustainableMonthlyExpense: 5100,
+          sustainableFromToday: 4799,
+        }),
+      })!
+      expect(model.fromTodayMonthly).toBe(4799)
+    })
+
+    it("stays null when the backend sends a single figure", () => {
+      const model = buildLifestyleSummary({
+        expenses: mix,
+        projection: projection({ sustainableMonthlyExpense: 5100 }),
+      })!
+      expect(model.fromTodayMonthly).toBeNull()
+    })
+
+    it("does not fold the from-today figure into the headline", () => {
+      const model = buildLifestyleSummary({
+        expenses: mix,
+        projection: projection({
+          sustainableMonthlyExpense: 5100,
+          sustainableFromToday: 6800,
+        }),
+      })!
+      expect(model.monthlyTotal).toBe(5100)
+    })
+  })
+
   describe("nothing honest to say", () => {
     it("returns null when no expenses were described", () => {
       expect(
