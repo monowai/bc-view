@@ -415,6 +415,22 @@ function Footnotes({ model, isPayoff, money }: ValueProps): React.ReactElement {
           .
         </p>
       )}
+      {/* The headline is what the plan supports once independent, with the
+          working years spent as planned. This is the other reading — one
+          steady level from today — and the backend sends it only when the two
+          differ, so its presence is itself the message. */}
+      {model.fromTodayMonthly != null && (
+        <p
+          className={
+            isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+          }
+        >
+          Spending one steady amount from today, rather than switching at
+          independence, supports{" "}
+          <span className="tabular-nums">{money(model.fromTodayMonthly)}</span>
+          /month.
+        </p>
+      )}
     </div>
   )
 }

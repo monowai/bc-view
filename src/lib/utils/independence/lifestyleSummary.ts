@@ -252,6 +252,13 @@ export interface LifestyleSummaryModel {
   mixDescriptor: string | null
   /** Present only when selling illiquid assets lifts the sustainable figure. */
   liquidation: { supportedMonthly: number; fromAge: number | null } | null
+  /**
+   * The same question asked from today rather than from retirement: the one
+   * level spend the plan sustains if the working years are charged it too.
+   * Null when the backend sent a single figure — already retired, or the two
+   * answers agree — so the board never invents a second reading.
+   */
+  fromTodayMonthly: number | null
   /** Comfort relative to the described life. Null on the described basis,
    *  where there is no projection to compare against. */
   comfort: ComfortBand | null
@@ -316,6 +323,7 @@ export function buildLifestyleSummary({
     })),
     mixDescriptor: describeMix(ranked, describedMonthly),
     liquidation: toLiquidation(projection, supportedMonthly),
+    fromTodayMonthly: projection?.sustainableFromToday ?? null,
     comfort: comfortFromBreakdown(withBenchmarks),
   }
 }
@@ -375,6 +383,7 @@ export function buildExpenseMix({
     })),
     mixDescriptor: describeMix(ranked, describedMonthly),
     liquidation: null,
+    fromTodayMonthly: null,
     // A lifestyle read, not an affordability one — it needs no projection, so
     // composite phases get it too.
     comfort: comfortFromBreakdown(mixWithBenchmarks),

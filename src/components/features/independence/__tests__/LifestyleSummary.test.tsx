@@ -43,6 +43,7 @@ const model = (
   ],
   mixDescriptor: "Housing-heavy",
   liquidation: null,
+  fromTodayMonthly: null,
   comfort: {
     key: "comfortable",
     label: "Comfortable",
@@ -120,6 +121,17 @@ describe("LifestyleSummary", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("$6,300")).toBeInTheDocument()
     expect(screen.getByText(/from age 71/)).toBeInTheDocument()
+  })
+
+  it("surfaces the from-today figure when there is one", () => {
+    render(<LifestyleSummary model={model({ fromTodayMonthly: 4799 })} />)
+    expect(screen.getByText(/one steady amount from today/)).toBeInTheDocument()
+    expect(screen.getByText("$4,799")).toBeInTheDocument()
+  })
+
+  it("says nothing about from today when the backend sent one figure", () => {
+    render(<LifestyleSummary model={model()} />)
+    expect(screen.queryByText(/from today/)).not.toBeInTheDocument()
   })
 
   describe("privacy mode", () => {

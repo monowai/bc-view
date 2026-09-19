@@ -156,6 +156,52 @@ describe("DetailsTabContent", () => {
     expect(screen.getByText("Net monthly need")).toBeInTheDocument()
   })
 
+  it("labels both sustainable readings when the backend sends a from-today figure", () => {
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        projection={
+          {
+            ...mockProjection,
+            sustainableFromToday: 4799,
+            adjustmentFromToday: -201,
+          } as RetirementProjection
+        }
+      />,
+    )
+    expect(screen.getByText("SGD4,369")).toBeInTheDocument()
+    expect(
+      screen.getByText(/from independence · or SGD4,799\/mo from today/),
+    ).toBeInTheDocument()
+  })
+
+  it("shows one unlabelled figure when the backend sends one", () => {
+    render(<DetailsTabContent {...defaultProps} />)
+    expect(screen.getByText("SGD4,369")).toBeInTheDocument()
+    expect(screen.queryByText(/from today/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/from independence/)).not.toBeInTheDocument()
+  })
+
+  it("keeps the disposal reading alongside the from-today one", () => {
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        projection={
+          {
+            ...mockProjection,
+            sustainableFromToday: 4799,
+            sustainableWithLiquidation: 5200,
+          } as RetirementProjection
+        }
+      />,
+    )
+    expect(
+      screen.getByText(
+        /from independence · or SGD4,799\/mo from today · or SGD5,200\/mo with disposal/,
+      ),
+    ).toBeInTheDocument()
+  })
+
   it("does not show Net Monthly Need as a Plan Details row", () => {
     render(<DetailsTabContent {...defaultProps} />)
     // The old Plan Details row used title-case "Net Monthly Need".

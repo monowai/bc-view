@@ -146,14 +146,26 @@ export default function DetailsTabContent({
     }
   }
 
-  let spendSub: string | undefined
+  // The headline is the from-independence reading (working years spent as
+  // planned). The backend sends a from-today figure only when it differs, so
+  // that is the one time the headline needs a label (svc-retire#274).
+  const spendSubParts: string[] = []
+  if (!hideValues && projection?.sustainableFromToday != null) {
+    spendSubParts.push(
+      "from independence",
+      `or ${effectiveCurrency}${Math.round(projection.sustainableFromToday).toLocaleString()}/mo from today`,
+    )
+  }
   if (
     !hideValues &&
     projection?.sustainableWithLiquidation != null &&
     projection.sustainableWithLiquidation !== sustainableTileValue
   ) {
-    spendSub = `or ${effectiveCurrency}${Math.round(projection.sustainableWithLiquidation).toLocaleString()}/mo with disposal`
+    spendSubParts.push(
+      `or ${effectiveCurrency}${Math.round(projection.sustainableWithLiquidation).toLocaleString()}/mo with disposal`,
+    )
   }
+  const spendSub = spendSubParts.length ? spendSubParts.join(" · ") : undefined
 
   return (
     <div className="space-y-6">
