@@ -172,4 +172,51 @@ describe("PhaseConfigList", () => {
 
     expect(screen.getByText("15 yr")).toBeInTheDocument()
   })
+
+  describe("assumption override badges", () => {
+    it("flags a stage that runs on its own assumptions", () => {
+      render(
+        <PhaseConfigList
+          {...defaultProps}
+          assumptionSources={{ p1: "STAGE" }}
+        />,
+      )
+
+      expect(screen.getByText("Own assumptions")).toBeInTheDocument()
+      expect(screen.queryByText("Mixed assumptions")).not.toBeInTheDocument()
+    })
+
+    it("flags a stage the journey only partly covers", () => {
+      render(
+        <PhaseConfigList
+          {...defaultProps}
+          assumptionSources={{ p2: "MIXED" }}
+        />,
+      )
+
+      expect(screen.getByText("Mixed assumptions")).toBeInTheDocument()
+      expect(screen.queryByText("Own assumptions")).not.toBeInTheDocument()
+    })
+
+    it("says nothing for a stage that simply inherits", () => {
+      render(
+        <PhaseConfigList
+          {...defaultProps}
+          assumptionSources={{ p1: "JOURNEY", p2: "JOURNEY" }}
+        />,
+      )
+
+      expect(screen.queryByText("Own assumptions")).not.toBeInTheDocument()
+      expect(screen.queryByText("Mixed assumptions")).not.toBeInTheDocument()
+    })
+
+    it("says nothing when the projection echo is absent", () => {
+      // The badge is driven solely by the backend echo. Without it there is
+      // no honest answer, and guessing by comparing rates gets MIXED wrong.
+      render(<PhaseConfigList {...defaultProps} />)
+
+      expect(screen.queryByText("Own assumptions")).not.toBeInTheDocument()
+      expect(screen.queryByText("Mixed assumptions")).not.toBeInTheDocument()
+    })
+  })
 })

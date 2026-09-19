@@ -294,6 +294,7 @@ describe("/independence — the Plan tab follows the active plan's phases", () =
     ["profile", "About you"],
     ["work", "Working years"],
     ["wealth", "What counts as wealth"],
+    ["assumptions", "Assumptions"],
   ])(
     "follows ?view=%s into Set up, so old links keep working",
     (view, section) => {
@@ -509,6 +510,39 @@ describe("/independence — plan config lives with what it configures", () => {
 
     expect(screen.getByTestId("settings-panel")).toBeInTheDocument()
     expect(screen.queryByTestId("composite-settings")).not.toBeInTheDocument()
+  })
+
+  it("renders Assumptions through the composite, alongside the stages they govern", () => {
+    // The section reads the projection echo for per-stage provenance, so it
+    // has to sit inside the composite provider like the other editors here.
+    mockQuery = { view: "assumptions" }
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    const modes = mockCompositeTab.mock.calls.map(
+      (call) => (call[0] as { mode?: string }).mode,
+    )
+    expect(modes).toContain("assumptions")
+  })
+
+  it("puts Assumptions directly after Stages in the Set up nav", () => {
+    mockQuery = { view: "stages" }
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockSwr([ownedPhase])
+
+    render(<Page />)
+
+    const order = ["Stages", "Assumptions", "What counts as wealth"].map(
+      (label) =>
+        screen
+          .getAllByRole("button")
+          .findIndex((b) => (b.textContent ?? "").startsWith(label)),
+    )
+    expect(order[0]).toBeGreaterThanOrEqual(0)
+    expect(order[1]).toBe(order[0] + 1)
+    expect(order[2]).toBe(order[1] + 1)
   })
 
   it("renders Working years through the composite, so the picker has one writer", () => {

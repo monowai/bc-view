@@ -7,15 +7,25 @@ import {
   type CompositeProjectionValue,
 } from "../CompositeProjectionContext"
 
+// Records the props the stage list is handed — what provenance it is given
+// is the whole question in "passes the projection's assumption sources" below.
+const mockPhaseConfigList = jest.fn()
+
+const mockPhaseConfigListStub = (
+  props: Record<string, unknown>,
+): React.ReactElement => {
+  mockPhaseConfigList(props)
+  return <div data-testid="phase-config-list">PhaseConfigList stub</div>
+}
+
 // Stub PhaseConfigList so we can assert it renders without dragging in
 // MathInput / DOM measurement issues.
 jest.mock(
   "@components/features/independence/composite/../PhaseConfigList",
   () => ({
     __esModule: true,
-    default: (): React.ReactElement => (
-      <div data-testid="phase-config-list">PhaseConfigList stub</div>
-    ),
+    default: (props: Record<string, unknown>): React.ReactElement =>
+      mockPhaseConfigListStub(props),
   }),
 )
 
@@ -23,9 +33,8 @@ jest.mock(
 // relative path the module resolver will use.
 jest.mock("../../PhaseConfigList", () => ({
   __esModule: true,
-  default: (): React.ReactElement => (
-    <div data-testid="phase-config-list">PhaseConfigList stub</div>
-  ),
+  default: (props: Record<string, unknown>): React.ReactElement =>
+    mockPhaseConfigListStub(props),
 }))
 
 jest.mock("@hooks/usePrivacyMode", () => ({
@@ -104,6 +113,86 @@ function renderWithCtx(
 }
 
 describe("PhasesTab", () => {
+  beforeEach(() => {
+    mockPhaseConfigList.mockClear()
+  })
+
+  it("hands the stage list each phase's assumption source from the projection echo", () => {
+    renderWithCtx({
+      projection: {
+        phases: [
+          {
+            planId: "p1",
+            planName: "Go-Go",
+            fromAge: 65,
+            toAge: 75,
+            expensesCurrency: "USD",
+            assumptions: {
+              source: "STAGE",
+              cashReturnRate: 0.03,
+              equityReturnRate: 0.07,
+              housingReturnRate: 0.04,
+              inflationRate: 0.025,
+              feeRate: 0,
+              investmentTaxRate: 0,
+            },
+          },
+          {
+            planId: "p2",
+            planName: "Slow Go",
+            fromAge: 75,
+            toAge: 90,
+            expensesCurrency: "USD",
+            assumptions: {
+              source: "MIXED",
+              cashReturnRate: 0.03,
+              equityReturnRate: 0.07,
+              housingReturnRate: 0.04,
+              inflationRate: 0.025,
+              feeRate: 0,
+              investmentTaxRate: 0,
+            },
+          },
+        ],
+      } as CompositeProjectionValue["projection"],
+    })
+
+    expect(mockPhaseConfigList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assumptionSources: { p1: "STAGE", p2: "MIXED" },
+      }),
+    )
+  })
+
+  it("hands over an empty record when the projection carries no echo", () => {
+    // Never derived client-side: no echo means nothing is claimed.
+    renderWithCtx()
+
+    expect(mockPhaseConfigList).toHaveBeenCalledWith(
+      expect.objectContaining({ assumptionSources: {} }),
+    )
+  })
+
+  it("skips phases the echo left without an assumptions block", () => {
+    renderWithCtx({
+      projection: {
+        phases: [
+          {
+            planId: "p1",
+            planName: "Go-Go",
+            fromAge: 65,
+            toAge: 75,
+            expensesCurrency: "USD",
+          },
+        ],
+      } as CompositeProjectionValue["projection"],
+    })
+
+    expect(mockPhaseConfigList).toHaveBeenCalledWith(
+      expect.objectContaining({ assumptionSources: {} }),
+    )
+  })
+
   it("renders one responsive layout, not duplicated desktop/mobile copies", () => {
     renderWithCtx()
     expect(screen.getAllByTestId("phases-layout")).toHaveLength(1)

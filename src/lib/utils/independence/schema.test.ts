@@ -238,6 +238,20 @@ describe("goalsSchema", () => {
       ).rejects.toThrow()
     })
   })
+
+  describe("assumptionsInherited", () => {
+    it("defaults to inheriting the journey's rates", async () => {
+      const result = await goalsSchema.validateAt("assumptionsInherited", {})
+      expect(result).toBe(true)
+    })
+
+    it("accepts an explicit per-stage override", async () => {
+      const result = await goalsSchema.validateAt("assumptionsInherited", {
+        assumptionsInherited: false,
+      })
+      expect(result).toBe(false)
+    })
+  })
 })
 
 describe("defaultWizardValues", () => {
@@ -251,6 +265,10 @@ describe("defaultWizardValues", () => {
     expect(defaultWizardValues).toHaveProperty("otherIncomeMonthly")
     expect(defaultWizardValues).toHaveProperty("expenses")
     expect(defaultWizardValues).toHaveProperty("expensesCurrency")
+  })
+
+  it("starts a new stage inheriting its journey's assumptions", () => {
+    expect(defaultWizardValues.assumptionsInherited).toBe(true)
   })
 
   it("should have sensible defaults", () => {

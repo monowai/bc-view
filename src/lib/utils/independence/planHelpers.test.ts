@@ -116,6 +116,27 @@ describe("toPlanRequestPayload", () => {
     expect(payload.investmentTaxRate).toBe(0)
   })
 
+  it("echoes the stored assumptionsInherited flag so a full-replace PATCH can't flip it", () => {
+    expect(
+      toPlanRequestPayload({ ...plan, assumptionsInherited: true })
+        .assumptionsInherited,
+    ).toBe(true)
+    expect(
+      toPlanRequestPayload({ ...plan, assumptionsInherited: false })
+        .assumptionsInherited,
+    ).toBe(false)
+  })
+
+  it("omits assumptionsInherited for a legacy row that never carried one", () => {
+    // Omitted means "leave the stored flag alone" on the stage PATCH — the
+    // one field here that must NOT be coerced to a default.
+    const payload = toPlanRequestPayload({
+      ...plan,
+      assumptionsInherited: undefined,
+    })
+    expect(payload.assumptionsInherited).toBeUndefined()
+  })
+
   it("parses excludedPortfolioIds / excludedRentalAssetIds from a JSON string", () => {
     const payload = toPlanRequestPayload({
       ...plan,

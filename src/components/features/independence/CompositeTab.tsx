@@ -20,13 +20,16 @@ import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
 import WorkingYearsSection from "./scenarios/WorkingYearsSection"
 import NetWorthTab from "./composite/tabs/NetWorthTab"
+import JourneyAssumptionsSection from "./composite/tabs/JourneyAssumptionsSection"
 
 /**
- * `plan` reads the projection; `stages` and `wealth` change it. The page keeps
- * the two kinds apart — settings live behind Set up, never in the same row as
- * the charts — but both need this provider, so both are rendered from here.
+ * `plan` reads the projection; `stages`, `wealth` and `assumptions` change it.
+ * The page keeps the two kinds apart — settings live behind Set up, never in
+ * the same row as the charts — but both need this provider, so both are
+ * rendered from here.
  */
-export type CompositeMode = "plan" | "stages" | "wealth" | "work"
+export type CompositeMode =
+  "plan" | "stages" | "wealth" | "work" | "assumptions"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -71,12 +74,35 @@ export default function CompositeTab({
 
   return (
     <CompositeProjectionProvider value={contextValue}>
-      {mode === "stages" && <PhasesTab />}
-      {mode === "wealth" && <NetWorthTab />}
-      {mode === "work" && <WorkingYearsSection />}
-      {mode === "plan" && <PlanNarrative />}
+      {renderMode(mode)}
     </CompositeProjectionProvider>
   )
+}
+
+/**
+ * One mode, one surface.
+ *
+ * A switch rather than a row of `mode === "…" &&` guards: adding a mode to
+ * {@link CompositeMode} and forgetting to render anything for it is then a
+ * compile error here, instead of a silently blank section on the page.
+ */
+function renderMode(mode: CompositeMode): React.ReactElement {
+  switch (mode) {
+    case "stages":
+      return <PhasesTab />
+    case "wealth":
+      return <NetWorthTab />
+    case "work":
+      return <WorkingYearsSection />
+    case "assumptions":
+      return <JourneyAssumptionsSection />
+    case "plan":
+      return <PlanNarrative />
+    default: {
+      const unhandled: never = mode
+      return unhandled
+    }
+  }
 }
 
 function PlanNarrative(): React.ReactElement {

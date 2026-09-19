@@ -77,7 +77,7 @@ function addStageHref(journeyId: string | undefined): string {
     : "/independence/wizard"
 }
 
-type SetupSectionId = "stages" | "wealth" | "work" | "profile"
+type SetupSectionId = "stages" | "assumptions" | "wealth" | "work" | "profile"
 
 interface SetupSection {
   id: SetupSectionId
@@ -105,6 +105,8 @@ function setupSectionFor(view: unknown): SetupSectionId | null {
       return "stages"
     case "wealth":
       return "wealth"
+    case "assumptions":
+      return "assumptions"
     default:
       return null
   }
@@ -123,6 +125,12 @@ const SETUP_SECTIONS: SetupSection[] = [
     label: "Stages",
     hint: "The ages each stage covers, and what changes between them.",
     icon: "fa-clipboard-list",
+  },
+  {
+    id: "assumptions",
+    label: "Assumptions",
+    hint: "Return rates, inflation, fees and tax — set once here; every stage inherits them unless it overrides.",
+    icon: "fa-sliders-h",
   },
   {
     id: "wealth",
@@ -1040,6 +1048,19 @@ function RetirementPlanning(): React.ReactElement {
                     settings={settings}
                     activePlanId={activePlanId}
                     mode="work"
+                  />
+                )}
+
+                {/* Journey-level assumptions. Rendered through CompositeTab
+                    like the other editors: it reads the projection echo for
+                    per-stage provenance, which only exists inside the
+                    composite provider. */}
+                {effectiveSection === "assumptions" && (
+                  <CompositeTab
+                    plans={phaseTabPlans}
+                    settings={settings}
+                    activePlanId={activePlanId}
+                    mode="assumptions"
                   />
                 )}
 

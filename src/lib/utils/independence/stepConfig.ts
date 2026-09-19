@@ -47,6 +47,7 @@ export const WIZARD_STEPS: WizardStep[] = [
     icon: "fa-sliders-h",
     fields: [
       "targetBalance",
+      "assumptionsInherited",
       "cashReturnRate",
       "equityReturnRate",
       "housingReturnRate",

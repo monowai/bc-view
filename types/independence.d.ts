@@ -92,6 +92,16 @@ export interface RetirementPlan {
   feeRate?: number
   /** Always serialized by svc-retire; optional only to spare legacy fixtures. */
   investmentTaxRate?: number
+  /**
+   * Whether this stage runs on its journey's assumptions rather than its own
+   * rate columns (svc-retire#284). Always serialized by svc-retire; optional
+   * only to spare legacy fixtures. The backend forces it false for a stage
+   * with no journey — there is nothing to inherit from.
+   *
+   * Asset allocation is deliberately NOT part of the inherited set: cash /
+   * equity / housing stay per stage.
+   */
+  assumptionsInherited?: boolean
   cashAllocation: number
   equityAllocation: number
   housingAllocation: number
@@ -276,6 +286,22 @@ export interface IndependencePlan {
   liquidationCostsPercent?: number
   /** JSON Record<string,number> of manual asset estimates by category. */
   manualAssets?: string
+  /**
+   * Journey-level assumptions (svc-retire#284). Every rate below is a decimal
+   * **fraction**, not a percentage — 0.07 is 7%.
+   *
+   * Absent means the journey has never stated that rate, and each stage falls
+   * back to its own column for it. There is no "clear" verb on the PATCH yet
+   * (svc-retire#286), so absence is only ever the initial state.
+   *
+   * Asset allocation is NOT here: cash / equity / housing stay per stage.
+   */
+  cashReturnRate?: number
+  equityReturnRate?: number
+  housingReturnRate?: number
+  inflationRate?: number
+  feeRate?: number
+  investmentTaxRate?: number
   createdDate: string
   updatedDate: string
   systemUserId?: string
@@ -301,6 +327,17 @@ export interface IndependencePlanRequest {
   liquidatedPortfolioIds?: string
   liquidationCostsPercent?: number
   manualAssets?: string
+  /**
+   * Journey-level assumptions, as decimal **fractions** (0.07 = 7%). PATCH is
+   * partial: send only the rates being changed. An omitted rate leaves the
+   * stored one alone, so a single-field write is one key.
+   */
+  cashReturnRate?: number
+  equityReturnRate?: number
+  housingReturnRate?: number
+  inflationRate?: number
+  feeRate?: number
+  investmentTaxRate?: number
 }
 
 export interface IndependencePlanResponse {
@@ -1081,6 +1118,17 @@ export interface WizardFormData {
 
   // Step 5: Goals & Assumptions
   targetBalance?: number
+  /**
+   * True — the default for a new stage — means the journey's assumptions run
+   * and the stage's own rate columns are ignored by the engine.
+   *
+   * False means the stage runs on its own six rate columns. This form edits
+   * only the four return/inflation ones below; `feeRate` and
+   * `investmentTaxRate` stay whatever the stage row already holds, because
+   * the wizard has never surfaced them — `toPlanRequestPayload` echoes both
+   * so a wizard save cannot reset them.
+   */
+  assumptionsInherited: boolean
   cashReturnRate: number
   equityReturnRate: number
   housingReturnRate: number
@@ -1413,12 +1461,41 @@ export interface CompositeYearlyProjection {
   incomeBreakdown?: IncomeBreakdown
 }
 
+/**
+ * Where the rates a phase actually ran on came from.
+ *
+ * `MIXED` means the journey states some of them and the stage supplies the
+ * rest — the case a client-side comparison of the two rate sets gets wrong,
+ * which is why provenance is read from this echo and never re-derived.
+ */
+export type AssumptionSource = "JOURNEY" | "STAGE" | "MIXED"
+
+/**
+ * The effective assumptions one phase was projected with, echoed back by
+ * svc-retire. Rates are decimal **fractions** (0.07 = 7%) and are non-null on
+ * the wire — the engine ran on a concrete number for each.
+ */
+export interface PhaseAssumptions {
+  source: AssumptionSource
+  cashReturnRate: number
+  equityReturnRate: number
+  housingReturnRate: number
+  inflationRate: number
+  feeRate: number
+  investmentTaxRate: number
+}
+
 export interface CompositePhaseInfo {
   planId: string
   planName: string
   fromAge: number
   toAge: number
   expensesCurrency: string
+  /**
+   * Always sent by svc-retire (#284); optional only to spare fixtures written
+   * before the echo existed.
+   */
+  assumptions?: PhaseAssumptions
 }
 
 export interface CompositeProjectionResult {
