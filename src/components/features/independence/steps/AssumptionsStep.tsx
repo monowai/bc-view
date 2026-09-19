@@ -12,6 +12,7 @@ import { AllocationResponse } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import { normalizeAllocation } from "@lib/independence/planHelpers"
 import { toPercent } from "@lib/independence/conversions"
+import { journeyAssumptionsHref } from "@lib/independence/editPhase"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
 import { INPUT_CLS_BASE } from "@lib/ui/formClasses"
@@ -496,26 +497,33 @@ export default function AssumptionsStep({
                 <Controller
                   name="assumptionsInherited"
                   control={control}
-                  render={({ field }) => (
-                    // A <button role="switch">, not an input wrapped in a
-                    // label: that pairing double-fires in this codebase.
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-label="Override for this stage"
-                      aria-checked={!field.value}
-                      onClick={() => field.onChange(!(field.value ?? true))}
-                      className={`${
-                        field.value ? "bg-gray-200" : "bg-independence-600"
-                      } relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-independence-500 focus:ring-offset-2 motion-reduce:transition-none`}
-                    >
-                      <span
+                  render={({ field }) => {
+                    // Normalise once, the same way `isInheriting` does. Read
+                    // raw, an undefined value rendered the switch as "on" over
+                    // rows that were showing the inherited state — the control
+                    // and the thing it controls disagreeing.
+                    const inherits = field.value ?? true
+                    return (
+                      // A <button role="switch">, not an input wrapped in a
+                      // label: that pairing double-fires in this codebase.
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-label="Override for this stage"
+                        aria-checked={!inherits}
+                        onClick={() => field.onChange(!inherits)}
                         className={`${
-                          field.value ? "translate-x-0" : "translate-x-5"
-                        } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out motion-reduce:transition-none`}
-                      />
-                    </button>
-                  )}
+                          inherits ? "bg-gray-200" : "bg-independence-600"
+                        } relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-independence-500 focus:ring-offset-2 motion-reduce:transition-none`}
+                      >
+                        <span
+                          className={`${
+                            inherits ? "translate-x-0" : "translate-x-5"
+                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out motion-reduce:transition-none`}
+                        />
+                      </button>
+                    )
+                  }}
                 />
               </div>
             )}
@@ -548,7 +556,7 @@ export default function AssumptionsStep({
                 <p className="mt-2 text-sm text-gray-600">
                   These come from your journey.{" "}
                   <Link
-                    href={`/independence?view=assumptions&plan=${journey.id}`}
+                    href={journeyAssumptionsHref(journey.id)}
                     className="font-medium text-independence-700 underline-offset-2 hover:underline"
                   >
                     Edit in journey settings

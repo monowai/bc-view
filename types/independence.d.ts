@@ -1119,9 +1119,14 @@ export interface WizardFormData {
   // Step 5: Goals & Assumptions
   targetBalance?: number
   /**
-   * False when this stage overrides its journey's rates with the four below.
    * True — the default for a new stage — means the journey's assumptions run
    * and the stage's own rate columns are ignored by the engine.
+   *
+   * False means the stage runs on its own six rate columns. This form edits
+   * only the four return/inflation ones below; `feeRate` and
+   * `investmentTaxRate` stay whatever the stage row already holds, because
+   * the wizard has never surfaced them — `toPlanRequestPayload` echoes both
+   * so a wizard save cannot reset them.
    */
   assumptionsInherited: boolean
   cashReturnRate: number

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react"
 import type {
   AssumptionSource,
+  CompositePhaseInfo,
   IndependencePlan,
   IndependencePlanRequest,
+  PhaseAssumptions,
 } from "types/independence"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { toPercent } from "@lib/independence/conversions"
@@ -95,7 +97,9 @@ function validate(field: RateField, percent: number): string | null {
     return `${field.label} can't be negative.`
   }
   if (Math.abs(percent) >= RATE_LIMIT) {
-    return `${field.label} must be between -100% and 100%.`
+    // The bound is exclusive — ±100 itself is refused — so say so. "Between
+    // -100% and 100%" describes a rule the rejected value satisfies.
+    return `${field.label} must be greater than -100% and less than 100%.`
   }
   return null
 }
@@ -117,56 +121,83 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   const { activePlan, activePlanId, update } = useActiveIndependencePlan()
   const { projection } = useCompositeProjectionContext()
 
-  // Only what the user has typed since the page loaded. Everything else reads
-  // through to the stored journey, so a save landing elsewhere shows up here
-  // without an effect to copy it into local state.
-  const [drafts, setDrafts] = useState<Partial<Record<RateKey, string>>>({})
-  const [errors, setErrors] = useState<Partial<Record<RateKey, string>>>({})
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const timers = useRef<
-    Partial<Record<RateKey, ReturnType<typeof setTimeout>>>
+  // Everything the user has typed but not yet saved, and anything we have to
+  // tell them about it — all keyed by the journey it belongs to.
+  //
+  // Switching journeys is a shallow route push, so this component is
+  // re-rendered rather than remounted and unscoped state would show one
+  // journey's half-typed number on another journey's box, labelled as that
+  // journey's rate. Keying the component to force a remount would fix the
+  // display by throwing away the write the first journey still has queued,
+  // which is worse. Everything not typed reads straight through to the stored
+  // journey, so there is no effect copying server state into local state.
+  const [drafts, setDrafts] = useState<
+    Record<string, Partial<Record<RateKey, string>>>
   >({})
+  const [errors, setErrors] = useState<
+    Record<string, Partial<Record<RateKey, string>>>
+  >({})
+  const [saveErrors, setSaveErrors] = useState<Record<string, string>>({})
+  // Keyed `${planId}:${rateKey}`, so typing into one journey's Fees box can
+  // never call off another journey's pending Fees write.
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     const pending = timers.current
     return () => {
-      Object.values(pending).forEach((timer) => {
-        if (timer) clearTimeout(timer)
-      })
+      Object.values(pending).forEach((timer) => clearTimeout(timer))
     }
   }, [])
 
   const handleChange = (field: RateField, raw: string): void => {
-    setDrafts((prev) => ({ ...prev, [field.key]: raw }))
+    // No active journey means no box on screen to have typed into, and
+    // nowhere to scope the draft to either.
+    if (!activePlanId) return
+    const planId = activePlanId
+    const timerKey = `${planId}:${field.key}`
+
+    setDrafts((prev) => ({
+      ...prev,
+      [planId]: { ...prev[planId], [field.key]: raw },
+    }))
 
     // Cancel first, unconditionally: clearing the box or typing something
     // invalid must also call off the write the previous keystroke queued.
-    const queued = timers.current[field.key]
+    const queued = timers.current[timerKey]
     if (queued) clearTimeout(queued)
+
+    const setFieldError = (message: string | undefined): void =>
+      setErrors((prev) => ({
+        ...prev,
+        [planId]: { ...prev[planId], [field.key]: message },
+      }))
 
     if (raw.trim() === "") {
       // No "clear" verb on the PATCH — an empty box means "stop, I'm not done
       // typing", not "unset this rate".
-      setErrors((prev) => ({ ...prev, [field.key]: undefined }))
+      setFieldError(undefined)
       return
     }
 
     const percent = Number(raw)
     const message = validate(field, percent)
     if (message) {
-      setErrors((prev) => ({ ...prev, [field.key]: message }))
+      setFieldError(message)
       return
     }
 
-    setErrors((prev) => ({ ...prev, [field.key]: undefined }))
-    setSaveError(null)
-    if (!activePlanId) return
-    const planId = activePlanId
+    setFieldError(undefined)
+    setSaveErrors((prev) => ({ ...prev, [planId]: "" }))
 
-    timers.current[field.key] = setTimeout(() => {
+    timers.current[timerKey] = setTimeout(() => {
       const body: IndependencePlanRequest = { [field.key]: percent / 100 }
+      // `planId` is captured deliberately: this write belongs to the journey
+      // whose box was typed in, whichever journey is on screen when it fires.
       update(planId, body).catch((e) =>
-        setSaveError(toErrorMessage(e, `Failed to save ${field.label}`)),
+        setSaveErrors((prev) => ({
+          ...prev,
+          [planId]: toErrorMessage(e, `Failed to save ${field.label}`),
+        })),
       )
     }, SAVE_DEBOUNCE_MS)
   }
@@ -179,6 +210,10 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
       </div>
     )
   }
+
+  const planDrafts = drafts[activePlan.id]
+  const planErrors = errors[activePlan.id]
+  const saveError = saveErrors[activePlan.id]
 
   return (
     <div className="space-y-4">
@@ -199,12 +234,12 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {RATE_FIELDS.map((field) => {
             const value =
-              drafts[field.key] ??
+              planDrafts?.[field.key] ??
               toInputValue(
                 activePlan[field.key as keyof IndependencePlan] as
                   number | undefined,
               )
-            const error = errors[field.key]
+            const error = planErrors?.[field.key]
             return (
               <div key={field.key}>
                 <label
@@ -265,7 +300,13 @@ function StageProvenance({
 }: {
   projection: ReturnType<typeof useCompositeProjectionContext>["projection"]
 }): React.ReactElement | null {
-  const rows = (projection?.phases ?? []).filter((p) => p.assumptions)
+  // A type-guard filter, not a truthiness one: it narrows the rows so the
+  // label and the tone below both read `row.assumptions.source` outright,
+  // with no `!` claiming something the type doesn't say.
+  const rows = (projection?.phases ?? []).filter(
+    (p): p is CompositePhaseInfo & { assumptions: PhaseAssumptions } =>
+      p.assumptions != null,
+  )
   if (rows.length === 0) return null
 
   return (
@@ -284,12 +325,12 @@ function StageProvenance({
             </span>
             <span
               className={`shrink-0 text-xs font-medium ${
-                row.assumptions?.source === "JOURNEY"
+                row.assumptions.source === "JOURNEY"
                   ? "text-gray-500"
                   : "text-amber-700"
               }`}
             >
-              {SOURCE_LABEL[row.assumptions!.source]}
+              {SOURCE_LABEL[row.assumptions.source]}
             </span>
           </li>
         ))}

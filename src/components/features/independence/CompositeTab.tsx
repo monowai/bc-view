@@ -74,13 +74,35 @@ export default function CompositeTab({
 
   return (
     <CompositeProjectionProvider value={contextValue}>
-      {mode === "stages" && <PhasesTab />}
-      {mode === "wealth" && <NetWorthTab />}
-      {mode === "work" && <WorkingYearsSection />}
-      {mode === "assumptions" && <JourneyAssumptionsSection />}
-      {mode === "plan" && <PlanNarrative />}
+      {renderMode(mode)}
     </CompositeProjectionProvider>
   )
+}
+
+/**
+ * One mode, one surface.
+ *
+ * A switch rather than a row of `mode === "…" &&` guards: adding a mode to
+ * {@link CompositeMode} and forgetting to render anything for it is then a
+ * compile error here, instead of a silently blank section on the page.
+ */
+function renderMode(mode: CompositeMode): React.ReactElement {
+  switch (mode) {
+    case "stages":
+      return <PhasesTab />
+    case "wealth":
+      return <NetWorthTab />
+    case "work":
+      return <WorkingYearsSection />
+    case "assumptions":
+      return <JourneyAssumptionsSection />
+    case "plan":
+      return <PlanNarrative />
+    default: {
+      const unhandled: never = mode
+      return unhandled
+    }
+  }
 }
 
 function PlanNarrative(): React.ReactElement {

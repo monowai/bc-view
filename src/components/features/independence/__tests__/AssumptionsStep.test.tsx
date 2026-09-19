@@ -6,6 +6,7 @@ import { useForm, FormProvider } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import AssumptionsStep from "../steps/AssumptionsStep"
 import { goalsSchema, defaultWizardValues } from "@lib/independence/schema"
+import { journeyAssumptionsHref } from "@lib/independence/editPhase"
 import { IndependencePlan, WizardFormData } from "types/independence"
 import { SWRConfig } from "swr"
 
@@ -258,7 +259,30 @@ describe("AssumptionsStep — inheriting a journey's assumptions", () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /edit in journey settings/i }),
-    ).toHaveAttribute("href", "/independence?view=assumptions&plan=j1")
+    ).toHaveAttribute("href", journeyAssumptionsHref("j1"))
+  })
+
+  it("treats an unset inherit flag as inheriting, like the rest of the step", async () => {
+    // A form seeded from an older draft can carry `undefined` here. The switch
+    // reads the same default `isInheriting` does, so the control and the rows
+    // beneath it can never disagree about which state the stage is in.
+    render(
+      <TestWrapper
+        journey={makeJourney()}
+        defaults={{ assumptionsInherited: undefined }}
+      />,
+    )
+    await openReturns()
+
+    expect(
+      screen.getByRole("switch", { name: /override for this stage/i }),
+    ).toHaveAttribute("aria-checked", "false")
+    expect(
+      screen.getByText(/these come from your journey/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/equity return rate/i),
+    ).not.toBeInTheDocument()
   })
 
   it("restores the editable inputs when the stage takes over", async () => {

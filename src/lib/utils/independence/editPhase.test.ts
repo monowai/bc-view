@@ -1,4 +1,23 @@
-import { editPhaseHref, resolveReturnTo, returnToLabel } from "./editPhase"
+import {
+  editPhaseHref,
+  journeyAssumptionsHref,
+  resolveReturnTo,
+  returnToLabel,
+} from "./editPhase"
+
+describe("journeyAssumptionsHref", () => {
+  it("points at the journey's own Assumptions section, carrying the journey", () => {
+    expect(journeyAssumptionsHref("j1")).toBe(
+      "/independence?view=assumptions&plan=j1",
+    )
+  })
+
+  it("encodes an id that would otherwise break the query string", () => {
+    expect(journeyAssumptionsHref("a&b=c")).toBe(
+      "/independence?view=assumptions&plan=a%26b%3Dc",
+    )
+  })
+})
 
 describe("resolveReturnTo", () => {
   it("returns the caller to exactly where they were, query and all", () => {

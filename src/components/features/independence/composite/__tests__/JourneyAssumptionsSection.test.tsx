@@ -1,5 +1,12 @@
 import React from "react"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  type RenderResult,
+} from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { IndependencePlan } from "types/independence"
 import {
@@ -65,14 +72,26 @@ function makeCtx(
   } as CompositeProjectionValue
 }
 
-function renderSection(
+/**
+ * Switching journeys is a shallow route push — the section is re-rendered,
+ * never remounted. Building the element separately lets a test move
+ * `mockActivePlan` and re-render the same tree, which is exactly what the
+ * switcher does.
+ */
+function tree(
   ctxOverrides: Partial<CompositeProjectionValue> = {},
-): void {
-  render(
+): React.ReactElement {
+  return (
     <CompositeProjectionProvider value={makeCtx(ctxOverrides)}>
       <JourneyAssumptionsSection />
-    </CompositeProjectionProvider>,
+    </CompositeProjectionProvider>
   )
+}
+
+function renderSection(
+  ctxOverrides: Partial<CompositeProjectionValue> = {},
+): RenderResult {
+  return render(tree(ctxOverrides))
 }
 
 /** Phase echo shorthand — the provenance list reads only `source`. */
@@ -184,7 +203,11 @@ describe("JourneyAssumptionsSection", () => {
       jest.advanceTimersByTime(1000)
     })
 
-    expect(screen.getByText(/must be between -100% and 100%/i)).toBeVisible()
+    // The bound is exclusive — 100 itself is refused — so the sentence has to
+    // say "less than", not "between", or it reads as a rule it just broke.
+    expect(
+      screen.getByText(/must be greater than -100% and less than 100%/i),
+    ).toBeVisible()
     expect(mockUpdate).not.toHaveBeenCalled()
   })
 
@@ -247,6 +270,93 @@ describe("JourneyAssumptionsSection", () => {
     expect(
       screen.queryByText(/which stages use these/i),
     ).not.toBeInTheDocument()
+  })
+
+  describe("switching the active journey", () => {
+    it("shows the journey you switched to, not what you typed under the last one", () => {
+      // The switcher is a shallow route push: no remount, so unscoped local
+      // state simply carried A's half-typed number onto B's box and claimed
+      // it was B's rate.
+      const { rerender } = renderSection()
+
+      fireEvent.change(screen.getByLabelText("Fees"), {
+        target: { value: "1.1" },
+      })
+      expect(screen.getByLabelText("Fees")).toHaveValue(1.1)
+
+      mockActivePlan = makeJourney({ id: "j2", feeRate: 0.009 })
+      rerender(tree())
+
+      expect(screen.getByLabelText("Fees")).toHaveValue(0.9)
+    })
+
+    it("leaves one journey's validation error behind when you switch away", () => {
+      const { rerender } = renderSection()
+
+      fireEvent.change(screen.getByLabelText("Fees"), {
+        target: { value: "-1" },
+      })
+      expect(screen.getByText(/fees can't be negative/i)).toBeVisible()
+
+      mockActivePlan = makeJourney({ id: "j2" })
+      rerender(tree())
+
+      expect(
+        screen.queryByText(/fees can't be negative/i),
+      ).not.toBeInTheDocument()
+    })
+
+    it("leaves one journey's save failure behind when you switch away", async () => {
+      mockUpdate.mockRejectedValue(new Error("Journey is shared with 2 people"))
+      const { rerender } = renderSection()
+
+      fireEvent.change(screen.getByLabelText("Fees"), {
+        target: { value: "1" },
+      })
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+      await waitFor(() =>
+        expect(
+          screen.getByText("Journey is shared with 2 people"),
+        ).toBeInTheDocument(),
+      )
+
+      mockActivePlan = makeJourney({ id: "j2" })
+      rerender(tree())
+
+      expect(
+        screen.queryByText("Journey is shared with 2 people"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("still sends the first journey's queued write, against the first journey", async () => {
+      // Typing into B's Fees must not cancel A's pending Fees write: the
+      // debounce is per journey AND per field, and A's write belongs to the
+      // journey whose box was typed in.
+      const { rerender } = renderSection()
+
+      fireEvent.change(screen.getByLabelText("Fees"), {
+        target: { value: "1.5" },
+      })
+
+      mockActivePlan = makeJourney({ id: "j2", feeRate: 0.009 })
+      rerender(tree())
+
+      fireEvent.change(screen.getByLabelText("Fees"), {
+        target: { value: "2" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      await waitFor(() =>
+        expect(mockUpdate).toHaveBeenCalledWith("j1", { feeRate: 0.015 }),
+      )
+      expect(mockUpdate).toHaveBeenCalledWith("j2", { feeRate: 0.02 })
+      expect(mockUpdate).toHaveBeenCalledTimes(2)
+    })
   })
 
   it("asks for a journey first when the account has none", () => {

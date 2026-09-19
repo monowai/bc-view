@@ -2,6 +2,22 @@
 export const PLAN_SURFACE = "/independence"
 
 /**
+ * Where a journey's shared assumptions are edited.
+ *
+ * The wizard's per-stage Assumptions step links here when a stage inherits,
+ * so the destination is spelled once rather than in every caller that wants
+ * to hand the reader over — and it is built from {@link PLAN_SURFACE}, so it
+ * moves with the plan surface if that ever changes.
+ */
+export function journeyAssumptionsHref(journeyId: string): string {
+  const params = new URLSearchParams({
+    view: "assumptions",
+    plan: journeyId,
+  })
+  return `${PLAN_SURFACE}?${params.toString()}`
+}
+
+/**
  * Where a phase editor should send the user when they finish or back out.
  *
  * Editing a phase is a detour, not a destination: the reader was looking at
