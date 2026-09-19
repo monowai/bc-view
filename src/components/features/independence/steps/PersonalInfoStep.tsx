@@ -219,9 +219,7 @@ export default function PersonalInfoStep({
                 className={INPUT_CLS}
               >
                 <option value="">Default (match strategy)</option>
-                <option value="EARLY_RETIREMENT_PROGRESS">
-                  Early Retirement Progress
-                </option>
+                <option value="EARLY_RETIREMENT_PROGRESS">Progress</option>
                 <option value="RETIREMENT_AGE_FI">
                   Retirement-Age Progress
                 </option>

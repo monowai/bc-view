@@ -308,7 +308,7 @@ export const INDEPENDENCE_MILESTONES: MilestoneDefinition[] = [
   {
     id: "fi-progress",
     category: "independence",
-    title: "Early Retirement Progress",
+    title: "Progress",
     icon: "fa-flag-checkered",
     tiers: [
       {
