@@ -98,6 +98,11 @@ export function buildWizardPlanRequest(
     monthlyExpenses,
     expensesCurrency: formData.expensesCurrency,
     targetBalance: formData.targetBalance ?? null,
+    // Sent on both paths. The rate fields below still go out when the stage
+    // inherits — the engine ignores them then, and keeping the payload shape
+    // stable means flipping the switch back restores what the user last typed
+    // rather than backend defaults.
+    assumptionsInherited: formData.assumptionsInherited,
     cashReturnRate: toDecimal(formData.cashReturnRate),
     equityReturnRate: toDecimal(formData.equityReturnRate),
     housingReturnRate: toDecimal(formData.housingReturnRate),
@@ -164,6 +169,17 @@ export default function WizardContainer({
     simpleFetcher(portfoliosKey),
   )
   const effectiveJourneyId = journeyId ?? plan?.independencePlanId
+  // The journey whose assumptions this stage inherits. Undefined while the
+  // journeys request is in flight and for a stage with no journey at all —
+  // AssumptionsStep treats both as "nothing to inherit from" and edits the
+  // stage's own rates, which is the only honest thing to show either way.
+  const journey = useMemo(
+    () =>
+      effectiveJourneyId
+        ? journeys.find((j) => j.id === effectiveJourneyId)
+        : undefined,
+    [journeys, effectiveJourneyId],
+  )
   const journeyPortfolioIds = useMemo(
     () =>
       portfoliosForJourney({
@@ -461,6 +477,7 @@ export default function WizardContainer({
             setValue={setValue}
             isEditMode={isEditMode}
             portfolioIds={journeyPortfolioIds}
+            journey={journey}
           />
         )
       case 3:

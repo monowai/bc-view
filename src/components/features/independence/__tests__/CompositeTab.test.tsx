@@ -65,6 +65,18 @@ jest.mock("@hooks/useIndependenceSettings", () => ({
   }),
 }))
 
+// Its own wiring (debounced single-field PATCH, provenance echo) is covered
+// by JourneyAssumptionsSection.test; here we only assert the mode renders it.
+jest.mock(
+  "@components/features/independence/composite/tabs/JourneyAssumptionsSection",
+  () => ({
+    __esModule: true,
+    default: (): React.ReactElement => (
+      <div data-testid="journey-assumptions-section" />
+    ),
+  }),
+)
+
 jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -349,6 +361,24 @@ describe("CompositeTab", () => {
     expect(screen.getByText("Your plan is hidden.")).toBeInTheDocument()
 
     usePrivacyMode.mockReturnValue({ hideValues: false })
+  })
+
+  it("renders the journey assumptions editor in assumptions mode only", () => {
+    mockProjection({ projection: makeProjection() })
+    const { rerender } = render(
+      <CompositeTab plans={plans} settings={settings} mode="plan" />,
+    )
+    expect(
+      screen.queryByTestId("journey-assumptions-section"),
+    ).not.toBeInTheDocument()
+
+    rerender(
+      <CompositeTab plans={plans} settings={settings} mode="assumptions" />,
+    )
+    expect(
+      screen.getByTestId("journey-assumptions-section"),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Your money lasts/)).not.toBeInTheDocument()
   })
 
   it("carries no composite narrative field", () => {

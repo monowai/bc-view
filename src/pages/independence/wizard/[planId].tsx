@@ -141,6 +141,10 @@ function EditPlanWizard(): React.ReactElement {
       monthlyAmount: e.monthlyAmount,
     })),
     targetBalance: plan.targetBalance,
+    // An existing stage shows what it is actually doing. Defaulting a legacy
+    // row (no flag stored) to `true` would claim it inherits when svc-retire
+    // is still running its own rates — false is the state those rows are in.
+    assumptionsInherited: plan.assumptionsInherited ?? false,
     cashReturnRate: toPercent(plan.cashReturnRate, 0.03),
     equityReturnRate: toPercent(plan.equityReturnRate, 0.08),
     housingReturnRate: toPercent(plan.housingReturnRate, 0.04),

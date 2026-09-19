@@ -310,6 +310,35 @@ describe("buildWizardPlanRequest", () => {
     expect("excludedPortfolioIds" in payload).toBe(false)
   })
 
+  it("always states whether the stage inherits its journey's assumptions", () => {
+    // The flag is what svc-retire#284 reads to decide whose rates run. It has
+    // to go out on both paths: a create that omitted it would land on the
+    // backend default rather than what the switch showed.
+    const created = buildWizardPlanRequest(
+      { ...formData, assumptionsInherited: true },
+      { isEditMode: false, plan: null, planningHorizonYears: 30 },
+    )
+    expect(created.assumptionsInherited).toBe(true)
+
+    const overridden = buildWizardPlanRequest(
+      { ...formData, assumptionsInherited: false },
+      { isEditMode: true, plan, planningHorizonYears: 30 },
+    )
+    expect(overridden.assumptionsInherited).toBe(false)
+  })
+
+  it("lets the switch win over the stored flag echoed by the plan payload", () => {
+    const payload = buildWizardPlanRequest(
+      { ...formData, assumptionsInherited: false },
+      {
+        isEditMode: true,
+        plan: { ...plan, assumptionsInherited: true } as RetirementPlan,
+        planningHorizonYears: 30,
+      },
+    )
+    expect(payload.assumptionsInherited).toBe(false)
+  })
+
   it("still echoes the stored excludedPortfolioIds in edit mode", () => {
     // Omitting the key must not silently clear a legacy value that a plan
     // predating journeys still relies on.

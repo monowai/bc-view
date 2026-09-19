@@ -92,6 +92,12 @@ export const manualAssetsSchema = yup.object({
 
 export const goalsSchema = yup.object({
   targetBalance: yup.number().min(0, "Must be positive").nullable(),
+  /**
+   * A new stage inherits its journey's assumptions; the Returns accordion's
+   * override switch is what turns this off. Stages with no journey are forced
+   * to false by svc-retire — there is nothing to inherit from.
+   */
+  assumptionsInherited: yup.boolean().default(true),
   cashReturnRate: yup
     .number()
     .min(0, "Must be 0% or higher")
@@ -174,6 +180,7 @@ export const defaultWizardValues = {
   expenses: [],
   expensesCurrency: "NZD",
   targetBalance: undefined,
+  assumptionsInherited: true,
   cashReturnRate: 3,
   equityReturnRate: 8,
   housingReturnRate: 4,

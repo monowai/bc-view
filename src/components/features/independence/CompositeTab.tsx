@@ -20,13 +20,16 @@ import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
 import WorkingYearsSection from "./scenarios/WorkingYearsSection"
 import NetWorthTab from "./composite/tabs/NetWorthTab"
+import JourneyAssumptionsSection from "./composite/tabs/JourneyAssumptionsSection"
 
 /**
- * `plan` reads the projection; `stages` and `wealth` change it. The page keeps
- * the two kinds apart — settings live behind Set up, never in the same row as
- * the charts — but both need this provider, so both are rendered from here.
+ * `plan` reads the projection; `stages`, `wealth` and `assumptions` change it.
+ * The page keeps the two kinds apart — settings live behind Set up, never in
+ * the same row as the charts — but both need this provider, so both are
+ * rendered from here.
  */
-export type CompositeMode = "plan" | "stages" | "wealth" | "work"
+export type CompositeMode =
+  "plan" | "stages" | "wealth" | "work" | "assumptions"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -74,6 +77,7 @@ export default function CompositeTab({
       {mode === "stages" && <PhasesTab />}
       {mode === "wealth" && <NetWorthTab />}
       {mode === "work" && <WorkingYearsSection />}
+      {mode === "assumptions" && <JourneyAssumptionsSection />}
       {mode === "plan" && <PlanNarrative />}
     </CompositeProjectionProvider>
   )

@@ -2,7 +2,11 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { editPhaseHref } from "@lib/independence/editPhase"
-import type { RetirementPlan, CompositePhase } from "types/independence"
+import type {
+  AssumptionSource,
+  RetirementPlan,
+  CompositePhase,
+} from "types/independence"
 import MathInput from "@components/ui/MathInput"
 import {
   phaseTone,
@@ -20,6 +24,24 @@ interface PhaseConfigListProps {
   /** Phase highlighted on the timeline band, kept in sync both ways. */
   activeIndex?: number | null
   onActiveChange?: (index: number | null) => void
+  /**
+   * Where each stage's assumptions came from, keyed by planId, read straight
+   * off the projection echo (`CompositePhaseInfo.assumptions.source`).
+   *
+   * Never derived here by comparing the stage's rates with the journey's:
+   * that cannot tell MIXED from either pure case, and a stage whose override
+   * happens to equal the journey's number is still an override.
+   */
+  assumptionSources?: Record<string, AssumptionSource>
+}
+
+/**
+ * Only the two states worth interrupting the row for. A stage that simply
+ * inherits is the norm, so it says nothing.
+ */
+const ASSUMPTION_BADGE: Partial<Record<AssumptionSource, string>> = {
+  STAGE: "Own assumptions",
+  MIXED: "Mixed assumptions",
 }
 
 const AGE_INPUT_CLASS =
@@ -113,6 +135,7 @@ export default function PhaseConfigList({
   horizonAge,
   activeIndex = null,
   onActiveChange,
+  assumptionSources,
 }: PhaseConfigListProps): React.ReactElement {
   const resolved = resolvePhases(phases, plans, horizonAge)
 
@@ -212,6 +235,9 @@ export default function PhaseConfigList({
             const isLast = index === phases.length - 1
             const name = getPlanName(plans, phase.planId)
             const isActive = activeIndex === index
+            const assumptionBadge = assumptionSources?.[phase.planId]
+              ? ASSUMPTION_BADGE[assumptionSources[phase.planId]]
+              : undefined
             return (
               <li
                 key={phase.planId}
@@ -232,6 +258,11 @@ export default function PhaseConfigList({
                     <span className="min-w-0 truncate text-sm font-medium text-gray-900">
                       {name}
                     </span>
+                    {assumptionBadge && (
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                        {assumptionBadge}
+                      </span>
+                    )}
                   </div>
                   <div className="pl-[1.375rem]">
                     <PhaseNarrative

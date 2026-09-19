@@ -31,6 +31,12 @@ export function toPlanRequestPayload(
     inflationRate: plan.inflationRate,
     feeRate: plan.feeRate ?? 0,
     investmentTaxRate: plan.investmentTaxRate ?? 0,
+    // Deliberately NOT null-coalesced. `assumptionsInherited` is the one
+    // field on this payload whose omission means "leave alone" rather than
+    // "reset to the default", so a legacy row that never carried the flag
+    // must go out without the key — defaulting it here would silently switch
+    // such a stage onto (or off) its journey's rates on the next save.
+    assumptionsInherited: plan.assumptionsInherited,
     cashAllocation: plan.cashAllocation,
     equityAllocation: plan.equityAllocation,
     housingAllocation: plan.housingAllocation,

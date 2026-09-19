@@ -1,4 +1,5 @@
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
+import type { AssumptionSource } from "types/independence"
 import PhaseConfigList from "../../PhaseConfigList"
 import PhaseTimeline, { resolvePhases } from "../PhaseTimeline"
 import ResidencePhasePicker from "../ResidencePhasePicker"
@@ -49,6 +50,18 @@ export default function PhasesTab(): React.ReactElement {
   const resolved = resolvePhases(phases, plans, horizonAge)
   const hasPhases = phases.length > 0
 
+  // Whose assumptions each stage actually ran on, straight from the engine's
+  // echo. A stage the echo says nothing about is left out rather than guessed
+  // at: the badge claims what the projection did, not what the stored rates
+  // happen to look like.
+  const assumptionSources = useMemo(() => {
+    const sources: Record<string, AssumptionSource> = {}
+    for (const phase of projection?.phases ?? []) {
+      if (phase.assumptions) sources[phase.planId] = phase.assumptions.source
+    }
+    return sources
+  }, [projection?.phases])
+
   return (
     <div className="space-y-4">
       <section className={PANEL_CLASS} data-testid="phases-layout">
@@ -67,6 +80,7 @@ export default function PhasesTab(): React.ReactElement {
             horizonAge={horizonAge}
             activeIndex={activeIndex}
             onActiveChange={setActiveIndex}
+            assumptionSources={assumptionSources}
           />
         </div>
       </section>

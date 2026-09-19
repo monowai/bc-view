@@ -6,16 +6,48 @@ import {
   useWatch,
   UseFormSetValue,
 } from "react-hook-form"
-import { WizardFormData } from "types/independence"
+import Link from "next/link"
+import { IndependencePlan, WizardFormData } from "types/independence"
 import { AllocationResponse } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import { normalizeAllocation } from "@lib/independence/planHelpers"
+import { toPercent } from "@lib/independence/conversions"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
 import { INPUT_CLS_BASE } from "@lib/ui/formClasses"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
+
+/** Copy for a journey rate the journey has never stated. */
+const UNSET_RATE = "Not set — this stage's own value applies"
+
+/**
+ * One inherited rate, read back rather than edited. Journey rates are decimal
+ * fractions; an absent one means the journey never stated it, and svc-retire
+ * falls back to this stage's own column for that rate alone — which is what
+ * makes a stage MIXED rather than fully inherited.
+ */
+function InheritedRate({
+  label,
+  rate,
+}: {
+  label: string
+  rate: number | undefined
+}): React.ReactElement {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1.5">
+      <span className="text-sm text-gray-700">{label}</span>
+      {rate === undefined ? (
+        <span className="text-right text-xs text-gray-500">{UNSET_RATE}</span>
+      ) : (
+        <span className="font-mono text-sm tabular-nums text-gray-900">
+          {toPercent(rate, 0)}%
+        </span>
+      )}
+    </div>
+  )
+}
 
 interface AssumptionsStepProps {
   control: Control<WizardFormData>
@@ -33,6 +65,16 @@ interface AssumptionsStepProps {
    * happened anyway for a journey that excludes everything.
    */
   portfolioIds?: string[]
+  /**
+   * The journey this stage belongs to, when it has one. Its rates are what the
+   * engine runs on unless this stage overrides them, so they are shown here
+   * read-only rather than copied into the stage's own fields.
+   *
+   * Undefined while the journeys request is in flight, and for a stage with no
+   * journey at all — both cases fall back to editing the stage's own rates,
+   * which is all there is to edit.
+   */
+  journey?: IndependencePlan
 }
 
 export default function AssumptionsStep({
@@ -41,6 +83,7 @@ export default function AssumptionsStep({
   setValue,
   isEditMode,
   portfolioIds,
+  journey,
 }: AssumptionsStepProps): React.ReactElement {
   const hasAppliedAllocation = useRef(false)
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
@@ -142,19 +185,52 @@ export default function AssumptionsStep({
 
   const totalAllocation = cashAllocation + equityAllocation + housingAllocation
 
+  const assumptionsInherited =
+    useWatch({ control, name: "assumptionsInherited" }) ?? true
+  // Only a stage with a journey can inherit. Without one there is nothing to
+  // inherit from, which is also how svc-retire resolves it.
+  const isInheriting = Boolean(journey) && assumptionsInherited
+
+  /**
+   * The rates this stage is actually projected with: the journey's while it
+   * inherits, falling back per-rate to the stage's own where the journey has
+   * never stated one — the same resolution svc-retire applies. Read rather
+   * than re-derived, so the blended figure below describes the projection the
+   * reader will see instead of a stale local copy.
+   */
+  const effectiveRate = (
+    journeyRate: number | undefined,
+    stageRate: number,
+  ): number =>
+    isInheriting && journeyRate !== undefined
+      ? toPercent(journeyRate, 0)
+      : stageRate
+
+  const effectiveCashReturn = effectiveRate(
+    journey?.cashReturnRate,
+    cashReturnRate,
+  )
+  const effectiveEquityReturn = effectiveRate(
+    journey?.equityReturnRate,
+    equityReturnRate,
+  )
+  const effectiveHousingReturn = effectiveRate(
+    journey?.housingReturnRate,
+    housingReturnRate,
+  )
   const blendedReturn = useMemo(() => {
     return (
-      (cashAllocation / 100) * cashReturnRate +
-      (equityAllocation / 100) * equityReturnRate +
-      (housingAllocation / 100) * housingReturnRate
+      (cashAllocation / 100) * effectiveCashReturn +
+      (equityAllocation / 100) * effectiveEquityReturn +
+      (housingAllocation / 100) * effectiveHousingReturn
     ).toFixed(2)
   }, [
     cashAllocation,
     equityAllocation,
     housingAllocation,
-    cashReturnRate,
-    equityReturnRate,
-    housingReturnRate,
+    effectiveCashReturn,
+    effectiveEquityReturn,
+    effectiveHousingReturn,
   ])
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -386,8 +462,9 @@ export default function AssumptionsStep({
               </h3>
               {!openSections.returns && (
                 <p className="text-sm text-gray-500">
-                  Equity {equityReturnRate}%, Cash {cashReturnRate}%, Housing{" "}
-                  {housingReturnRate}%
+                  Equity {effectiveEquityReturn}%, Cash {effectiveCashReturn}%,
+                  Housing {effectiveHousingReturn}%
+                  {isInheriting ? " — from your journey" : ""}
                 </p>
               )}
             </div>
@@ -400,131 +477,211 @@ export default function AssumptionsStep({
         {openSections.returns && (
           <div className="px-4 py-4 space-y-4">
             <p className="text-sm text-gray-600">
-              {msg.returnAssumptionsDescription}
+              {isInheriting
+                ? "Your journey states these once, and every stage inherits them unless it overrides."
+                : msg.returnAssumptionsDescription}
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="equityReturnRate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {fields.equityReturnRate}
-                </label>
+            {journey && (
+              <div className="flex items-start justify-between gap-4 rounded-lg bg-gray-50 px-3 py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    Override for this stage
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-600">
+                    Off, this stage uses your journey&apos;s assumptions. On, it
+                    runs on its own — only this stage changes.
+                  </p>
+                </div>
                 <Controller
-                  name="equityReturnRate"
+                  name="assumptionsInherited"
                   control={control}
                   render={({ field }) => (
-                    <MathInput
-                      id="equityReturnRate"
-                      value={field.value ?? 0}
-                      onChange={field.onChange}
-                      min={0}
-                      max={30}
-                      step={0.5}
-                      className={`${INPUT_CLS_BASE} ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}`}
-                    />
+                    // A <button role="switch">, not an input wrapped in a
+                    // label: that pairing double-fires in this codebase.
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-label="Override for this stage"
+                      aria-checked={!field.value}
+                      onClick={() => field.onChange(!(field.value ?? true))}
+                      className={`${
+                        field.value ? "bg-gray-200" : "bg-independence-600"
+                      } relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-independence-500 focus:ring-offset-2 motion-reduce:transition-none`}
+                    >
+                      <span
+                        className={`${
+                          field.value ? "translate-x-0" : "translate-x-5"
+                        } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out motion-reduce:transition-none`}
+                      />
+                    </button>
                   )}
                 />
-                {errors.equityReturnRate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.equityReturnRate.message}
-                  </p>
-                )}
               </div>
+            )}
 
+            {isInheriting && journey && (
               <div>
-                <label
-                  htmlFor="cashReturnRate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {fields.cashReturnRate}
-                </label>
-                <Controller
-                  name="cashReturnRate"
-                  control={control}
-                  render={({ field }) => (
-                    <MathInput
-                      id="cashReturnRate"
-                      value={field.value ?? 0}
-                      onChange={field.onChange}
-                      min={0}
-                      max={20}
-                      step={0.5}
-                      className={`${INPUT_CLS_BASE} ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}`}
-                    />
-                  )}
-                />
-                {errors.cashReturnRate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.cashReturnRate.message}
-                  </p>
-                )}
+                <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 px-3 py-1">
+                  <InheritedRate
+                    label="Equity return"
+                    rate={journey.equityReturnRate}
+                  />
+                  <InheritedRate
+                    label="Cash return"
+                    rate={journey.cashReturnRate}
+                  />
+                  <InheritedRate
+                    label="Housing return"
+                    rate={journey.housingReturnRate}
+                  />
+                  <InheritedRate
+                    label="Inflation"
+                    rate={journey.inflationRate}
+                  />
+                  <InheritedRate label="Fees" rate={journey.feeRate} />
+                  <InheritedRate
+                    label="Investment tax"
+                    rate={journey.investmentTaxRate}
+                  />
+                </div>
+                <p className="mt-2 text-sm text-gray-600">
+                  These come from your journey.{" "}
+                  <Link
+                    href={`/independence?view=assumptions&plan=${journey.id}`}
+                    className="font-medium text-independence-700 underline-offset-2 hover:underline"
+                  >
+                    Edit in journey settings
+                  </Link>
+                </p>
               </div>
+            )}
 
-              <div>
-                <label
-                  htmlFor="housingReturnRate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {fields.housingReturnRate}
-                </label>
-                <Controller
-                  name="housingReturnRate"
-                  control={control}
-                  render={({ field }) => (
-                    <MathInput
-                      id="housingReturnRate"
-                      value={field.value ?? 0}
-                      onChange={field.onChange}
-                      min={0}
-                      max={20}
-                      step={0.5}
-                      className={`${INPUT_CLS_BASE} ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}`}
-                    />
+            {!isInheriting && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="equityReturnRate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {fields.equityReturnRate}
+                  </label>
+                  <Controller
+                    name="equityReturnRate"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        id="equityReturnRate"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                        min={0}
+                        max={30}
+                        step={0.5}
+                        className={`${INPUT_CLS_BASE} ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      />
+                    )}
+                  />
+                  {errors.equityReturnRate && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.equityReturnRate.message}
+                    </p>
                   )}
-                />
-                {errors.housingReturnRate ? (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.housingReturnRate.message}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Annual capital appreciation applied to your property balance
-                    — runs independently from your liquid portfolio return.
-                  </p>
-                )}
-              </div>
+                </div>
 
-              <div>
-                <label
-                  htmlFor="inflationRate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {fields.inflationRate}
-                </label>
-                <Controller
-                  name="inflationRate"
-                  control={control}
-                  render={({ field }) => (
-                    <MathInput
-                      id="inflationRate"
-                      value={field.value ?? 0}
-                      onChange={field.onChange}
-                      min={0}
-                      max={10}
-                      step={0.5}
-                      className={`${INPUT_CLS_BASE} ${errors.inflationRate ? "border-red-500" : "border-gray-300"}`}
-                    />
+                <div>
+                  <label
+                    htmlFor="cashReturnRate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {fields.cashReturnRate}
+                  </label>
+                  <Controller
+                    name="cashReturnRate"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        id="cashReturnRate"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                        min={0}
+                        max={20}
+                        step={0.5}
+                        className={`${INPUT_CLS_BASE} ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      />
+                    )}
+                  />
+                  {errors.cashReturnRate && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.cashReturnRate.message}
+                    </p>
                   )}
-                />
-                {errors.inflationRate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.inflationRate.message}
-                  </p>
-                )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="housingReturnRate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {fields.housingReturnRate}
+                  </label>
+                  <Controller
+                    name="housingReturnRate"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        id="housingReturnRate"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                        min={0}
+                        max={20}
+                        step={0.5}
+                        className={`${INPUT_CLS_BASE} ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}`}
+                      />
+                    )}
+                  />
+                  {errors.housingReturnRate ? (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.housingReturnRate.message}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Annual capital appreciation applied to your property
+                      balance — runs independently from your liquid portfolio
+                      return.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="inflationRate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {fields.inflationRate}
+                  </label>
+                  <Controller
+                    name="inflationRate"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        id="inflationRate"
+                        value={field.value ?? 0}
+                        onChange={field.onChange}
+                        min={0}
+                        max={10}
+                        step={0.5}
+                        className={`${INPUT_CLS_BASE} ${errors.inflationRate ? "border-red-500" : "border-gray-300"}`}
+                      />
+                    )}
+                  />
+                  {errors.inflationRate && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.inflationRate.message}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

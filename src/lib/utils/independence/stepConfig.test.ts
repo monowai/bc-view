@@ -71,6 +71,12 @@ describe("WIZARD_STEPS", () => {
       expect(fields).toContain("equityAllocation")
       expect(fields).toContain("housingAllocation")
     })
+
+    it("validates the journey-inherit switch as part of the step", () => {
+      // The switch lives on step 2, so the step's trigger must see the field —
+      // otherwise a per-step validate never covers it.
+      expect(getStepFields(2)).toContain("assumptionsInherited")
+    })
   })
 
   describe("Step 3 - Income", () => {
@@ -122,7 +128,7 @@ describe("getStepFields", () => {
 
   it("should return correct number of fields for each step", () => {
     expect(getStepFields(1)).toHaveLength(4) // Personal Info (planName, expensesCurrency, country, narrative)
-    expect(getStepFields(2)).toHaveLength(8) // Assumptions
+    expect(getStepFields(2)).toHaveLength(9) // Assumptions (incl. the inherit switch)
     expect(getStepFields(3)).toHaveLength(3) // Income
     expect(getStepFields(4)).toHaveLength(1) // Expenses
     expect(getStepFields(5)).toHaveLength(1) // Life Events
