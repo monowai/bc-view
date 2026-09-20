@@ -295,3 +295,52 @@ describe("/wealth — independence headline resolves through the primary plan", 
     expect(screen.queryByTestId("independence-metrics")).not.toBeInTheDocument()
   })
 })
+
+describe("/wealth — independence empty state", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockJourneys = []
+  })
+
+  const owningPhase = makePhasePlan({
+    id: "plan-owning",
+    name: "Owning Go-Go",
+    independencePlanId: "jrn-owning",
+  })
+
+  it("offers a way into independence when the user has no plan", () => {
+    mockJourneys = []
+    mockSwr([])
+
+    render(<WealthPage />)
+
+    expect(screen.getByText("No independence plan yet")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Map out your stages and we'll show when work becomes optional.",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: "Plan your independence" }),
+    ).toHaveAttribute("href", "/independence")
+  })
+
+  it("shows the metrics, not the empty state, once a plan exists", () => {
+    mockJourneys = [
+      makeJourney({
+        id: "jrn-owning",
+        name: "With Property",
+        isPrimary: true,
+        phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+      }),
+    ]
+    mockSwr([owningPhase])
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("independence-metrics")).toBeInTheDocument()
+    expect(
+      screen.queryByText("No independence plan yet"),
+    ).not.toBeInTheDocument()
+  })
+})

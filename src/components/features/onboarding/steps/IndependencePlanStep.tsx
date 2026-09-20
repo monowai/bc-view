@@ -1,4 +1,6 @@
 import React from "react"
+import Link from "next/link"
+
 const currentYear = new Date().getFullYear()
 
 const MONTHS = [
@@ -19,6 +21,15 @@ const MONTHS = [
 export interface IndependencePlanStepProps {
   enabled: boolean
   hideToggle?: boolean
+  /**
+   * Set when the server already holds an independence journey for this user
+   * (a re-run of onboarding: new browser, cleared localStorage, or a typed
+   * `/onboarding`). The step then says so and links there instead of
+   * offering to build a second one — creating another stage would overwrite
+   * the existing journey's timeline. The caller owns the hook that knows
+   * this; the step just renders what it is told.
+   */
+  existingPlanHref?: string
   /**
    * When true (a CPF pension was set up), date of birth is mandatory and the
    * fields are shown even if the user skips the independence plan — CPF
@@ -63,6 +74,7 @@ function computeMonthlyContribution(
 const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   enabled,
   hideToggle = false,
+  existingPlanHref,
   cpfRequiresDob = false,
   yearOfBirth,
   monthOfBirth,
@@ -139,7 +151,22 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
 
   return (
     <div className="space-y-6">
-      {!hideToggle && (
+      {existingPlanHref && (
+        <div className="bg-independence-50 border border-independence-200 rounded-lg p-6 text-center">
+          <p className="text-sm text-gray-700">
+            {"You already have an independence plan — "}
+            <Link
+              href={existingPlanHref}
+              className="text-independence-700 font-medium underline"
+            >
+              {"view it"}
+            </Link>
+            {". Nothing to set up here."}
+          </p>
+        </div>
+      )}
+
+      {!hideToggle && !existingPlanHref && (
         <div className="flex items-center justify-center gap-4">
           <button
             type="button"
@@ -417,7 +444,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
         </div>
       )}
 
-      {!enabled && !hideToggle && (
+      {!enabled && !hideToggle && !existingPlanHref && (
         <div className="text-center text-sm text-gray-500">
           <p>
             {
