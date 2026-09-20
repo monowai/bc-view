@@ -1,6 +1,7 @@
 import { useUser } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
-import React from "react"
+import { useRouter } from "next/router"
+import React, { useEffect, useRef } from "react"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useMilestones } from "@contexts/MilestonesContext"
 import useSwr from "swr"
@@ -10,6 +11,7 @@ import { useRegistration } from "@contexts/RegistrationContext"
 import MilestoneBadge from "@components/features/milestones/MilestoneBadge"
 import { MilestoneTier } from "@utils/milestones/types"
 import MarketingLanding from "@components/features/landing/MarketingLanding"
+import { shouldRouteToOnboarding } from "@lib/onboarding/shouldRouteToOnboarding"
 
 const capitalize = (str: string): string =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
@@ -66,9 +68,11 @@ export default function Home(): React.ReactElement {
   // marketing branch render.
   const { user, isLoading } = useUser()
   const { preferences, isLoading: prefsLoading } = useUserPreferences()
+  const router = useRouter()
 
   // Get registration state from context
-  const { isChecking, isRegistered, isOnboardingComplete } = useRegistration()
+  const { isChecking, isRegistered, isNewlyRegistered, isOnboardingComplete } =
+    useRegistration()
 
   // Pre-fetch portfolios so they're cached for subsequent pages
   const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
@@ -76,6 +80,29 @@ export default function Home(): React.ReactElement {
     isRegistered ? portfoliosKey : null,
     simpleFetcher(portfoliosKey),
   )
+
+  // A brand-new account has nowhere to go from here, so send it into the
+  // wizard once. `portfolioCount === undefined` means the portfolios request
+  // is still in flight — "not loaded" is not "none", so we wait rather than
+  // redirect a user who turns out to own portfolios. The ref latches so a
+  // later revalidation can't re-fire the replace while the route transition
+  // is still settling; the decision itself lives in a pure helper.
+  const portfolioCount = portfoliosData?.data?.length
+  const routedToOnboarding = useRef(false)
+  useEffect(() => {
+    if (routedToOnboarding.current) return
+    if (portfolioCount === undefined) return
+    if (
+      !shouldRouteToOnboarding({
+        isNewlyRegistered,
+        portfolioCount,
+        onboardingComplete: isOnboardingComplete,
+      })
+    )
+      return
+    routedToOnboarding.current = true
+    router.replace("/onboarding")
+  }, [isNewlyRegistered, isOnboardingComplete, portfolioCount, router])
 
   // For authed users we wait for onboarding state (and portfolios when not yet
   // marked complete) before rendering. Unauth visitors render the marketing
@@ -107,7 +134,7 @@ export default function Home(): React.ReactElement {
 
   // Authed user with no portfolios sees the guided "Getting Started" card.
   // In that state the three pillar cards are noise, so they're hidden.
-  const isGettingStarted = portfoliosData?.data?.length === 0
+  const isGettingStarted = portfolioCount === 0
   const cardHref = {
     wealth: "/wealth",
     independence: "/independence",
@@ -135,7 +162,10 @@ export default function Home(): React.ReactElement {
             <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
               {"Let's Get You Started"}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 2x2 inside the card's max-w-2xl. Four across would leave each
+                column ~150px — too narrow for the sub-copy — and widening the
+                container would break its alignment with the hero above. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Guided Setup - for novice users */}
               <Link
                 href="/onboarding"
@@ -177,6 +207,23 @@ export default function Home(): React.ReactElement {
                 <h3 className="font-semibold text-gray-900 mb-1">{"Add"}</h3>
                 <p className="text-gray-500 text-sm">
                   {"Create a portfolio directly with full control"}
+                </p>
+              </Link>
+              {/* Independence - the goal the portfolios are for. Without
+                  this line a new account has no door to /independence
+                  except the nav menu. */}
+              <Link
+                href="/independence"
+                className="border border-gray-200 rounded-xl p-5 text-center hover:border-independence-200 hover:shadow-md transition-all"
+              >
+                <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i className="fas fa-compass text-xl text-independence-500"></i>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {"Plan your independence"}
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  {"Map out when work becomes optional."}
                 </p>
               </Link>
             </div>
