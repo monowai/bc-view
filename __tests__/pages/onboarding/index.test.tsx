@@ -57,13 +57,15 @@ function makeJourney(id: string): IndependencePlan {
   }
 }
 
-function mockPortfolios(count: number): void {
+function mockPortfolios(count: number, isLoading = false): void {
   ;(useSwr as jest.Mock).mockImplementation(() => ({
-    data: {
-      data: Array.from({ length: count }, (_, i) => ({ id: `pf-${i}` })),
-    },
+    data: isLoading
+      ? undefined
+      : {
+          data: Array.from({ length: count }, (_, i) => ({ id: `pf-${i}` })),
+        },
     error: null,
-    isLoading: false,
+    isLoading,
   }))
 }
 
@@ -100,6 +102,18 @@ describe("/onboarding — the completed-user guard", () => {
 
   it("lets a completed user with neither re-run the wizard", () => {
     mockPortfolios(0)
+
+    render(<Page />)
+
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it("waits for the portfolios request rather than guessing", () => {
+    // Symmetry with the journeys branch: an in-flight request is not an
+    // answer either way. (SWR reports isLoading false for a null key, so an
+    // unregistered user lands in the "no answer, no bounce" case and can't
+    // deadlock here.)
+    mockPortfolios(1, true)
 
     render(<Page />)
 

@@ -13,10 +13,9 @@ function OnboardingPage(): React.ReactElement {
   const { isOnboardingComplete, isRegistered } = useRegistration()
 
   // Check if user has portfolios
-  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
-    isRegistered ? portfoliosKey : null,
-    simpleFetcher(portfoliosKey),
-  )
+  const { data: portfoliosData, isLoading: portfoliosLoading } = useSwr<{
+    data: Portfolio[]
+  }>(isRegistered ? portfoliosKey : null, simpleFetcher(portfoliosKey))
 
   // A journey counts the same as a portfolio for the bounce below: the user
   // has already built something, so re-walking the wizard can only duplicate
@@ -30,15 +29,26 @@ function OnboardingPage(): React.ReactElement {
     // neither may re-run onboarding even with the flag set.
     if (!isOnboardingComplete) return
 
-    const hasPortfolio = (portfoliosData?.data?.length ?? 0) > 0
-    // "Still loading" is not "none": waiting here is what stops the wizard
-    // flashing up in front of a user who is about to be bounced.
+    // "Still loading" is not "none" on either side: waiting is what stops
+    // the wizard flashing up in front of a user about to be bounced. SWR
+    // reports `isLoading: false` for a null key, so the unregistered case
+    // (key suppressed) can't deadlock here — it simply never bounces, which
+    // is right: there is nothing to bounce them away from yet.
+    const hasPortfolio =
+      !portfoliosLoading && (portfoliosData?.data?.length ?? 0) > 0
     const hasJourney = !journeysLoading && journeys.length > 0
 
     if (hasPortfolio || hasJourney) {
       router.replace("/")
     }
-  }, [isOnboardingComplete, journeys, journeysLoading, portfoliosData, router])
+  }, [
+    isOnboardingComplete,
+    journeys,
+    journeysLoading,
+    portfoliosData,
+    portfoliosLoading,
+    router,
+  ])
 
   return (
     <div className="w-full py-8 px-4">

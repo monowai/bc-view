@@ -89,7 +89,7 @@ describe("IndependencePlanStep — the user already has a journey", () => {
       <IndependencePlanStep
         {...baseProps}
         enabled={false}
-        existingPlanHref="/independence"
+        existingPlanCheck="found"
       />,
     )
 
@@ -122,6 +122,51 @@ describe("IndependencePlanStep — the user already has a journey", () => {
     ).toBeInTheDocument()
     expect(
       screen.queryByText(/you already have an independence plan/i),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("IndependencePlanStep — the existing-plan check hasn't answered", () => {
+  it("shows a neutral placeholder while the check is in flight, not the toggle", () => {
+    render(
+      <IndependencePlanStep
+        {...baseProps}
+        enabled={false}
+        existingPlanCheck="loading"
+      />,
+    )
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /checking your independence plan/i,
+    )
+    expect(
+      screen.queryByRole("button", { name: /yes, let's do it/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /skip for now/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText("Target independence age"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("says so and points at the Independence page when the check failed", () => {
+    render(
+      <IndependencePlanStep
+        {...baseProps}
+        enabled={false}
+        existingPlanCheck="error"
+      />,
+    )
+
+    expect(
+      screen.getByText(/couldn't check whether you already have/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /independence page/i }),
+    ).toHaveAttribute("href", "/independence")
+    expect(
+      screen.queryByRole("button", { name: /yes, let's do it/i }),
     ).not.toBeInTheDocument()
   })
 })

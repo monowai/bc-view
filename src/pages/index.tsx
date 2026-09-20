@@ -162,7 +162,10 @@ export default function Home(): React.ReactElement {
             <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
               {"Let's Get You Started"}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 2x2 inside the card's max-w-2xl. Four across would leave each
+                column ~150px — too narrow for the sub-copy — and widening the
+                container would break its alignment with the hero above. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Guided Setup - for novice users */}
               <Link
                 href="/onboarding"

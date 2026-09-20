@@ -37,12 +37,14 @@ jest.mock("swr", () => ({
 }))
 
 let mockJourneys: IndependencePlan[] = []
+let mockJourneysLoading = false
+let mockJourneysError: Error | undefined
 
 jest.mock("@hooks/useIndependencePlans", () => ({
   useIndependencePlans: () => ({
     plans: mockJourneys,
-    error: undefined,
-    isLoading: false,
+    error: mockJourneysError,
+    isLoading: mockJourneysLoading,
   }),
 }))
 
@@ -122,6 +124,8 @@ describe("OnboardingWizard — step 5 decides from server state", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockJourneys = []
+    mockJourneysLoading = false
+    mockJourneysError = undefined
   })
 
   it("creates the stage and forces phasing on a genuinely first run", async () => {
@@ -183,6 +187,77 @@ describe("OnboardingWizard — step 5 decides from server state", () => {
     ).toBeInTheDocument()
     expect(
       screen.queryByText(/you already have an independence plan/i),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("OnboardingWizard — the journeys check fails closed", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockJourneys = []
+    mockJourneysLoading = false
+    mockJourneysError = undefined
+  })
+
+  it("creates no stage and calls no phasing when the journeys request errors", async () => {
+    // The hook collapses a failed request to `plans: []`, which reads exactly
+    // like "this user has none". Treating that as permission to build would
+    // re-open the duplicate-stage hole this guard closes.
+    mockJourneysError = new Error("boom")
+    const fetchMock = stubFetch()
+
+    render(<OnboardingWizard />)
+    await walkToCompletion()
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => url === PLANS_URL),
+    ).toHaveLength(0)
+    expect(mockGeneratePhasedPlans).not.toHaveBeenCalled()
+  })
+
+  it("tells the user on step 5 that the check failed, with no toggle", () => {
+    mockJourneysError = new Error("boom")
+    stubFetch()
+
+    render(<OnboardingWizard />)
+    walkToIndependenceStep()
+
+    expect(
+      screen.getByText(/couldn't check whether you already have/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /yes, let's do it/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("creates no stage and calls no phasing while the journeys request is in flight", async () => {
+    mockJourneysLoading = true
+    const fetchMock = stubFetch()
+
+    render(<OnboardingWizard />)
+    await walkToCompletion()
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => url === PLANS_URL),
+    ).toHaveLength(0)
+    expect(mockGeneratePhasedPlans).not.toHaveBeenCalled()
+  })
+
+  it("shows a placeholder on step 5 while the check is in flight, not the inputs", () => {
+    mockJourneysLoading = true
+    stubFetch()
+
+    render(<OnboardingWizard />)
+    walkToIndependenceStep()
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /checking your independence plan/i,
+    )
+    expect(
+      screen.queryByRole("button", { name: /yes, let's do it/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText("Target independence age"),
     ).not.toBeInTheDocument()
   })
 })

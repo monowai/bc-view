@@ -1,5 +1,6 @@
 import React from "react"
 import Link from "next/link"
+import Spinner from "@components/ui/Spinner"
 
 const currentYear = new Date().getFullYear()
 
@@ -18,18 +19,29 @@ const MONTHS = [
   "December",
 ]
 
+/**
+ * What the server has said so far about journeys this user already owns.
+ *
+ * The step offers to build a plan only on `"none"` — an answer, not the
+ * absence of one. `"loading"` and `"error"` both mean "we don't know", and
+ * guessing there is no plan is exactly the damage this guard exists to
+ * prevent (bc-view#1213): a second stage overwrites the existing journey's
+ * timeline and orphans its phases.
+ */
+export type ExistingPlanCheck = "loading" | "error" | "found" | "none"
+
 export interface IndependencePlanStepProps {
   enabled: boolean
   hideToggle?: boolean
   /**
-   * Set when the server already holds an independence journey for this user
-   * (a re-run of onboarding: new browser, cleared localStorage, or a typed
-   * `/onboarding`). The step then says so and links there instead of
-   * offering to build a second one — creating another stage would overwrite
-   * the existing journey's timeline. The caller owns the hook that knows
-   * this; the step just renders what it is told.
+   * Whether the user already has an independence journey. The caller owns
+   * the hook that knows; the step just renders what it is told. Defaults to
+   * `"none"` for callers outside onboarding, which reach this step with the
+   * question already settled.
    */
-  existingPlanHref?: string
+  existingPlanCheck?: ExistingPlanCheck
+  /** Where an existing plan lives — used by the found and error variants. */
+  independenceHref?: string
   /**
    * When true (a CPF pension was set up), date of birth is mandatory and the
    * fields are shown even if the user skips the independence plan — CPF
@@ -74,7 +86,8 @@ function computeMonthlyContribution(
 const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   enabled,
   hideToggle = false,
-  existingPlanHref,
+  existingPlanCheck = "none",
+  independenceHref = "/independence",
   cpfRequiresDob = false,
   yearOfBirth,
   monthOfBirth,
@@ -151,12 +164,42 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
 
   return (
     <div className="space-y-6">
-      {existingPlanHref && (
+      {/* Until the journeys request answers, show neither the offer nor the
+          "you already have one" card: the inputs would appear and then
+          vanish under the user a moment later. */}
+      {existingPlanCheck === "loading" && (
+        <div
+          className="flex items-center justify-center gap-3 py-8 text-sm text-gray-500"
+          role="status"
+        >
+          <Spinner />
+          {"Checking your independence plan…"}
+        </div>
+      )}
+
+      {existingPlanCheck === "error" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <p className="text-sm text-amber-800">
+            {
+              "We couldn't check whether you already have an independence plan. Skip this step and set it up from the "
+            }
+            <Link
+              href={independenceHref}
+              className="font-medium underline text-amber-900"
+            >
+              {"Independence page"}
+            </Link>
+            {"."}
+          </p>
+        </div>
+      )}
+
+      {existingPlanCheck === "found" && (
         <div className="bg-independence-50 border border-independence-200 rounded-lg p-6 text-center">
           <p className="text-sm text-gray-700">
             {"You already have an independence plan — "}
             <Link
-              href={existingPlanHref}
+              href={independenceHref}
               className="text-independence-700 font-medium underline"
             >
               {"view it"}
@@ -166,7 +209,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
         </div>
       )}
 
-      {!hideToggle && !existingPlanHref && (
+      {!hideToggle && existingPlanCheck === "none" && (
         <div className="flex items-center justify-center gap-4">
           <button
             type="button"
@@ -433,6 +476,10 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
         </div>
       )}
 
+      {/* A CPF pension makes date of birth mandatory whatever happens above,
+          and `canProceed` blocks Continue without it — so this stays put
+          even while the journeys check is unresolved, or the user would be
+          stuck on a step with no field to fill in. */}
       {!enabled && cpfRequiresDob && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 space-y-2">
           <p className="text-sm text-amber-800">
@@ -444,7 +491,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
         </div>
       )}
 
-      {!enabled && !hideToggle && !existingPlanHref && (
+      {!enabled && !hideToggle && existingPlanCheck === "none" && (
         <div className="text-center text-sm text-gray-500">
           <p>
             {

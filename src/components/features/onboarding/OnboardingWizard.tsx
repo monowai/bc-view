@@ -16,7 +16,9 @@ import CurrencyStep from "./steps/CurrencyStep"
 import AssetsStep from "./steps/AssetsStep"
 import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
-import IndependencePlanStep from "./steps/IndependencePlanStep"
+import IndependencePlanStep, {
+  type ExistingPlanCheck,
+} from "./steps/IndependencePlanStep"
 import BrokerageStep from "./steps/BrokerageStep"
 import { type PortfolioMode } from "@components/features/openBrokerage/PortfolioModeChooser"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
@@ -130,8 +132,24 @@ const OnboardingWizard: React.FC = () => {
   // step 5 and mint a second stage — `ensurePrimary` then returned the
   // *existing* journey and the forced phasing overwrote its timeline,
   // orphaning the original trio (bc-view#1213).
-  const { plans: journeys } = useIndependencePlans()
-  const hasExistingJourney = journeys.length > 0
+  //
+  // This fails CLOSED. `useIndependencePlans` collapses a failed request to
+  // `plans: []`, which is indistinguishable from "this user has none" — so
+  // reading the array alone would let a dropped request re-open the very
+  // door this guard closes. Only a request that has answered, successfully,
+  // with nothing, counts as "no journey".
+  const {
+    plans: journeys,
+    isLoading: journeysLoading,
+    error: journeysError,
+  } = useIndependencePlans()
+  const existingPlanCheck: ExistingPlanCheck = journeysLoading
+    ? "loading"
+    : journeysError
+      ? "error"
+      : journeys.length > 0
+        ? "found"
+        : "none"
 
   // Wizard state - no pre-selection, user must explicitly choose
   const [currentStep, setCurrentStep] = useState(1)
@@ -157,10 +175,11 @@ const OnboardingWizard: React.FC = () => {
   const currentYear = new Date().getFullYear()
   const [independencePlanEnabled, setIndependencePlanEnabled] = useState(true)
   // The effective answer for step 5. Derived rather than forced into state:
-  // an existing journey vetoes plan creation whatever the toggle last said,
-  // and deriving keeps the veto true the moment the journeys load without a
-  // set-state-in-effect round trip.
-  const createIndependencePlan = independencePlanEnabled && !hasExistingJourney
+  // anything but a clean "you have none" vetoes plan creation whatever the
+  // toggle last said, and deriving keeps the veto true the moment the
+  // journeys resolve, without a set-state-in-effect round trip.
+  const createIndependencePlan =
+    independencePlanEnabled && existingPlanCheck === "none"
   const [independenceYearOfBirth, setIndependenceYearOfBirth] = useState(
     currentYear - 55,
   )
@@ -784,12 +803,15 @@ const OnboardingWizard: React.FC = () => {
                 //
                 // `force` overwrites an existing composite timeline, which is
                 // only ever right on a genuinely first run. Step 5 already
-                // refuses to create a plan when a journey exists, so this is
-                // belt-and-braces: should the toggle somehow be on with a
-                // journey present, phase without forcing and let the backend
-                // reject rather than clobber the user's tuned trio.
+                // refuses to create a plan unless the journeys request came
+                // back clean and empty, so this is belt-and-braces: anything
+                // less than that certainty phases without forcing and lets
+                // the backend reject rather than clobber a tuned trio.
                 try {
-                  await generatePhasedPlans(planId, journeys.length === 0)
+                  await generatePhasedPlans(
+                    planId,
+                    existingPlanCheck === "none",
+                  )
                 } catch (phaseErr) {
                   console.warn("Failed to generate phased plans:", phaseErr)
                 }
@@ -954,7 +976,7 @@ const OnboardingWizard: React.FC = () => {
         return (
           <IndependencePlanStep
             enabled={createIndependencePlan}
-            existingPlanHref={hasExistingJourney ? "/independence" : undefined}
+            existingPlanCheck={existingPlanCheck}
             cpfRequiresDob={hasCpfPension}
             yearOfBirth={independenceYearOfBirth}
             monthOfBirth={independenceMonthOfBirth}
@@ -1043,15 +1065,16 @@ const OnboardingWizard: React.FC = () => {
       title: "Add your accounts",
       lead: "Tell us about your assets to get a complete picture of your wealth. Optional.",
     },
-    5: hasExistingJourney
-      ? {
-          title: "Your independence plan",
-          lead: "You've already mapped this out — we won't start a second plan over the top of it.",
-        }
-      : {
-          title: "Quick Independence Check",
-          lead: "Want to see how your finances might look in retirement? Just three quick questions.",
-        },
+    5:
+      existingPlanCheck === "found"
+        ? {
+            title: "Your independence plan",
+            lead: "You've already mapped this out — we won't start a second plan over the top of it.",
+          }
+        : {
+            title: "Quick Independence Check",
+            lead: "Want to see how your finances might look in retirement? Just three quick questions.",
+          },
     6: {
       title: "Brokerage account",
       lead: "Optional — set up a broker, attach it to a portfolio, and add an opening cash deposit.",
