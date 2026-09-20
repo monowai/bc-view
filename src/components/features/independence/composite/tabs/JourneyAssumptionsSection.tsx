@@ -205,8 +205,9 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   if (!activePlan) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-600">
-        Create a journey first — assumptions belong to one, and every stage
-        inside it inherits them.
+        Assumptions belong to a journey, and you don&apos;t have one yet. Set up
+        your first stage and phase it, and they will appear here for every stage
+        to inherit.
       </div>
     )
   }

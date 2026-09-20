@@ -359,10 +359,16 @@ describe("JourneyAssumptionsSection", () => {
     })
   })
 
-  it("asks for a journey first when the account has none", () => {
+  it("points at phasing a first stage when the account has no journey", () => {
     mockActivePlan = undefined
     renderSection()
 
     expect(screen.queryByLabelText("Equity return")).not.toBeInTheDocument()
+    // There is no "create a journey" control anywhere in bc-view; the first
+    // journey is minted when a stage is phased. Say that, not "create one".
+    expect(
+      screen.getByText(/Set up your first stage and phase it/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Create a journey/)).not.toBeInTheDocument()
   })
 })
