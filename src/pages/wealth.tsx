@@ -96,7 +96,7 @@ function WealthDashboard(): React.ReactElement {
     "/api/independence/plans",
     simpleFetcher("/api/independence/plans"),
   )
-  const { plans: journeys } = useIndependencePlans()
+  const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
 
   const phasePlans = useMemo(() => plansData?.data ?? [], [plansData?.data])
 
@@ -283,7 +283,7 @@ function WealthDashboard(): React.ReactElement {
                 <p className="text-gray-600 mb-6 text-center">
                   {"No portfolios yet"}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Link
                     href="/onboarding"
                     className="border border-gray-200 rounded-xl p-5 text-center hover:border-blue-300 hover:shadow-md transition-all"
@@ -310,6 +310,23 @@ function WealthDashboard(): React.ReactElement {
                     </h3>
                     <p className="text-gray-500 text-sm">
                       {"Create a portfolio directly with full control"}
+                    </p>
+                  </Link>
+                  {/* Independence belongs on the "getting started" card:
+                      it is the reason for the portfolios, and the nav menu
+                      was the only way in. */}
+                  <Link
+                    href="/independence"
+                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-independence-200 hover:shadow-md transition-all"
+                  >
+                    <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <i className="fas fa-compass text-xl text-independence-500"></i>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {"Plan your independence"}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      {"Map out when work becomes optional."}
                     </p>
                   </Link>
                 </div>
@@ -360,6 +377,33 @@ function WealthDashboard(): React.ReactElement {
               collapsed={collapsedSections.independence}
               onToggle={() => toggleSection("independence")}
             />
+          )}
+
+          {/* ...and a door to build one when there is none. The slot used to
+              collapse to nothing, which reads as "independence isn't part of
+              this product". Only once we know there is no plan — while the
+              journeys or their phases are still loading, "none" is not yet
+              true and the CTA would flash under a plan that does exist. */}
+          {!primaryPlan && !journeysLoading && plansData !== undefined && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6 text-center">
+              <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i className="fas fa-compass text-xl text-independence-500"></i>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                {"No independence plan yet"}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {
+                  "Map out your stages and we'll show when work becomes optional."
+                }
+              </p>
+              <Link
+                href="/independence"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-independence-600 text-white text-sm font-medium hover:bg-independence-700 transition-colors"
+              >
+                {"Plan your independence"}
+              </Link>
+            </div>
           )}
 
           {/* Wealth Performance */}
