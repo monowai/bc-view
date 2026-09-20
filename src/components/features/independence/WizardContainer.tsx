@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useRouter } from "next/router"
+import Link from "next/link"
 import useSwr, { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
@@ -31,6 +32,11 @@ import { WizardFormData, RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { resolveReturnTo } from "@lib/independence/editPhase"
+import { toErrorMessage } from "@lib/formatters"
+import {
+  PHASING_PREREQUISITE_MESSAGE,
+  phaseFailureMessage,
+} from "@lib/independence/phasing"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import {
@@ -203,8 +209,20 @@ export default function WizardContainer({
   // Keying it to the step only *hid* the message elsewhere: returning to the
   // step brought back a "Saved" that no longer described the form.
   const [savedStep, setSavedStep] = useState<number | null>(null)
+  // A stage that saved but could not be phased. Separate from `error`, which
+  // means "nothing was written" — conflating them would tell the user to try
+  // again and quietly create a second stage.
+  const [phaseError, setPhaseError] = useState<string | null>(null)
   const { preferences } = useUserPreferences()
-  const { settings } = useIndependenceSettings()
+  const { settings, isLoading: settingsLoading } = useIndependenceSettings()
+
+  // Create only. An existing stage is being edited, not phased, so an
+  // incomplete profile is not this screen's business.
+  const phasingBlocked =
+    !isEditMode &&
+    !settingsLoading &&
+    !settings?.yearOfBirth &&
+    !settings?.targetIndependenceAge
 
   // Use user's preferred currency for new plans
   const effectiveDefaults = useMemo(() => {
@@ -334,8 +352,16 @@ export default function WizardContainer({
   }
 
   const handleSubmitPlan = async (): Promise<void> => {
+    // The Save button is disabled for this, but Next on the last step lands
+    // here too — refusing in one place keeps both doors honest.
+    if (phasingBlocked) {
+      setError(PHASING_PREREQUISITE_MESSAGE)
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
+    setPhaseError(null)
 
     try {
       const formData = getValues()
@@ -445,10 +471,24 @@ export default function WizardContainer({
         // it (the backend rejects and this plan stays single), so manual
         // "Create Plan" never clobbers an existing phased setup. savedPlanId is
         // the go-go after conversion (convert-in-place reuses the base id).
+        //
+        // A refusal used to be console.warn'd and navigated past, so the user
+        // landed on a stage drill-down with no journey and nothing saying why.
+        // Of the two places to say it, this one is chosen: the wizard's last
+        // step is where the user still is, it needs no query-string or
+        // cross-page state to survive the hop, and the stage is already saved
+        // — so there is nothing to lose by staying. The banner links on to
+        // /independence, where the phasing offer lives.
         try {
           await generatePhasedPlans(savedPlanId, false)
         } catch (phaseErr) {
-          console.warn("Failed to generate phased plans:", phaseErr)
+          setPhaseError(
+            phaseFailureMessage(
+              toErrorMessage(phaseErr, "phasing was refused"),
+            ),
+          )
+          setIsSubmitting(false)
+          return
         }
         // Finish at the plan just created unless the caller said where to go.
         router.push(
@@ -523,11 +563,40 @@ export default function WizardContainer({
 
         {currentStep === 1 && <IndependenceSettingsSummary />}
 
+        {/* The summary above already shows "Not set" for Year of Birth; this
+            says what that costs and where to fix it. */}
+        {currentStep === 1 && phasingBlocked && (
+          <div className="mb-6">
+            <Alert variant="warning">
+              {PHASING_PREREQUISITE_MESSAGE}{" "}
+              <Link
+                href="/independence?view=profile"
+                className="font-medium underline"
+              >
+                Set it on your profile
+              </Link>
+              .
+            </Alert>
+          </div>
+        )}
+
         {currentStep === 1 && <WorkScenarioBanner />}
 
         {error && (
           <div className="mb-6">
             <Alert>{error}</Alert>
+          </div>
+        )}
+
+        {phaseError && (
+          <div className="mb-6">
+            <Alert variant="warning">
+              {phaseError}{" "}
+              <Link href="/independence" className="font-medium underline">
+                Phase it from the Stages list
+              </Link>
+              .
+            </Alert>
           </div>
         )}
 
@@ -559,6 +628,7 @@ export default function WizardContainer({
             isSubmitting={isSubmitting}
             isLastStep={currentStep === TOTAL_STEPS}
             isEditMode={isEditMode}
+            finishDisabled={phasingBlocked}
           />
         </form>
       </div>

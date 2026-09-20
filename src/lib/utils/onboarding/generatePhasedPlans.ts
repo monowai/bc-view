@@ -1,3 +1,5 @@
+import { readErrorMessage } from "@utils/api/readErrorMessage"
+
 /**
  * Converts a just-created base plan into the default phased trio
  * (go-go / slow-go / no-go), with go-go as the user's primary plan. The
@@ -18,6 +20,13 @@
  *   the backend rejects (composite exists) and the new plan is left single
  *   rather than clobbering the existing phased setup.
  *
+ * A refusal carries a reason the user can act on — svc-retire answers "Set a
+ * target independence age or year of birth before generating phases" when the
+ * profile has neither. The thrown Error therefore carries the backend's own
+ * words whenever the response has any, so a call site can put them on screen
+ * unedited; the status-only message is the fallback for a body that says
+ * nothing.
+ *
  * @param planId    the just-created base independence plan id
  * @param force     overwrite an existing composite (default true)
  * @param fetchImpl injectable for testing; defaults to global fetch
@@ -36,6 +45,8 @@ export async function generatePhasedPlans(
   })
 
   if (!res.ok) {
-    throw new Error(`Failed to generate phased plans: ${res.status}`)
+    throw new Error(
+      await readErrorMessage(res, "Failed to generate phased plans"),
+    )
   }
 }

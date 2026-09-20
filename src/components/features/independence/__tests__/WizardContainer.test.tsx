@@ -9,7 +9,8 @@ import {
   defaultWizardValues,
 } from "@lib/independence/schema"
 import { WizardFormData, RetirementPlan } from "types/independence"
-import { buildWizardPlanRequest } from "../WizardContainer"
+import { TOTAL_STEPS } from "@lib/independence/stepConfig"
+import WizardContainer, { buildWizardPlanRequest } from "../WizardContainer"
 
 // Mock SWR
 const mockCategories = {
@@ -31,6 +32,45 @@ jest.mock("swr", () => ({
     error: null,
     isLoading: false,
   }),
+  mutate: jest.fn(),
+}))
+
+// Settings the wizard reads to decide whether the stage it is about to create
+// can be phased. Per-test, so one file can cover "set" and "not set".
+const mockSettings: {
+  current: { yearOfBirth?: number; targetIndependenceAge?: number } | undefined
+} = { current: { yearOfBirth: 1980, targetIndependenceAge: 60 } }
+
+jest.mock("@hooks/useIndependenceSettings", () => ({
+  useIndependenceSettings: () => ({
+    settings: mockSettings.current,
+    settingsError: undefined,
+    isLoading: false,
+    updateSettings: jest.fn(),
+    mutateSettings: jest.fn(),
+  }),
+}))
+
+jest.mock("@hooks/useIndependencePlans", () => ({
+  ACTIVE_PLAN_QUERY_PARAM: "plan",
+  useIndependencePlans: () => ({ plans: [], isLoading: false }),
+}))
+
+jest.mock("@contexts/UserPreferencesContext", () => ({
+  useUserPreferences: () => ({
+    preferences: { reportingCurrencyCode: "NZD", baseCurrencyCode: "NZD" },
+    isLoading: false,
+  }),
+}))
+
+const mockGeneratePhasedPlans = jest.fn()
+jest.mock("@lib/onboarding/generatePhasedPlans", () => ({
+  generatePhasedPlans: (...args: unknown[]) => mockGeneratePhasedPlans(...args),
+}))
+
+const mockPush = jest.fn()
+jest.mock("next/router", () => ({
+  useRouter: () => ({ query: {}, push: mockPush }),
 }))
 
 interface TestWrapperProps {
@@ -349,5 +389,137 @@ describe("buildWizardPlanRequest", () => {
     })
 
     expect(payload.excludedPortfolioIds).toEqual(["house"])
+  })
+})
+
+describe("WizardContainer — a stage that cannot be phased", () => {
+  const renderCreateWizard = (): void => {
+    render(<WizardContainer />)
+  }
+
+  /** Walks the create wizard from step 1 to the last step. */
+  const walkToLastStep = async (): Promise<void> => {
+    for (let step = 1; step < TOTAL_STEPS; step++) {
+      fireEvent.click(screen.getByRole("button", { name: /^next$/i }))
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", {
+            name: step + 1 === TOTAL_STEPS ? /save plan/i : /^next$/i,
+          }),
+        ).toBeInTheDocument(),
+      )
+    }
+  }
+
+  beforeEach(() => {
+    mockSettings.current = { yearOfBirth: 1980, targetIndependenceAge: 60 }
+    mockGeneratePhasedPlans.mockReset().mockResolvedValue(undefined)
+    mockPush.mockReset()
+    ;(global.fetch as jest.Mock).mockImplementation((input: unknown) => {
+      const url = typeof input === "string" ? input : (input as any)?.url || ""
+      if (url.includes("/api/auth/permissions")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ai: true, preview: true, admin: true }),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: { id: "stage-1" } }),
+      })
+    })
+  })
+
+  it("blocks create and says why when neither date of birth nor target age is set", async () => {
+    mockSettings.current = {}
+    renderCreateWizard()
+
+    expect(
+      screen.getByText(/without one the stage cannot be phased/i),
+    ).toBeInTheDocument()
+    // The gate is the finishing action, not the wizard: the user can still
+    // fill the stage in and fix their profile afterwards.
+    expect(screen.getByRole("button", { name: /^next$/i })).toBeEnabled()
+
+    await walkToLastStep()
+    expect(screen.getByRole("button", { name: /save plan/i })).toBeDisabled()
+  })
+
+  it("refuses the submit too, as a backstop behind the disabled button", async () => {
+    // Next on the last step calls the same submit path, so the refusal has to
+    // live there as well as on the button.
+    mockSettings.current = {}
+    renderCreateWizard()
+    await walkToLastStep()
+
+    fireEvent.click(screen.getByRole("button", { name: /save plan/i }))
+
+    await waitFor(() => expect(mockGeneratePhasedPlans).not.toHaveBeenCalled())
+    expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it("lets create through when only a target age is set", async () => {
+    mockSettings.current = { targetIndependenceAge: 60 }
+    renderCreateWizard()
+
+    expect(
+      screen.queryByText(/without one the stage cannot be phased/i),
+    ).not.toBeInTheDocument()
+
+    await walkToLastStep()
+    expect(screen.getByRole("button", { name: /save plan/i })).toBeEnabled()
+  })
+
+  it("leaves edit mode alone — an existing stage is edited, not phased", () => {
+    mockSettings.current = {}
+    render(<WizardContainer planId="stage-1" plan={null} />)
+
+    expect(
+      screen.queryByText(/without one the stage cannot be phased/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows the backend's reason when phasing fails after a successful create", async () => {
+    mockGeneratePhasedPlans.mockRejectedValue(
+      new Error(
+        "Set a target independence age or year of birth before generating phases",
+      ),
+    )
+    renderCreateWizard()
+    await walkToLastStep()
+
+    fireEvent.click(screen.getByRole("button", { name: /save plan/i }))
+
+    expect(
+      await screen.findByText(
+        /your stage is saved, but it could not be phased/i,
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /Set a target independence age or year of birth before generating phases/i,
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /phase it from the stages list/i }),
+    ).toHaveAttribute("href", "/independence")
+    // Saved, so the wizard must not navigate past the one sentence that
+    // explains why there is no journey.
+    expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it("still phases with force:false and lands on the new stage when it succeeds", async () => {
+    renderCreateWizard()
+    await walkToLastStep()
+
+    fireEvent.click(screen.getByRole("button", { name: /save plan/i }))
+
+    await waitFor(() =>
+      expect(mockGeneratePhasedPlans).toHaveBeenCalledWith("stage-1", false),
+    )
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith("/independence/plans/stage-1"),
+    )
+    expect(screen.queryByText(/could not be phased/i)).not.toBeInTheDocument()
   })
 })
