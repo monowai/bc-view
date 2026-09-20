@@ -33,6 +33,10 @@ import { Portfolio } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { resolveReturnTo } from "@lib/independence/editPhase"
 import { toErrorMessage } from "@lib/formatters"
+import {
+  PHASING_PREREQUISITE_MESSAGE,
+  phaseFailureMessage,
+} from "@lib/independence/phasing"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import {
@@ -138,19 +142,6 @@ export function buildWizardPlanRequest(
     }),
   }
 }
-
-/**
- * svc-retire refuses to phase a stage whose owner has given neither a year of
- * birth nor a target independence age (`PhasedIndependenceService`) — there is
- * no age axis to cut the phases on. A create that ignores that saves a stage
- * and no journey, which is the one outcome the wizard exists to avoid.
- */
-export const PHASING_PREREQUISITE_MESSAGE =
-  "Set your date of birth or target independence age before creating a stage — without one the stage cannot be phased."
-
-/** Names what survived, then what to do about the rest. */
-export const phaseFailureMessage = (reason: string): string =>
-  `Your stage is saved, but it could not be phased: ${reason}.`
 
 export default function WizardContainer({
   planId,
@@ -637,7 +628,7 @@ export default function WizardContainer({
             isSubmitting={isSubmitting}
             isLastStep={currentStep === TOTAL_STEPS}
             isEditMode={isEditMode}
-            saveDisabled={phasingBlocked}
+            finishDisabled={phasingBlocked}
           />
         </form>
       </div>

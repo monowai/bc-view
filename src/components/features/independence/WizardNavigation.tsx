@@ -11,11 +11,13 @@ interface WizardNavigationProps {
   isLastStep?: boolean
   isEditMode?: boolean
   /**
-   * Saving would produce something the user does not want — a stage that
-   * cannot be phased, today. The reason is shown by the caller, on the step
-   * that owns it; this only stops the click.
+   * Finishing would produce something the user does not want — a stage that
+   * cannot be phased, today. Gates the last step's action only: the mid-wizard
+   * Save is edit-mode-only, where nothing is ever about to be phased, so
+   * disabling it there was dead code. The reason is shown by the caller, on
+   * the step that owns it; this only stops the click.
    */
-  saveDisabled?: boolean
+  finishDisabled?: boolean
 }
 
 export default function WizardNavigation({
@@ -27,7 +29,7 @@ export default function WizardNavigation({
   isSubmitting = false,
   isLastStep = false,
   isEditMode = false,
-  saveDisabled = false,
+  finishDisabled = false,
 }: WizardNavigationProps): React.ReactElement {
   return (
     <div className="flex justify-between items-center pt-4 border-t mt-5">
@@ -56,7 +58,7 @@ export default function WizardNavigation({
           <button
             type="button"
             onClick={onSave}
-            disabled={isSubmitting || saveDisabled}
+            disabled={isSubmitting}
             className="px-6 py-2 border border-independence-600 text-independence-600 rounded-lg hover:bg-independence-50 font-medium disabled:opacity-50 flex items-center"
           >
             {isSubmitting && <Spinner className="mr-2" />}
@@ -66,7 +68,7 @@ export default function WizardNavigation({
         <button
           type="button"
           onClick={isLastStep ? onSave || onNext : onNext}
-          disabled={isSubmitting || (isLastStep && saveDisabled)}
+          disabled={isSubmitting || (isLastStep && finishDisabled)}
           className="px-6 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-50 flex items-center"
         >
           {isSubmitting && isLastStep && <Spinner className="mr-2" />}

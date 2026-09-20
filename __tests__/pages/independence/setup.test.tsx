@@ -28,6 +28,10 @@ interface Backend {
   scenarios?: Array<Record<string, unknown>>
   phasesOk?: boolean
   phasesBody?: string
+  /** A refusal for the settings PATCH — `{status, body}`. */
+  settingsWriteFails?: { status: number; body: string }
+  /** A refusal for the work-scenario write. */
+  workWriteFails?: { status: number; body: string }
 }
 
 /** Answers every call the setup wizard makes, tuned per test. */
@@ -36,6 +40,8 @@ const mockBackend = ({
   scenarios = [],
   phasesOk = true,
   phasesBody,
+  settingsWriteFails,
+  workWriteFails,
 }: Backend = {}): void => {
   fetchMock.mockResponse((req) => {
     const url = req.url
@@ -46,9 +52,15 @@ const mockBackend = ({
       })
     }
     if (url.includes("/api/independence/settings")) {
+      if (settingsWriteFails && req.method === "PATCH") {
+        return Promise.resolve(settingsWriteFails)
+      }
       return Promise.resolve(JSON.stringify(settings))
     }
     if (url.includes("/api/independence/work-scenarios")) {
+      if (workWriteFails && req.method !== "GET") {
+        return Promise.resolve(workWriteFails)
+      }
       return Promise.resolve(JSON.stringify({ data: scenarios }))
     }
     if (url.endsWith("/api/independence/plans") && req.method === "POST") {
@@ -295,6 +307,118 @@ describe("/independence/setup — guided plan wizard", () => {
     ).toHaveAttribute("href", "/independence")
     // The payoff is the lifestyle board, the same one onboarding ends on.
     await waitFor(() => expect(screen.getByRole("region")).toBeInTheDocument())
+  })
+
+  test("blocks Continue on an empty target age, and lets 60 through", async () => {
+    // Number("") is 0, which sails past the input's `min` (browsers do not
+    // validate a value React put there) and became a 90-year horizon.
+    await renderSetup()
+    await walkToTarget()
+
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: /target independence age/i }),
+      { target: { value: "" } },
+    )
+    clickButton(/create my plan/i)
+
+    expect(
+      await screen.findByText(/enter a target age between 18 and 100/i),
+    ).toBeInTheDocument()
+    expect(callsTo("/api/independence/plans")).toHaveLength(0)
+
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: /target independence age/i }),
+      { target: { value: "60" } },
+    )
+    clickButton(/create my plan/i)
+
+    await waitFor(() => expect(callsTo("/phases")).toHaveLength(1))
+    expect(
+      screen.queryByText(/enter a target age between 18 and 100/i),
+    ).not.toBeInTheDocument()
+  })
+
+  test("refuses an out-of-range target age", async () => {
+    await renderSetup()
+    await walkToTarget()
+
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: /target independence age/i }),
+      { target: { value: "7" } },
+    )
+    clickButton(/create my plan/i)
+
+    expect(
+      await screen.findByText(/enter a target age between 18 and 100/i),
+    ).toBeInTheDocument()
+    expect(callsTo("/api/independence/plans")).toHaveLength(0)
+  })
+
+  test("stops before the plan POST when the settings PATCH is refused", async () => {
+    mockBackend({
+      settingsWriteFails: {
+        status: 400,
+        body: JSON.stringify({ message: "Target age must be under 100" }),
+      },
+    })
+    await renderSetup()
+    await walkToTarget()
+    clickButton(/create my plan/i)
+
+    expect(
+      await screen.findByText(/target age must be under 100/i),
+    ).toBeInTheDocument()
+    const planWrites = callsTo("/api/independence/plans").filter(
+      ([, init]) => init?.method === "POST",
+    )
+    expect(planWrites).toHaveLength(0)
+  })
+
+  test("stops on the Work step when the work-scenario write is refused", async () => {
+    mockBackend({
+      workWriteFails: {
+        status: 409,
+        body: JSON.stringify({ message: "A current scenario already exists" }),
+      },
+    })
+    await renderSetup()
+    await walkToTarget()
+    clickButton(/create my plan/i)
+
+    expect(
+      await screen.findByText(/a current scenario already exists/i),
+    ).toBeInTheDocument()
+    // Back where the refused figures are, not stranded on Target.
+    expect(
+      screen.getByRole("spinbutton", { name: /monthly income/i }),
+    ).toBeInTheDocument()
+    const planWrites = callsTo("/api/independence/plans").filter(
+      ([, init]) => init?.method === "POST",
+    )
+    expect(planWrites).toHaveLength(0)
+  })
+
+  test("quotes the backend when the plan POST itself is refused", async () => {
+    fetchMock.mockResponse((req) => {
+      if (
+        req.url.endsWith("/api/independence/plans") &&
+        req.method === "POST"
+      ) {
+        return Promise.resolve({
+          status: 400,
+          body: JSON.stringify({ message: "Expenses currency is required" }),
+        })
+      }
+      return Promise.resolve(JSON.stringify({ data: [] }))
+    })
+    await renderSetup()
+    await walkToTarget()
+    clickButton(/create my plan/i)
+
+    expect(
+      await screen.findByText(/expenses currency is required/i),
+    ).toBeInTheDocument()
+    expect(callsTo("/phases")).toHaveLength(0)
   })
 
   test("quotes the backend inline when phasing fails, and still offers the plan", async () => {

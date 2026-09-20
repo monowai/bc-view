@@ -1,3 +1,5 @@
+import { readErrorMessage } from "@utils/api/readErrorMessage"
+
 /**
  * Converts a just-created base plan into the default phased trio
  * (go-go / slow-go / no-go), with go-go as the user's primary plan. The
@@ -43,30 +45,8 @@ export async function generatePhasedPlans(
   })
 
   if (!res.ok) {
-    const detail = await phaseFailureDetail(res)
-    throw new Error(detail || `Failed to generate phased plans: ${res.status}`)
+    throw new Error(
+      await readErrorMessage(res, "Failed to generate phased plans"),
+    )
   }
-}
-
-/**
- * The BFF forwards a backend rejection as `{ error, message, code }` (see
- * responseWriter), so prefer `message`, fall back to `error`, then to the raw
- * body. Returns "" when there is nothing quotable, leaving the caller on the
- * status-only message.
- */
-async function phaseFailureDetail(res: Response): Promise<string> {
-  if (typeof res.text !== "function") return ""
-  const body = (await res.text().catch(() => "")).trim()
-  if (!body) return ""
-  try {
-    const parsed: unknown = JSON.parse(body)
-    if (parsed && typeof parsed === "object") {
-      const { message, error } = parsed as { message?: string; error?: string }
-      const detail = message?.trim() || error?.trim()
-      if (detail) return detail
-    }
-  } catch {
-    // Not JSON — the raw body is the best answer available.
-  }
-  return body
 }

@@ -1,16 +1,38 @@
 import React from "react"
 import Link from "next/link"
 
+export const MIN_TARGET_AGE = 18
+export const MAX_TARGET_AGE = 100
+export const TARGET_AGE_RANGE_MESSAGE = `Enter a target age between ${MIN_TARGET_AGE} and ${MAX_TARGET_AGE}.`
+
+/**
+ * Reads the typed target age, or null when it is not a whole age in range.
+ *
+ * The field holds a raw string rather than a number so an emptied input stays
+ * empty: coercing through `Number("")` produced 0, which the `min` attribute
+ * does not catch (browsers do not validate a programmatic value) and which
+ * became a 90-year planning horizon on a stage the user never described.
+ */
+export function parseTargetAge(input: string): number | null {
+  const trimmed = input.trim()
+  if (!/^\d+$/.test(trimmed)) return null
+  const age = Number(trimmed)
+  return age >= MIN_TARGET_AGE && age <= MAX_TARGET_AGE ? age : null
+}
+
 export interface TargetFieldsProps {
   planName: string
-  targetIndependenceAge: number
+  /** Raw input value — see {@link parseTargetAge}. */
+  targetIndependenceAge: string
   /**
    * Whether the profile already knows the user's date of birth. Not asked for
    * here — svc-data owns it, and this screen is about the plan.
    */
   hasDateOfBirth: boolean
+  /** Shown under the age field once the user has tried to continue. */
+  targetAgeError?: string | null
   onPlanNameChange: (name: string) => void
-  onTargetIndependenceAgeChange: (age: number) => void
+  onTargetIndependenceAgeChange: (value: string) => void
 }
 
 /**
@@ -23,6 +45,7 @@ export default function TargetFields({
   planName,
   targetIndependenceAge,
   hasDateOfBirth,
+  targetAgeError,
   onPlanNameChange,
   onTargetIndependenceAgeChange,
 }: TargetFieldsProps): React.ReactElement {
@@ -61,13 +84,22 @@ export default function TargetFields({
           type="number"
           aria-label="Target independence age"
           value={targetIndependenceAge}
-          min={18}
-          max={100}
-          onChange={(e) =>
-            onTargetIndependenceAgeChange(Number(e.target.value))
-          }
+          min={MIN_TARGET_AGE}
+          max={MAX_TARGET_AGE}
+          aria-invalid={Boolean(targetAgeError)}
+          aria-describedby={targetAgeError ? "setupTargetAgeError" : undefined}
+          onChange={(e) => onTargetIndependenceAgeChange(e.target.value)}
           className={inputCls}
         />
+        {targetAgeError && (
+          <p
+            id="setupTargetAgeError"
+            role="alert"
+            className="mt-1 text-sm text-red-600"
+          >
+            {targetAgeError}
+          </p>
+        )}
       </div>
 
       {!hasDateOfBirth && (

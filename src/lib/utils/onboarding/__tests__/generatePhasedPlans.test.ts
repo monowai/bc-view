@@ -67,35 +67,4 @@ describe("generatePhasedPlans", () => {
       "Set a target independence age or year of birth before generating phases",
     )
   })
-
-  it("falls back to `error`, then to the raw body", async () => {
-    const withError = jest
-      .fn()
-      .mockResolvedValueOnce(
-        errorResponseWithBody(
-          409,
-          JSON.stringify({ error: "composite exists" }),
-        ),
-      )
-    await expect(
-      generatePhasedPlans("plan-1", false, withError),
-    ).rejects.toThrow("composite exists")
-
-    const rawBody = jest
-      .fn()
-      .mockResolvedValueOnce(errorResponseWithBody(500, "upstream unavailable"))
-    await expect(generatePhasedPlans("plan-1", false, rawBody)).rejects.toThrow(
-      "upstream unavailable",
-    )
-  })
-
-  it("keeps the status message when the rejection body says nothing", async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValueOnce(errorResponseWithBody(503, ""))
-
-    await expect(
-      generatePhasedPlans("plan-1", false, fetchMock),
-    ).rejects.toThrow("Failed to generate phased plans: 503")
-  })
 })

@@ -437,9 +437,25 @@ describe("WizardContainer — a stage that cannot be phased", () => {
     expect(
       screen.getByText(/without one the stage cannot be phased/i),
     ).toBeInTheDocument()
+    // The gate is the finishing action, not the wizard: the user can still
+    // fill the stage in and fix their profile afterwards.
+    expect(screen.getByRole("button", { name: /^next$/i })).toBeEnabled()
 
     await walkToLastStep()
     expect(screen.getByRole("button", { name: /save plan/i })).toBeDisabled()
+  })
+
+  it("refuses the submit too, as a backstop behind the disabled button", async () => {
+    // Next on the last step calls the same submit path, so the refusal has to
+    // live there as well as on the button.
+    mockSettings.current = {}
+    renderCreateWizard()
+    await walkToLastStep()
+
+    fireEvent.click(screen.getByRole("button", { name: /save plan/i }))
+
+    await waitFor(() => expect(mockGeneratePhasedPlans).not.toHaveBeenCalled())
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it("lets create through when only a target age is set", async () => {

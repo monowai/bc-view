@@ -6,12 +6,17 @@ import { useLifestyleOutlook } from "@components/features/onboarding/useLifestyl
 import LifestyleSummary from "@components/features/independence/LifestyleSummary"
 import SpendingFields from "./SpendingFields"
 import WorkFields from "./WorkFields"
-import TargetFields from "./TargetFields"
+import TargetFields, {
+  parseTargetAge,
+  TARGET_AGE_RANGE_MESSAGE,
+} from "./TargetFields"
 import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { currencySymbolFor, toErrorMessage } from "@lib/formatters"
+import { phaseFailureMessage } from "@lib/independence/phasing"
+import { readErrorMessage } from "@utils/api/readErrorMessage"
 import { WorkScenario } from "types/independence"
 
 export const SETUP_STEPS = [
@@ -21,18 +26,11 @@ export const SETUP_STEPS = [
   { id: 4, label: "Done" },
 ]
 
+const WORK_STEP = 2
+const TARGET_STEP = 3
 const PAYOFF_STEP = 4
 const DEFAULT_PLAN_NAME = "My Independence Plan"
-const DEFAULT_TARGET_AGE = 65
-
-/**
- * Names what survived, then what to do about the rest. The stage is already
- * persisted when phasing is refused, so "failed" on its own would read as
- * "start again" — and the retry lives on /independence, not here.
- */
-export const phaseFailureMessage = (reason: string): string =>
-  `Your stage is saved, but it could not be phased: ${reason}. ` +
-  "Set your target age or date of birth and phase it from the Stages list."
+const DEFAULT_TARGET_AGE = "65"
 
 /**
  * The guided door to a first independence plan: the same questions onboarding
@@ -67,6 +65,7 @@ export default function SetupWizard(): React.ReactElement {
   const [existingScenarioId, setExistingScenarioId] = useState<string | null>(
     null,
   )
+  const [targetAgeError, setTargetAgeError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phaseError, setPhaseError] = useState<string | null>(null)
@@ -79,7 +78,7 @@ export default function SetupWizard(): React.ReactElement {
   if (!prefilledTarget && settings) {
     setPrefilledTarget(true)
     if (settings.targetIndependenceAge) {
-      setTargetIndependenceAge(settings.targetIndependenceAge)
+      setTargetIndependenceAge(String(settings.targetIndependenceAge))
     }
   }
 
@@ -111,8 +110,9 @@ export default function SetupWizard(): React.ReactElement {
 
   const currency = preferences?.baseCurrencyCode ?? "USD"
 
-  const saveWorkScenario = async (): Promise<void> => {
-    if (!isWorking) return
+  /** Returns the reason the write was refused, or null when it succeeded. */
+  const saveWorkScenario = async (): Promise<string | null> => {
+    if (!isWorking) return null
     const payload = {
       name: "Working Situation",
       currency,
@@ -124,7 +124,7 @@ export default function SetupWizard(): React.ReactElement {
     }
     // Update the scenario the user already has rather than leaving them with
     // two "Working Situation"s, only one of which is current.
-    await fetch(
+    const res = await fetch(
       existingScenarioId
         ? `/api/independence/work-scenarios/${existingScenarioId}`
         : "/api/independence/work-scenarios",
@@ -134,32 +134,56 @@ export default function SetupWizard(): React.ReactElement {
         body: JSON.stringify(payload),
       },
     )
+    return res.ok
+      ? null
+      : readErrorMessage(res, "Failed to save your working situation")
   }
 
-  const handleCreate = async (): Promise<void> => {
+  const handleCreate = async (targetAge: number): Promise<void> => {
     setIsSubmitting(true)
     setError(null)
     setPhaseError(null)
     try {
+      // Every write below is checked before the next one runs. Each is a
+      // prerequisite of what follows — the target age is what phasing cuts on,
+      // and a stage created after a silently dropped write would resurface as
+      // a confusing phase refusal rather than the thing that actually failed.
+      //
       // svc-retire's own settings row is what PhasedIndependenceService reads
       // (`settings.targetIndependenceAge`), falling back to svc-data only when
       // that row is null — so PATCHing /api/me here would be ignored for any
       // user who already has a settings row. svc-retire mirrors the value back
       // to svc-data itself.
-      await fetch("/api/independence/settings", {
+      const settingsResponse = await fetch("/api/independence/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetIndependenceAge }),
+        body: JSON.stringify({ targetIndependenceAge: targetAge }),
       })
+      if (!settingsResponse.ok) {
+        setError(
+          await readErrorMessage(
+            settingsResponse,
+            "Failed to save your target independence age",
+          ),
+        )
+        return
+      }
 
-      await saveWorkScenario()
+      const workFailure = await saveWorkScenario()
+      if (workFailure) {
+        setError(workFailure)
+        // Back to the figures that were refused, rather than leaving the
+        // message stranded on a step that cannot act on it.
+        setStep(WORK_STEP)
+        return
+      }
 
       const planResponse = await fetch("/api/independence/plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: planName.trim() || DEFAULT_PLAN_NAME,
-          planningHorizonYears: 90 - targetIndependenceAge,
+          planningHorizonYears: 90 - targetAge,
           lifeExpectancy: 90,
           monthlyExpenses: monthlyExpenses + medicalExpenses,
           expensesCurrency: currency,
@@ -183,7 +207,13 @@ export default function SetupWizard(): React.ReactElement {
         }),
       })
       if (!planResponse.ok) {
-        throw new Error("Failed to create independence plan")
+        setError(
+          await readErrorMessage(
+            planResponse,
+            "Failed to create independence plan",
+          ),
+        )
+        return
       }
 
       const body = await planResponse.json()
@@ -226,8 +256,17 @@ export default function SetupWizard(): React.ReactElement {
   }
 
   const handleContinue = async (): Promise<void> => {
-    if (step === 3) {
-      await handleCreate()
+    if (step === TARGET_STEP) {
+      // Validated here rather than on every keystroke: a half-typed age is not
+      // yet a mistake, and the browser's own `min`/`max` never fire on a value
+      // React put there.
+      const targetAge = parseTargetAge(targetIndependenceAge)
+      if (targetAge === null) {
+        setTargetAgeError(TARGET_AGE_RANGE_MESSAGE)
+        return
+      }
+      setTargetAgeError(null)
+      await handleCreate(targetAge)
       return
     }
     setStep((prev) => prev + 1)
@@ -262,7 +301,7 @@ export default function SetupWizard(): React.ReactElement {
           </>
         )}
 
-        {step === 2 && (
+        {step === WORK_STEP && (
           <>
             <h2 className="text-lg font-semibold text-gray-900">
               What are you earning now?
@@ -303,7 +342,7 @@ export default function SetupWizard(): React.ReactElement {
           </>
         )}
 
-        {step === 3 && (
+        {step === TARGET_STEP && (
           <>
             <h2 className="text-lg font-semibold text-gray-900">
               When do you want to be independent?
@@ -312,6 +351,7 @@ export default function SetupWizard(): React.ReactElement {
               planName={planName}
               targetIndependenceAge={targetIndependenceAge}
               hasDateOfBirth={Boolean(settings?.yearOfBirth)}
+              targetAgeError={targetAgeError}
               onPlanNameChange={setPlanName}
               onTargetIndependenceAgeChange={setTargetIndependenceAge}
             />
@@ -354,7 +394,7 @@ export default function SetupWizard(): React.ReactElement {
               disabled={isSubmitting}
               className="flex-1 px-6 py-3 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-60"
             >
-              {step === 3
+              {step === TARGET_STEP
                 ? isSubmitting
                   ? "Creating..."
                   : "Create my plan"
@@ -396,7 +436,18 @@ function PayoffStep({
         <p className="text-sm text-gray-600">{`Created: ${planName}`}</p>
       </div>
 
-      {phaseError && <Alert variant="warning">{phaseError}</Alert>}
+      {/* The shared sentence names the saved state and the reason; where to
+          go next is this surface's own answer, so it lives here rather than
+          in the string. */}
+      {phaseError && (
+        <Alert variant="warning">
+          {phaseError} Set your target age or date of birth, then{" "}
+          <Link href="/independence" className="font-medium underline">
+            phase it from the Stages list
+          </Link>
+          .
+        </Alert>
+      )}
 
       {planId && (model || isLoading) && (
         <LifestyleSummary
