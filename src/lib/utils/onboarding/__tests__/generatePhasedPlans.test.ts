@@ -5,6 +5,14 @@ const okResponse = (): Response => ({ ok: true }) as unknown as Response
 const errorResponse = (status: number): Response =>
   ({ ok: false, status }) as unknown as Response
 
+/** A rejection that carries a body, the way the BFF actually answers. */
+const errorResponseWithBody = (status: number, body: string): Response =>
+  ({
+    ok: false,
+    status,
+    text: () => Promise.resolve(body),
+  }) as unknown as Response
+
 describe("generatePhasedPlans", () => {
   it("does not POST when the plan id is empty", async () => {
     const fetchMock = jest.fn()
@@ -38,5 +46,56 @@ describe("generatePhasedPlans", () => {
     await expect(
       generatePhasedPlans("plan-1", true, fetchMock),
     ).rejects.toThrow("Failed to generate phased plans: 400")
+  })
+
+  it("throws the backend's own reason when the rejection carries one", async () => {
+    // svc-retire refuses phasing without a date of birth or a target age, and
+    // that sentence is the only thing telling the user what to do next.
+    const fetchMock = jest.fn().mockResolvedValueOnce(
+      errorResponseWithBody(
+        400,
+        JSON.stringify({
+          message:
+            "Set a target independence age or year of birth before generating phases",
+        }),
+      ),
+    )
+
+    await expect(
+      generatePhasedPlans("plan-1", false, fetchMock),
+    ).rejects.toThrow(
+      "Set a target independence age or year of birth before generating phases",
+    )
+  })
+
+  it("falls back to `error`, then to the raw body", async () => {
+    const withError = jest
+      .fn()
+      .mockResolvedValueOnce(
+        errorResponseWithBody(
+          409,
+          JSON.stringify({ error: "composite exists" }),
+        ),
+      )
+    await expect(
+      generatePhasedPlans("plan-1", false, withError),
+    ).rejects.toThrow("composite exists")
+
+    const rawBody = jest
+      .fn()
+      .mockResolvedValueOnce(errorResponseWithBody(500, "upstream unavailable"))
+    await expect(generatePhasedPlans("plan-1", false, rawBody)).rejects.toThrow(
+      "upstream unavailable",
+    )
+  })
+
+  it("keeps the status message when the rejection body says nothing", async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(errorResponseWithBody(503, ""))
+
+    await expect(
+      generatePhasedPlans("plan-1", false, fetchMock),
+    ).rejects.toThrow("Failed to generate phased plans: 503")
   })
 })

@@ -18,6 +18,13 @@
  *   the backend rejects (composite exists) and the new plan is left single
  *   rather than clobbering the existing phased setup.
  *
+ * A refusal carries a reason the user can act on — svc-retire answers "Set a
+ * target independence age or year of birth before generating phases" when the
+ * profile has neither. The thrown Error therefore carries the backend's own
+ * words whenever the response has any, so a call site can put them on screen
+ * unedited; the status-only message is the fallback for a body that says
+ * nothing.
+ *
  * @param planId    the just-created base independence plan id
  * @param force     overwrite an existing composite (default true)
  * @param fetchImpl injectable for testing; defaults to global fetch
@@ -36,6 +43,30 @@ export async function generatePhasedPlans(
   })
 
   if (!res.ok) {
-    throw new Error(`Failed to generate phased plans: ${res.status}`)
+    const detail = await phaseFailureDetail(res)
+    throw new Error(detail || `Failed to generate phased plans: ${res.status}`)
   }
+}
+
+/**
+ * The BFF forwards a backend rejection as `{ error, message, code }` (see
+ * responseWriter), so prefer `message`, fall back to `error`, then to the raw
+ * body. Returns "" when there is nothing quotable, leaving the caller on the
+ * status-only message.
+ */
+async function phaseFailureDetail(res: Response): Promise<string> {
+  if (typeof res.text !== "function") return ""
+  const body = (await res.text().catch(() => "")).trim()
+  if (!body) return ""
+  try {
+    const parsed: unknown = JSON.parse(body)
+    if (parsed && typeof parsed === "object") {
+      const { message, error } = parsed as { message?: string; error?: string }
+      const detail = message?.trim() || error?.trim()
+      if (detail) return detail
+    }
+  } catch {
+    // Not JSON — the raw body is the best answer available.
+  }
+  return body
 }
