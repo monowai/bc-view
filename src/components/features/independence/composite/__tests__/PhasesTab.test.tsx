@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { CompositePhase, RetirementPlan } from "types/independence"
 import {
@@ -7,38 +7,21 @@ import {
   type CompositeProjectionValue,
 } from "../CompositeProjectionContext"
 
-// Records the props the stage list is handed — what provenance it is given
-// is the whole question in "passes the projection's assumption sources" below.
-const mockPhaseConfigList = jest.fn()
-
-const mockPhaseConfigListStub = (
-  props: Record<string, unknown>,
-): React.ReactElement => {
-  mockPhaseConfigList(props)
-  return <div data-testid="phase-config-list">PhaseConfigList stub</div>
-}
-
-// Stub PhaseConfigList so we can assert it renders without dragging in
-// MathInput / DOM measurement issues.
-jest.mock(
-  "@components/features/independence/composite/../PhaseConfigList",
-  () => ({
-    __esModule: true,
-    default: (props: Record<string, unknown>): React.ReactElement =>
-      mockPhaseConfigListStub(props),
-  }),
-)
-
-// PhaseConfigList is imported relative from PhasesTab — also cover the
-// relative path the module resolver will use.
-jest.mock("../../PhaseConfigList", () => ({
-  __esModule: true,
-  default: (props: Record<string, unknown>): React.ReactElement =>
-    mockPhaseConfigListStub(props),
-}))
-
 jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
+}))
+
+jest.mock("next/router", () => ({
+  useRouter: () => ({ asPath: "/independence?view=stages" }),
+}))
+
+const mockSetInherits = jest.fn().mockResolvedValue(undefined)
+jest.mock("@hooks/useStageRateSource", () => ({
+  useStageRateSource: () => ({
+    setInherits: mockSetInherits,
+    isSaving: () => false,
+    errorFor: () => undefined,
+  }),
 }))
 
 // Stub ResidencePhasePicker — its own hook wiring is covered by
@@ -72,6 +55,43 @@ const defaultPlans = [
   { id: "p1", name: "Go-Go" },
   { id: "p2", name: "Slow Go" },
 ] as RetirementPlan[]
+
+const echoProjection = {
+  phases: [
+    {
+      planId: "p1",
+      planName: "Go-Go",
+      fromAge: 65,
+      toAge: 75,
+      expensesCurrency: "USD",
+      assumptions: {
+        source: "STAGE",
+        cashReturnRate: 0.03,
+        equityReturnRate: 0.07,
+        housingReturnRate: 0.04,
+        inflationRate: 0.025,
+        feeRate: 0,
+        investmentTaxRate: 0,
+      },
+    },
+    {
+      planId: "p2",
+      planName: "Slow Go",
+      fromAge: 75,
+      toAge: 90,
+      expensesCurrency: "USD",
+      assumptions: {
+        source: "MIXED",
+        cashReturnRate: 0.03,
+        equityReturnRate: 0.07,
+        housingReturnRate: 0.04,
+        inflationRate: 0.025,
+        feeRate: 0,
+        investmentTaxRate: 0,
+      },
+    },
+  ],
+} as CompositeProjectionValue["projection"]
 
 function makeCtx(
   overrides: Partial<CompositeProjectionValue> = {},
@@ -114,90 +134,101 @@ function renderWithCtx(
 }
 
 describe("PhasesTab", () => {
-  beforeEach(() => {
-    mockPhaseConfigList.mockClear()
-  })
+  beforeEach(() => {})
 
-  it("hands the stage list each phase's assumption source from the projection echo", () => {
-    renderWithCtx({
-      projection: {
-        phases: [
-          {
-            planId: "p1",
-            planName: "Go-Go",
-            fromAge: 65,
-            toAge: 75,
-            expensesCurrency: "USD",
-            assumptions: {
-              source: "STAGE",
-              cashReturnRate: 0.03,
-              equityReturnRate: 0.07,
-              housingReturnRate: 0.04,
-              inflationRate: 0.025,
-              feeRate: 0,
-              investmentTaxRate: 0,
-            },
-          },
-          {
-            planId: "p2",
-            planName: "Slow Go",
-            fromAge: 75,
-            toAge: 90,
-            expensesCurrency: "USD",
-            assumptions: {
-              source: "MIXED",
-              cashReturnRate: 0.03,
-              equityReturnRate: 0.07,
-              housingReturnRate: 0.04,
-              inflationRate: 0.025,
-              feeRate: 0,
-              investmentTaxRate: 0,
-            },
-          },
-        ],
-      } as CompositeProjectionValue["projection"],
-    })
+  it("opens on the first stage, with its provenance and rates read from the echo", () => {
+    renderWithCtx({ projection: echoProjection })
 
-    expect(mockPhaseConfigList).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assumptionSources: { p1: "STAGE", p2: "MIXED" },
-      }),
+    const drawer = screen.getByRole("region", { name: "Go-Go stage" })
+    expect(drawer).toBeInTheDocument()
+    expect(screen.getByText("Own assumptions")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "cash 3% · equity 7% · housing 4% · inflation 2.5% · fees 0% · tax 0%",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Go-Go/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
     )
   })
 
-  it("hands over an empty record when the projection carries no echo", () => {
+  it("claims no provenance when the projection carries no echo", () => {
     // Never derived client-side: no echo means nothing is claimed.
     renderWithCtx()
 
-    expect(mockPhaseConfigList).toHaveBeenCalledWith(
-      expect.objectContaining({ assumptionSources: {} }),
-    )
+    expect(screen.queryByText("Own assumptions")).not.toBeInTheDocument()
+    expect(screen.queryByText("Inherits from journey")).not.toBeInTheDocument()
+    expect(
+      screen.getByText("Rates show once the projection has run."),
+    ).toBeInTheDocument()
   })
 
-  it("skips phases the echo left without an assumptions block", () => {
-    renderWithCtx({
-      projection: {
-        phases: [
-          {
-            planId: "p1",
-            planName: "Go-Go",
-            fromAge: 65,
-            toAge: 75,
-            expensesCurrency: "USD",
-          },
-        ],
-      } as CompositeProjectionValue["projection"],
+  it("switches the drawer to the stage that was pressed", () => {
+    renderWithCtx({ projection: echoProjection })
+
+    fireEvent.click(screen.getByRole("button", { name: /^Slow Go/ }))
+
+    expect(
+      screen.getByRole("region", { name: "Slow Go stage" }),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Mixed")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("region", { name: "Go-Go stage" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("moves a seam for both stages that share it", () => {
+    const setPhases = jest.fn()
+    renderWithCtx({ setPhases })
+
+    fireEvent.change(screen.getByLabelText("Slow Go starts at age"), {
+      target: { value: "78" },
     })
 
-    expect(mockPhaseConfigList).toHaveBeenCalledWith(
-      expect.objectContaining({ assumptionSources: {} }),
+    expect(setPhases).toHaveBeenCalledWith([
+      { planId: "p1", fromAge: 65, toAge: 78 },
+      { planId: "p2", fromAge: 78 },
+    ])
+  })
+
+  it("moves the open stage later and follows it", () => {
+    const setPhases = jest.fn()
+    renderWithCtx({ setPhases })
+
+    fireEvent.click(screen.getByRole("button", { name: "Move Go-Go later" }))
+
+    expect(setPhases).toHaveBeenCalledWith([
+      { planId: "p2", fromAge: 65, toAge: 75 },
+      { planId: "p1", fromAge: 75 },
+    ])
+    // The drawer now sits on index 1 — which, in this render's unchanged
+    // context, is still "Slow Go"; what matters is that it followed.
+    expect(
+      screen.getByRole("region", { name: "Slow Go stage" }),
+    ).toBeInTheDocument()
+  })
+
+  it("flips a stage's rate source from its drawer", () => {
+    renderWithCtx({
+      plans: [
+        { id: "p1", name: "Go-Go", assumptionsInherited: true },
+        { id: "p2", name: "Slow Go", assumptionsInherited: false },
+      ] as RetirementPlan[],
+    })
+
+    fireEvent.click(screen.getByRole("switch", { name: "Own rates for Go-Go" }))
+
+    expect(mockSetInherits).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p1" }),
+      false,
     )
   })
 
   it("renders one responsive layout, not duplicated desktop/mobile copies", () => {
     renderWithCtx()
     expect(screen.getAllByTestId("phases-layout")).toHaveLength(1)
-    expect(screen.getAllByTestId("phase-config-list")).toHaveLength(1)
+    expect(screen.getAllByRole("region", { name: /stage$/ })).toHaveLength(1)
   })
 
   it("carries no composite narrative field — narrative lives on each phase plan", () => {
@@ -206,10 +237,19 @@ describe("PhasesTab", () => {
     expect(screen.queryByText(/Plan narrative/i)).not.toBeInTheDocument()
   })
 
-  it("renders the timeline band with each phase's span", () => {
+  it("carries each age once: on the band's seams, never again in the drawer inputs", () => {
     renderWithCtx()
-    expect(screen.getByText("Timeline")).toBeInTheDocument()
-    expect(screen.getByText(/65–75 · 10 yr/)).toBeInTheDocument()
+    expect(screen.getByLabelText("Go-Go starts at age")).toHaveValue("65")
+    expect(screen.getByLabelText("Slow Go starts at age")).toHaveValue("75")
+    expect(screen.getAllByRole("textbox")).toHaveLength(2)
+    expect(
+      screen.getByRole("button", { name: "Go-Go 10 yr" }),
+    ).toBeInTheDocument()
+  })
+
+  it("teaches the empty state when nothing is included", () => {
+    renderWithCtx({ phases: [] })
+    expect(screen.getByText("No stages yet")).toBeInTheDocument()
   })
 
   it("resolves the open-ended last phase from the projection horizon", () => {

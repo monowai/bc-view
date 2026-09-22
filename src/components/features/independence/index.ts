@@ -46,7 +46,6 @@ export { default as TimelineTabContent } from "./TimelineTabContent"
 export { default as PlanFiOverviewTab } from "./PlanFiOverviewTab"
 export { default as CompositeTab } from "./CompositeTab"
 export { default as IndependencePlanSwitcher } from "./IndependencePlanSwitcher"
-export { default as PhaseConfigList } from "./PhaseConfigList"
 
 // Monte Carlo Hook
 export { useMonteCarloSimulation } from "./useMonteCarloSimulation"

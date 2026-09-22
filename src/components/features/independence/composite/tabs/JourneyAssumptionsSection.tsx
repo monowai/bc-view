@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { mutate } from "swr"
 import type {
-  AssumptionSource,
   CompositePhaseInfo,
   IndependencePlan,
   IndependencePlanRequest,
@@ -10,13 +8,15 @@ import type {
 } from "types/independence"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { toPercent } from "@lib/independence/conversions"
-import { toPlanRequestPayload } from "@utils/independence/planHelpers"
 import { toErrorMessage } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
-
-/** SWR key the composite page reads its phase plans from. */
-const PLANS_KEY = "/api/independence/plans"
+import { useStageRateSource } from "@hooks/useStageRateSource"
+import {
+  ProvenanceLabel,
+  StageRateSwitch,
+  effectiveRatesLine,
+} from "../StageRateSource"
 
 /** Matches the write-on-pause used by the other journey editors. */
 const SAVE_DEBOUNCE_MS = 1000
@@ -85,12 +85,6 @@ const RATE_FIELDS: RateField[] = [
     hint: "Tax on investment gains.",
   },
 ]
-
-const SOURCE_LABEL: Record<AssumptionSource, string> = {
-  JOURNEY: "Inherits from journey",
-  STAGE: "Own assumptions",
-  MIXED: "Mixed",
-}
 
 /** Percent for the box, or "" for a rate the journey has never stated. */
 function toInputValue(rate: number | undefined): string {
@@ -299,42 +293,12 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   )
 }
 
-/** Journey-rate order for the compact per-stage readout. */
-const EFFECTIVE_RATE_ORDER: { key: RateKey; short: string }[] = [
-  { key: "cashReturnRate", short: "cash" },
-  { key: "equityReturnRate", short: "equity" },
-  { key: "housingReturnRate", short: "housing" },
-  { key: "inflationRate", short: "inflation" },
-  { key: "feeRate", short: "fees" },
-  { key: "investmentTaxRate", short: "tax" },
-]
-
-async function updateAssumptionSource(
-  plan: RetirementPlan,
-  assumptionsInherited: boolean,
-): Promise<void> {
-  // Full-plan echo: svc-retire's PATCH replaces every field it receives and
-  // defaults the ones it doesn't, so a {assumptionsInherited}-only body
-  // 400s or clobbers the stage's other settings.
-  const response = await fetch(`/api/independence/plans/${plan.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...toPlanRequestPayload(plan),
-      assumptionsInherited,
-    }),
-  })
-  if (!response.ok) {
-    throw new Error("Failed to change which rates this stage uses")
-  }
-}
-
 /**
  * Which rates each stage runs on, with the choice right beside the answer.
  *
  * Two things per stage, deliberately kept apart:
  *
- * - The **choice** — the select — is the stage's own `assumptionsInherited`
+ * - The **choice** — the switch — is the stage's own `assumptionsInherited`
  *   flag, read from the stored plan. This is what the user controls.
  * - The **provenance** — the label — is read from the projection echo, never
  *   worked out here by comparing rate sets. A stage set to inherit from a
@@ -343,7 +307,9 @@ async function updateAssumptionSource(
  *   only the backend can give.
  *
  * The effective rates are echoed too, so switching a stage over shows what
- * it now runs on rather than asking the user to go and look.
+ * it now runs on rather than asking the user to go and look. The same
+ * control lives on each stage's drawer on the Stages tab, through the same
+ * hook, so the two never disagree about what a flip does.
  */
 function StageAssumptionSources({
   projection,
@@ -354,13 +320,7 @@ function StageAssumptionSources({
   plans: RetirementPlan[]
   refreshProjection: () => void
 }): React.ReactElement | null {
-  // A set, not one id: two stages switched in quick succession are two
-  // in-flight writes, and tracking only the latest would re-enable the first
-  // stage's select while its PATCH is still out.
-  const [savingPlanIds, setSavingPlanIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  )
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
+  const rateSource = useStageRateSource(refreshProjection)
 
   // A type-guard filter, not a truthiness one: it narrows the rows so the
   // label and the tone below both read `row.assumptions.source` outright,
@@ -370,36 +330,6 @@ function StageAssumptionSources({
       p.assumptions != null,
   )
   if (rows.length === 0) return null
-
-  const handleChange = async (
-    plan: RetirementPlan,
-    assumptionsInherited: boolean,
-  ): Promise<void> => {
-    setSavingPlanIds((prev) => new Set(prev).add(plan.id))
-    setRowErrors((prev) => ({ ...prev, [plan.id]: "" }))
-    try {
-      await updateAssumptionSource(plan, assumptionsInherited)
-      await mutate(PLANS_KEY)
-      // The request the projection keys off has not changed — only the plan
-      // behind one of its phases has — so ask for it outright. This is what
-      // moves the provenance label and the rates beside it.
-      refreshProjection()
-    } catch (e) {
-      setRowErrors((prev) => ({
-        ...prev,
-        [plan.id]: toErrorMessage(
-          e,
-          "Failed to change which rates this stage uses",
-        ),
-      }))
-    } finally {
-      setSavingPlanIds((prev) => {
-        const next = new Set(prev)
-        next.delete(plan.id)
-        return next
-      })
-    }
-  }
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-4">
@@ -417,8 +347,7 @@ function StageAssumptionSources({
           // carried the flag reads as inheriting, matching how svc-retire
           // resolves it.
           const inherits = plan?.assumptionsInherited ?? true
-          const switchLabel = `Own rates for ${row.planName}`
-          const error = rowErrors[row.planId]
+          const error = rateSource.errorFor(row.planId)
           return (
             <li key={row.planId} className="py-3">
               <div className="flex items-start justify-between gap-4">
@@ -426,46 +355,23 @@ function StageAssumptionSources({
                   <p className="truncate text-sm font-medium text-gray-900">
                     {row.planName}
                   </p>
-                  <p
-                    className={`mt-0.5 text-xs font-medium ${
-                      row.assumptions.source === "JOURNEY"
-                        ? "text-gray-500"
-                        : "text-amber-700"
-                    }`}
-                  >
-                    {SOURCE_LABEL[row.assumptions.source]}
+                  <p className="mt-0.5">
+                    <ProvenanceLabel source={row.assumptions.source} />
                   </p>
                   <p className="mt-0.5 font-mono text-xs tabular-nums text-gray-500">
-                    {EFFECTIVE_RATE_ORDER.map(
-                      ({ key, short }) =>
-                        `${short} ${toPercent(row.assumptions[key], 1)}%`,
-                    ).join(" · ")}
+                    {effectiveRatesLine(row.assumptions)}
                   </p>
                 </div>
-                {/*
-                  A <button role="switch">, not an input wrapped in a label:
-                  that pairing double-fires in this codebase. On = own rates,
-                  the same polarity as the wizard's "Override for this stage".
-                */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-label={switchLabel}
-                  aria-checked={!inherits}
-                  disabled={!plan || savingPlanIds.has(row.planId)}
-                  onClick={() => {
-                    if (plan) void handleChange(plan, !inherits)
-                  }}
-                  className={`${
-                    inherits ? "bg-gray-200" : "bg-independence-600"
-                  } relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-independence-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none`}
-                >
-                  <span
-                    className={`${
-                      inherits ? "translate-x-0" : "translate-x-5"
-                    } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out motion-reduce:transition-none`}
+                <div className="mt-0.5">
+                  <StageRateSwitch
+                    label={`Own rates for ${row.planName}`}
+                    inherits={inherits}
+                    disabled={!plan || rateSource.isSaving(row.planId)}
+                    onChange={(next) => {
+                      if (plan) void rateSource.setInherits(plan, next)
+                    }}
                   />
-                </button>
+                </div>
               </div>
               {error && (
                 <div className="mt-2">
