@@ -97,20 +97,12 @@ export default function PhaseTimeline({
 }: PhaseTimelineProps): React.ReactElement | null {
   if (resolved.length === 0) return null
 
-  const start = resolved[0].fromAge
-  const end = resolved[resolved.length - 1].toAge
-  const span = Math.max(end - start, 0)
-
   return (
     <div>
-      <p className="text-right font-mono text-xs tabular-nums text-gray-500">
-        age {start} → {end} · {span} years
-      </p>
-
       {/* The band scrolls sideways before its segments crush: each stage
           keeps room for its name and its start-age box. */}
       <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <ol className="mt-2 flex min-w-[22rem] items-stretch gap-1">
+        <ol className="flex min-w-[22rem] items-stretch gap-1">
           {resolved.map((phase, index) => {
             const isSelected = selectedIndex === index
             const isLast = index === resolved.length - 1

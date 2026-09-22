@@ -142,11 +142,8 @@ describe("PhasesTab", () => {
     const drawer = screen.getByRole("region", { name: "Go-Go stage" })
     expect(drawer).toBeInTheDocument()
     expect(screen.getByText("Own assumptions")).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        "cash 3% · equity 7% · housing 4% · inflation 2.5% · fees 0% · tax 0%",
-      ),
-    ).toBeInTheDocument()
+    expect(screen.getAllByRole("definition")).toHaveLength(6)
+    expect(screen.getByText("4%")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /^Go-Go/ })).toHaveAttribute(
       "aria-expanded",
       "true",
@@ -273,7 +270,7 @@ describe("PhasesTab", () => {
         ],
       } as CompositeProjectionValue["projection"],
     })
-    expect(screen.getByText(/age 65 → 90 · 25 years/)).toBeInTheDocument()
+    expect(screen.getByText("to 90")).toBeInTheDocument()
   })
 
   it("groups both phase levers in a single panel", () => {

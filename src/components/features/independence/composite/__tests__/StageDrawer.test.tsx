@@ -96,34 +96,22 @@ describe("StageDrawer", () => {
     expect(screen.getByText("70–80 · 10 yr")).toBeInTheDocument()
   })
 
-  it("shows the narrative clamped, with a way to read it all and to edit it", () => {
+  it("links to the stage's own page for everything else", () => {
     renderDrawer()
-    expect(screen.getByText(/moving to NZ/)).toHaveClass("line-clamp-2")
-
-    fireEvent.click(screen.getByRole("button", { name: "Show more" }))
-    expect(screen.getByText(/moving to NZ/)).not.toHaveClass("line-clamp-2")
-
     expect(screen.getByRole("link", { name: "Edit stage" })).toHaveAttribute(
       "href",
       expect.stringContaining("/independence/wizard/b"),
     )
-  })
-
-  it("invites a description when the plan has none", () => {
-    renderDrawer({ plan: makePlan({ narrative: undefined }) })
-    expect(
-      screen.getByRole("link", { name: "describe this stage" }),
-    ).toBeInTheDocument()
+    // The narrative stays on that page: the drawer reads at a glance.
+    expect(screen.queryByText(/moving to NZ/)).not.toBeInTheDocument()
   })
 
   it("reads provenance and the effective rates from the echo, and the switch from the plan", () => {
     renderDrawer()
     expect(screen.getByText("Own assumptions")).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        "cash 1% · equity 8% · housing 2.5% · inflation 2.5% · fees 0% · tax 0%",
-      ),
-    ).toBeInTheDocument()
+    expect(screen.getByText("housing")).toBeInTheDocument()
+    expect(screen.getAllByText("2.5%")).toHaveLength(2)
+    expect(screen.getAllByRole("definition")).toHaveLength(6)
     expect(
       screen.getByRole("switch", { name: "Own rates for Slow Go" }),
     ).toHaveAttribute("aria-checked", "true")

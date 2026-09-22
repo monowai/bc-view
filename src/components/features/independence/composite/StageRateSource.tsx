@@ -9,8 +9,8 @@ export const SOURCE_LABEL: Record<AssumptionSource, string> = {
   MIXED: "Mixed",
 }
 
-/** Journey-rate order for the compact per-stage readout. */
-const EFFECTIVE_RATE_ORDER: {
+/** Journey-rate order for the per-stage readouts. */
+export const EFFECTIVE_RATE_ORDER: {
   key: keyof Omit<PhaseAssumptions, "source">
   short: string
 }[] = [
@@ -27,6 +27,30 @@ export function effectiveRatesLine(assumptions: PhaseAssumptions): string {
   return EFFECTIVE_RATE_ORDER.map(
     ({ key, short }) => `${short} ${toPercent(assumptions[key], 1)}%`,
   ).join(" · ")
+}
+
+/**
+ * The six rates as a row of labelled figures — label above, figure below —
+ * so each one has room and the eye can scan the row. For the drawer, where
+ * the joined line had no width to sit in.
+ */
+export function EffectiveRatesGrid({
+  assumptions,
+}: {
+  assumptions: PhaseAssumptions
+}): React.ReactElement {
+  return (
+    <dl className="grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-6">
+      {EFFECTIVE_RATE_ORDER.map(({ key, short }) => (
+        <div key={key} className="min-w-0">
+          <dt className="text-xs text-gray-500">{short}</dt>
+          <dd className="font-mono text-sm tabular-nums text-gray-900">
+            {toPercent(assumptions[key], 1)}%
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
 }
 
 /** Provenance, toned: quiet when the stage simply inherits, amber otherwise. */

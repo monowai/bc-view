@@ -48,11 +48,6 @@ describe("PhaseTimeline", () => {
     expect(screen.getByText("12 yr")).toBeInTheDocument()
   })
 
-  it("reads the whole span from first start to horizon", () => {
-    renderBand()
-    expect(screen.getByText(/age 61 → 92 · 31 years/)).toBeInTheDocument()
-  })
-
   it("carries each start age exactly once, on the seam it moves", () => {
     renderBand()
     expect(screen.getByLabelText("Go-Go starts at age")).toHaveValue("61")
