@@ -14,7 +14,6 @@ import { toPlanRequestPayload } from "@utils/independence/planHelpers"
 import { toErrorMessage } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
-import { LEVER_SELECT_CLASS } from "../LeverRow"
 
 /** SWR key the composite page reads its phase plans from. */
 const PLANS_KEY = "/api/independence/plans"
@@ -126,7 +125,8 @@ function validate(field: RateField, percent: number): string | null {
  */
 export default function JourneyAssumptionsSection(): React.ReactElement {
   const { activePlan, activePlanId, update } = useActiveIndependencePlan()
-  const { projection, plans } = useCompositeProjectionContext()
+  const { projection, plans, refreshProjection } =
+    useCompositeProjectionContext()
 
   // Everything the user has typed but not yet saved, and anything we have to
   // tell them about it — all keyed by the journey it belongs to.
@@ -290,13 +290,14 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
         </div>
       </section>
 
-      <StageAssumptionSources projection={projection} plans={plans} />
+      <StageAssumptionSources
+        projection={projection}
+        plans={plans}
+        refreshProjection={refreshProjection}
+      />
     </div>
   )
 }
-
-/** The two things a stage can run on. Select values, not display copy. */
-type StageSource = "journey" | "own"
 
 /** Journey-rate order for the compact per-stage readout. */
 const EFFECTIVE_RATE_ORDER: { key: RateKey; short: string }[] = [
@@ -347,9 +348,11 @@ async function updateAssumptionSource(
 function StageAssumptionSources({
   projection,
   plans,
+  refreshProjection,
 }: {
   projection: ReturnType<typeof useCompositeProjectionContext>["projection"]
   plans: RetirementPlan[]
+  refreshProjection: () => void
 }): React.ReactElement | null {
   // A set, not one id: two stages switched in quick succession are two
   // in-flight writes, and tracking only the latest would re-enable the first
@@ -370,15 +373,17 @@ function StageAssumptionSources({
 
   const handleChange = async (
     plan: RetirementPlan,
-    next: StageSource,
+    assumptionsInherited: boolean,
   ): Promise<void> => {
     setSavingPlanIds((prev) => new Set(prev).add(plan.id))
     setRowErrors((prev) => ({ ...prev, [plan.id]: "" }))
     try {
-      await updateAssumptionSource(plan, next === "journey")
-      // The projection re-runs off the refreshed plan list, which is what
-      // updates the provenance label and the rates beside it.
+      await updateAssumptionSource(plan, assumptionsInherited)
       await mutate(PLANS_KEY)
+      // The request the projection keys off has not changed — only the plan
+      // behind one of its phases has — so ask for it outright. This is what
+      // moves the provenance label and the rates beside it.
+      refreshProjection()
     } catch (e) {
       setRowErrors((prev) => ({
         ...prev,
@@ -402,26 +407,25 @@ function StageAssumptionSources({
         Which rates each stage uses
       </h3>
       <p className="mt-1 max-w-prose text-xs text-gray-500">
-        A stage on its own rates keeps the figures set in its Assumptions step.
-        Switching it back to the journey applies the rates above.
+        Off, a stage runs on the rates above. On, it keeps the figures set in
+        its own Assumptions step — the same switch as in the stage wizard.
       </p>
       <ul className="mt-2 divide-y divide-gray-100">
         {rows.map((row) => {
           const plan = plans.find((p) => p.id === row.planId)
-          const selectId = `stage-source-${row.planId}`
-          const value: StageSource =
-            plan?.assumptionsInherited === true ? "journey" : "own"
+          // Same normalisation as the stage wizard: a legacy row that never
+          // carried the flag reads as inheriting, matching how svc-retire
+          // resolves it.
+          const inherits = plan?.assumptionsInherited ?? true
+          const switchLabel = `Own rates for ${row.planName}`
           const error = rowErrors[row.planId]
           return (
             <li key={row.planId} className="py-3">
-              <div className="grid gap-2 sm:grid-cols-[1fr_16rem] sm:items-center sm:gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <label
-                    htmlFor={selectId}
-                    className="block truncate text-sm font-medium text-gray-900"
-                  >
+                  <p className="truncate text-sm font-medium text-gray-900">
                     {row.planName}
-                  </label>
+                  </p>
                   <p
                     className={`mt-0.5 text-xs font-medium ${
                       row.assumptions.source === "JOURNEY"
@@ -438,20 +442,30 @@ function StageAssumptionSources({
                     ).join(" · ")}
                   </p>
                 </div>
-                <select
-                  id={selectId}
-                  value={value}
+                {/*
+                  A <button role="switch">, not an input wrapped in a label:
+                  that pairing double-fires in this codebase. On = own rates,
+                  the same polarity as the wizard's "Override for this stage".
+                */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label={switchLabel}
+                  aria-checked={!inherits}
                   disabled={!plan || savingPlanIds.has(row.planId)}
-                  onChange={(e) => {
-                    if (plan) {
-                      void handleChange(plan, e.target.value as StageSource)
-                    }
+                  onClick={() => {
+                    if (plan) void handleChange(plan, !inherits)
                   }}
-                  className={LEVER_SELECT_CLASS}
+                  className={`${
+                    inherits ? "bg-gray-200" : "bg-independence-600"
+                  } relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-independence-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none`}
                 >
-                  <option value="journey">Journey&apos;s rates</option>
-                  <option value="own">This stage&apos;s own rates</option>
-                </select>
+                  <span
+                    className={`${
+                      inherits ? "translate-x-0" : "translate-x-5"
+                    } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out motion-reduce:transition-none`}
+                  />
+                </button>
               </div>
               {error && (
                 <div className="mt-2">

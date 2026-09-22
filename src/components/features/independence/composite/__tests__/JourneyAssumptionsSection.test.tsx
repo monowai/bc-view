@@ -98,6 +98,7 @@ function makeCtx(
     toggleExclusion: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
+    refreshProjection: jest.fn(),
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
@@ -327,11 +328,23 @@ describe("JourneyAssumptionsSection", () => {
       global.fetch = fetchMock as unknown as typeof fetch
     })
 
+    const sw = (name: string): HTMLElement =>
+      screen.getByRole("switch", { name: `Own rates for ${name}` })
+
     it("reads each stage's choice from its own plan, not from the echo", () => {
       renderSection({ projection: echo, plans })
 
-      expect(screen.getByLabelText("Go-Go")).toHaveValue("journey")
-      expect(screen.getByLabelText("Slow Go")).toHaveValue("own")
+      expect(sw("Go-Go")).toHaveAttribute("aria-checked", "false")
+      expect(sw("Slow Go")).toHaveAttribute("aria-checked", "true")
+    })
+
+    it("treats a stage that never carried the flag as inheriting", () => {
+      renderSection({
+        projection: echo,
+        plans: [makePlan({ id: "p1", assumptionsInherited: undefined })],
+      })
+
+      expect(sw("Go-Go")).toHaveAttribute("aria-checked", "false")
     })
 
     it("shows the rates the stage actually ran on, from the echo", () => {
@@ -344,12 +357,11 @@ describe("JourneyAssumptionsSection", () => {
       ).toHaveLength(2)
     })
 
-    it("writes the whole plan back with the flag flipped, then refreshes the plans", async () => {
-      renderSection({ projection: echo, plans })
+    it("writes the whole plan back with the flag flipped, then refreshes the plans and the projection", async () => {
+      const refreshProjection = jest.fn()
+      renderSection({ projection: echo, plans, refreshProjection })
 
-      fireEvent.change(screen.getByLabelText("Slow Go"), {
-        target: { value: "journey" },
-      })
+      fireEvent.click(sw("Slow Go"))
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
       const [url, init] = fetchMock.mock.calls[0]
@@ -364,14 +376,15 @@ describe("JourneyAssumptionsSection", () => {
       await waitFor(() =>
         expect(mutateMock).toHaveBeenCalledWith("/api/independence/plans"),
       )
+      // The request the projection keys off is unchanged, so nothing else
+      // would re-run it — the label and rates would sit stale otherwise.
+      await waitFor(() => expect(refreshProjection).toHaveBeenCalledTimes(1))
     })
 
-    it("switches a stage onto its own rates the same way", async () => {
+    it("switches a stage onto its own rates with the same write", async () => {
       renderSection({ projection: echo, plans })
 
-      fireEvent.change(screen.getByLabelText("Go-Go"), {
-        target: { value: "own" },
-      })
+      fireEvent.click(sw("Go-Go"))
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
       expect(fetchMock.mock.calls[0][0]).toBe("/api/independence/plans/p1")
@@ -382,16 +395,16 @@ describe("JourneyAssumptionsSection", () => {
 
     it("says so beside the stage when the write fails, and refreshes nothing", async () => {
       fetchMock.mockResolvedValue({ ok: false })
-      renderSection({ projection: echo, plans })
+      const refreshProjection = jest.fn()
+      renderSection({ projection: echo, plans, refreshProjection })
 
-      fireEvent.change(screen.getByLabelText("Go-Go"), {
-        target: { value: "own" },
-      })
+      fireEvent.click(sw("Go-Go"))
 
       expect(
         await screen.findByText("Failed to change which rates this stage uses"),
       ).toBeInTheDocument()
       expect(mutateMock).not.toHaveBeenCalled()
+      expect(refreshProjection).not.toHaveBeenCalled()
     })
 
     it("keeps each stage locked until its own write lands", async () => {
@@ -406,31 +419,25 @@ describe("JourneyAssumptionsSection", () => {
         .mockResolvedValueOnce({ ok: true })
       renderSection({ projection: echo, plans })
 
-      fireEvent.change(screen.getByLabelText("Go-Go"), {
-        target: { value: "own" },
-      })
-      fireEvent.change(screen.getByLabelText("Slow Go"), {
-        target: { value: "journey" },
-      })
+      fireEvent.click(sw("Go-Go"))
+      fireEvent.click(sw("Slow Go"))
 
       // The second write finishes first; the first stage must stay locked.
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-      await waitFor(() =>
-        expect(screen.getByLabelText("Slow Go")).toBeEnabled(),
-      )
-      expect(screen.getByLabelText("Go-Go")).toBeDisabled()
+      await waitFor(() => expect(sw("Slow Go")).toBeEnabled())
+      expect(sw("Go-Go")).toBeDisabled()
 
       act(() => {
         resolveFirst({ ok: true })
       })
-      await waitFor(() => expect(screen.getByLabelText("Go-Go")).toBeEnabled())
+      await waitFor(() => expect(sw("Go-Go")).toBeEnabled())
     })
 
     it("offers no choice for a stage whose plan is not loaded", () => {
       renderSection({ projection: echo, plans: [plans[0]] })
 
-      expect(screen.getByLabelText("Slow Go")).toBeDisabled()
-      expect(screen.getByLabelText("Go-Go")).toBeEnabled()
+      expect(sw("Slow Go")).toBeDisabled()
+      expect(sw("Go-Go")).toBeEnabled()
     })
   })
 

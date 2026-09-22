@@ -46,6 +46,12 @@ export interface CompositeProjectionValue {
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
   /**
+   * Re-run the projection for the same request. For levers that change a
+   * stage plan in place (its rates, its inheritance) — the request the
+   * projection keys off is unchanged, so nothing else would re-fetch it.
+   */
+  refreshProjection: () => void
+  /**
    * Current age to display — prefers the backend-echoed
    * `CompositeProjectionResult.currentAge` once a projection has landed,
    * falling back to a local derivation for first paint (bc-view #1144).

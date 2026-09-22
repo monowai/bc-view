@@ -27,6 +27,8 @@ export interface UseCompositeProjectionResult {
   /** Work scenario ID to use for composite projections. */
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
+  /** Re-run the projection for the same request; see CompositeProjectionValue. */
+  refreshProjection: () => void
   /**
    * Current age to display. Prefers the backend-echoed
    * `CompositeProjectionResult.currentAge` once a projection has landed
@@ -191,6 +193,11 @@ export function useCompositeProjection(
   // request that had not been made yet.
   const [hasAttempted, setHasAttempted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Bumped by `refreshProjection`. The fetch below keys off the request
+  // (phases, currency, work scenario) and knows nothing of the plans' own
+  // fields — a lever that edits a stage plan in place changes the answer
+  // without changing the request, and has to say so.
+  const [projectionRun, setProjectionRun] = useState(0)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -381,7 +388,11 @@ export function useCompositeProjection(
         clearTimeout(debounceTimer.current)
       }
     }
-  }, [phases, displayCurrency, compositeWorkScenarioId])
+  }, [phases, displayCurrency, compositeWorkScenarioId, projectionRun])
+
+  const refreshProjection = useCallback((): void => {
+    setProjectionRun((n) => n + 1)
+  }, [])
 
   // Display age: the backend echo is authoritative once a projection has
   // landed (svc-retire resolves it from the plan owner's settings — bc-view
@@ -398,6 +409,7 @@ export function useCompositeProjection(
     toggleExclusion,
     compositeWorkScenarioId,
     setCompositeWorkScenarioId,
+    refreshProjection,
     currentAge,
     projection,
     scenarios,
