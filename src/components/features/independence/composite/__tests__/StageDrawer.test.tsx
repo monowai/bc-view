@@ -151,11 +151,12 @@ describe("StageDrawer", () => {
     ).toBeInTheDocument()
   })
 
-  it("offers no switch for a stage whose plan is not loaded", () => {
+  it("draws no switch for a stage whose plan is not loaded", () => {
+    // A switch drawn from a default would sit at "inherits" beside a
+    // provenance label that may say "Own assumptions".
     renderDrawer({ plan: undefined })
-    expect(
-      screen.getByRole("switch", { name: "Own rates for Slow Go" }),
-    ).toBeDisabled()
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument()
+    expect(screen.getByText("Own assumptions")).toBeInTheDocument()
   })
 
   it("moves the stage earlier or later", () => {

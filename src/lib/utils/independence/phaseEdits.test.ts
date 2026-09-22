@@ -30,6 +30,22 @@ describe("setBoundaryAge", () => {
     expect(phases[1].fromAge).toBe(70)
   })
 
+  it("never lets a seam pass its neighbours — every stage keeps a year", () => {
+    // Boundary 1 lives between stage 0 (starts 61) and stage 2 (starts 80).
+    expect(setBoundaryAge(phases, 1, 85)[1].fromAge).toBe(79)
+    expect(setBoundaryAge(phases, 1, 40)[1].fromAge).toBe(62)
+    expect(setBoundaryAge(phases, 1, 40)[0].toAge).toBe(62)
+  })
+
+  it("keeps the ends inside the age range", () => {
+    expect(setBoundaryAge(phases, 0, 5)[0].fromAge).toBe(18)
+    expect(setBoundaryAge(phases, 2, 150)[2].fromAge).toBe(120)
+  })
+
+  it("ignores a value that is not a number", () => {
+    expect(setBoundaryAge(phases, 1, Number.NaN)).toBe(phases)
+  })
+
   it("ignores a boundary that does not exist", () => {
     expect(setBoundaryAge(phases, 3, 85)).toBe(phases)
     expect(setBoundaryAge(phases, -1, 85)).toBe(phases)

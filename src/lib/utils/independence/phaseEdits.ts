@@ -6,12 +6,21 @@ import type { CompositePhase } from "types/independence"
  * here keeps the list contiguous rather than trusting the caller to.
  */
 
+/** Ages a stage boundary can sit at. The band's inputs are free text. */
+export const MIN_BOUNDARY_AGE = 18
+export const MAX_BOUNDARY_AGE = 120
+
 /**
  * Set the age a boundary sits at.
  *
  * Boundary 0 is where the first stage starts. Boundary `i` (i ≥ 1) is both
  * the end of stage `i - 1` and the start of stage `i`, and moving it moves
  * both — a gap or an overlap between stages is never representable.
+ *
+ * The age is clamped so the list stays in order with every stage at least a
+ * year long: a boundary can never be dragged past its neighbours, and never
+ * outside [MIN_BOUNDARY_AGE, MAX_BOUNDARY_AGE]. The input that feeds this
+ * is free text, so the clamp is the only guard.
  */
 export function setBoundaryAge(
   phases: CompositePhase[],
@@ -19,7 +28,18 @@ export function setBoundaryAge(
   age: number,
 ): CompositePhase[] {
   if (boundaryIndex < 0 || boundaryIndex >= phases.length) return phases
-  const rounded = Math.round(age)
+  if (!Number.isFinite(age)) return phases
+  const previous = phases[boundaryIndex - 1]
+  const next = phases[boundaryIndex + 1]
+  const lo = Math.max(
+    MIN_BOUNDARY_AGE,
+    previous ? previous.fromAge + 1 : MIN_BOUNDARY_AGE,
+  )
+  const hi = Math.min(
+    MAX_BOUNDARY_AGE,
+    next ? next.fromAge - 1 : MAX_BOUNDARY_AGE,
+  )
+  const rounded = Math.min(hi, Math.max(lo, Math.round(age)))
   const updated = [...phases]
   updated[boundaryIndex] = { ...updated[boundaryIndex], fromAge: rounded }
   if (boundaryIndex > 0) {

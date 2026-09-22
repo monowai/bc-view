@@ -433,10 +433,15 @@ describe("JourneyAssumptionsSection", () => {
       await waitFor(() => expect(sw("Go-Go")).toBeEnabled())
     })
 
-    it("offers no choice for a stage whose plan is not loaded", () => {
+    it("draws no switch for a stage whose plan is not loaded", () => {
+      // A switch drawn from a default would sit at "inherits" beside a
+      // provenance label that may say "Own assumptions".
       renderSection({ projection: echo, plans: [plans[0]] })
 
-      expect(sw("Slow Go")).toBeDisabled()
+      expect(
+        screen.queryByRole("switch", { name: "Own rates for Slow Go" }),
+      ).not.toBeInTheDocument()
+      expect(screen.getByText("Own assumptions")).toBeInTheDocument()
       expect(sw("Go-Go")).toBeEnabled()
     })
   })

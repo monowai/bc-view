@@ -54,7 +54,7 @@ export default function StageDrawer({
 }: StageDrawerProps): React.ReactElement {
   // Same normalisation as the stage wizard: a legacy row that never carried
   // the flag reads as inheriting, matching how svc-retire resolves it.
-  const inherits = plan?.assumptionsInherited ?? true
+  const inherits = plan?.assumptionsInherited !== false
   const error = rateSource.errorFor(phase.planId)
 
   const router = useRouter()
@@ -84,15 +84,19 @@ export default function StageDrawer({
             that states nothing still runs on its own figures. */}
         <div className="flex items-center gap-3">
           {echo && <ProvenanceLabel source={echo.assumptions.source} />}
-          <span className="text-sm text-gray-700">Own rates</span>
-          <StageRateSwitch
-            label={`Own rates for ${phase.planName}`}
-            inherits={inherits}
-            disabled={!plan || rateSource.isSaving(phase.planId)}
-            onChange={(next) => {
-              if (plan) void rateSource.setInherits(plan, next)
-            }}
-          />
+          {/* No plan, no switch: a switch drawn from a default would sit at
+              "inherits" beside a label that may say otherwise. */}
+          {plan && (
+            <>
+              <span className="text-sm text-gray-700">Own rates</span>
+              <StageRateSwitch
+                label={`Own rates for ${phase.planName}`}
+                inherits={inherits}
+                disabled={rateSource.isSaving(phase.planId)}
+                onChange={(next) => void rateSource.setInherits(plan, next)}
+              />
+            </>
+          )}
         </div>
       </div>
 

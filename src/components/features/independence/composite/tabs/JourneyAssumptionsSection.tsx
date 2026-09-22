@@ -346,7 +346,7 @@ function StageAssumptionSources({
           // Same normalisation as the stage wizard: a legacy row that never
           // carried the flag reads as inheriting, matching how svc-retire
           // resolves it.
-          const inherits = plan?.assumptionsInherited ?? true
+          const inherits = plan?.assumptionsInherited !== false
           const error = rateSource.errorFor(row.planId)
           return (
             <li key={row.planId} className="py-3">
@@ -362,16 +362,20 @@ function StageAssumptionSources({
                     {effectiveRatesLine(row.assumptions)}
                   </p>
                 </div>
-                <div className="mt-0.5">
-                  <StageRateSwitch
-                    label={`Own rates for ${row.planName}`}
-                    inherits={inherits}
-                    disabled={!plan || rateSource.isSaving(row.planId)}
-                    onChange={(next) => {
-                      if (plan) void rateSource.setInherits(plan, next)
-                    }}
-                  />
-                </div>
+                {/* No plan, no switch: a switch drawn from a default would
+                    sit at "inherits" beside a label that may say otherwise. */}
+                {plan && (
+                  <div className="mt-0.5">
+                    <StageRateSwitch
+                      label={`Own rates for ${row.planName}`}
+                      inherits={inherits}
+                      disabled={rateSource.isSaving(row.planId)}
+                      onChange={(next) =>
+                        void rateSource.setInherits(plan, next)
+                      }
+                    />
+                  </div>
+                )}
               </div>
               {error && (
                 <div className="mt-2">

@@ -156,14 +156,13 @@ export default function PhaseTimeline({
 
                 {/* The start age sits on the seam it moves. The horizon is
                     not a seam — the projection sets it — so it is read, not
-                    typed. */}
+                    typed. The box is free text; `setBoundaryAge` clamps what
+                    comes out of it, so no min/max is claimed here. */}
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <MathInput
                     value={phase.fromAge}
                     onChange={(v) => onBoundaryChange(index, v)}
                     className={AGE_INPUT_CLASS}
-                    min={18}
-                    max={120}
                     aria-label={`${phase.planName} starts at age`}
                   />
                   {isLast && (
