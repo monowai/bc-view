@@ -9,6 +9,16 @@ const PLANS_KEY = "/api/independence/plans"
 
 const FAILED = "Failed to change which rates this stage uses"
 
+function withoutError(
+  errors: Record<string, string>,
+  planId: string,
+): Record<string, string> {
+  if (!(planId in errors)) return errors
+  const next = { ...errors }
+  delete next[planId]
+  return next
+}
+
 async function writeAssumptionSource(
   plan: RetirementPlan,
   assumptionsInherited: boolean,
@@ -28,11 +38,11 @@ async function writeAssumptionSource(
 }
 
 export interface StageRateSource {
-  /** Write the flag, refresh the plans, then re-run the projection. */
+  /** Write the flag, refresh the plans, then queue a projection re-run. */
   setInherits: (plan: RetirementPlan, inherits: boolean) => Promise<void>
   /** True while this plan's write is out. */
   isSaving: (planId: string) => boolean
-  /** The last failure for this plan, or undefined once it is retried. */
+  /** The last failure for this plan; cleared once a write succeeds or retries. */
   errorFor: (planId: string) => string | undefined
 }
 
@@ -56,12 +66,13 @@ export function useStageRateSource(
   const setInherits = useCallback(
     async (plan: RetirementPlan, inherits: boolean): Promise<void> => {
       setSavingIds((prev) => new Set(prev).add(plan.id))
-      setErrors((prev) => ({ ...prev, [plan.id]: "" }))
+      setErrors((prev) => withoutError(prev, plan.id))
       try {
         await writeAssumptionSource(plan, inherits)
         await mutate(PLANS_KEY)
         // The request the projection keys off has not changed — only the
-        // plan behind one of its phases has — so ask for it outright.
+        // plan behind one of its phases has — so ask for it. The ask goes
+        // through the projection's own debounce, not around it.
         refreshProjection()
       } catch (e) {
         setErrors((prev) => ({ ...prev, [plan.id]: toErrorMessage(e, FAILED) }))
@@ -80,10 +91,7 @@ export function useStageRateSource(
     (planId: string) => savingIds.has(planId),
     [savingIds],
   )
-  const errorFor = useCallback(
-    (planId: string) => errors[planId] || undefined,
-    [errors],
-  )
+  const errorFor = useCallback((planId: string) => errors[planId], [errors])
 
   return { setInherits, isSaving, errorFor }
 }

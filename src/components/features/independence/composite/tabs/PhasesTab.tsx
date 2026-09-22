@@ -93,7 +93,7 @@ export default function PhasesTab(): React.ReactElement {
               selectedIndex={openIndex}
               onSelect={setSelectedIndex}
               onBoundaryChange={(boundary, age) =>
-                setPhases(setBoundaryAge(phases, boundary, age))
+                setPhases((prev) => setBoundaryAge(prev, boundary, age))
               }
               drawerId={drawerId}
             />
@@ -107,7 +107,7 @@ export default function PhasesTab(): React.ReactElement {
                 canMoveEarlier={openIndex > 0}
                 canMoveLater={openIndex < resolved.length - 1}
                 onMove={(direction) => {
-                  setPhases(movePhase(phases, openIndex, direction))
+                  setPhases((prev) => movePhase(prev, openIndex, direction))
                   // Follow the stage to its new place so the drawer keeps
                   // describing what the user just moved.
                   setSelectedIndex(

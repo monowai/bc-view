@@ -1,4 +1,10 @@
-import React, { createContext, useContext, ReactNode } from "react"
+import React, {
+  createContext,
+  useContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react"
 import type {
   CompositePhase,
   CompositeProjectionResult,
@@ -37,7 +43,7 @@ export interface CompositeProjectionValue {
 
   // Inputs / setters (from useCompositeProjection)
   phases: CompositePhase[]
-  setPhases: (phases: CompositePhase[]) => void
+  setPhases: Dispatch<SetStateAction<CompositePhase[]>>
   displayCurrency: string
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>

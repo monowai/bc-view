@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
 import type {
   RetirementPlan,
   UserIndependenceSettings,
@@ -19,7 +27,7 @@ const SAVE_DEBOUNCE_MS = 1000
 
 export interface UseCompositeProjectionResult {
   phases: CompositePhase[]
-  setPhases: (phases: CompositePhase[]) => void
+  setPhases: Dispatch<SetStateAction<CompositePhase[]>>
   displayCurrency: string
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>

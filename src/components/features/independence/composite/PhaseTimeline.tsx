@@ -108,7 +108,7 @@ export default function PhaseTimeline({
             const isLast = index === resolved.length - 1
             return (
               <li
-                key={`${phase.planId}-${index}`}
+                key={phase.planId}
                 // Proportional width, floored so a one-year stage stays
                 // readable and its age box never collides with the next.
                 style={{ flexGrow: Math.max(phase.years, 1) }}

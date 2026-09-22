@@ -183,7 +183,9 @@ describe("PhasesTab", () => {
       target: { value: "78" },
     })
 
-    expect(setPhases).toHaveBeenCalledWith([
+    // An updater over the prior list, so a burst of edits never drops one.
+    const [update] = setPhases.mock.calls[0]
+    expect(update(defaultPhases)).toEqual([
       { planId: "p1", fromAge: 65, toAge: 78 },
       { planId: "p2", fromAge: 78 },
     ])
@@ -195,7 +197,8 @@ describe("PhasesTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Move Go-Go later" }))
 
-    expect(setPhases).toHaveBeenCalledWith([
+    const [update] = setPhases.mock.calls[0]
+    expect(update(defaultPhases)).toEqual([
       { planId: "p2", fromAge: 65, toAge: 75 },
       { planId: "p1", fromAge: 75 },
     ])
