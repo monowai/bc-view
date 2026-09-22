@@ -9,6 +9,7 @@ jest.mock("swr", () => ({ __esModule: true, default: jest.fn() }))
 const mockCtx = {
   compositeWorkScenarioId: "s1" as string | undefined,
   setCompositeWorkScenarioId: jest.fn(),
+  refreshProjection: jest.fn(),
 }
 jest.mock("../../composite/CompositeProjectionContext", () => ({
   useCompositeProjectionContext: () => mockCtx,

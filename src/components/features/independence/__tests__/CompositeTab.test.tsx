@@ -188,6 +188,7 @@ describe("CompositeTab", () => {
       toggleExclusion: jest.fn(),
       compositeWorkScenarioId: undefined,
       setCompositeWorkScenarioId: jest.fn(),
+      refreshProjection: jest.fn(),
       currentAge: 58,
       projection: undefined,
       scenarios: undefined,

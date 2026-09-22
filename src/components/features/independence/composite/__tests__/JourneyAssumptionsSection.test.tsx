@@ -8,7 +8,7 @@ import {
   type RenderResult,
 } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import type { IndependencePlan } from "types/independence"
+import type { IndependencePlan, RetirementPlan } from "types/independence"
 import {
   CompositeProjectionProvider,
   type CompositeProjectionValue,
@@ -16,6 +16,13 @@ import {
 
 const mockUpdate = jest.fn()
 let mockActivePlan: IndependencePlan | undefined
+
+const mutateMock = jest.fn()
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: jest.fn(),
+  mutate: (...args: unknown[]) => mutateMock(...args),
+}))
 
 jest.mock("@hooks/useIndependencePlans", () => ({
   useActiveIndependencePlan: () => ({
@@ -49,6 +56,35 @@ function makeJourney(
   }
 }
 
+function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
+  return {
+    id: "p1",
+    name: "Go-Go",
+    planningHorizonYears: 30,
+    monthlyExpenses: 5000,
+    expensesCurrency: "SGD",
+    cashReturnRate: 0.01,
+    equityReturnRate: 0.08,
+    housingReturnRate: 0.025,
+    inflationRate: 0.025,
+    feeRate: 0,
+    investmentTaxRate: 0,
+    cashAllocation: 0.2,
+    equityAllocation: 0.8,
+    housingAllocation: 0,
+    pensionMonthly: 0,
+    socialSecurityMonthly: 0,
+    otherIncomeMonthly: 0,
+    workingIncomeMonthly: 0,
+    workingExpensesMonthly: 0,
+    taxesMonthly: 0,
+    bonusMonthly: 0,
+    investmentAllocationPercent: 0.8,
+    assumptionsInherited: true,
+    ...overrides,
+  } as RetirementPlan
+}
+
 function makeCtx(
   overrides: Partial<CompositeProjectionValue> = {},
 ): CompositeProjectionValue {
@@ -62,6 +98,7 @@ function makeCtx(
     toggleExclusion: jest.fn(),
     compositeWorkScenarioId: undefined,
     setCompositeWorkScenarioId: jest.fn(),
+    refreshProjection: jest.fn(),
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
@@ -150,11 +187,11 @@ describe("JourneyAssumptionsSection", () => {
     expect(housing).toHaveAttribute("placeholder", "Each stage uses its own")
   })
 
-  it("says plainly that stages inherit these unless they override", () => {
+  it("says plainly that stages run on these unless switched to their own", () => {
     renderSection()
 
     expect(
-      screen.getByText(/every stage inherits these unless it overrides/i),
+      screen.getByText(/every stage runs on these unless you switch it/i),
     ).toBeInTheDocument()
   })
 
@@ -268,8 +305,145 @@ describe("JourneyAssumptionsSection", () => {
 
     expect(screen.queryByText("Inherits from journey")).not.toBeInTheDocument()
     expect(
-      screen.queryByText(/which stages use these/i),
+      screen.queryByText(/which rates each stage uses/i),
     ).not.toBeInTheDocument()
+  })
+
+  describe("choosing which rates a stage uses", () => {
+    const echo = {
+      phases: [
+        phase("p1", "Go-Go", "JOURNEY"),
+        phase("p2", "Slow Go", "STAGE"),
+      ],
+    } as CompositeProjectionValue["projection"]
+    const plans = [
+      makePlan({ id: "p1", name: "Go-Go", assumptionsInherited: true }),
+      makePlan({ id: "p2", name: "Slow Go", assumptionsInherited: false }),
+    ]
+    let fetchMock: jest.Mock
+
+    beforeEach(() => {
+      mutateMock.mockReset().mockResolvedValue(undefined)
+      fetchMock = jest.fn().mockResolvedValue({ ok: true })
+      global.fetch = fetchMock as unknown as typeof fetch
+    })
+
+    const sw = (name: string): HTMLElement =>
+      screen.getByRole("switch", { name: `Own rates for ${name}` })
+
+    it("reads each stage's choice from its own plan, not from the echo", () => {
+      renderSection({ projection: echo, plans })
+
+      expect(sw("Go-Go")).toHaveAttribute("aria-checked", "false")
+      expect(sw("Slow Go")).toHaveAttribute("aria-checked", "true")
+    })
+
+    it("treats a stage that never carried the flag as inheriting", () => {
+      renderSection({
+        projection: echo,
+        plans: [makePlan({ id: "p1", assumptionsInherited: undefined })],
+      })
+
+      expect(sw("Go-Go")).toHaveAttribute("aria-checked", "false")
+    })
+
+    it("shows the rates the stage actually ran on, from the echo", () => {
+      renderSection({ projection: echo, plans })
+
+      expect(
+        screen.getAllByText(
+          "cash 2.5% · equity 7% · housing 3.5% · inflation 2% · fees 0.4% · tax 15%",
+        ),
+      ).toHaveLength(2)
+    })
+
+    it("writes the whole plan back with the flag flipped, then refreshes the plans and the projection", async () => {
+      const refreshProjection = jest.fn()
+      renderSection({ projection: echo, plans, refreshProjection })
+
+      fireEvent.click(sw("Slow Go"))
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toBe("/api/independence/plans/p2")
+      expect(init.method).toBe("PATCH")
+      const body = JSON.parse(init.body)
+      expect(body.assumptionsInherited).toBe(true)
+      // Full echo, not a one-field body: svc-retire's PATCH replaces what it
+      // receives and defaults the rest.
+      expect(body.name).toBe("Slow Go")
+      expect(body.monthlyExpenses).toBe(5000)
+      await waitFor(() =>
+        expect(mutateMock).toHaveBeenCalledWith("/api/independence/plans"),
+      )
+      // The request the projection keys off is unchanged, so nothing else
+      // would re-run it — the label and rates would sit stale otherwise.
+      await waitFor(() => expect(refreshProjection).toHaveBeenCalledTimes(1))
+    })
+
+    it("switches a stage onto its own rates with the same write", async () => {
+      renderSection({ projection: echo, plans })
+
+      fireEvent.click(sw("Go-Go"))
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+      expect(fetchMock.mock.calls[0][0]).toBe("/api/independence/plans/p1")
+      expect(
+        JSON.parse(fetchMock.mock.calls[0][1].body).assumptionsInherited,
+      ).toBe(false)
+    })
+
+    it("says so beside the stage when the write fails, and refreshes nothing", async () => {
+      fetchMock.mockResolvedValue({ ok: false })
+      const refreshProjection = jest.fn()
+      renderSection({ projection: echo, plans, refreshProjection })
+
+      fireEvent.click(sw("Go-Go"))
+
+      expect(
+        await screen.findByText("Failed to change which rates this stage uses"),
+      ).toBeInTheDocument()
+      expect(mutateMock).not.toHaveBeenCalled()
+      expect(refreshProjection).not.toHaveBeenCalled()
+    })
+
+    it("keeps each stage locked until its own write lands", async () => {
+      let resolveFirst: (v: { ok: boolean }) => void = () => {}
+      fetchMock
+        .mockImplementationOnce(
+          () =>
+            new Promise<{ ok: boolean }>((resolve) => {
+              resolveFirst = resolve
+            }),
+        )
+        .mockResolvedValueOnce({ ok: true })
+      renderSection({ projection: echo, plans })
+
+      fireEvent.click(sw("Go-Go"))
+      fireEvent.click(sw("Slow Go"))
+
+      // The second write finishes first; the first stage must stay locked.
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(sw("Slow Go")).toBeEnabled())
+      expect(sw("Go-Go")).toBeDisabled()
+
+      act(() => {
+        resolveFirst({ ok: true })
+      })
+      await waitFor(() => expect(sw("Go-Go")).toBeEnabled())
+    })
+
+    it("draws no switch for a stage whose plan is not loaded", () => {
+      // A switch drawn from a default would sit at "inherits" beside a
+      // provenance label that may say "Own assumptions".
+      renderSection({ projection: echo, plans: [plans[0]] })
+
+      expect(
+        screen.queryByRole("switch", { name: "Own rates for Slow Go" }),
+      ).not.toBeInTheDocument()
+      expect(screen.getByText("Own assumptions")).toBeInTheDocument()
+      expect(sw("Go-Go")).toBeEnabled()
+    })
   })
 
   describe("switching the active journey", () => {

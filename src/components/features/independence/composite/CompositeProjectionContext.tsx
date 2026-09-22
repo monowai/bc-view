@@ -1,4 +1,10 @@
-import React, { createContext, useContext, ReactNode } from "react"
+import React, {
+  createContext,
+  useContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react"
 import type {
   CompositePhase,
   CompositeProjectionResult,
@@ -37,7 +43,7 @@ export interface CompositeProjectionValue {
 
   // Inputs / setters (from useCompositeProjection)
   phases: CompositePhase[]
-  setPhases: (phases: CompositePhase[]) => void
+  setPhases: Dispatch<SetStateAction<CompositePhase[]>>
   displayCurrency: string
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>
@@ -45,6 +51,12 @@ export interface CompositeProjectionValue {
   /** Work scenario ID selected for composite projections. */
   compositeWorkScenarioId: string | undefined
   setCompositeWorkScenarioId: (id: string | undefined) => void
+  /**
+   * Re-run the projection for the same request. For levers that change a
+   * stage plan in place (its rates, its inheritance) — the request the
+   * projection keys off is unchanged, so nothing else would re-fetch it.
+   */
+  refreshProjection: () => void
   /**
    * Current age to display — prefers the backend-echoed
    * `CompositeProjectionResult.currentAge` once a projection has landed,

@@ -236,6 +236,41 @@ describe("useCompositeProjection — currentAge", () => {
     expect(result.current.projection?.currentAge).toBe(47)
     expect(result.current.currentAge).toBe(47)
   })
+
+  it("re-runs the same request when asked to refresh", async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { currentAge: 47, yearlyProjections: [], warnings: [] },
+        }),
+    })
+    const plans = [makePlan({ id: "p1", isPrimary: true, yearOfBirth: 1980 })]
+    const { result } = renderHook(() =>
+      useCompositeProjection(plans, {
+        yearOfBirth: 1980,
+      } as unknown as import("types/independence").UserIndependenceSettings),
+    )
+    await act(async () => {
+      jest.advanceTimersByTime(600)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const before = (global.fetch as jest.Mock).mock.calls.length
+    expect(before).toBeGreaterThan(0)
+
+    act(() => {
+      result.current.refreshProjection()
+    })
+    await act(async () => {
+      jest.advanceTimersByTime(600)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // Projection + scenarios: the same pair, fetched again.
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(before * 2)
+  })
 })
 
 // bc-view #1190: the composite timeline, display currency, exclusions and

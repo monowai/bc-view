@@ -1,16 +1,22 @@
 import React, { useEffect, useRef, useState } from "react"
 import type {
-  AssumptionSource,
   CompositePhaseInfo,
   IndependencePlan,
   IndependencePlanRequest,
   PhaseAssumptions,
+  RetirementPlan,
 } from "types/independence"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { toPercent } from "@lib/independence/conversions"
 import { toErrorMessage } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
+import { useStageRateSource } from "@hooks/useStageRateSource"
+import {
+  ProvenanceLabel,
+  StageRateSwitch,
+  effectiveRatesLine,
+} from "../StageRateSource"
 
 /** Matches the write-on-pause used by the other journey editors. */
 const SAVE_DEBOUNCE_MS = 1000
@@ -80,12 +86,6 @@ const RATE_FIELDS: RateField[] = [
   },
 ]
 
-const SOURCE_LABEL: Record<AssumptionSource, string> = {
-  JOURNEY: "Inherits from journey",
-  STAGE: "Own assumptions",
-  MIXED: "Mixed",
-}
-
 /** Percent for the box, or "" for a rate the journey has never stated. */
 function toInputValue(rate: number | undefined): string {
   return rate === undefined || rate === null ? "" : String(toPercent(rate, 0))
@@ -119,7 +119,8 @@ function validate(field: RateField, percent: number): string | null {
  */
 export default function JourneyAssumptionsSection(): React.ReactElement {
   const { activePlan, activePlanId, update } = useActiveIndependencePlan()
-  const { projection } = useCompositeProjectionContext()
+  const { projection, plans, refreshProjection } =
+    useCompositeProjectionContext()
 
   // Everything the user has typed but not yet saved, and anything we have to
   // tell them about it — all keyed by the journey it belongs to.
@@ -220,9 +221,9 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <p className="max-w-prose text-sm text-gray-600">
           Set your return, inflation, fee and tax rates once here. Every stage
-          inherits these unless it overrides them in its own Assumptions step.
-          How each stage splits its money across cash, equity and housing stays
-          with that stage.
+          runs on these unless you switch it to its own rates below, or in its
+          own Assumptions step. How each stage splits its money across cash,
+          equity and housing stays with that stage.
         </p>
 
         {saveError && (
@@ -283,23 +284,44 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
         </div>
       </section>
 
-      <StageProvenance projection={projection} />
+      <StageAssumptionSources
+        projection={projection}
+        plans={plans}
+        refreshProjection={refreshProjection}
+      />
     </div>
   )
 }
 
 /**
- * Which stages actually ran on these rates, read from the projection echo.
+ * Which rates each stage runs on, with the choice right beside the answer.
  *
- * Never worked out here by comparing each stage's stored rates with the
- * journey's: that cannot distinguish MIXED, and a stage whose override
- * happens to match the journey is still overriding. No echo, no claim.
+ * Two things per stage, deliberately kept apart:
+ *
+ * - The **choice** — the switch — is the stage's own `assumptionsInherited`
+ *   flag, read from the stored plan. This is what the user controls.
+ * - The **provenance** — the label — is read from the projection echo, never
+ *   worked out here by comparing rate sets. A stage set to inherit from a
+ *   journey that states nothing still runs on its own figures (STAGE), and a
+ *   journey that states some rates leaves the stage MIXED; both are answers
+ *   only the backend can give.
+ *
+ * The effective rates are echoed too, so switching a stage over shows what
+ * it now runs on rather than asking the user to go and look. The same
+ * control lives on each stage's drawer on the Stages tab, through the same
+ * hook, so the two never disagree about what a flip does.
  */
-function StageProvenance({
+function StageAssumptionSources({
   projection,
+  plans,
+  refreshProjection,
 }: {
   projection: ReturnType<typeof useCompositeProjectionContext>["projection"]
+  plans: RetirementPlan[]
+  refreshProjection: () => void
 }): React.ReactElement | null {
+  const rateSource = useStageRateSource(refreshProjection)
+
   // A type-guard filter, not a truthiness one: it narrows the rows so the
   // label and the tone below both read `row.assumptions.source` outright,
   // with no `!` claiming something the type doesn't say.
@@ -312,28 +334,57 @@ function StageProvenance({
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-4">
       <h3 className="text-sm font-medium text-gray-700">
-        Which stages use these
+        Which rates each stage uses
       </h3>
+      <p className="mt-1 max-w-prose text-xs text-gray-500">
+        Off, a stage runs on the rates above. On, it keeps the figures set in
+        its own Assumptions step — the same switch as in the stage wizard.
+      </p>
       <ul className="mt-2 divide-y divide-gray-100">
-        {rows.map((row) => (
-          <li
-            key={row.planId}
-            className="flex items-center justify-between gap-4 py-2"
-          >
-            <span className="min-w-0 truncate text-sm text-gray-900">
-              {row.planName}
-            </span>
-            <span
-              className={`shrink-0 text-xs font-medium ${
-                row.assumptions.source === "JOURNEY"
-                  ? "text-gray-500"
-                  : "text-amber-700"
-              }`}
-            >
-              {SOURCE_LABEL[row.assumptions.source]}
-            </span>
-          </li>
-        ))}
+        {rows.map((row) => {
+          const plan = plans.find((p) => p.id === row.planId)
+          // Same normalisation as the stage wizard: a legacy row that never
+          // carried the flag reads as inheriting, matching how svc-retire
+          // resolves it.
+          const inherits = plan?.assumptionsInherited !== false
+          const error = rateSource.errorFor(row.planId)
+          return (
+            <li key={row.planId} className="py-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {row.planName}
+                  </p>
+                  <p className="mt-0.5">
+                    <ProvenanceLabel source={row.assumptions.source} />
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs tabular-nums text-gray-500">
+                    {effectiveRatesLine(row.assumptions)}
+                  </p>
+                </div>
+                {/* No plan, no switch: a switch drawn from a default would
+                    sit at "inherits" beside a label that may say otherwise. */}
+                {plan && (
+                  <div className="mt-0.5">
+                    <StageRateSwitch
+                      label={`Own rates for ${row.planName}`}
+                      inherits={inherits}
+                      disabled={rateSource.isSaving(row.planId)}
+                      onChange={(next) =>
+                        void rateSource.setInherits(plan, next)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+              {error && (
+                <div className="mt-2">
+                  <Alert>{error}</Alert>
+                </div>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
