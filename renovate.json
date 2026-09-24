@@ -8,9 +8,10 @@
   ],
   "timezone": "Asia/Singapore",
   "labels": ["dependencies"],
-  "assignees": ["@mikeh"],
-  "reviewers": ["@mikeh"],
+  "assignees": ["monowai"],
+  "reviewers": ["monowai"],
   "configMigration": true,
+  "minimumReleaseAge": "7 days",
   "packageRules": [
     {
       "description": "Auto-merge patch updates for non-major dependencies",
@@ -79,8 +80,9 @@
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
-    "assignees": ["@mikeh"],
-    "labels": ["security"]
+    "assignees": ["monowai"],
+    "labels": ["security"],
+    "minimumReleaseAge": null
   },
   "lockFileMaintenance": {
     "enabled": true,
