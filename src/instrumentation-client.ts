@@ -83,6 +83,11 @@ if (!dsn) {
     // Propagate trace headers to API routes for distributed tracing
     tracePropagationTargets: [/^\/api\//],
 
+    // Sentry 11 defaults to traceLifecycle "stream", which silently ignores
+    // beforeSendTransaction. Keep "static" until the filter below is ported
+    // to beforeSendSpan/ignoreSpans.
+    traceLifecycle: "static",
+
     // Filter transactions by URL pattern and remove noisy spans
     beforeSendTransaction(event) {
       const url = event.request?.url || event.transaction || ""

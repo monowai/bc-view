@@ -35,6 +35,11 @@ if (!enabled) {
     // Propagate trace headers to backend services for distributed tracing
     tracePropagationTargets: getTracePropagationTargets(),
 
+    // Sentry 11 defaults to traceLifecycle "stream", which silently ignores
+    // beforeSendTransaction. Keep "static" until the filter below is ported
+    // to beforeSendSpan/ignoreSpans.
+    traceLifecycle: "static",
+
     // Filter and rename transactions
     // Note: ignoreTransactions matches transaction NAME, not URL
     // We use beforeSendTransaction for URL-based filtering
