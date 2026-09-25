@@ -80,13 +80,15 @@ const COPY: Record<
   },
   "answer-truncated": {
     tone: "error",
-    title: "That question needed too much data",
+    title: "The AI ran out of room to answer",
     message:
-      "The AI ran out of room before it could answer — gathering everything the " +
-      "question touched filled the space it had to think in. Asking about one plan, " +
-      "one phase or one holding at a time will get you an answer.",
-    // Retryable in the literal sense, but the same question hits the same
-    // ceiling — the copy points at narrowing rather than at the retry button.
+      "The AI used up its writing budget before it finished — usually by thinking " +
+      "for too long about the question. Try again; a second attempt often gets " +
+      "through. If it keeps happening, ask about one plan, one phase or one holding " +
+      "at a time.",
+    // finish_reason=length with no answer text. On kauri this has been the
+    // model's output budget spent on reasoning, not the context window, so
+    // a retry is the first move and narrowing the question is the fallback.
     retryable: true,
   },
   "empty-answer": {
