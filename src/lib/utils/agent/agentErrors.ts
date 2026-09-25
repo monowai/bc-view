@@ -83,7 +83,7 @@ const COPY: Record<
     title: "The AI ran out of room to answer",
     message:
       "The AI used up its writing budget before it finished — usually by thinking " +
-      "for too long about the question. Try again; a second attempt often gets " +
+      "for too long about the question. Retrying often gets " +
       "through. If it keeps happening, ask about one plan, one phase or one holding " +
       "at a time.",
     // finish_reason=length with no answer text. On kauri this has been the
