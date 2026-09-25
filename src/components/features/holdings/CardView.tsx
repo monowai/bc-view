@@ -685,10 +685,14 @@ const CardView: React.FC<CardViewProps> = ({
     return firstPosition?.moneyValues?.TRADE?.currency || portfolio.currency
   }, [valueIn, portfolio, groupedPositions, isMixedCurrencies])
 
-  const { convert, currencySymbol } = useDisplayCurrencyConversion({
-    sourceCurrency,
-    portfolio,
-  })
+  // currencyCode is the effective display currency (custom pick, or the
+  // Value In bucket). The header labels converted amounts with it — never
+  // with sourceCurrency, which is what the amounts were converted FROM.
+  const { convert, currencySymbol, currencyCode } =
+    useDisplayCurrencyConversion({
+      sourceCurrency,
+      portfolio,
+    })
 
   // Calculate totals for summary
   // When in TRADE mode with mixed currencies, sum BASE values instead
@@ -720,7 +724,6 @@ const CardView: React.FC<CardViewProps> = ({
   const isDayPositive = totals.gainOnDay >= 0
   const overallIrr = holdings.totals.irr
   const isIrrPositive = overallIrr >= 0
-  const currencyCode = sourceCurrency?.code || "USD"
 
   return (
     <div className="space-y-4">
