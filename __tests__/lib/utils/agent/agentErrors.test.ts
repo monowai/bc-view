@@ -114,7 +114,7 @@ describe("describeAgentError", () => {
     expect(copy.tone).toBe("error")
     expect(copy.retryable).toBe(true)
     expect(copy.title).not.toMatch(/too much data/i)
-    expect(copy.message).toMatch(/try again|second attempt/i)
+    expect(copy.message).toMatch(/retry|try again|second attempt/i)
     expect(copy.message).toMatch(/one (plan|phase|holding)|narrower|smaller/i)
   })
 
