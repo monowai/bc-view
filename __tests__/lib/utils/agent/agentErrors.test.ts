@@ -102,17 +102,19 @@ describe("describeAgentError", () => {
     expect(describeAgentError("").message).not.toHaveLength(0)
   })
 
-  it("tells the reader to narrow the question when the answer was truncated", () => {
-    // svc-agent emits this when a turn hits the model's token cap with no
-    // answer — on Independence that is the context window filling with
-    // projection data. Until this copy existed the chat rendered an empty
-    // bubble and said nothing at all.
+  it("says the AI ran out of room to write, offers retry first, then narrowing", () => {
+    // svc-agent emits this when a turn ends on finish_reason=length with no
+    // answer text. On kauri (2026-09-25) that was the model's *output* budget
+    // being spent on reasoning — the prompt was 27k of a 1M window — so
+    // "too much data, ask a narrower question" was the wrong advice. A retry
+    // is the first move; narrowing is the fallback when it keeps happening.
     const copy = describeAgentError("answer-truncated")
 
     expect(copy.code).toBe("answer-truncated")
     expect(copy.tone).toBe("error")
-    // Retrying the same question hits the same ceiling; asking a narrower one
-    // is the move, so the copy has to say so.
+    expect(copy.retryable).toBe(true)
+    expect(copy.title).not.toMatch(/too much data/i)
+    expect(copy.message).toMatch(/retry|try again|second attempt/i)
     expect(copy.message).toMatch(/one (plan|phase|holding)|narrower|smaller/i)
   })
 
