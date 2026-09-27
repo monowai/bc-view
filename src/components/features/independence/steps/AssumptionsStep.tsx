@@ -17,10 +17,11 @@ import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
 import { INPUT_CLS_BASE } from "@lib/ui/formClasses"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
-import { WITHDRAWAL_ORDER_OPTIONS } from "@lib/independence/withdrawalOrder"
-
-/** Wrapper-pool policy types that make the withdrawal-order choice meaningful. */
-const WRAPPER_POLICY_TYPES = ["US_401K", "US_IRA", "UK_ISA"]
+import {
+  DEFAULT_WITHDRAWAL_ORDER,
+  WITHDRAWAL_ORDER_OPTIONS,
+  WRAPPER_POLICY_TYPES,
+} from "@lib/independence/withdrawalOrder"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -788,7 +789,7 @@ export default function AssumptionsStep({
             render={({ field }) => (
               <select
                 id="withdrawalOrder"
-                value={field.value ?? "DEFERRED_FIRST"}
+                value={field.value ?? DEFAULT_WITHDRAWAL_ORDER}
                 onChange={(e) => field.onChange(e.target.value)}
                 className={INPUT_CLS_BASE}
               >

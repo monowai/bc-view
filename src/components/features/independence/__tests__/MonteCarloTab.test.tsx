@@ -109,7 +109,6 @@ const displayProjection: RetirementProjection = {
   currency: "SGD",
   nonSpendableAtRetirement: 250_000,
   housingReturnRate: 0.03,
-  withdrawalOrder: "DEFERRED_FIRST",
   yearlyProjections: [
     {
       year: 2026,

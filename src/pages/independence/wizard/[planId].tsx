@@ -130,7 +130,11 @@ function EditPlanWizard(): React.ReactElement {
     narrative: plan.narrative ?? "",
     primaryStrategy: plan.primaryStrategy ?? "",
     headlineMetric: plan.headlineMetric ?? "",
-    withdrawalOrder: plan.withdrawalOrder ?? "DEFERRED_FIRST",
+    // No fallback — the selector is the only source of a value. A legacy
+    // plan with no wrapper pool (selector never shown) and no stored order
+    // stays undefined here, so buildWizardPlanRequest omits the key rather
+    // than materializing the engine default on every save.
+    withdrawalOrder: plan.withdrawalOrder,
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
     benefitsStartAge: plan.benefitsStartAge,

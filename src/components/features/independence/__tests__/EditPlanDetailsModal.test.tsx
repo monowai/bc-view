@@ -186,7 +186,9 @@ describe("EditPlanDetailsModal", () => {
       targetBalance: 100000,
       excludedPortfolioIds: [],
       excludedRentalAssetIds: [],
-      withdrawalOrder: "DEFERRED_FIRST",
+      // No withdrawalOrder key: this plan (default mock configs) has no
+      // wrapper pool, so the selector never shows and the key is omitted
+      // rather than materializing the engine default.
     })
   })
 
@@ -418,6 +420,26 @@ describe("EditPlanDetailsModal", () => {
       expect(defaultProps.onApply).toHaveBeenCalledWith(
         expect.objectContaining({ withdrawalOrder: "TAX_FREE_FIRST" }),
       )
+    })
+
+    it("does not materialize the engine default when a wrapper-pool plan never stored an order", () => {
+      // Selector IS shown (wrapper pool present) but the plan predates the
+      // field, so formData.withdrawalOrder stays undefined until the user
+      // actually picks something — the selector is the only source of a
+      // value. Once JSON.stringify runs over the real onApply payload this
+      // key drops out entirely, same as if it had been omitted outright.
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_401K" }],
+        assetNames: { a1: "My 401k" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} plan={mockPlan} />)
+
+      fireEvent.click(screen.getByText("Apply"))
+
+      const applied = defaultProps.onApply.mock.calls[0][0]
+      expect(applied.withdrawalOrder).toBeUndefined()
     })
   })
 })

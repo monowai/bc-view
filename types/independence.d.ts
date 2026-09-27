@@ -163,8 +163,8 @@ export interface RetirementPlan {
   systemUserId?: string
   /**
    * Wrapper-pool drawdown order for this stage (svc-retire #153 scope item
-   * 1). Null means the engine default, `WithdrawalOrder.DEFERRED_FIRST` —
-   * the behaviour of every plan saved before this field existed.
+   * 1). Absent means the engine default (DEFERRED_FIRST). On PATCH, absent
+   * or null leaves the stored choice alone.
    */
   withdrawalOrder?: WithdrawalOrder
 }
@@ -262,7 +262,7 @@ export interface PlanRequest {
    * Wrapper-pool drawdown order override (svc-retire #153 scope item 1).
    * PATCH semantics: null/absent on update leaves the stored choice alone.
    */
-  withdrawalOrder?: WithdrawalOrder
+  withdrawalOrder?: WithdrawalOrder | null
 }
 
 export interface PlanResponse {
@@ -1059,11 +1059,14 @@ export interface RetirementProjection {
   /**
    * The wrapper-pool drawdown order this projection actually ran with — the
    * stage's stored order, the request's what-if override, or the engine
-   * default when neither states one (svc-retire #153 scope item 1). Always
-   * present; read this to show which option is selected rather than
-   * re-deriving it from the request that was sent.
+   * default when neither states one (svc-retire #153 scope item 1). Read
+   * this to show which option is selected rather than re-deriving it from
+   * the request that was sent. Optional for backward compatibility, like
+   * `valueBasis` above — a response for an already-serialized/cached
+   * projection during a rolling svc-retire deploy may omit it. Consumers
+   * should fall back to `DEFAULT_WITHDRAWAL_ORDER` when absent.
    */
-  withdrawalOrder: WithdrawalOrder
+  withdrawalOrder?: WithdrawalOrder
 }
 
 export interface ProjectionResponse {

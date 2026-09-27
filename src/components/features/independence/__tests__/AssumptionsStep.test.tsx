@@ -370,6 +370,23 @@ describe("AssumptionsStep — withdrawal order", () => {
     expect(screen.getByLabelText(/withdrawal order/i)).toBeInTheDocument()
   })
 
+  it("displays the engine default when the stage never stored an order", () => {
+    // No `withdrawalOrder` in defaultWizardValues — the selector is the
+    // only source of a value, so an untouched field stays undefined and the
+    // select falls back to DEFAULT_WITHDRAWAL_ORDER for display only.
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [{ assetId: "a1", policyType: "US_401K" }],
+      assetNames: { a1: "My 401k" },
+      isLoading: false,
+    } as any)
+
+    render(<TestWrapper />)
+
+    expect(screen.getByLabelText(/withdrawal order/i)).toHaveValue(
+      "DEFERRED_FIRST",
+    )
+  })
+
   it("defaults the selector to the stage's stored order", () => {
     mockedUsePrivateAssetConfigs.mockReturnValue({
       configs: [{ assetId: "a1", policyType: "UK_ISA" }],

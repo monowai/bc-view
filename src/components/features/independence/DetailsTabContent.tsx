@@ -18,7 +18,10 @@ import { applyRealReturn } from "@components/features/independence/scenario/scen
 import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import { withdrawalOrderLabel } from "@lib/independence/withdrawalOrder"
+import {
+  DEFAULT_WITHDRAWAL_ORDER,
+  withdrawalOrderLabel,
+} from "@lib/independence/withdrawalOrder"
 
 interface DetailsTabContentProps {
   plan: RetirementPlan
@@ -390,7 +393,9 @@ export default function DetailsTabContent({
                   <span className="text-gray-500">{"Withdrawal order"}</span>
                 </InfoTooltip>
                 <span className="font-medium">
-                  {withdrawalOrderLabel(projection.withdrawalOrder)}
+                  {withdrawalOrderLabel(
+                    projection.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER,
+                  )}
                 </span>
               </div>
             )}

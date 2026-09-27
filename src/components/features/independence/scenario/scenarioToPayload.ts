@@ -220,7 +220,11 @@ export function scenarioToPlanUpdatePayload(
     excludedRentalAssetIds:
       pendingExclusions?.excludedRentalAssetIds ??
       parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
-    withdrawalOrder: pendingExclusions?.withdrawalOrder ?? plan.withdrawalOrder,
+    // `?? null` mirrors toPlanRequestPayload's own normalization above, so
+    // this override serialises identically to the full-plan echo rather
+    // than diverging on undefined-vs-null once the key is overridden here.
+    withdrawalOrder:
+      pendingExclusions?.withdrawalOrder ?? plan.withdrawalOrder ?? null,
   }
 }
 

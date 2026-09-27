@@ -4,12 +4,11 @@ import Dialog from "@components/ui/Dialog"
 import { RetirementPlan, WithdrawalOrder } from "types/independence"
 import { Portfolio } from "types/beancounter"
 import {
+  DEFAULT_WITHDRAWAL_ORDER,
   WITHDRAWAL_ORDER_HELPER_TEXT,
   WITHDRAWAL_ORDER_OPTIONS,
+  WRAPPER_POLICY_TYPES,
 } from "@lib/independence/withdrawalOrder"
-
-/** Wrapper-pool policy types that make the withdrawal-order choice meaningful. */
-const WRAPPER_POLICY_TYPES = ["US_401K", "US_IRA", "UK_ISA"]
 
 /**
  * Subset of the saved-plan fields the EditPlanDetailsModal emits via onApply.
@@ -64,7 +63,12 @@ interface EditFormData {
   targetBalance: number
   excludedPortfolioIds: string[]
   excludedRentalAssetIds: string[]
-  withdrawalOrder: WithdrawalOrder
+  /**
+   * Undefined until the user picks something (or the plan already had a
+   * stored value) — the selector is the only source of a value here, so
+   * this is never defaulted at init.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 interface EditPlanDetailsModalProps {
@@ -154,7 +158,7 @@ export default function EditPlanDetailsModal({
     excludedRentalAssetIds: parseExcludedRentalAssetIds(
       plan.excludedRentalAssetIds,
     ),
-    withdrawalOrder: plan.withdrawalOrder ?? "DEFERRED_FIRST",
+    withdrawalOrder: plan.withdrawalOrder,
   }))
 
   const [isSyncingAllocation, setIsSyncingAllocation] = useState(false)
@@ -235,7 +239,10 @@ export default function EditPlanDetailsModal({
       targetBalance: formData.targetBalance || undefined,
       excludedPortfolioIds: formData.excludedPortfolioIds,
       excludedRentalAssetIds: formData.excludedRentalAssetIds,
-      withdrawalOrder: formData.withdrawalOrder,
+      // Omit the key entirely when the selector was never shown — the
+      // selector is the only source of a value, so a plan with no wrapper
+      // pool must never have this materialize on an unrelated edit.
+      ...(hasWrapperPool ? { withdrawalOrder: formData.withdrawalOrder } : {}),
     })
     onClose()
   }
@@ -536,7 +543,7 @@ export default function EditPlanDetailsModal({
           </label>
           <select
             id="withdrawalOrder"
-            value={formData.withdrawalOrder}
+            value={formData.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER}
             onChange={(e) =>
               setFormData((prev) => ({
                 ...prev,
@@ -552,7 +559,11 @@ export default function EditPlanDetailsModal({
             ))}
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            {WITHDRAWAL_ORDER_HELPER_TEXT[formData.withdrawalOrder]}
+            {
+              WITHDRAWAL_ORDER_HELPER_TEXT[
+                formData.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER
+              ]
+            }
           </p>
         </div>
       )}
