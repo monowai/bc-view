@@ -16,6 +16,11 @@ import { journeyAssumptionsHref } from "@lib/independence/editPhase"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
 import { INPUT_CLS_BASE } from "@lib/ui/formClasses"
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { WITHDRAWAL_ORDER_OPTIONS } from "@lib/independence/withdrawalOrder"
+
+/** Wrapper-pool policy types that make the withdrawal-order choice meaningful. */
+const WRAPPER_POLICY_TYPES = ["US_401K", "US_IRA", "UK_ISA"]
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -88,6 +93,13 @@ export default function AssumptionsStep({
 }: AssumptionsStepProps): React.ReactElement {
   const hasAppliedAllocation = useRef(false)
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
+
+  // Withdrawal order only matters once there's a wrapper pool to order
+  // against liquid — same signal EditPlanDetailsModal uses.
+  const { configs: assetConfigs } = usePrivateAssetConfigs()
+  const hasWrapperPool = assetConfigs.some(
+    (c) => c.policyType && WRAPPER_POLICY_TYPES.includes(c.policyType),
+  )
 
   const selectedPortfolioIds = useMemo(() => portfolioIds ?? [], [portfolioIds])
 
@@ -759,6 +771,42 @@ export default function AssumptionsStep({
           </div>
         )}
       </div>
+
+      {/* Withdrawal Order — only meaningful once a US 401(k)/IRA or UK ISA
+          wrapper pool exists to order against the tax-free pool. */}
+      {hasWrapperPool && (
+        <div className="border border-gray-200 rounded-lg p-4">
+          <label
+            htmlFor="withdrawalOrder"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Withdrawal order
+          </label>
+          <Controller
+            name="withdrawalOrder"
+            control={control}
+            render={({ field }) => (
+              <select
+                id="withdrawalOrder"
+                value={field.value ?? "DEFERRED_FIRST"}
+                onChange={(e) => field.onChange(e.target.value)}
+                className={INPUT_CLS_BASE}
+              >
+                {WITHDRAWAL_ORDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Liquid savings are always spent first. This decides which of your
+            two wrapper pools — tax-deferred or tax-free — is spent next once
+            liquid runs short.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

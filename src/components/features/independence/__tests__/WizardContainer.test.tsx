@@ -390,6 +390,23 @@ describe("buildWizardPlanRequest", () => {
 
     expect(payload.excludedPortfolioIds).toEqual(["house"])
   })
+
+  it("sends withdrawalOrder when the wizard's selector set one", () => {
+    const payload = buildWizardPlanRequest(
+      { ...formData, withdrawalOrder: "TAX_FREE_FIRST" },
+      { isEditMode: true, plan, planningHorizonYears: 30 },
+    )
+    expect(payload.withdrawalOrder).toBe("TAX_FREE_FIRST")
+  })
+
+  it("omits withdrawalOrder (leaving the stored order alone) when the wizard never showed the selector", () => {
+    const payload = buildWizardPlanRequest(formData, {
+      isEditMode: true,
+      plan: { ...plan, withdrawalOrder: "PRO_RATA" } as RetirementPlan,
+      planningHorizonYears: 30,
+    })
+    expect(payload.withdrawalOrder).toBeUndefined()
+  })
 })
 
 describe("WizardContainer — a stage that cannot be phased", () => {

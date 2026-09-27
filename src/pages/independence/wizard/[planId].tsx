@@ -130,6 +130,7 @@ function EditPlanWizard(): React.ReactElement {
     narrative: plan.narrative ?? "",
     primaryStrategy: plan.primaryStrategy ?? "",
     headlineMetric: plan.headlineMetric ?? "",
+    withdrawalOrder: plan.withdrawalOrder ?? "DEFERRED_FIRST",
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
     benefitsStartAge: plan.benefitsStartAge,

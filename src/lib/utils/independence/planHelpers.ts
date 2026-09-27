@@ -58,6 +58,10 @@ export function toPlanRequestPayload(
     narrative: plan.narrative ?? null,
     primaryStrategy: plan.primaryStrategy ?? null,
     headlineMetric: plan.headlineMetric ?? null,
+    // Echo the stage's stored wrapper-pool drawdown order (svc-retire #153
+    // scope item 1) so a save that doesn't touch it doesn't silently reset
+    // it to the engine default.
+    withdrawalOrder: plan.withdrawalOrder ?? null,
   }
 }
 

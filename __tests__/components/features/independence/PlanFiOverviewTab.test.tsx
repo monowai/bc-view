@@ -130,6 +130,7 @@ const baseProjection: RetirementProjection = {
   runwayYears: 30,
   nonSpendableAtRetirement: 0,
   housingReturnRate: 0.03,
+  withdrawalOrder: "DEFERRED_FIRST",
   currency: "SGD",
   yearlyProjections: [makeDrawdownRow()],
   fiMetrics: {

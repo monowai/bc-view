@@ -1,4 +1,4 @@
-import type { RetirementPlan } from "types/independence"
+import type { RetirementPlan, WithdrawalOrder } from "types/independence"
 import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
@@ -170,14 +170,17 @@ export function applyRealReturn(
 }
 
 /**
- * Optional exclusion overrides pending in the Edit Plan Details modal — not
- * part of ScenarioState (they're plan-level filters, not what-if levers).
- * When a field is absent/undefined here, the plan's own stored value carries
- * forward; pass `null`/omit entirely when there are no pending edits.
+ * Optional plan-level edits pending in the Edit Plan Details modal — not
+ * part of ScenarioState (they're plan-level filters/settings, not what-if
+ * levers). When a field is absent/undefined here, the plan's own stored
+ * value carries forward; pass `null`/omit entirely when there are no
+ * pending edits.
  */
 export interface PendingPlanExclusions {
   excludedPortfolioIds?: string[]
   excludedRentalAssetIds?: string[]
+  /** Pending wrapper-pool drawdown order (svc-retire #153 scope item 1). */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 /**
@@ -217,6 +220,7 @@ export function scenarioToPlanUpdatePayload(
     excludedRentalAssetIds:
       pendingExclusions?.excludedRentalAssetIds ??
       parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
+    withdrawalOrder: pendingExclusions?.withdrawalOrder ?? plan.withdrawalOrder,
   }
 }
 
