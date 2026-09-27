@@ -283,6 +283,52 @@ describe("JourneyAssumptionsSection", () => {
     )
   })
 
+  describe("target ending balance currency symbol", () => {
+    // The target is denominated in the phase plans' currency, never a bare
+    // "$" (OCR #4113948848) — resolved via currencySymbolFor, never guessed.
+    it("uses the primary phase plan's currency when one is flagged", () => {
+      renderSection({
+        plans: [
+          makePlan({ id: "p1", expensesCurrency: "USD" }),
+          makePlan({ id: "p2", expensesCurrency: "SGD", isPrimary: true }),
+        ],
+      })
+
+      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
+        "S$",
+      )
+    })
+
+    it("falls back to the first loaded phase plan when none is flagged primary", () => {
+      renderSection({
+        plans: [
+          makePlan({ id: "p1", expensesCurrency: "NZD" }),
+          makePlan({ id: "p2", expensesCurrency: "SGD" }),
+        ],
+      })
+
+      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
+        "NZ$",
+      )
+    })
+
+    it("falls back to the journey's own displayCurrency when no phase plan is loaded", () => {
+      mockActivePlan = makeJourney({ displayCurrency: "NZD" })
+      renderSection({ plans: [] })
+
+      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
+        "NZ$",
+      )
+    })
+
+    it("shows no symbol when neither a phase plan nor a display currency is known", () => {
+      mockActivePlan = makeJourney({ displayCurrency: undefined })
+      renderSection({ plans: [] })
+
+      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent("")
+    })
+  })
+
   describe("target ending balance", () => {
     it("saves the amount as a single-field PATCH after the debounce", async () => {
       renderSection()

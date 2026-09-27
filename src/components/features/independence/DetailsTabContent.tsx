@@ -12,6 +12,7 @@ import {
   PlanFindingsCard,
 } from "@components/features/independence"
 import VerdictBanner from "./VerdictBanner"
+import JourneyTargetHint from "./JourneyTargetHint"
 import LifestyleSummary from "./LifestyleSummary"
 import { usePlanExpenses } from "./usePlanExpenses"
 import { useExpenseCategories } from "./useExpenseCategories"
@@ -378,13 +379,15 @@ export default function DetailsTabContent({
               </div>
             )}
             {journeyTarget != null && (
-              <p className="text-xs italic text-gray-400">
-                Overridden by the journey target (
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(journeyTarget).toLocaleString()}`}
-                )
-              </p>
+              // journeyTarget is in the PLAN currency (svc-retire#282), not
+              // detailsCurrency (the FX-converted display currency) —
+              // labelling it with plan.expensesCurrency, not detailsCurrency,
+              // is what keeps this honest (OCR #4113948860).
+              <JourneyTargetHint
+                amount={journeyTarget}
+                currency={plan.expensesCurrency}
+                hideValues={hideValues}
+              />
             )}
           </div>
         </div>

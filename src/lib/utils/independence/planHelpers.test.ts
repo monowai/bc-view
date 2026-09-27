@@ -232,4 +232,15 @@ describe("journeyTargetBalance", () => {
     const stage = { ...plan, independencePlanId: "missing" }
     expect(journeyTargetBalance(stage, [journey])).toBeUndefined()
   })
+
+  it("treats a journey target of exactly 0 as 'no target stated', not an override", () => {
+    // 0 is a legitimate PATCH value ("leave 0 for none" on the journey's own
+    // box), but showing "Overridden by the journey target (0)" beside a
+    // stage misreads a default as an active override (OCR #4113948855 /
+    // #4113948864).
+    const stage = { ...plan, independencePlanId: "j1" }
+    expect(
+      journeyTargetBalance(stage, [{ ...journey, targetBalance: 0 }]),
+    ).toBeUndefined()
+  })
 })

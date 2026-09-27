@@ -71,8 +71,17 @@ export function toPlanRequestPayload(
  * caller's job (an "overridden by" hint beside the stage's own field), not
  * this helper's.
  *
+ * A stored `0` reads as "no target stated" here, not as an override. `0` is
+ * a legitimate PATCH value — the journey's own box explicitly says "Leave 0
+ * for none" — but the backend's `??` resolution would still let it win over
+ * a stage's own target, and "Overridden by the journey target (0)" reads as
+ * an active override rather than the default it actually is. This helper
+ * exists to drive that display-only hint, so it treats `0` the same as
+ * absent for that purpose; it does not change what the backend resolves.
+ *
  * Returns undefined when the stage isn't grouped into a journey, that
- * journey hasn't loaded yet, or the journey has never stated a target.
+ * journey hasn't loaded yet, or the journey has never stated a target (or
+ * has stated exactly `0`).
  */
 export function journeyTargetBalance(
   plan: RetirementPlan,
@@ -80,7 +89,7 @@ export function journeyTargetBalance(
 ): number | undefined {
   if (!plan.independencePlanId) return undefined
   const journey = journeys.find((j) => j.id === plan.independencePlanId)
-  return journey?.targetBalance
+  return journey?.targetBalance || undefined
 }
 
 /**

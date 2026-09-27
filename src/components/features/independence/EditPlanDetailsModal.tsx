@@ -39,6 +39,7 @@ import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import JourneyTargetHint from "./JourneyTargetHint"
 
 const HIDDEN_VALUE = "****"
 
@@ -509,13 +510,16 @@ export default function EditPlanDetailsModal({
           Minimum balance to maintain at end of life
         </p>
         {journeyTarget != null && (
-          <p className="text-xs text-gray-400 italic mt-1">
-            Overridden by the journey target (
-            {hideValues
-              ? HIDDEN_VALUE
-              : `$${Math.round(journeyTarget).toLocaleString()}`}
-            )
-          </p>
+          // journeyTarget is in the PLAN currency (svc-retire#282); the
+          // hardcoded "$" this replaced didn't match plans held in another
+          // currency (OCR #4113948864).
+          <div className="mt-1">
+            <JourneyTargetHint
+              amount={journeyTarget}
+              currency={plan.expensesCurrency}
+              hideValues={hideValues}
+            />
+          </div>
         )}
       </div>
 

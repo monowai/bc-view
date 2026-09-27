@@ -255,9 +255,47 @@ describe("EditPlanDetailsModal", () => {
       />,
     )
 
+    // Rendered with the plan's own currency (mockPlan.expensesCurrency =
+    // "NZD"), not a hardcoded "$" — the number is unconverted.
     expect(
-      screen.getByText("Overridden by the journey target ($800,000)"),
+      screen.getByText("Overridden by the journey target (800,000 NZD)"),
     ).toBeInTheDocument()
+  })
+
+  it("shows no hint when the journey's target is exactly 0", () => {
+    mockedUseSWR.mockImplementation((key) =>
+      key === independencePlansKey
+        ? ({
+            data: {
+              data: [
+                {
+                  id: "j1",
+                  ownerId: "test-owner",
+                  name: "Main journey",
+                  isPrimary: true,
+                  targetBalance: 0,
+                  createdDate: "2026-01-01",
+                  updatedDate: "2026-01-01",
+                },
+              ],
+            },
+            error: undefined,
+            isLoading: false,
+            mutate: jest.fn(),
+          } as any)
+        : emptySwrReturn,
+    )
+
+    render(
+      <EditPlanDetailsModal
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
   })
 
   it("shows no hint when the plan is not grouped into a journey", () => {

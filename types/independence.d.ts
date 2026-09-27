@@ -326,6 +326,12 @@ export interface IndependencePlan {
  * On PATCH, an **omitted** field is left alone and a blank string clears it.
  * Omit is the only way to say "leave this alone" — these fields do not admit
  * `null`, so don't send one expecting it to be ignored.
+ *
+ * `targetBalance` is the one exception to that last rule: it is typed
+ * `number | null` because `null` on the wire explicitly clears the
+ * journey-level target, distinct from omitting the field (which leaves the
+ * stored target alone, same as every other field here). See its own
+ * doc-comment below.
  */
 export interface IndependencePlanRequest {
   name?: string
@@ -349,9 +355,13 @@ export interface IndependencePlanRequest {
   feeRate?: number
   investmentTaxRate?: number
   /**
-   * Journey-level target ending balance (svc-retire#282). PATCH is partial:
-   * omit to leave alone. `0` is a legitimate target (none); a negative
-   * value is rejected with a 400.
+   * Journey-level target ending balance (svc-retire#282). Three states, not
+   * two: **omit** to leave the stored target alone (the rule every other
+   * field on this interface follows); send an explicit **`null`** to clear
+   * it back to unset; send a **number** to set it, where `0` is itself a
+   * legitimate target (the journey's own box reads it as "none" — see
+   * `journeyTargetBalance()` in planHelpers.ts for how the rest of the UI
+   * treats a stored `0`). A negative number is rejected with a 400.
    */
   targetBalance?: number | null
 }

@@ -172,9 +172,38 @@ describe("DetailsTabContent", () => {
       />,
     )
 
+    // Rendered with the plan's own currency (mockPlan.expensesCurrency =
+    // "SGD"), not a display currency — the number is unconverted.
     expect(
-      screen.getByText("Overridden by the journey target (SGD800,000)"),
+      screen.getByText("Overridden by the journey target (800,000 SGD)"),
     ).toBeInTheDocument()
+  })
+
+  it("shows no hint when the journey's target is exactly 0", () => {
+    // 0 is "no target stated" for this hint's purposes (OCR #4113948855) —
+    // covered thoroughly by journeyTargetBalance's own tests; this just
+    // confirms the wiring doesn't re-introduce it.
+    mockJourneys = [
+      {
+        id: "j1",
+        ownerId: "owner-1",
+        name: "Main journey",
+        isPrimary: true,
+        targetBalance: 0,
+        createdDate: "2026-01-01",
+        updatedDate: "2026-01-01",
+      },
+    ]
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
   })
 
   it("shows no hint when the plan's journey has never stated a target", () => {
