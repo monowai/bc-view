@@ -23,6 +23,10 @@ import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
+import {
+  DEFAULT_WITHDRAWAL_ORDER,
+  withdrawalOrderLabel,
+} from "@lib/independence/withdrawalOrder"
 
 interface DetailsTabContentProps {
   plan: RetirementPlan
@@ -173,6 +177,14 @@ export default function DetailsTabContent({
     )
   }
   const spendSub = spendSubParts.length ? spendSubParts.join(" · ") : undefined
+
+  // Only worth showing once the projection actually carries a wrapper-pool
+  // balance somewhere in the run — otherwise the order is a no-op setting
+  // with nothing to explain (svc-retire #153 scope item 1).
+  const hasWrapperPoolValues =
+    projection?.yearlyProjections?.some(
+      (y) => y.taxDeferredValue != null || y.taxFreeValue != null,
+    ) ?? false
 
   return (
     <div className="space-y-6">
@@ -388,6 +400,22 @@ export default function DetailsTabContent({
                 currency={plan.expensesCurrency}
                 hideValues={hideValues}
               />
+            )}
+            {hasWrapperPoolValues && projection && (
+              <div className="flex justify-between">
+                <InfoTooltip
+                  text={
+                    "Liquid savings are always spent first. This is the order your tax-deferred (401(k)/IRA) and tax-free (Roth/ISA) pools are drawn down once liquid runs short."
+                  }
+                >
+                  <span className="text-gray-500">{"Withdrawal order"}</span>
+                </InfoTooltip>
+                <span className="font-medium">
+                  {withdrawalOrderLabel(
+                    projection.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER,
+                  )}
+                </span>
+              </div>
             )}
           </div>
         </div>

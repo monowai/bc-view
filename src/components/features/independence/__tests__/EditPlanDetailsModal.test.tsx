@@ -23,12 +23,19 @@ const emptySwrReturn = {
 } as any
 
 jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
-  usePrivateAssetConfigs: () => ({
-    configs: [],
-    assetNames: {},
-    isLoading: false,
-  }),
+  usePrivateAssetConfigs: jest.fn(),
 }))
+
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+
+const mockedUsePrivateAssetConfigs =
+  usePrivateAssetConfigs as jest.MockedFunction<typeof usePrivateAssetConfigs>
+
+const emptyAssetConfigsReturn = {
+  configs: [],
+  assetNames: {},
+  isLoading: false,
+} as any
 
 const mockPlan: RetirementPlan = {
   id: "test-plan-1",
@@ -70,6 +77,7 @@ describe("EditPlanDetailsModal", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockedUseSWR.mockReturnValue(emptySwrReturn)
+    mockedUsePrivateAssetConfigs.mockReturnValue(emptyAssetConfigsReturn)
   })
 
   it("renders dialog title when open", () => {
@@ -179,6 +187,9 @@ describe("EditPlanDetailsModal", () => {
       targetBalance: 100000,
       excludedPortfolioIds: [],
       excludedRentalAssetIds: [],
+      // No withdrawalOrder key: this plan (default mock configs) has no
+      // wrapper pool, so the selector never shows and the key is omitted
+      // rather than materializing the engine default.
     })
   })
 
@@ -383,6 +394,135 @@ describe("EditPlanDetailsModal", () => {
       expect(parseFloat(textboxes[4].value)).toBe(60) // equityAllocation
       expect(parseFloat(textboxes[5].value)).toBe(26) // cashAllocation
       expect(parseFloat(textboxes[6].value)).toBe(14) // housingAllocation
+    })
+  })
+
+  describe("withdrawal order selector", () => {
+    it("hides the selector when no wrapper-pool asset is configured", () => {
+      render(<EditPlanDetailsModal {...defaultProps} />)
+
+      expect(
+        screen.queryByLabelText("Withdrawal order"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("shows the selector when a US 401(k) wrapper asset is configured", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_401K" }],
+        assetNames: { a1: "My 401k" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} />)
+
+      expect(screen.getByLabelText("Withdrawal order")).toBeInTheDocument()
+    })
+
+    it("shows the selector when a UK ISA wrapper asset is configured", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "UK_ISA" }],
+        assetNames: { a1: "My ISA" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} />)
+
+      expect(screen.getByLabelText("Withdrawal order")).toBeInTheDocument()
+    })
+
+    it("defaults the selector to the plan's stored order", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_IRA" }],
+        assetNames: { a1: "My IRA" },
+        isLoading: false,
+      } as any)
+
+      render(
+        <EditPlanDetailsModal
+          {...defaultProps}
+          plan={{ ...mockPlan, withdrawalOrder: "PRO_RATA" }}
+        />,
+      )
+
+      expect(screen.getByLabelText("Withdrawal order")).toHaveValue("PRO_RATA")
+    })
+
+    it("shows helper text describing the selected order", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_IRA" }],
+        assetNames: { a1: "My IRA" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} />)
+
+      fireEvent.change(screen.getByLabelText("Withdrawal order"), {
+        target: { value: "TAX_FREE_FIRST" },
+      })
+
+      expect(
+        screen.getByText(/tax-free .* money is spent before tax-deferred/i),
+      ).toBeInTheDocument()
+    })
+
+    it("sends withdrawalOrder: TAX_FREE_FIRST when that option is selected and applied", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_401K" }],
+        assetNames: { a1: "My 401k" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} />)
+
+      fireEvent.change(screen.getByLabelText("Withdrawal order"), {
+        target: { value: "TAX_FREE_FIRST" },
+      })
+      fireEvent.click(screen.getByText("Apply"))
+
+      expect(defaultProps.onApply).toHaveBeenCalledWith(
+        expect.objectContaining({ withdrawalOrder: "TAX_FREE_FIRST" }),
+      )
+    })
+
+    it("sends the plan's existing order when the selector is left untouched", () => {
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_401K" }],
+        assetNames: { a1: "My 401k" },
+        isLoading: false,
+      } as any)
+
+      render(
+        <EditPlanDetailsModal
+          {...defaultProps}
+          plan={{ ...mockPlan, withdrawalOrder: "TAX_FREE_FIRST" }}
+        />,
+      )
+
+      fireEvent.click(screen.getByText("Apply"))
+
+      expect(defaultProps.onApply).toHaveBeenCalledWith(
+        expect.objectContaining({ withdrawalOrder: "TAX_FREE_FIRST" }),
+      )
+    })
+
+    it("does not materialize the engine default when a wrapper-pool plan never stored an order", () => {
+      // Selector IS shown (wrapper pool present) but the plan predates the
+      // field, so formData.withdrawalOrder stays undefined until the user
+      // actually picks something — the selector is the only source of a
+      // value. Once JSON.stringify runs over the real onApply payload this
+      // key drops out entirely, same as if it had been omitted outright.
+      mockedUsePrivateAssetConfigs.mockReturnValue({
+        configs: [{ assetId: "a1", policyType: "US_401K" }],
+        assetNames: { a1: "My 401k" },
+        isLoading: false,
+      } as any)
+
+      render(<EditPlanDetailsModal {...defaultProps} plan={mockPlan} />)
+
+      fireEvent.click(screen.getByText("Apply"))
+
+      const applied = defaultProps.onApply.mock.calls[0][0]
+      expect(applied.withdrawalOrder).toBeUndefined()
     })
   })
 })

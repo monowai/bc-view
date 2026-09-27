@@ -336,4 +336,65 @@ describe("DetailsTabContent", () => {
       screen.queryByText("Off track — funds run out early"),
     ).not.toBeInTheDocument()
   })
+
+  describe("Withdrawal order row", () => {
+    it("shows the human label when the projection has wrapper-pool values", () => {
+      const projectionWithPools = {
+        ...mockProjection,
+        withdrawalOrder: "PRO_RATA",
+        yearlyProjections: [
+          {
+            year: 2026,
+            startingBalance: 0,
+            investment: 0,
+            withdrawals: 0,
+            endingBalance: 0,
+            inflationAdjustedExpenses: 0,
+            currency: "SGD",
+            nonSpendableValue: 0,
+            totalWealth: 0,
+            taxDeferredValue: 100000,
+            taxFreeValue: 50000,
+          },
+        ],
+      } as unknown as RetirementProjection
+      render(
+        <DetailsTabContent
+          {...defaultProps}
+          projection={projectionWithPools}
+        />,
+      )
+      expect(screen.getByText("Withdrawal order")).toBeInTheDocument()
+      expect(screen.getByText("Pro rata")).toBeInTheDocument()
+    })
+
+    it("hides the row when the projection has no wrapper-pool values", () => {
+      const projectionNoPools = {
+        ...mockProjection,
+        withdrawalOrder: "DEFERRED_FIRST",
+        yearlyProjections: [
+          {
+            year: 2026,
+            startingBalance: 0,
+            investment: 0,
+            withdrawals: 0,
+            endingBalance: 0,
+            inflationAdjustedExpenses: 0,
+            currency: "SGD",
+            nonSpendableValue: 0,
+            totalWealth: 0,
+          },
+        ],
+      } as unknown as RetirementProjection
+      render(
+        <DetailsTabContent {...defaultProps} projection={projectionNoPools} />,
+      )
+      expect(screen.queryByText("Withdrawal order")).not.toBeInTheDocument()
+    })
+
+    it("hides the row when there is no projection yet", () => {
+      render(<DetailsTabContent {...defaultProps} projection={null} />)
+      expect(screen.queryByText("Withdrawal order")).not.toBeInTheDocument()
+    })
+  })
 })

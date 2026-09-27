@@ -136,6 +136,10 @@ export function buildWizardPlanRequest(
     narrative: formData.narrative?.trim() || undefined,
     primaryStrategy: formData.primaryStrategy || undefined,
     headlineMetric: formData.headlineMetric || undefined,
+    // Undefined when the wizard never showed the selector (no wrapper pool
+    // detected) — omitted from the JSON body, so PATCH leaves the stage's
+    // stored order alone rather than resetting it to the engine default.
+    withdrawalOrder: formData.withdrawalOrder || undefined,
     ...(!ctx.isEditMode && { clientId: ctx.clientId?.trim() || undefined }),
     ...(!ctx.isEditMode && {
       independencePlanId: ctx.independencePlanId?.trim() || undefined,

@@ -33,6 +33,7 @@ import { useScenario } from "@components/features/independence/scenario/useScena
 import {
   applyRealReturn,
   scenarioToPlanUpdatePayload,
+  type PendingPlanExclusions,
 } from "@components/features/independence/scenario/scenarioToPayload"
 import {
   defaultStrategyView,
@@ -146,13 +147,11 @@ function PlanView(): React.ReactElement {
   // FiMetrics section visibility on the Metrics tab.
   const [strategyView, setStrategyView] = useState<StrategyView | null>(null)
 
-  // Pending exclusion edits from EditPlanDetailsModal. Exclusions aren't
-  // part of ScenarioState (they're plan-level filters, not what-if levers),
-  // so we hold them here between modal-apply and save.
-  const [pendingExclusions, setPendingExclusions] = useState<{
-    excludedPortfolioIds?: string[]
-    excludedRentalAssetIds?: string[]
-  } | null>(null)
+  // Pending exclusion + withdrawal-order edits from EditPlanDetailsModal.
+  // Neither is part of ScenarioState (they're plan-level filters/settings,
+  // not what-if levers), so we hold them here between modal-apply and save.
+  const [pendingExclusions, setPendingExclusions] =
+    useState<PendingPlanExclusions | null>(null)
 
   const [isTransferring, setIsTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
@@ -724,6 +723,7 @@ function PlanView(): React.ReactElement {
     inflationRate?: number
     excludedPortfolioIds?: string[]
     excludedRentalAssetIds?: string[]
+    withdrawalOrder?: PendingPlanExclusions["withdrawalOrder"]
   }): void => {
     setScenario({
       ...(overrides.monthlyExpenses != null && {
@@ -742,17 +742,20 @@ function PlanView(): React.ReactElement {
         inflation: overrides.inflationRate,
       }),
     })
-    // Exclusion edits land in page state and get written on save — they
-    // aren't part of the projection scenario, just plan-level filters.
+    // Exclusion + withdrawal-order edits land in page state and get written
+    // on save — none of them are part of the projection scenario, just
+    // plan-level filters/settings.
     if (
       overrides.excludedPortfolioIds != null ||
-      overrides.excludedRentalAssetIds != null
+      overrides.excludedRentalAssetIds != null ||
+      overrides.withdrawalOrder != null
     ) {
       setPendingExclusions((prev) => ({
         excludedPortfolioIds:
           overrides.excludedPortfolioIds ?? prev?.excludedPortfolioIds,
         excludedRentalAssetIds:
           overrides.excludedRentalAssetIds ?? prev?.excludedRentalAssetIds,
+        withdrawalOrder: overrides.withdrawalOrder ?? prev?.withdrawalOrder,
       }))
     }
     setShowEditDetailsModal(false)
@@ -773,9 +776,9 @@ function PlanView(): React.ReactElement {
       // and defaults the ones it doesn't, so a partial body silently resets
       // settings like planningHorizonYears/expensesCurrency/feeRate. Only
       // name, the income/expense sliders, inflation, applyRealReturn's
-      // derived rates and pending exclusions are overridden here — every
-      // other field (including allocations, which aren't slider-controlled)
-      // is echoed straight back from `plan`.
+      // derived rates and pending exclusions/withdrawal order are overridden
+      // here — every other field (including allocations, which aren't
+      // slider-controlled) is echoed straight back from `plan`.
       const updates = scenarioToPlanUpdatePayload(
         scenario,
         plan,

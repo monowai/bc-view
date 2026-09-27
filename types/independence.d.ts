@@ -73,6 +73,18 @@ export type HeadlineMetric =
   | "INCOME_COVERAGE"
   | "BRIDGE_PROGRESS"
 
+/**
+ * Order the tax-deferred (401(k)/IRA) and tax-free (Roth / UK ISA) drawdown
+ * pools are liquidated in once the liquid pool runs short (svc-retire #153
+ * scope item 1). Liquid is always spent first regardless of this setting;
+ * it only decides between the two wrapper pools. Required minimum
+ * distributions are still forced out in every order. `DEFERRED_FIRST` =
+ * spend deferred before tax-free. `TAX_FREE_FIRST` = spend tax-free before
+ * deferred. `PRO_RATA` = split each year's shortfall in proportion to the
+ * two pools' balances.
+ */
+export type WithdrawalOrder = "DEFERRED_FIRST" | "TAX_FREE_FIRST" | "PRO_RATA"
+
 // ============ Plan Types ============
 export interface RetirementPlan {
   id: string
@@ -149,6 +161,12 @@ export interface RetirementPlan {
    * owner-scoped portfolio filtering for shared plans.
    */
   systemUserId?: string
+  /**
+   * Wrapper-pool drawdown order for this stage (svc-retire #153 scope item
+   * 1). Absent means the engine default (DEFERRED_FIRST). On PATCH, absent
+   * or null leaves the stored choice alone.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 export interface PlanCopyRequest {
@@ -240,6 +258,11 @@ export interface PlanRequest {
    * appears in every journey's stage list.
    */
   independencePlanId?: string
+  /**
+   * Wrapper-pool drawdown order override (svc-retire #153 scope item 1).
+   * PATCH semantics: null/absent on update leaves the stored choice alone.
+   */
+  withdrawalOrder?: WithdrawalOrder | null
 }
 
 export interface PlanResponse {
@@ -565,6 +588,13 @@ export interface ProjectionRequest {
    * shared-plan projections actually used the plan owner's data.
    */
   includeDebug?: boolean
+  /**
+   * Override the wrapper-pool drawdown order for this run only, without
+   * saving it (svc-retire #153 scope item 1). Null keeps the stored plan's
+   * order. Same shape used for the Monte Carlo request body — svc-retire
+   * accepts this field on both endpoints.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 /**
@@ -694,6 +724,15 @@ export interface YearlyProjection {
   unfundedExpense?: number
   /** Breakdown of income sources for this year */
   incomeBreakdown?: IncomeBreakdown
+  /**
+   * Traditional 401(k)/IRA balance at year end. Undefined/null when the
+   * plan has no such wrapper pool (svc-retire #153 slice 3b — not itself
+   * part of the withdrawal-order scope item, but the only signal bc-view
+   * has for "this plan has a US/UK wrapper pool," so mirrored here too).
+   */
+  taxDeferredValue?: number
+  /** Roth 401(k)/IRA + UK ISA balance at year end. See taxDeferredValue. */
+  taxFreeValue?: number
 }
 
 /**
@@ -1043,6 +1082,17 @@ export interface RetirementProjection {
    * extra contribution OR return rate would carry the plan to `targetAge`.
    */
   pathToHorizon?: PathToHorizon | null
+  /**
+   * The wrapper-pool drawdown order this projection actually ran with — the
+   * stage's stored order, the request's what-if override, or the engine
+   * default when neither states one (svc-retire #153 scope item 1). Read
+   * this to show which option is selected rather than re-deriving it from
+   * the request that was sent. Optional for backward compatibility, like
+   * `valueBasis` above — a response for an already-serialized/cached
+   * projection during a rolling svc-retire deploy may omit it. Consumers
+   * should fall back to `DEFAULT_WITHDRAWAL_ORDER` when absent.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 export interface ProjectionResponse {
@@ -1163,6 +1213,12 @@ export interface WizardFormData {
   cashAllocation: number
   equityAllocation: number
   housingAllocation: number
+  /**
+   * Wrapper-pool drawdown order (svc-retire #153 scope item 1). Only shown
+   * when the wizard detects a US 401(k)/IRA or UK ISA wrapper asset;
+   * otherwise left at the default and never surfaced to the user.
+   */
+  withdrawalOrder?: WithdrawalOrder
 
   // Portfolio Integration
   selectedPortfolioIds: string[]
@@ -1226,6 +1282,12 @@ export interface PlanExport {
   country?: string
   /** Optional user-authored narrative describing the plan. */
   narrative?: string
+  /**
+   * Optional wrapper-pool drawdown order (svc-retire #153 scope item 1).
+   * Null imports as the engine default (DEFERRED_FIRST), so exports taken
+   * before this field existed still import cleanly.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 export interface PlanExportResponse {
