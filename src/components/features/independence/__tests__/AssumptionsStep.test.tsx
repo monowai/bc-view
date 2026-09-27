@@ -10,6 +10,15 @@ import { journeyAssumptionsHref } from "@lib/independence/editPhase"
 import { IndependencePlan, WizardFormData } from "types/independence"
 import { SWRConfig } from "swr"
 
+jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
+  usePrivateAssetConfigs: jest.fn(),
+}))
+
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+
+const mockedUsePrivateAssetConfigs =
+  usePrivateAssetConfigs as jest.MockedFunction<typeof usePrivateAssetConfigs>
+
 // Mock portfolios data
 const mockPortfolios = {
   data: [
@@ -90,6 +99,14 @@ async function openReturns(): Promise<void> {
 }
 
 describe("AssumptionsStep", () => {
+  beforeEach(() => {
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [],
+      assetNames: {},
+      isLoading: false,
+    } as any)
+  })
+
   it("renders the assumptions step header", () => {
     render(
       <TestWrapper>
@@ -331,5 +348,73 @@ describe("AssumptionsStep — inheriting a journey's assumptions", () => {
     expect(
       screen.getByRole("textbox", { name: /target amount/i }),
     ).toBeInTheDocument()
+  })
+})
+
+describe("AssumptionsStep — withdrawal order", () => {
+  it("hides the withdrawal order selector when no wrapper-pool asset is configured", () => {
+    render(<TestWrapper />)
+
+    expect(screen.queryByLabelText(/withdrawal order/i)).not.toBeInTheDocument()
+  })
+
+  it("shows the withdrawal order selector when a wrapper-pool asset is configured", () => {
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [{ assetId: "a1", policyType: "US_401K" }],
+      assetNames: { a1: "My 401k" },
+      isLoading: false,
+    } as any)
+
+    render(<TestWrapper />)
+
+    expect(screen.getByLabelText(/withdrawal order/i)).toBeInTheDocument()
+  })
+
+  it("displays the engine default when the stage never stored an order", () => {
+    // No `withdrawalOrder` in defaultWizardValues — the selector is the
+    // only source of a value, so an untouched field stays undefined and the
+    // select falls back to DEFAULT_WITHDRAWAL_ORDER for display only.
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [{ assetId: "a1", policyType: "US_401K" }],
+      assetNames: { a1: "My 401k" },
+      isLoading: false,
+    } as any)
+
+    render(<TestWrapper />)
+
+    expect(screen.getByLabelText(/withdrawal order/i)).toHaveValue(
+      "DEFERRED_FIRST",
+    )
+  })
+
+  it("defaults the selector to the stage's stored order", () => {
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [{ assetId: "a1", policyType: "UK_ISA" }],
+      assetNames: { a1: "My ISA" },
+      isLoading: false,
+    } as any)
+
+    render(<TestWrapper defaults={{ withdrawalOrder: "PRO_RATA" }} />)
+
+    expect(screen.getByLabelText(/withdrawal order/i)).toHaveValue("PRO_RATA")
+  })
+
+  it("updates the form value when a different order is selected", async () => {
+    mockedUsePrivateAssetConfigs.mockReturnValue({
+      configs: [{ assetId: "a1", policyType: "US_IRA" }],
+      assetNames: { a1: "My IRA" },
+      isLoading: false,
+    } as any)
+
+    render(<TestWrapper />)
+
+    await userEvent.selectOptions(
+      screen.getByLabelText(/withdrawal order/i),
+      "TAX_FREE_FIRST",
+    )
+
+    expect(screen.getByLabelText(/withdrawal order/i)).toHaveValue(
+      "TAX_FREE_FIRST",
+    )
   })
 })

@@ -39,6 +39,7 @@ const plan: RetirementPlan = {
   narrative: "Retire early",
   primaryStrategy: "FIRE",
   headlineMetric: "INCOME_COVERAGE",
+  withdrawalOrder: "PRO_RATA",
   isPrimary: true,
   createdDate: "2026-01-01",
   updatedDate: "2026-01-01",
@@ -77,6 +78,7 @@ describe("toPlanRequestPayload", () => {
       narrative: "Retire early",
       primaryStrategy: "FIRE",
       headlineMetric: "INCOME_COVERAGE",
+      withdrawalOrder: "PRO_RATA",
     })
   })
 
@@ -90,6 +92,7 @@ describe("toPlanRequestPayload", () => {
       narrative: undefined,
       primaryStrategy: undefined,
       headlineMetric: undefined,
+      withdrawalOrder: undefined,
       excludedPortfolioIds: undefined,
       excludedRentalAssetIds: undefined,
     })
@@ -100,6 +103,7 @@ describe("toPlanRequestPayload", () => {
     expect(payload.narrative).toBeNull()
     expect(payload.primaryStrategy).toBeNull()
     expect(payload.headlineMetric).toBeNull()
+    expect(payload.withdrawalOrder).toBeNull()
     // Exclusions null-coalesce to an empty array, not null — see
     // parseExcludedPortfolioIds/parseExcludedRentalAssetIds.
     expect(payload.excludedPortfolioIds).toEqual([])

@@ -329,4 +329,21 @@ describe("scenarioToPlanUpdatePayload", () => {
     expect(payload.excludedPortfolioIds).toEqual(["pf-2"])
     expect(payload.excludedRentalAssetIds).toEqual(["ra-1"])
   })
+
+  it("falls back to the plan's own withdrawalOrder when nothing is pending", () => {
+    const payload = scenarioToPlanUpdatePayload(scenario, {
+      ...plan,
+      withdrawalOrder: "PRO_RATA",
+    })
+    expect(payload.withdrawalOrder).toBe("PRO_RATA")
+  })
+
+  it("prefers a pending withdrawalOrder over the plan's stored one", () => {
+    const payload = scenarioToPlanUpdatePayload(
+      scenario,
+      { ...plan, withdrawalOrder: "PRO_RATA" },
+      { withdrawalOrder: "TAX_FREE_FIRST" },
+    )
+    expect(payload.withdrawalOrder).toBe("TAX_FREE_FIRST")
+  })
 })

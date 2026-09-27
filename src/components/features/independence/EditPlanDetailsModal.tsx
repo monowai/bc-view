@@ -1,8 +1,14 @@
 import React, { useState, useMemo } from "react"
 import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
-import { RetirementPlan } from "types/independence"
+import { RetirementPlan, WithdrawalOrder } from "types/independence"
 import { Portfolio } from "types/beancounter"
+import {
+  DEFAULT_WITHDRAWAL_ORDER,
+  WITHDRAWAL_ORDER_HELPER_TEXT,
+  WITHDRAWAL_ORDER_OPTIONS,
+  WRAPPER_POLICY_TYPES,
+} from "@lib/independence/withdrawalOrder"
 
 /**
  * Subset of the saved-plan fields the EditPlanDetailsModal emits via onApply.
@@ -26,6 +32,7 @@ interface EditedOverrides {
   targetBalance?: number
   excludedPortfolioIds?: string[]
   excludedRentalAssetIds?: string[]
+  withdrawalOrder?: WithdrawalOrder
 }
 import {
   parseExcludedPortfolioIds,
@@ -56,6 +63,12 @@ interface EditFormData {
   targetBalance: number
   excludedPortfolioIds: string[]
   excludedRentalAssetIds: string[]
+  /**
+   * Undefined until the user picks something (or the plan already had a
+   * stored value) — the selector is the only source of a value here, so
+   * this is never defaulted at init.
+   */
+  withdrawalOrder?: WithdrawalOrder
 }
 
 interface EditPlanDetailsModalProps {
@@ -145,6 +158,7 @@ export default function EditPlanDetailsModal({
     excludedRentalAssetIds: parseExcludedRentalAssetIds(
       plan.excludedRentalAssetIds,
     ),
+    withdrawalOrder: plan.withdrawalOrder,
   }))
 
   const [isSyncingAllocation, setIsSyncingAllocation] = useState(false)
@@ -191,6 +205,13 @@ export default function EditPlanDetailsModal({
     portfolios,
   )
 
+  // Withdrawal order only matters once there's a wrapper pool to order
+  // against liquid — same assetConfigs fetch the rental section already
+  // uses, so this costs no extra request.
+  const hasWrapperPool = assetConfigs.some(
+    (c) => c.policyType && WRAPPER_POLICY_TYPES.includes(c.policyType),
+  )
+
   const rentalProperties = useMemo(() => {
     if (!assetConfigs || assetConfigs.length === 0) return []
     return assetConfigs.filter(
@@ -218,6 +239,10 @@ export default function EditPlanDetailsModal({
       targetBalance: formData.targetBalance || undefined,
       excludedPortfolioIds: formData.excludedPortfolioIds,
       excludedRentalAssetIds: formData.excludedRentalAssetIds,
+      // Omit the key entirely when the selector was never shown — the
+      // selector is the only source of a value, so a plan with no wrapper
+      // pool must never have this materialize on an unrelated edit.
+      ...(hasWrapperPool ? { withdrawalOrder: formData.withdrawalOrder } : {}),
     })
     onClose()
   }
@@ -505,6 +530,43 @@ export default function EditPlanDetailsModal({
           Minimum balance to maintain at end of life
         </p>
       </div>
+
+      {/* Withdrawal Order — only meaningful once a US 401(k)/IRA or UK ISA
+          wrapper pool exists to order against the tax-free pool. */}
+      {hasWrapperPool && (
+        <div>
+          <label
+            htmlFor="withdrawalOrder"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Withdrawal order
+          </label>
+          <select
+            id="withdrawalOrder"
+            value={formData.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                withdrawalOrder: e.target.value as WithdrawalOrder,
+              }))
+            }
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+          >
+            {WITHDRAWAL_ORDER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {
+              WITHDRAWAL_ORDER_HELPER_TEXT[
+                formData.withdrawalOrder ?? DEFAULT_WITHDRAWAL_ORDER
+              ]
+            }
+          </p>
+        </div>
+      )}
 
       {/* Portfolios — selection is account-wide; editing moved to Net Worth tab */}
       <div className="border-t pt-4 mt-4">
