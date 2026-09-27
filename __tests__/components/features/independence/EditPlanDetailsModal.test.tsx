@@ -28,6 +28,7 @@ jest.mock("@lib/independence/planHelpers", () => ({
     cash: c,
     housing: h,
   }),
+  journeyTargetBalance: () => undefined,
 }))
 jest.mock("@components/ui/MathInput", () => ({
   __esModule: true,

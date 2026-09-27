@@ -283,6 +283,155 @@ describe("JourneyAssumptionsSection", () => {
     )
   })
 
+  describe("target ending balance currency code", () => {
+    // The target is denominated in the phase plans' currency, shown as the
+    // ISO code in the label — never a symbol. currencySymbolFor falls back
+    // to a literal "$" for any code outside its local map (MYR, THB, IDR,
+    // …), which would silently mislabel an unmapped currency as USD
+    // (OCR #4114035790).
+    it("uses the primary phase plan's currency when one is flagged", () => {
+      renderSection({
+        plans: [
+          makePlan({ id: "p1", expensesCurrency: "USD" }),
+          makePlan({ id: "p2", expensesCurrency: "SGD", isPrimary: true }),
+        ],
+      })
+
+      expect(
+        screen.getByText("Target ending balance (SGD)"),
+      ).toBeInTheDocument()
+    })
+
+    it("falls back to the first loaded phase plan when none is flagged primary", () => {
+      renderSection({
+        plans: [
+          makePlan({ id: "p1", expensesCurrency: "NZD" }),
+          makePlan({ id: "p2", expensesCurrency: "SGD" }),
+        ],
+      })
+
+      expect(
+        screen.getByText("Target ending balance (NZD)"),
+      ).toBeInTheDocument()
+    })
+
+    it("falls back to the journey's own displayCurrency when no phase plan is loaded", () => {
+      mockActivePlan = makeJourney({ displayCurrency: "NZD" })
+      renderSection({ plans: [] })
+
+      expect(
+        screen.getByText("Target ending balance (NZD)"),
+      ).toBeInTheDocument()
+    })
+
+    it("shows no currency code when neither a phase plan nor a display currency is known", () => {
+      mockActivePlan = makeJourney({ displayCurrency: undefined })
+      renderSection({ plans: [] })
+
+      expect(screen.getByText("Target ending balance")).toBeInTheDocument()
+    })
+  })
+
+  describe("target ending balance", () => {
+    it("saves the amount as a single-field PATCH after the debounce", async () => {
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "250000" },
+      })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      await waitFor(() =>
+        expect(mockUpdate).toHaveBeenCalledWith("j1", {
+          targetBalance: 250000,
+        }),
+      )
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows an error and saves nothing for a negative amount", () => {
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "-5" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(
+        screen.getByText(/target ending balance can't be negative/i),
+      ).toBeVisible()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("rejects an amount at or beyond the upper bound, and saves nothing", () => {
+      // Mirrors RATE_LIMIT on the percentage fields: an out-of-range amount
+      // should read as a sentence, not a 400 from the backend
+      // (OCR #4114035788).
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "1000000000000" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(
+        screen.getByText(
+          /target ending balance must be less than 1,000,000,000,000/i,
+        ),
+      ).toBeVisible()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("saves nothing when the box is cleared", () => {
+      mockActivePlan = makeJourney({ targetBalance: 250000 })
+      renderSection()
+
+      const input = screen.getByLabelText("Target ending balance")
+      fireEvent.change(input, { target: { value: "300000" } })
+      fireEvent.change(input, { target: { value: "" } })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("seeds the box from the journey's stored value", () => {
+      mockActivePlan = makeJourney({ targetBalance: 500000 })
+      renderSection()
+
+      expect(screen.getByLabelText("Target ending balance")).toHaveValue(500000)
+    })
+
+    it("accepts zero as a legitimate target", async () => {
+      mockActivePlan = makeJourney({ targetBalance: 500000 })
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "0" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      await waitFor(() =>
+        expect(mockUpdate).toHaveBeenCalledWith("j1", { targetBalance: 0 }),
+      )
+    })
+  })
+
   it("lists each stage's provenance from the projection echo", () => {
     renderSection({
       projection: {

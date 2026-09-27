@@ -35,6 +35,7 @@ interface EditedOverrides {
   withdrawalOrder?: WithdrawalOrder
 }
 import {
+  journeyTargetBalance,
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
   normalizeAllocation,
@@ -43,7 +44,9 @@ import MathInput from "@components/ui/MathInput"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
+import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import JourneyTargetHint from "./JourneyTargetHint"
 
 const HIDDEN_VALUE = "****"
 
@@ -136,6 +139,8 @@ export default function EditPlanDetailsModal({
     simpleFetcher(portfoliosKey),
   )
   const portfolios: Portfolio[] = portfolioData?.data || []
+  const { plans: journeys } = useIndependencePlans()
+  const journeyTarget = journeyTargetBalance(plan, journeys)
 
   // Component is conditionally mounted by the parent, so initial state can
   // be derived directly from `plan`. Parent uses a `key` tied to plan version
@@ -529,6 +534,18 @@ export default function EditPlanDetailsModal({
         <p className="text-xs text-gray-500 mt-1">
           Minimum balance to maintain at end of life
         </p>
+        {journeyTarget != null && (
+          // journeyTarget is in the PLAN currency (svc-retire#282); the
+          // hardcoded "$" this replaced didn't match plans held in another
+          // currency (OCR #4113948864).
+          <div className="mt-1">
+            <JourneyTargetHint
+              amount={journeyTarget}
+              currency={plan.expensesCurrency}
+              hideValues={hideValues}
+            />
+          </div>
+        )}
       </div>
 
       {/* Withdrawal Order — only meaningful once a US 401(k)/IRA or UK ISA

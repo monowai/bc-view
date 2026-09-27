@@ -325,6 +325,16 @@ export interface IndependencePlan {
   inflationRate?: number
   feeRate?: number
   investmentTaxRate?: number
+  /**
+   * Journey-level target ending balance (svc-retire#282) — what the owner
+   * wants left at the end of the journey. Denominated in the phase plans'
+   * currency, same as every other monetary plan input, NOT the display
+   * currency. Resolution rule: `journey.targetBalance ?? stage.targetBalance`
+   * — when set, it overrides every stage's own `targetBalance` for that
+   * journey. Absent means the journey has never stated one, and each stage
+   * falls back to its own column.
+   */
+  targetBalance?: number
   createdDate: string
   updatedDate: string
   systemUserId?: string
@@ -339,6 +349,12 @@ export interface IndependencePlan {
  * On PATCH, an **omitted** field is left alone and a blank string clears it.
  * Omit is the only way to say "leave this alone" — these fields do not admit
  * `null`, so don't send one expecting it to be ignored.
+ *
+ * `targetBalance` is the one exception to that last rule: it is typed
+ * `number | null` because `null` on the wire explicitly clears the
+ * journey-level target, distinct from omitting the field (which leaves the
+ * stored target alone, same as every other field here). See its own
+ * doc-comment below.
  */
 export interface IndependencePlanRequest {
   name?: string
@@ -361,6 +377,16 @@ export interface IndependencePlanRequest {
   inflationRate?: number
   feeRate?: number
   investmentTaxRate?: number
+  /**
+   * Journey-level target ending balance (svc-retire#282). Three states, not
+   * two: **omit** to leave the stored target alone (the rule every other
+   * field on this interface follows); send an explicit **`null`** to clear
+   * it back to unset; send a **number** to set it, where `0` is itself a
+   * legitimate target (the journey's own box reads it as "none" — see
+   * `journeyTargetBalance()` in planHelpers.ts for how the rest of the UI
+   * treats a stored `0`). A negative number is rejected with a 400.
+   */
+  targetBalance?: number | null
 }
 
 export interface IndependencePlanResponse {
@@ -1601,6 +1627,20 @@ export interface CompositeProjectionResult {
    * projection has landed (bc-view #1144).
    */
   currentAge?: number
+  /**
+   * Journey-level target ending balance (svc-retire#282), resolved
+   * (`journey.targetBalance ?? stage.targetBalance`) and already converted
+   * to {@link displayCurrency} by the backend. Absent when neither the
+   * journey nor any phase states one — render nothing in that case, don't
+   * default to 0.
+   */
+  targetBalance?: number
+  /**
+   * Last phase's ending liquid balance minus {@link targetBalance}, already
+   * converted to {@link displayCurrency}. Negative means a deficit. Only
+   * meaningful — and only ever sent — alongside {@link targetBalance}.
+   */
+  surplusOrDeficit?: number
 }
 
 export interface CompositeScenarioResult {

@@ -4,6 +4,7 @@ import "@testing-library/jest-dom"
 import EditPlanDetailsModal from "../EditPlanDetailsModal"
 import { RetirementPlan } from "types/independence"
 import useSWR from "swr"
+import { independencePlansKey } from "@hooks/useIndependencePlans"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -232,6 +233,88 @@ describe("EditPlanDetailsModal", () => {
     expect(
       screen.getByText("Minimum balance to maintain at end of life"),
     ).toBeInTheDocument()
+  })
+
+  it("shows a hint when the plan's journey states a target ending balance", () => {
+    mockedUseSWR.mockImplementation((key) =>
+      key === independencePlansKey
+        ? ({
+            data: {
+              data: [
+                {
+                  id: "j1",
+                  ownerId: "test-owner",
+                  name: "Main journey",
+                  isPrimary: true,
+                  targetBalance: 800000,
+                  createdDate: "2026-01-01",
+                  updatedDate: "2026-01-01",
+                },
+              ],
+            },
+            error: undefined,
+            isLoading: false,
+            mutate: jest.fn(),
+          } as any)
+        : emptySwrReturn,
+    )
+
+    render(
+      <EditPlanDetailsModal
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    // Rendered with the plan's own currency (mockPlan.expensesCurrency =
+    // "NZD"), not a hardcoded "$" — the number is unconverted.
+    expect(
+      screen.getByText("Overridden by the journey target (800,000 NZD)"),
+    ).toBeInTheDocument()
+  })
+
+  it("shows no hint when the journey's target is exactly 0", () => {
+    mockedUseSWR.mockImplementation((key) =>
+      key === independencePlansKey
+        ? ({
+            data: {
+              data: [
+                {
+                  id: "j1",
+                  ownerId: "test-owner",
+                  name: "Main journey",
+                  isPrimary: true,
+                  targetBalance: 0,
+                  createdDate: "2026-01-01",
+                  updatedDate: "2026-01-01",
+                },
+              ],
+            },
+            error: undefined,
+            isLoading: false,
+            mutate: jest.fn(),
+          } as any)
+        : emptySwrReturn,
+    )
+
+    render(
+      <EditPlanDetailsModal
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows no hint when the plan is not grouped into a journey", () => {
+    render(<EditPlanDetailsModal {...defaultProps} />)
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
   })
 
   it("shows note about saving", () => {

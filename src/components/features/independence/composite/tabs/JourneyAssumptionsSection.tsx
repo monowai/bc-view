@@ -27,6 +27,15 @@ const SAVE_DEBOUNCE_MS = 1000
  */
 const RATE_LIMIT = 100
 
+/**
+ * Same reasoning as RATE_LIMIT, for the target-balance box: catch an
+ * obviously-mistyped amount (an extra zero or three) client-side, as a
+ * sentence, rather than letting it reach the PATCH. A trillion in the plan
+ * currency is already an absurd target, so the bound doubles as a
+ * safe-integer guard — nothing this side of it can overflow.
+ */
+const TARGET_LIMIT = 1e12
+
 /** The six rates a journey can state. Decimal fractions on the wire. */
 type RateKey =
   | "cashReturnRate"
@@ -35,6 +44,14 @@ type RateKey =
   | "inflationRate"
   | "feeRate"
   | "investmentTaxRate"
+
+/**
+ * Draft/error storage is shared between the six percentage rates and the
+ * target-balance box below — same per-journey keying, same debounce, same
+ * "empty means not done typing" rule — so both share one `FieldKey` union
+ * rather than a second, parallel state shape.
+ */
+type FieldKey = RateKey | "targetBalance"
 
 interface RateField {
   key: RateKey
@@ -133,13 +150,13 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   // which is worse. Everything not typed reads straight through to the stored
   // journey, so there is no effect copying server state into local state.
   const [drafts, setDrafts] = useState<
-    Record<string, Partial<Record<RateKey, string>>>
+    Record<string, Partial<Record<FieldKey, string>>>
   >({})
   const [errors, setErrors] = useState<
-    Record<string, Partial<Record<RateKey, string>>>
+    Record<string, Partial<Record<FieldKey, string>>>
   >({})
   const [saveErrors, setSaveErrors] = useState<Record<string, string>>({})
-  // Keyed `${planId}:${rateKey}`, so typing into one journey's Fees box can
+  // Keyed `${planId}:${fieldKey}`, so typing into one journey's Fees box can
   // never call off another journey's pending Fees write.
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -150,16 +167,44 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
     }
   }, [])
 
-  const handleChange = (field: RateField, raw: string): void => {
+  /**
+   * A raw box value, turned into either the wire value to send or the
+   * message to show instead of sending it.
+   */
+  const parseField = (
+    value: number,
+    message: string | null,
+  ): { valid: true; value: number } | { valid: false; message: string } =>
+    message ? { valid: false, message } : { valid: true, value }
+
+  /**
+   * The debounce/error orchestration shared by every per-journey box below:
+   * draft echo, per-field debounce timer, "empty box cancels the pending
+   * write" rule (no "clear" verb yet — svc-retire#286), and routing a save
+   * failure into the shared per-journey save-error banner. `parse` turns
+   * the raw string into a wire value or a rejection message; `toBody` turns
+   * that wire value into the PATCH body's one key. Kept in one place so a
+   * future change to debounce or error-clearing semantics can't land on one
+   * box and drift on the other (OCR #4113948845).
+   */
+  const scheduleFieldWrite = (
+    fieldKey: FieldKey,
+    raw: string,
+    label: string,
+    parse: (
+      raw: string,
+    ) => { valid: true; value: number } | { valid: false; message: string },
+    toBody: (value: number) => IndependencePlanRequest,
+  ): void => {
     // No active journey means no box on screen to have typed into, and
     // nowhere to scope the draft to either.
     if (!activePlanId) return
     const planId = activePlanId
-    const timerKey = `${planId}:${field.key}`
+    const timerKey = `${planId}:${fieldKey}`
 
     setDrafts((prev) => ({
       ...prev,
-      [planId]: { ...prev[planId], [field.key]: raw },
+      [planId]: { ...prev[planId], [fieldKey]: raw },
     }))
 
     // Cancel first, unconditionally: clearing the box or typing something
@@ -170,20 +215,19 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
     const setFieldError = (message: string | undefined): void =>
       setErrors((prev) => ({
         ...prev,
-        [planId]: { ...prev[planId], [field.key]: message },
+        [planId]: { ...prev[planId], [fieldKey]: message },
       }))
 
     if (raw.trim() === "") {
       // No "clear" verb on the PATCH — an empty box means "stop, I'm not done
-      // typing", not "unset this rate".
+      // typing", not "unset this field".
       setFieldError(undefined)
       return
     }
 
-    const percent = Number(raw)
-    const message = validate(field, percent)
-    if (message) {
-      setFieldError(message)
+    const result = parse(raw)
+    if (!result.valid) {
+      setFieldError(result.message)
       return
     }
 
@@ -191,16 +235,64 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
     setSaveErrors((prev) => ({ ...prev, [planId]: "" }))
 
     timers.current[timerKey] = setTimeout(() => {
-      const body: IndependencePlanRequest = { [field.key]: percent / 100 }
       // `planId` is captured deliberately: this write belongs to the journey
       // whose box was typed in, whichever journey is on screen when it fires.
-      update(planId, body).catch((e) =>
+      update(planId, toBody(result.value)).catch((e) =>
         setSaveErrors((prev) => ({
           ...prev,
-          [planId]: toErrorMessage(e, `Failed to save ${field.label}`),
+          [planId]: toErrorMessage(e, `Failed to save ${label}`),
         })),
       )
     }, SAVE_DEBOUNCE_MS)
+  }
+
+  const handleChange = (field: RateField, raw: string): void => {
+    scheduleFieldWrite(
+      field.key,
+      raw,
+      field.label,
+      (r) => parseField(Number(r), validate(field, Number(r))),
+      (percent) => ({ [field.key]: percent / 100 }),
+    )
+  }
+
+  /**
+   * The journey-level target ending balance (svc-retire#282) — a plain
+   * amount in the plan currency rather than a percentage, so it gets its
+   * own validation and its own body key, but shares
+   * {@link scheduleFieldWrite}'s debounce/error orchestration with
+   * {@link handleChange}.
+   */
+  const handleTargetChange = (raw: string): void => {
+    scheduleFieldWrite(
+      "targetBalance",
+      raw,
+      "Target ending balance",
+      (r) => {
+        const amount = Number(r)
+        if (!Number.isFinite(amount)) {
+          return {
+            valid: false,
+            message: "Target ending balance must be a number.",
+          }
+        }
+        if (amount < 0) {
+          return {
+            valid: false,
+            message: "Target ending balance can't be negative.",
+          }
+        }
+        if (amount >= TARGET_LIMIT) {
+          return {
+            valid: false,
+            message:
+              "Target ending balance must be less than 1,000,000,000,000.",
+          }
+        }
+        return { valid: true, value: amount }
+      },
+      (amount) => ({ targetBalance: amount }),
+    )
   }
 
   if (!activePlan) {
@@ -215,6 +307,29 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   const planDrafts = drafts[activePlan.id]
   const planErrors = errors[activePlan.id]
   const saveError = saveErrors[activePlan.id]
+  // Not a percent — the journey's target ending balance is a plain amount
+  // in the plan currency, so it reads straight from the stored value with
+  // no /100 conversion.
+  const targetValue =
+    planDrafts?.targetBalance ??
+    (activePlan.targetBalance != null ? String(activePlan.targetBalance) : "")
+  const targetError = planErrors?.targetBalance
+  // The target is denominated in the phase plans' currency, not this
+  // journey's displayCurrency (types/independence.d.ts) — so the code shown
+  // beside the label has to come from a phase plan first. The primary phase
+  // stands in for "the" plan currency when one is flagged; otherwise the
+  // first loaded phase is as good a guess as any. Falling back further to
+  // the journey's own displayCurrency is still a guess, so when neither is
+  // known the label carries no currency at all.
+  //
+  // Shown as the ISO CODE, never a symbol: currencySymbolFor falls back to
+  // a literal "$" for any code outside its local map (MYR, THB, IDR, …),
+  // which would silently mislabel an unmapped currency as USD
+  // (OCR #4114035790) — exactly the wrong-symbol case this was meant to
+  // avoid.
+  const journeyCurrency =
+    (plans.find((p) => p.isPrimary) ?? plans[0])?.expensesCurrency ??
+    activePlan.displayCurrency
 
   return (
     <div className="space-y-4">
@@ -281,6 +396,41 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-4 max-w-xs border-t border-gray-100 pt-4">
+          <label
+            htmlFor="targetBalance"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Target ending balance
+            {journeyCurrency ? ` (${journeyCurrency})` : ""}
+          </label>
+          <input
+            id="targetBalance"
+            type="number"
+            inputMode="decimal"
+            step="1000"
+            min={0}
+            value={targetValue}
+            placeholder="0"
+            onChange={(e) => handleTargetChange(e.target.value)}
+            className={`mt-1 w-full rounded-md border px-3 py-2 font-mono text-sm tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 ${
+              targetError
+                ? "border-red-500"
+                : "border-gray-300 focus:border-independence-500"
+            }`}
+          />
+          {targetError ? (
+            <p role="alert" className="mt-1 text-sm text-red-600">
+              {targetError}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">
+              What you want left at the end of the journey, in the plan
+              currency. Leave 0 for none.
+            </p>
+          )}
         </div>
       </section>
 

@@ -1,11 +1,20 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
 import DetailsTabContent from "../DetailsTabContent"
-import { RetirementPlan, RetirementProjection } from "types/independence"
+import {
+  IndependencePlan,
+  RetirementPlan,
+  RetirementProjection,
+} from "types/independence"
 import { ScenarioState } from "../scenario/types"
 
 jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
+}))
+
+let mockJourneys: IndependencePlan[] = []
+jest.mock("@hooks/useIndependencePlans", () => ({
+  useIndependencePlans: () => ({ plans: mockJourneys }),
 }))
 
 jest.mock(
@@ -140,6 +149,94 @@ const defaultProps = {
 }
 
 describe("DetailsTabContent", () => {
+  beforeEach(() => {
+    mockJourneys = []
+  })
+
+  it("shows a hint when the plan's journey states a target ending balance", () => {
+    mockJourneys = [
+      {
+        id: "j1",
+        ownerId: "owner-1",
+        name: "Main journey",
+        isPrimary: true,
+        targetBalance: 800000,
+        createdDate: "2026-01-01",
+        updatedDate: "2026-01-01",
+      },
+    ]
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    // Rendered with the plan's own currency (mockPlan.expensesCurrency =
+    // "SGD"), not a display currency — the number is unconverted.
+    expect(
+      screen.getByText("Overridden by the journey target (800,000 SGD)"),
+    ).toBeInTheDocument()
+  })
+
+  it("shows no hint when the journey's target is exactly 0", () => {
+    // 0 is "no target stated" for this hint's purposes (OCR #4113948855) —
+    // covered thoroughly by journeyTargetBalance's own tests; this just
+    // confirms the wiring doesn't re-introduce it.
+    mockJourneys = [
+      {
+        id: "j1",
+        ownerId: "owner-1",
+        name: "Main journey",
+        isPrimary: true,
+        targetBalance: 0,
+        createdDate: "2026-01-01",
+        updatedDate: "2026-01-01",
+      },
+    ]
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows no hint when the plan's journey has never stated a target", () => {
+    mockJourneys = [
+      {
+        id: "j1",
+        ownerId: "owner-1",
+        name: "Main journey",
+        isPrimary: true,
+        createdDate: "2026-01-01",
+        updatedDate: "2026-01-01",
+      },
+    ]
+    render(
+      <DetailsTabContent
+        {...defaultProps}
+        plan={{ ...mockPlan, independencePlanId: "j1" }}
+      />,
+    )
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows no hint when the plan is not grouped into a journey", () => {
+    render(<DetailsTabContent {...defaultProps} />)
+
+    expect(
+      screen.queryByText(/overridden by the journey target/i),
+    ).not.toBeInTheDocument()
+  })
+
   it("shows VerdictBanner with the first finding's title", () => {
     render(<DetailsTabContent {...defaultProps} />)
     expect(
