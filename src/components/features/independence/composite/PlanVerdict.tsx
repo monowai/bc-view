@@ -115,7 +115,13 @@ export default function PlanVerdict(): React.ReactElement | null {
               answers.dipsBelow &&
               " Your balance does dip back below the target later on."}
           </p>
-          {projection.targetBalance != null &&
+          {/* Gated on !hideValues, not just on the amounts being masked: the
+              word "Surplus"/"Shortfall" and its green/red colour disclose
+              whether the plan clears the target even with the figures
+              replaced by "****" (OCR #4114035787) — privacy mode has to hide
+              the whole line, not just the numbers in it. */}
+          {!hideValues &&
+            projection.targetBalance != null &&
             projection.surplusOrDeficit != null && (
               <p
                 className={`mt-1.5 text-sm font-medium ${

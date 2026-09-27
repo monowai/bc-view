@@ -106,7 +106,11 @@ describe("PlanVerdict target ending balance", () => {
     expect(line).toHaveClass("text-red-700")
   })
 
-  it("hides the amounts in privacy mode", () => {
+  it("renders nothing in privacy mode, not just masked amounts", () => {
+    // Masking only the amounts still leaks the outcome: the word
+    // "Surplus"/"Shortfall" and its green/red colour say whether the plan
+    // clears the target even with the figures replaced by "****"
+    // (OCR #4114035787). The whole line has to disappear.
     jest
       .requireMock("@hooks/usePrivacyMode")
       .usePrivacyMode.mockReturnValueOnce({ hideValues: true })
@@ -118,9 +122,9 @@ describe("PlanVerdict target ending balance", () => {
       }),
     })
 
-    expect(screen.getByText(/target ending balance/i)).toHaveTextContent(
-      "Target ending balance **** · Surplus ****",
-    )
+    expect(screen.queryByText(/target ending balance/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/surplus/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/shortfall/i)).not.toBeInTheDocument()
   })
 })
 

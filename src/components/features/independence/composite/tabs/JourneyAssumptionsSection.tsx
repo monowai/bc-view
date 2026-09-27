@@ -8,7 +8,7 @@ import type {
 } from "types/independence"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { toPercent } from "@lib/independence/conversions"
-import { currencySymbolFor, toErrorMessage } from "@lib/formatters"
+import { toErrorMessage } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import { useStageRateSource } from "@hooks/useStageRateSource"
@@ -26,6 +26,15 @@ const SAVE_DEBOUNCE_MS = 1000
  * back as a sentence rather than a 400 the user has to interpret.
  */
 const RATE_LIMIT = 100
+
+/**
+ * Same reasoning as RATE_LIMIT, for the target-balance box: catch an
+ * obviously-mistyped amount (an extra zero or three) client-side, as a
+ * sentence, rather than letting it reach the PATCH. A trillion in the plan
+ * currency is already an absurd target, so the bound doubles as a
+ * safe-integer guard — nothing this side of it can overflow.
+ */
+const TARGET_LIMIT = 1e12
 
 /** The six rates a journey can state. Decimal fractions on the wire. */
 type RateKey =
@@ -273,6 +282,13 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
             message: "Target ending balance can't be negative.",
           }
         }
+        if (amount >= TARGET_LIMIT) {
+          return {
+            valid: false,
+            message:
+              "Target ending balance must be less than 1,000,000,000,000.",
+          }
+        }
         return { valid: true, value: amount }
       },
       (amount) => ({ targetBalance: amount }),
@@ -299,17 +315,21 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
     (activePlan.targetBalance != null ? String(activePlan.targetBalance) : "")
   const targetError = planErrors?.targetBalance
   // The target is denominated in the phase plans' currency, not this
-  // journey's displayCurrency (types/independence.d.ts) — so the box's
-  // symbol has to come from a phase plan first. The primary phase stands in
-  // for "the" plan currency when one is flagged; otherwise the first loaded
-  // phase is as good a guess as any. Falling back further to the journey's
-  // own displayCurrency is still a guess, so when neither is known this
-  // shows no symbol rather than a literal "$" that could be wrong
-  // (OCR #4113948848).
+  // journey's displayCurrency (types/independence.d.ts) — so the code shown
+  // beside the label has to come from a phase plan first. The primary phase
+  // stands in for "the" plan currency when one is flagged; otherwise the
+  // first loaded phase is as good a guess as any. Falling back further to
+  // the journey's own displayCurrency is still a guess, so when neither is
+  // known the label carries no currency at all.
+  //
+  // Shown as the ISO CODE, never a symbol: currencySymbolFor falls back to
+  // a literal "$" for any code outside its local map (MYR, THB, IDR, …),
+  // which would silently mislabel an unmapped currency as USD
+  // (OCR #4114035790) — exactly the wrong-symbol case this was meant to
+  // avoid.
   const journeyCurrency =
     (plans.find((p) => p.isPrimary) ?? plans[0])?.expensesCurrency ??
     activePlan.displayCurrency
-  const targetSymbol = journeyCurrency ? currencySymbolFor(journeyCurrency) : ""
 
   return (
     <div className="space-y-4">
@@ -384,31 +404,23 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
             className="block text-sm font-medium text-gray-700"
           >
             Target ending balance
+            {journeyCurrency ? ` (${journeyCurrency})` : ""}
           </label>
-          <div className="relative mt-1">
-            <span
-              aria-hidden="true"
-              data-testid="target-currency-symbol"
-              className="pointer-events-none absolute left-3 top-2 text-sm text-gray-400"
-            >
-              {targetSymbol}
-            </span>
-            <input
-              id="targetBalance"
-              type="number"
-              inputMode="decimal"
-              step="1000"
-              min={0}
-              value={targetValue}
-              placeholder="0"
-              onChange={(e) => handleTargetChange(e.target.value)}
-              className={`w-full rounded-md border py-2 pl-7 pr-3 font-mono text-sm tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 ${
-                targetError
-                  ? "border-red-500"
-                  : "border-gray-300 focus:border-independence-500"
-              }`}
-            />
-          </div>
+          <input
+            id="targetBalance"
+            type="number"
+            inputMode="decimal"
+            step="1000"
+            min={0}
+            value={targetValue}
+            placeholder="0"
+            onChange={(e) => handleTargetChange(e.target.value)}
+            className={`mt-1 w-full rounded-md border px-3 py-2 font-mono text-sm tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 ${
+              targetError
+                ? "border-red-500"
+                : "border-gray-300 focus:border-independence-500"
+            }`}
+          />
           {targetError ? (
             <p role="alert" className="mt-1 text-sm text-red-600">
               {targetError}

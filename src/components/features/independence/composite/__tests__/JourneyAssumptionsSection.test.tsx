@@ -283,9 +283,12 @@ describe("JourneyAssumptionsSection", () => {
     )
   })
 
-  describe("target ending balance currency symbol", () => {
-    // The target is denominated in the phase plans' currency, never a bare
-    // "$" (OCR #4113948848) — resolved via currencySymbolFor, never guessed.
+  describe("target ending balance currency code", () => {
+    // The target is denominated in the phase plans' currency, shown as the
+    // ISO code in the label — never a symbol. currencySymbolFor falls back
+    // to a literal "$" for any code outside its local map (MYR, THB, IDR,
+    // …), which would silently mislabel an unmapped currency as USD
+    // (OCR #4114035790).
     it("uses the primary phase plan's currency when one is flagged", () => {
       renderSection({
         plans: [
@@ -294,9 +297,9 @@ describe("JourneyAssumptionsSection", () => {
         ],
       })
 
-      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
-        "S$",
-      )
+      expect(
+        screen.getByText("Target ending balance (SGD)"),
+      ).toBeInTheDocument()
     })
 
     it("falls back to the first loaded phase plan when none is flagged primary", () => {
@@ -307,25 +310,25 @@ describe("JourneyAssumptionsSection", () => {
         ],
       })
 
-      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
-        "NZ$",
-      )
+      expect(
+        screen.getByText("Target ending balance (NZD)"),
+      ).toBeInTheDocument()
     })
 
     it("falls back to the journey's own displayCurrency when no phase plan is loaded", () => {
       mockActivePlan = makeJourney({ displayCurrency: "NZD" })
       renderSection({ plans: [] })
 
-      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent(
-        "NZ$",
-      )
+      expect(
+        screen.getByText("Target ending balance (NZD)"),
+      ).toBeInTheDocument()
     })
 
-    it("shows no symbol when neither a phase plan nor a display currency is known", () => {
+    it("shows no currency code when neither a phase plan nor a display currency is known", () => {
       mockActivePlan = makeJourney({ displayCurrency: undefined })
       renderSection({ plans: [] })
 
-      expect(screen.getByTestId("target-currency-symbol")).toHaveTextContent("")
+      expect(screen.getByText("Target ending balance")).toBeInTheDocument()
     })
   })
 
@@ -363,6 +366,28 @@ describe("JourneyAssumptionsSection", () => {
 
       expect(
         screen.getByText(/target ending balance can't be negative/i),
+      ).toBeVisible()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("rejects an amount at or beyond the upper bound, and saves nothing", () => {
+      // Mirrors RATE_LIMIT on the percentage fields: an out-of-range amount
+      // should read as a sentence, not a 400 from the backend
+      // (OCR #4114035788).
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "1000000000000" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(
+        screen.getByText(
+          /target ending balance must be less than 1,000,000,000,000/i,
+        ),
       ).toBeVisible()
       expect(mockUpdate).not.toHaveBeenCalled()
     })
