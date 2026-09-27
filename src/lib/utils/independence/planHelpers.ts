@@ -1,6 +1,7 @@
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import {
   AssetDisposal,
+  IndependencePlan,
   LifeEvent,
   ManualAssetCategory,
   RetirementPlan,
@@ -59,6 +60,27 @@ export function toPlanRequestPayload(
     primaryStrategy: plan.primaryStrategy ?? null,
     headlineMetric: plan.headlineMetric ?? null,
   }
+}
+
+/**
+ * The parent journey's target ending balance for a stage, if it has one
+ * (svc-retire#282). Mirrors the backend's resolution rule —
+ * `journey.targetBalance ?? stage.targetBalance` — for the half of it the
+ * frontend needs: whether the journey's figure is the one that will win.
+ * The stage's own value is deliberately not read here; showing it is the
+ * caller's job (an "overridden by" hint beside the stage's own field), not
+ * this helper's.
+ *
+ * Returns undefined when the stage isn't grouped into a journey, that
+ * journey hasn't loaded yet, or the journey has never stated a target.
+ */
+export function journeyTargetBalance(
+  plan: RetirementPlan,
+  journeys: IndependencePlan[],
+): number | undefined {
+  if (!plan.independencePlanId) return undefined
+  const journey = journeys.find((j) => j.id === plan.independencePlanId)
+  return journey?.targetBalance
 }
 
 /**

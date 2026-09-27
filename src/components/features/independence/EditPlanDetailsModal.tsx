@@ -28,6 +28,7 @@ interface EditedOverrides {
   excludedRentalAssetIds?: string[]
 }
 import {
+  journeyTargetBalance,
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
   normalizeAllocation,
@@ -36,6 +37,7 @@ import MathInput from "@components/ui/MathInput"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
+import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 const HIDDEN_VALUE = "****"
@@ -123,6 +125,8 @@ export default function EditPlanDetailsModal({
     simpleFetcher(portfoliosKey),
   )
   const portfolios: Portfolio[] = portfolioData?.data || []
+  const { plans: journeys } = useIndependencePlans()
+  const journeyTarget = journeyTargetBalance(plan, journeys)
 
   // Component is conditionally mounted by the parent, so initial state can
   // be derived directly from `plan`. Parent uses a `key` tied to plan version
@@ -504,6 +508,15 @@ export default function EditPlanDetailsModal({
         <p className="text-xs text-gray-500 mt-1">
           Minimum balance to maintain at end of life
         </p>
+        {journeyTarget != null && (
+          <p className="text-xs text-gray-400 italic mt-1">
+            Overridden by the journey target (
+            {hideValues
+              ? HIDDEN_VALUE
+              : `$${Math.round(journeyTarget).toLocaleString()}`}
+            )
+          </p>
+        )}
       </div>
 
       {/* Portfolios — selection is account-wide; editing moved to Net Worth tab */}

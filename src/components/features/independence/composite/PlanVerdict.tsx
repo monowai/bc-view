@@ -115,6 +115,20 @@ export default function PlanVerdict(): React.ReactElement | null {
               answers.dipsBelow &&
               " Your balance does dip back below the target later on."}
           </p>
+          {projection.targetBalance != null &&
+            projection.surplusOrDeficit != null && (
+              <p
+                className={`mt-1.5 text-sm font-medium ${
+                  projection.surplusOrDeficit >= 0
+                    ? "text-green-700 dark:text-green-400"
+                    : "text-red-700 dark:text-red-400"
+                }`}
+              >
+                Target ending balance {money(projection.targetBalance)} ·{" "}
+                {projection.surplusOrDeficit >= 0 ? "Surplus" : "Shortfall"}{" "}
+                {money(Math.abs(projection.surplusOrDeficit))}
+              </p>
+            )}
         </div>
         <span
           className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${

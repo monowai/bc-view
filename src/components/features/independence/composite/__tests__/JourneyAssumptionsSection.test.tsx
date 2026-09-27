@@ -283,6 +283,84 @@ describe("JourneyAssumptionsSection", () => {
     )
   })
 
+  describe("target ending balance", () => {
+    it("saves the amount as a single-field PATCH after the debounce", async () => {
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "250000" },
+      })
+      expect(mockUpdate).not.toHaveBeenCalled()
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      await waitFor(() =>
+        expect(mockUpdate).toHaveBeenCalledWith("j1", {
+          targetBalance: 250000,
+        }),
+      )
+      expect(mockUpdate).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows an error and saves nothing for a negative amount", () => {
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "-5" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(
+        screen.getByText(/target ending balance can't be negative/i),
+      ).toBeVisible()
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("saves nothing when the box is cleared", () => {
+      mockActivePlan = makeJourney({ targetBalance: 250000 })
+      renderSection()
+
+      const input = screen.getByLabelText("Target ending balance")
+      fireEvent.change(input, { target: { value: "300000" } })
+      fireEvent.change(input, { target: { value: "" } })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(mockUpdate).not.toHaveBeenCalled()
+    })
+
+    it("seeds the box from the journey's stored value", () => {
+      mockActivePlan = makeJourney({ targetBalance: 500000 })
+      renderSection()
+
+      expect(screen.getByLabelText("Target ending balance")).toHaveValue(500000)
+    })
+
+    it("accepts zero as a legitimate target", async () => {
+      mockActivePlan = makeJourney({ targetBalance: 500000 })
+      renderSection()
+
+      fireEvent.change(screen.getByLabelText("Target ending balance"), {
+        target: { value: "0" },
+      })
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      await waitFor(() =>
+        expect(mockUpdate).toHaveBeenCalledWith("j1", { targetBalance: 0 }),
+      )
+    })
+  })
+
   it("lists each stage's provenance from the projection echo", () => {
     renderSection({
       projection: {

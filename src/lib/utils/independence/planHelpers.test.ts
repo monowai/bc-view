@@ -1,5 +1,6 @@
-import { LifeEvent, RetirementPlan } from "types/independence"
+import { IndependencePlan, LifeEvent, RetirementPlan } from "types/independence"
 import {
+  journeyTargetBalance,
   normalizeAllocation,
   serializeLifeEvents,
   toPlanRequestPayload,
@@ -196,5 +197,39 @@ describe("serializeLifeEvents", () => {
 
   it("treats undefined as an empty list and serialises '[]'", () => {
     expect(serializeLifeEvents(undefined)).toBe("[]")
+  })
+})
+
+describe("journeyTargetBalance", () => {
+  const journey: IndependencePlan = {
+    id: "j1",
+    ownerId: "u1",
+    name: "Main journey",
+    isPrimary: true,
+    targetBalance: 1_200_000,
+    createdDate: "2026-01-01",
+    updatedDate: "2026-01-01",
+  }
+
+  it("returns the parent journey's target when the stage belongs to one", () => {
+    const stage = { ...plan, independencePlanId: "j1" }
+    expect(journeyTargetBalance(stage, [journey])).toBe(1_200_000)
+  })
+
+  it("returns undefined when the stage's journey has never stated one", () => {
+    const stage = { ...plan, independencePlanId: "j1" }
+    expect(
+      journeyTargetBalance(stage, [{ ...journey, targetBalance: undefined }]),
+    ).toBeUndefined()
+  })
+
+  it("returns undefined when the stage is not grouped into a journey", () => {
+    const stage = { ...plan, independencePlanId: undefined }
+    expect(journeyTargetBalance(stage, [journey])).toBeUndefined()
+  })
+
+  it("returns undefined when the journey list hasn't loaded the stage's journey", () => {
+    const stage = { ...plan, independencePlanId: "missing" }
+    expect(journeyTargetBalance(stage, [journey])).toBeUndefined()
   })
 })

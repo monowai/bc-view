@@ -2,7 +2,10 @@ import React, { useMemo } from "react"
 import InfoTooltip from "@components/ui/Tooltip"
 import KpiCard from "@components/ui/KpiCard"
 import { RetirementPlan, RetirementProjection } from "types/independence"
-import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
+import {
+  HIDDEN_VALUE,
+  journeyTargetBalance,
+} from "@lib/independence/planHelpers"
 import {
   RentalIncomeData,
   SetDateOfBirthNotice,
@@ -18,6 +21,7 @@ import { applyRealReturn } from "@components/features/independence/scenario/scen
 import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { useIndependencePlans } from "@hooks/useIndependencePlans"
 
 interface DetailsTabContentProps {
   plan: RetirementPlan
@@ -55,6 +59,8 @@ export default function DetailsTabContent({
   includedPensionFvDifferential,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
+  const { plans: journeys } = useIndependencePlans()
+  const journeyTarget = journeyTargetBalance(plan, journeys)
   const { expenses, isLoading: expensesLoading } = usePlanExpenses(plan.id)
   const { labels } = useExpenseCategories()
   const { catalog } = useLifestyleCatalog(planCurrency)
@@ -370,6 +376,15 @@ export default function DetailsTabContent({
                     : `${detailsCurrency}${Math.round(displayTarget).toLocaleString()}`}
                 </span>
               </div>
+            )}
+            {journeyTarget != null && (
+              <p className="text-xs italic text-gray-400">
+                Overridden by the journey target (
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(journeyTarget).toLocaleString()}`}
+                )
+              </p>
             )}
           </div>
         </div>

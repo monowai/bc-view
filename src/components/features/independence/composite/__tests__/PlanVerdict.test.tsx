@@ -9,7 +9,7 @@ import {
 import PlanVerdict from "../PlanVerdict"
 
 jest.mock("@hooks/usePrivacyMode", () => ({
-  usePrivacyMode: () => ({ hideValues: false }),
+  usePrivacyMode: jest.fn(() => ({ hideValues: false })),
 }))
 
 const row = (age: number, endingBalance: number): never =>
@@ -70,6 +70,59 @@ function renderWithCtx(
     </CompositeProjectionProvider>,
   )
 }
+
+describe("PlanVerdict target ending balance", () => {
+  it("renders nothing when the projection carries no target", () => {
+    renderWithCtx({ projection: projection() })
+
+    expect(screen.queryByText(/target ending balance/i)).not.toBeInTheDocument()
+  })
+
+  it("shows a green surplus line when the balance clears the target", () => {
+    renderWithCtx({
+      projection: projection({
+        targetBalance: 500_000,
+        surplusOrDeficit: 120_000,
+      }),
+    })
+
+    const line = screen.getByText(/target ending balance/i)
+    expect(line).toHaveTextContent("Target ending balance S$500K")
+    expect(line).toHaveTextContent("Surplus S$120K")
+    expect(line).toHaveClass("text-green-700")
+  })
+
+  it("shows a red shortfall line when the balance misses the target", () => {
+    renderWithCtx({
+      projection: projection({
+        targetBalance: 500_000,
+        surplusOrDeficit: -75_000,
+      }),
+    })
+
+    const line = screen.getByText(/target ending balance/i)
+    expect(line).toHaveTextContent("Target ending balance S$500K")
+    expect(line).toHaveTextContent("Shortfall S$75K")
+    expect(line).toHaveClass("text-red-700")
+  })
+
+  it("hides the amounts in privacy mode", () => {
+    jest
+      .requireMock("@hooks/usePrivacyMode")
+      .usePrivacyMode.mockReturnValueOnce({ hideValues: true })
+
+    renderWithCtx({
+      projection: projection({
+        targetBalance: 500_000,
+        surplusOrDeficit: 120_000,
+      }),
+    })
+
+    expect(screen.getByText(/target ending balance/i)).toHaveTextContent(
+      "Target ending balance **** · Surplus ****",
+    )
+  })
+})
 
 describe("PlanVerdict milestone tile", () => {
   it("says you are already there when today's wealth is past the target", () => {

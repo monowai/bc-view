@@ -36,6 +36,14 @@ type RateKey =
   | "feeRate"
   | "investmentTaxRate"
 
+/**
+ * Draft/error storage is shared between the six percentage rates and the
+ * target-balance box below — same per-journey keying, same debounce, same
+ * "empty means not done typing" rule — so both share one `FieldKey` union
+ * rather than a second, parallel state shape.
+ */
+type FieldKey = RateKey | "targetBalance"
+
 interface RateField {
   key: RateKey
   label: string
@@ -133,13 +141,13 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   // which is worse. Everything not typed reads straight through to the stored
   // journey, so there is no effect copying server state into local state.
   const [drafts, setDrafts] = useState<
-    Record<string, Partial<Record<RateKey, string>>>
+    Record<string, Partial<Record<FieldKey, string>>>
   >({})
   const [errors, setErrors] = useState<
-    Record<string, Partial<Record<RateKey, string>>>
+    Record<string, Partial<Record<FieldKey, string>>>
   >({})
   const [saveErrors, setSaveErrors] = useState<Record<string, string>>({})
-  // Keyed `${planId}:${rateKey}`, so typing into one journey's Fees box can
+  // Keyed `${planId}:${fieldKey}`, so typing into one journey's Fees box can
   // never call off another journey's pending Fees write.
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -203,6 +211,61 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
     }, SAVE_DEBOUNCE_MS)
   }
 
+  /**
+   * The journey-level target ending balance (svc-retire#282) — same
+   * per-journey debounce and "empty box cancels the pending write" rule as
+   * {@link handleChange}, but a plain amount in the plan currency rather
+   * than a percentage, so it gets its own validation and its own body key.
+   */
+  const handleTargetChange = (raw: string): void => {
+    if (!activePlanId) return
+    const planId = activePlanId
+    const timerKey = `${planId}:targetBalance`
+
+    setDrafts((prev) => ({
+      ...prev,
+      [planId]: { ...prev[planId], targetBalance: raw },
+    }))
+
+    const queued = timers.current[timerKey]
+    if (queued) clearTimeout(queued)
+
+    const setFieldError = (message: string | undefined): void =>
+      setErrors((prev) => ({
+        ...prev,
+        [planId]: { ...prev[planId], targetBalance: message },
+      }))
+
+    if (raw.trim() === "") {
+      // No "clear" verb here either — an empty box means "not done typing".
+      setFieldError(undefined)
+      return
+    }
+
+    const amount = Number(raw)
+    if (!Number.isFinite(amount)) {
+      setFieldError("Target ending balance must be a number.")
+      return
+    }
+    if (amount < 0) {
+      setFieldError("Target ending balance can't be negative.")
+      return
+    }
+
+    setFieldError(undefined)
+    setSaveErrors((prev) => ({ ...prev, [planId]: "" }))
+
+    timers.current[timerKey] = setTimeout(() => {
+      const body: IndependencePlanRequest = { targetBalance: amount }
+      update(planId, body).catch((e) =>
+        setSaveErrors((prev) => ({
+          ...prev,
+          [planId]: toErrorMessage(e, "Failed to save Target ending balance"),
+        })),
+      )
+    }, SAVE_DEBOUNCE_MS)
+  }
+
   if (!activePlan) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-600">
@@ -215,6 +278,13 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
   const planDrafts = drafts[activePlan.id]
   const planErrors = errors[activePlan.id]
   const saveError = saveErrors[activePlan.id]
+  // Not a percent — the journey's target ending balance is a plain amount
+  // in the plan currency, so it reads straight from the stored value with
+  // no /100 conversion.
+  const targetValue =
+    planDrafts?.targetBalance ??
+    (activePlan.targetBalance != null ? String(activePlan.targetBalance) : "")
+  const targetError = planErrors?.targetBalance
 
   return (
     <div className="space-y-4">
@@ -281,6 +351,48 @@ export default function JourneyAssumptionsSection(): React.ReactElement {
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-4 max-w-xs border-t border-gray-100 pt-4">
+          <label
+            htmlFor="targetBalance"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Target ending balance
+          </label>
+          <div className="relative mt-1">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-2 text-sm text-gray-400"
+            >
+              $
+            </span>
+            <input
+              id="targetBalance"
+              type="number"
+              inputMode="decimal"
+              step="1000"
+              min={0}
+              value={targetValue}
+              placeholder="0"
+              onChange={(e) => handleTargetChange(e.target.value)}
+              className={`w-full rounded-md border py-2 pl-7 pr-3 font-mono text-sm tabular-nums text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 ${
+                targetError
+                  ? "border-red-500"
+                  : "border-gray-300 focus:border-independence-500"
+              }`}
+            />
+          </div>
+          {targetError ? (
+            <p role="alert" className="mt-1 text-sm text-red-600">
+              {targetError}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">
+              What you want left at the end of the journey, in the plan
+              currency. Leave 0 for none.
+            </p>
+          )}
         </div>
       </section>
 
