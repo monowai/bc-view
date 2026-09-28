@@ -54,8 +54,14 @@ export default function WealthPointTooltip({
   if (!active || !payload?.length) return null
 
   const symbol = currencySymbolFor(currency)
-  const exact = (value: number): string =>
-    hideValues ? HIDDEN_VALUE : formatCurrencySymbol(Math.round(value), symbol)
+  // Sign before the symbol ("-S$500"), as formatCompact spells it: a
+  // drawdown shortfall is a negative endingBalance, and "S$-500" reads as a
+  // typo rather than a debt.
+  const exact = (value: number): string => {
+    if (hideValues) return HIDDEN_VALUE
+    const sign = value < 0 ? "-" : ""
+    return `${sign}${formatCurrencySymbol(Math.round(Math.abs(value)), symbol)}`
+  }
 
   const byKey = new Map<string, number>()
   for (const p of payload) {

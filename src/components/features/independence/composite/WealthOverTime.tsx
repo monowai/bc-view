@@ -328,7 +328,8 @@ export default function WealthOverTime(): React.ReactElement | null {
                   currency={displayCurrency}
                   hideValues={hideValues}
                   planName={
-                    madeOf.chartData.find((d) => d.age === label)?.planName
+                    madeOf.chartData.find((d) => d.age === Number(label))
+                      ?.planName
                   }
                 />
               )}

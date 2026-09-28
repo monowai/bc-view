@@ -32,6 +32,19 @@ describe("WealthPointTooltip", () => {
     )
   })
 
+  it("should put the sign before the symbol for a shortfall", () => {
+    render(
+      <WealthPointTooltip
+        active
+        label={88}
+        payload={[item("endingBalance", -512.6)]}
+        currency="SGD"
+        hideValues={false}
+      />,
+    )
+    expect(screen.getByText("-S$513")).toBeInTheDocument()
+  })
+
   it("should hide the value in privacy mode", () => {
     render(
       <WealthPointTooltip
