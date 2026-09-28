@@ -440,7 +440,7 @@ export default function WealthOverTime(): React.ReactElement | null {
                   strokeWidth={2.5}
                   dot={false}
                   isAnimationActive={false}
-                  name="Money you can spend"
+                  name="Balance"
                   activeDot={{
                     r: 4,
                     fill: "#1e293b",
@@ -517,7 +517,7 @@ export default function WealthOverTime(): React.ReactElement | null {
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-600 dark:text-gray-400">
         {lens === "lasts" ? (
           <>
-            <LegendSwatch color="#1e293b" label="Money you can spend" line />
+            <LegendSwatch color="#1e293b" label="Balance" line />
             {/* Not "Target to retire on" — that exact phrase already labels
                 the figure in the verdict above, and repeating it here made
                 the same words mean a number in one place and a line in

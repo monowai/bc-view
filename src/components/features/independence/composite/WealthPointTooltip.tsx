@@ -21,7 +21,7 @@ export interface WealthPointTooltipProps {
 
 /** Series the reader is hovering, in the order they should read. */
 const SERIES_LABELS: Record<string, string> = {
-  endingBalance: "Money you can spend",
+  endingBalance: "Balance",
   p50: "Middle outcome",
   liquidValue: "You can spend this",
   housingValue: "Tied up in property",
@@ -36,7 +36,8 @@ const SERIES_ORDER = Object.keys(SERIES_LABELS)
  * name first and a compact figure second, which is the reverse of what the
  * hover is for. The reader put the cursor on a point to learn its value, so
  * the exact amount leads in the largest type and the series name sits under
- * it as a caption. The axis stays compact; the hover is where the precision
+ * it as a caption. That caption is "Balance": the point is the year-end
+ * balance, not a spendable amount — what can be spent is the "made of" lens. The axis stays compact; the hover is where the precision
  * lives.
  *
  * The Monte Carlo bands are drawn as stacked base+width areas so the fill

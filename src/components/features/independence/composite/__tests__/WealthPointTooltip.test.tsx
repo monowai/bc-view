@@ -27,9 +27,9 @@ describe("WealthPointTooltip", () => {
     expect(screen.getByText("S$1,096,432")).toBeInTheDocument()
     expect(screen.queryByText(/1\.10M/)).not.toBeInTheDocument()
     const text = container.textContent ?? ""
-    expect(text.indexOf("S$1,096,432")).toBeLessThan(
-      text.indexOf("Money you can spend"),
-    )
+    expect(screen.getByText("Balance")).toBeInTheDocument()
+    expect(screen.queryByText("Money you can spend")).not.toBeInTheDocument()
+    expect(text.indexOf("S$1,096,432")).toBeLessThan(text.indexOf("Balance"))
   })
 
   it("should put the sign before the symbol for a shortfall", () => {
