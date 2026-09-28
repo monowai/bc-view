@@ -1,0 +1,104 @@
+import React from "react"
+import { render, screen, within } from "@testing-library/react"
+import "@testing-library/jest-dom"
+import IndependenceReport from "@components/features/independence/report/IndependenceReport"
+import { makeReportProjection } from "@lib/independence/report/__fixtures__/reportProjection"
+import { fixtureMonteCarloResult } from "@components/features/independence/__fixtures__/monteCarloResult"
+import type { RetirementPlan } from "types/independence"
+
+jest.mock("recharts", () => {
+  const OriginalModule = jest.requireActual("recharts")
+  return {
+    ...OriginalModule,
+    ResponsiveContainer: ({
+      children,
+    }: {
+      children: React.ReactNode
+    }): React.ReactElement => (
+      <div style={{ width: 800, height: 400 }}>{children}</div>
+    ),
+  }
+})
+
+const plan = {
+  id: "plan-1",
+  name: "Base plan",
+  expensesCurrency: "SGD",
+} as RetirementPlan
+
+const baseProps = {
+  plan,
+  projection: makeReportProjection(),
+  baselineProjection: null,
+  mc: fixtureMonteCarloResult,
+  seed: 4213,
+  ages: { currentAge: 52, retirementAge: 60, lifeExpectancy: 90 },
+  effectiveCurrency: "S$",
+  hideValues: false,
+  lifestyle: null,
+}
+
+describe("IndependenceReport", () => {
+  it("should render every section heading in order", () => {
+    render(<IndependenceReport {...baseProps} />)
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent)
+    expect(headings).toEqual([
+      "1. Verdict",
+      "2. Where you stand",
+      "3. Lifestyle",
+      "4. Your journey",
+      "5. Stress test",
+      "6. Insights",
+      "7. Assumptions",
+      "8. Appendix",
+    ])
+  })
+
+  it("should lead with the first finding as the headline and the verdict sentence", () => {
+    render(<IndependenceReport {...baseProps} />)
+    const verdict = screen.getByTestId("report-verdict")
+    expect(
+      within(verdict).getByText("On track for independence at 60"),
+    ).toBeInTheDocument()
+    expect(verdict).toHaveTextContent(/funds every year to age 90/)
+  })
+
+  it("should print the seed in the stress-test section", () => {
+    render(<IndependenceReport {...baseProps} />)
+    expect(screen.getByTestId("report-stress")).toHaveTextContent("4213")
+  })
+
+  it("should omit the stress-test body and say so when no simulation ran", () => {
+    render(<IndependenceReport {...baseProps} mc={null} />)
+    expect(screen.getByTestId("report-stress")).toHaveTextContent(/not run/i)
+  })
+
+  it("should tag FIRE-lens findings when the strategy is HYBRID", () => {
+    render(<IndependenceReport {...baseProps} />)
+    const insights = screen.getByTestId("report-insights")
+    expect(within(insights).getByText("FIRE lens")).toBeInTheDocument()
+  })
+
+  it("should render the milestones in fixed order", () => {
+    render(<IndependenceReport {...baseProps} />)
+    const items = within(screen.getByTestId("report-milestones"))
+      .getAllByRole("listitem")
+      .map((li) => li.textContent)
+    expect(items[0]).toBe("Independence at age 62.")
+    expect(items[items.length - 1]).toMatch(/^Peak wealth/)
+  })
+
+  it("should render the versioned footer", () => {
+    render(<IndependenceReport {...baseProps} />)
+    expect(screen.getByTestId("report-footer")).toHaveTextContent(
+      "Base plan · as of 2026-09-28 · report v0.1",
+    )
+  })
+
+  it("should mask money when privacy mode is on", () => {
+    render(<IndependenceReport {...baseProps} hideValues />)
+    expect(screen.getByTestId("report-verdict")).not.toHaveTextContent("S$")
+  })
+})

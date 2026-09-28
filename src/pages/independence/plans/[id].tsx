@@ -46,6 +46,7 @@ import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import IndependenceReportContainer from "@components/features/independence/report/IndependenceReportContainer"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import type { PlansResponse } from "types/independence"
@@ -63,6 +64,9 @@ import { resolveDisplayAges } from "@lib/independence/age"
 function PlanView(): React.ReactElement {
   const router = useRouter()
   const { id } = router.query
+  // `?view=report` swaps the tabbed UI for the printable Independence
+  // analysis report, fed the same projection this page computed.
+  const isReportView = router.query.view === "report"
   const { hideValues } = usePrivacyMode()
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
@@ -856,6 +860,50 @@ function PlanView(): React.ReactElement {
     )
   }
 
+  if (isReportView) {
+    return (
+      <>
+        <Head>
+          <title>{plan.name} | Independence analysis | Beancounter</title>
+        </Head>
+        <div className="min-h-screen bg-gray-50 py-4 print:bg-white print:py-0">
+          <div className="container mx-auto px-4 print:px-0">
+            {adjustedProjection ? (
+              <IndependenceReportContainer
+                plan={plan}
+                projection={adjustedProjection}
+                baselineProjection={baselineProjection}
+                assets={{
+                  liquidAssets,
+                  nonSpendableAssets,
+                  totalAssets,
+                  hasAssets,
+                  isLoaded: true,
+                }}
+                scenario={scenario}
+                monthlyInvestment={monthlyInvestment}
+                rentalIncome={rentalIncome}
+                displayCurrency={displayCurrency ?? undefined}
+                effectiveCurrency={effectiveCurrency}
+                planCurrency={planCurrency}
+                ages={{
+                  currentAge: displayCurrentAge,
+                  retirementAge: displayRetirementAge,
+                  lifeExpectancy: displayLifeExpectancy,
+                }}
+                hideValues={hideValues}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <Spinner label="Preparing report..." size="lg" />
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Head>
@@ -973,6 +1021,17 @@ function PlanView(): React.ReactElement {
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
           />
+          {hasAssets && (
+            <div className="-mt-2 mb-4 text-right">
+              <Link
+                href={`/independence/plans/${plan.id}?view=report`}
+                className="text-xs text-gray-500 hover:text-gray-900"
+              >
+                <i className="fas fa-file-lines mr-1" aria-hidden="true" />
+                Independence analysis report
+              </Link>
+            </div>
+          )}
 
           {/* ——— Where you stand ——— */}
           {effectiveTab === "standing" && (

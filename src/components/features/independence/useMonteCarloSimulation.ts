@@ -26,6 +26,11 @@ export interface UseMonteCarloSimulationProps {
    * backend as-is; omitted from the request body when false/undefined.
    */
   neverSellIlliquid?: boolean
+  /**
+   * Fixed RNG seed. Same seed + same inputs = same result; used by the
+   * Independence report so its stress test is reproducible.
+   */
+  seed?: number
 }
 
 interface UseMonteCarloSimulationResult {
@@ -51,6 +56,7 @@ export function useMonteCarloSimulation({
   rentalIncome,
   displayCurrency,
   neverSellIlliquid,
+  seed,
 }: UseMonteCarloSimulationProps): UseMonteCarloSimulationResult {
   const [result, setResult] = useState<MonteCarloResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
@@ -79,6 +85,9 @@ export function useMonteCarloSimulation({
         }
         if (neverSellIlliquid) {
           requestBody.neverSellIlliquid = true
+        }
+        if (seed !== undefined) {
+          requestBody.seed = seed
         }
 
         const response = await fetch(
@@ -114,6 +123,7 @@ export function useMonteCarloSimulation({
       scenario,
       displayCurrency,
       neverSellIlliquid,
+      seed,
     ],
   )
 

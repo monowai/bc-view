@@ -1,0 +1,144 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`buildReport should match the golden snapshot 1`] = `
+{
+  "assumptions": [
+    {
+      "label": "Expected return",
+      "value": "5.5%",
+    },
+    {
+      "label": "Inflation",
+      "value": "2.5%",
+    },
+    {
+      "label": "Housing return",
+      "value": "2.0%",
+    },
+    {
+      "label": "Liquidation threshold",
+      "value": "25% of liquid at 60",
+    },
+    {
+      "label": "Independence age",
+      "value": "60",
+    },
+    {
+      "label": "Planning horizon",
+      "value": "age 90",
+    },
+    {
+      "label": "Monthly contribution",
+      "value": "S$6,000",
+    },
+    {
+      "label": "Planned monthly expenses",
+      "value": "S$8,400",
+    },
+    {
+      "label": "Scenario",
+      "value": "Base plan, no scenario applied.",
+    },
+  ],
+  "cover": {
+    "ageLine": "Age 52, planning to age 90, independence target age 60",
+    "asOfDate": "2026-09-28",
+    "currency": "SGD",
+    "planName": "Base plan",
+    "strategy": "HYBRID",
+    "title": "Independence analysis",
+    "valueBasis": "today's money",
+  },
+  "footer": {
+    "disclaimer": "Projections are estimates, not advice.",
+    "line": "Base plan · as of 2026-09-28 · report v0.1",
+    "templateVersion": "0.1",
+  },
+  "insights": {
+    "empty": null,
+    "findings": [
+      {
+        "code": "ON_TRACK",
+        "detail": "Projected liquid wealth at 60 covers planned spending to age 90.",
+        "gloss": "No change needed to reach the horizon on the current settings.",
+        "severity": "POSITIVE",
+        "title": "On track for independence at 60",
+      },
+      {
+        "code": "HORIZON_EXCEEDS_FIRE_WINDOW",
+        "detail": "A 30-year window is the basis of the 4% rule; yours is 38 years.",
+        "gloss": "The 4% rule assumes a 30-year window. Longer horizons need a lower withdrawal rate.",
+        "severity": "WARNING",
+        "tag": "FIRE lens",
+        "title": "Horizon longer than a 4% rule supports",
+      },
+    ],
+    "warnings": [],
+  },
+  "journey": {
+    "milestones": [
+      "Independence at age 62.",
+      "Property assumed sold at age 72 releasing S$980,000.",
+      "CPF LIFE payouts start at age 65.",
+      "Peak wealth S$4,266,000 at age 66.",
+    ],
+  },
+  "standing": {
+    "sentence": "You have 58% of your independence number of S$2,520,000. At your planned contribution rate you reach it at age 62.",
+  },
+  "stress": {
+    "depletionLine": null,
+    "parameters": [
+      {
+        "label": "Expected return",
+        "value": "5.8%",
+      },
+      {
+        "label": "Volatility",
+        "value": "12.4%",
+      },
+      {
+        "label": "Inflation",
+        "value": "3.0%",
+      },
+      {
+        "label": "Iterations",
+        "value": "1,000",
+      },
+      {
+        "label": "Seed",
+        "value": "4213",
+      },
+    ],
+    "seed": 4213,
+    "sentence": "In 73% of 1,000 simulated markets the plan lasts to age 90. The worst tenth of outcomes end with S$50,000; the median with S$600,000.",
+  },
+  "verdict": {
+    "detail": "Projected liquid wealth at 60 covers planned spending to age 90.",
+    "headline": "On track for independence at 60",
+    "kpis": [
+      {
+        "caption": "at age 60",
+        "label": "Liquid wealth at independence",
+        "value": "S$2.1m",
+      },
+      {
+        "caption": "+12% vs planned S$8,400",
+        "label": "Sustainable monthly spend",
+        "value": "S$9,400",
+      },
+      {
+        "caption": "beyond age 90",
+        "label": "Money lasts until",
+        "value": "90+",
+      },
+      {
+        "caption": "1,000 runs, seed 4213",
+        "label": "Stress-test success",
+        "value": "73%",
+      },
+    ],
+    "sentence": "Your plan funds every year to age 90 with S$600,000 to spare in the median case.",
+  },
+}
+`;

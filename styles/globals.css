@@ -373,3 +373,31 @@ body {
     animation: none;
   }
 }
+
+/* Independence analysis report — print layout. The report is the same DOM
+   on screen and paper; these rules only paginate it. */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+@media print {
+  header,
+  nav,
+  .report-toolbar {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .report {
+    max-width: none;
+  }
+  .report-section {
+    break-inside: avoid;
+    border: 0;
+    padding: 0;
+  }
+  .report-break {
+    break-before: page;
+  }
+}
