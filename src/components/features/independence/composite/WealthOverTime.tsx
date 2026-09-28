@@ -27,8 +27,10 @@ import {
 } from "@lib/independence/journeyRibbon"
 import { formatCompact, formatCompactBare } from "@lib/formatters"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+import WealthPointTooltip from "./WealthPointTooltip"
 
 const HIDDEN_VALUE = "****"
+
 const ITERATION_OPTIONS = [500, 1000, 2000, 5000]
 
 /** Phase band tints. Backgrounds only — never the meaning-bearing colour. */
@@ -318,34 +320,19 @@ export default function WealthOverTime(): React.ReactElement | null {
               {...(yMax != null ? { domain: [0, yMax] } : {})}
             />
             <ChartTooltip
-              formatter={(value, name) => {
-                const formatted = hideValues
-                  ? HIDDEN_VALUE
-                  : formatCompact(Number(value) || 0, displayCurrency)
-                // The stacked lens keys carry storage names; the reader needs
-                // the spendable-vs-locked distinction spelled out, since that
-                // is the entire point of looking at this lens.
-                const labels: Record<string, string> = {
-                  liquidValue: "You can spend this",
-                  housingValue: "Tied up in property",
-                  annuitizedValue: "Locked in CPF LIFE",
-                }
-                const key = String(name ?? "")
-                return [formatted, labels[key] ?? key]
-              }}
-              labelFormatter={(age) => {
-                const point = madeOf.chartData.find((d) => d.age === age)
-                return point?.planName
-                  ? `Age ${age} — ${point.planName}`
-                  : `Age ${age}`
-              }}
-              contentStyle={{
-                fontSize: 12,
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,.08)",
-                padding: "6px 10px",
-              }}
+              content={({ active, label, payload }) => (
+                <WealthPointTooltip
+                  active={active}
+                  label={label}
+                  payload={payload}
+                  currency={displayCurrency}
+                  hideValues={hideValues}
+                  planName={
+                    madeOf.chartData.find((d) => d.age === Number(label))
+                      ?.planName
+                  }
+                />
+              )}
             />
 
             {/* Phase bands sit under both lenses — the shape of the plan is
