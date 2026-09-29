@@ -12,6 +12,7 @@ import {
   Market,
   Portfolio,
   Position,
+  PriceData,
   QuickSellData,
 } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
@@ -20,6 +21,7 @@ import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import { isFundLike } from "@lib/assets/assetUtils"
+import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
@@ -148,6 +150,19 @@ function AssetLookupPage(): React.ReactElement {
       : null,
     simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
   )
+
+  // Latest close from svc-data: stored price, else fetched from the market
+  // provider. Unknown search hits go by market/code (empty until BC has them).
+  const priceKey = selectedAsset?.assetId
+    ? `/api/prices/${selectedAsset.assetId}`
+    : selectedAsset?.market && selectedAsset.symbol
+      ? `/api/prices/${selectedAsset.market}/${selectedAsset.symbol}`
+      : null
+  const { data: priceResponse } = useSWR<{ data: PriceData[] }>(
+    priceKey,
+    priceKey ? simpleFetcher(priceKey) : null,
+  )
+  const lastClose = priceResponse?.data?.[0]
 
   const positions = positionsData?.data || []
   // Zero-balance rows (fully sold out / roundtripped) add no value to "who
@@ -413,6 +428,36 @@ function AssetLookupPage(): React.ReactElement {
                   </span>
                 )}
               </div>
+              {lastClose && (
+                <div
+                  data-testid="last-close"
+                  className="flex flex-wrap items-baseline gap-x-2 mt-2 text-sm"
+                >
+                  <span className="text-gray-500">{"Last Close"}</span>
+                  <span className="text-base font-semibold text-gray-900 tabular-nums">
+                    {formatCurrency(lastClose.close)}
+                  </span>
+                  {/* No previous close = no real change; don't show 0.00%. */}
+                  {lastClose.previousClose > 0 && (
+                    <span
+                      className={`tabular-nums ${
+                        lastClose.change < 0
+                          ? "text-red-600"
+                          : lastClose.change > 0
+                            ? "text-emerald-600"
+                            : "text-gray-600"
+                      }`}
+                    >
+                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
+                    </span>
+                  )}
+                  {lastClose.priceDate && (
+                    <span className="text-gray-500">
+                      {formatDate(lastClose.priceDate)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedAsset.symbol && (

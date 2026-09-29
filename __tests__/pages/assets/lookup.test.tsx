@@ -4,6 +4,7 @@ import "@testing-library/jest-dom"
 import useSWR from "swr"
 import AssetLookupPage from "@pages/assets/lookup"
 import { marketsKey } from "@utils/api/fetchHelper"
+import { formatDate } from "@lib/formatters"
 import {
   makeAsset,
   makePortfolio,
@@ -74,6 +75,19 @@ jest.mock("swr", () => ({
 const positionsKey = "/api/assets/asset-1/positions?date=today"
 const modelsKeyUrl = "/api/rebalance/assets/asset-1/models"
 const permissionsKey = "/api/auth/permissions"
+const priceKey = "/api/prices/asset-1"
+const defaultPrice = {
+  data: [
+    {
+      close: 181.42,
+      change: -2.1,
+      changePercent: -0.0114,
+      previousClose: 183.52,
+      priceDate: "2026-09-29",
+    },
+  ],
+}
+let priceFixture: unknown = defaultPrice
 
 const growthPortfolio = makePortfolio({ id: "pf-1", code: "GROWTH" })
 const incomePortfolio = makePortfolio({ id: "pf-2", code: "INCOME" })
@@ -124,6 +138,9 @@ function mockSwrData(): void {
     }
     if (key === permissionsKey) {
       return { data: undefined, isLoading: false }
+    }
+    if (key === priceKey) {
+      return { data: priceFixture, isLoading: false }
     }
     return { data: undefined, isLoading: false }
   })
@@ -278,5 +295,50 @@ describe("Asset Lookup Page — ETF sectors", () => {
 
     expect(await screen.findByTestId("sector-popup")).toBeInTheDocument()
     expect((capturedSectorProps?.asset as { id: string }).id).toBe("vti-id")
+  })
+})
+
+describe("Asset Lookup Page — last close", () => {
+  beforeEach(() => {
+    mockQuery = defaultQuery
+    priceFixture = defaultPrice
+    mockSwrData()
+  })
+
+  it("shows the provider's latest close, change and price date", () => {
+    render(<AssetLookupPage />)
+
+    const lastClose = screen.getByTestId("last-close")
+    expect(lastClose).toHaveTextContent("Last Close")
+    expect(lastClose).toHaveTextContent("181.42")
+    expect(lastClose).toHaveTextContent("-2.10")
+    expect(lastClose).toHaveTextContent("-1.14%")
+    expect(lastClose).toHaveTextContent(formatDate("2026-09-29"))
+  })
+
+  it("omits the change when the provider sent no previous close", () => {
+    priceFixture = {
+      data: [
+        {
+          close: 227.21,
+          change: 0,
+          changePercent: 0,
+          previousClose: 0,
+          priceDate: "2026-09-29",
+        },
+      ],
+    }
+    render(<AssetLookupPage />)
+
+    const lastClose = screen.getByTestId("last-close")
+    expect(lastClose).toHaveTextContent("227.21")
+    expect(lastClose).not.toHaveTextContent("0.00%")
+  })
+
+  it("hides last close when the provider returns no price", () => {
+    priceFixture = { data: [] }
+    render(<AssetLookupPage />)
+
+    expect(screen.queryByTestId("last-close")).not.toBeInTheDocument()
   })
 })
