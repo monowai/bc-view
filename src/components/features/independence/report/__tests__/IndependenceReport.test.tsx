@@ -33,7 +33,7 @@ const baseProps = {
   mc: fixtureMonteCarloResult,
   seed: 4213,
   ages: { currentAge: 52, retirementAge: 60, lifeExpectancy: 90 },
-  effectiveCurrency: "S$",
+  effectiveCurrency: "SGD",
   hideValues: false,
   lifestyle: null,
 }
@@ -100,5 +100,14 @@ describe("IndependenceReport", () => {
   it("should mask money when privacy mode is on", () => {
     render(<IndependenceReport {...baseProps} hideValues />)
     expect(screen.getByTestId("report-verdict")).not.toHaveTextContent("S$")
+  })
+})
+
+describe("IndependenceReport currency", () => {
+  it("should print the currency symbol, not the ISO code, for money", () => {
+    render(<IndependenceReport {...baseProps} effectiveCurrency="SGD" />)
+    const verdict = screen.getByTestId("report-verdict")
+    expect(verdict.textContent).toContain("S$")
+    expect(verdict.textContent).not.toMatch(/SGD\d/)
   })
 })

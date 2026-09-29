@@ -24,6 +24,11 @@ import {
  * Spec: bc-claude/INDEPENDENCE_REPORT.md.
  */
 
+/** svc-retire serialises absent optionals as JSON `null`; treat both as unset. */
+function has<T>(v: T | null | undefined): v is T {
+  return v !== null && v !== undefined
+}
+
 export interface ReportAges {
   /** Absent until the owner sets a date of birth; the cover prints a dash. */
   currentAge?: number
@@ -148,7 +153,7 @@ function peakWealth(projection: RetirementProjection): WealthPoint | null {
     points.push({ age: row.age, totalWealth: row.totalWealth })
   }
   for (const row of projection.yearlyProjections ?? []) {
-    if (row.age !== undefined) {
+    if (has(row.age)) {
       points.push({ age: row.age, totalWealth: row.totalWealth ?? 0 })
     }
   }
@@ -180,27 +185,24 @@ function buildVerdict(
     },
     {
       label: "Sustainable monthly spend",
-      value: sustainable !== undefined ? money(sustainable, sym) : "—",
-      caption:
-        adjustment !== undefined
-          ? phrases.KPI_VS_PLANNED({
-              delta: signedPercent(adjustment),
-              planned: money(projection.monthlyExpenses, sym),
-            })
-          : "",
+      value: has(sustainable) ? money(sustainable, sym) : "—",
+      caption: has(adjustment)
+        ? phrases.KPI_VS_PLANNED({
+            delta: signedPercent(adjustment),
+            planned: money(projection.monthlyExpenses, sym),
+          })
+        : "",
     },
     {
       label: "Money lasts until",
-      value:
-        projection.depletionAge !== undefined
-          ? String(projection.depletionAge)
-          : `${ages.lifeExpectancy}+`,
-      caption:
-        projection.depletionAge !== undefined
-          ? phrases.KPI_RUNWAY({
-              years: String(Math.round(projection.runwayYears)),
-            })
-          : phrases.KPI_BEYOND_HORIZON({ lifeExpectancy }),
+      value: has(projection.depletionAge)
+        ? String(projection.depletionAge)
+        : `${ages.lifeExpectancy}+`,
+      caption: has(projection.depletionAge)
+        ? phrases.KPI_RUNWAY({
+            years: String(Math.round(projection.runwayYears)),
+          })
+        : phrases.KPI_BEYOND_HORIZON({ lifeExpectancy }),
     },
     {
       label: "Stress-test success",
@@ -208,22 +210,22 @@ function buildVerdict(
       caption: mc
         ? phrases.KPI_MC_RUNS({
             iterations: mc.iterations.toLocaleString("en-US"),
-            seed: input.seed !== undefined ? String(input.seed) : "—",
+            seed: has(input.seed) ? String(input.seed) : "—",
           })
         : phrases.KPI_NOT_RUN(),
     },
   ]
 
   let sentence: string
-  if (projection.depletionAge !== undefined) {
+  if (has(projection.depletionAge)) {
     sentence = phrases.VERDICT_SHORTFALL({
       depletionAge: String(projection.depletionAge),
       shortfallYears: String(ages.lifeExpectancy - projection.depletionAge),
       lifeExpectancy,
-      sustainableMonthlyExpense:
-        sustainable !== undefined ? money(sustainable, sym) : "—",
-      adjustmentPercent:
-        adjustment !== undefined ? percent(Math.abs(adjustment)) : "—",
+      sustainableMonthlyExpense: has(sustainable)
+        ? money(sustainable, sym)
+        : "—",
+      adjustmentPercent: has(adjustment) ? percent(Math.abs(adjustment)) : "—",
     })
   } else if (mc) {
     sentence = phrases.VERDICT_FUNDED({
@@ -259,7 +261,7 @@ function buildStanding(
       retirementAge: String(ages.retirementAge),
     })
   }
-  if (projection.fiAchievementAge !== undefined) {
+  if (has(projection.fiAchievementAge)) {
     return phrases.STANDING_PROGRESS({
       fiProgress,
       fiNumber,
@@ -274,13 +276,13 @@ function buildMilestones(
   sym: string,
 ): string[] {
   const out: string[] = []
-  if (projection.fiAchievementAge !== undefined) {
+  if (has(projection.fiAchievementAge)) {
     out.push(
       phrases.MILESTONE_FI_AGE({ age: String(projection.fiAchievementAge) }),
     )
   }
   const sold = projection.yearlyProjections?.some((r) => r.propertyLiquidated)
-  if (sold && projection.liquidationAge !== undefined) {
+  if (sold && has(projection.liquidationAge)) {
     out.push(
       phrases.MILESTONE_PROPERTY_SOLD({
         age: String(projection.liquidationAge),
@@ -288,7 +290,7 @@ function buildMilestones(
       }),
     )
   }
-  if (projection.cpfLifeAge !== undefined) {
+  if (has(projection.cpfLifeAge)) {
     out.push(phrases.MILESTONE_CPF_LIFE({ age: String(projection.cpfLifeAge) }))
   }
   const peak = peakWealth(projection)
@@ -379,7 +381,7 @@ function buildAssumptions(
     label: "Housing return",
     value: percent(projection.housingReturnRate * 100, 1),
   })
-  if (projection.liquidationThresholdPercent !== undefined) {
+  if (has(projection.liquidationThresholdPercent)) {
     rows.push({
       label: "Liquidation threshold",
       value: `${projection.liquidationThresholdPercent}% of liquid at ${ages.retirementAge}`,
@@ -402,7 +404,7 @@ function buildAssumptions(
   if (
     projection.planCurrency &&
     projection.planCurrency !== projection.currency &&
-    projection.displayFxRate !== undefined
+    has(projection.displayFxRate)
   ) {
     rows.push({
       label: `FX ${projection.planCurrency} → ${projection.currency}`,
@@ -415,7 +417,7 @@ function buildAssumptions(
 
 export function buildReport(input: BuildReportInput): ReportModel {
   const { plan, projection, mc, ages, currencySymbol: sym } = input
-  const seed = mc && input.seed !== undefined ? input.seed : null
+  const seed = mc && has(input.seed) ? input.seed : null
   return {
     cover: {
       title: "Independence analysis",
@@ -428,8 +430,7 @@ export function buildReport(input: BuildReportInput): ReportModel {
       strategy:
         projection.effectiveStrategy ?? projection.primaryStrategy ?? "",
       ageLine: phrases.AGE_LINE({
-        currentAge:
-          ages.currentAge === undefined ? "—" : String(ages.currentAge),
+        currentAge: !has(ages.currentAge) ? "—" : String(ages.currentAge),
         lifeExpectancy: String(ages.lifeExpectancy),
         retirementAge: String(ages.retirementAge),
       }),

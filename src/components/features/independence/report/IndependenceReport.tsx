@@ -1,3 +1,4 @@
+import { currencySymbolFor } from "@lib/formatters"
 import React, { useMemo } from "react"
 import Link from "next/link"
 import type {
@@ -35,7 +36,7 @@ export interface IndependenceReportProps {
   /** Seed sent with the Monte Carlo request; printed for reproducibility. */
   seed?: number
   ages: ReportAges
-  /** Display currency symbol, e.g. "S$". */
+  /** Display currency ISO code, e.g. "SGD". Symbol derived via currencySymbolFor. */
   effectiveCurrency: string
   hideValues: boolean
   lifestyle: LifestyleSummaryModel | null
@@ -171,12 +172,12 @@ export default function IndependenceReport({
         projection,
         mc,
         ages,
-        currencySymbol: effectiveCurrency,
+        currencySymbol: currencySymbolFor(effectiveCurrency),
         seed,
       }),
     [plan, projection, mc, ages, effectiveCurrency, seed],
   )
-  const sym = effectiveCurrency
+  const sym = currencySymbolFor(effectiveCurrency)
   const m = (s: string): string => maskMoney(s, sym, hideValues)
   const firstFinding = projection.findings?.[0]
   const fiProgress = projection.fiMetrics?.fiProgress
@@ -297,7 +298,7 @@ export default function IndependenceReport({
           lifeExpectancy={ages.lifeExpectancy}
           hideValues={hideValues}
           isCalculating={false}
-          effectiveCurrency={sym}
+          effectiveCurrency={effectiveCurrency}
         />
       </Section>
 
@@ -312,7 +313,7 @@ export default function IndependenceReport({
             <MonteCarloResultView
               result={mc}
               deterministicProjection={projection}
-              currency={sym}
+              currency={effectiveCurrency}
               hideValues={hideValues}
             />
             <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">

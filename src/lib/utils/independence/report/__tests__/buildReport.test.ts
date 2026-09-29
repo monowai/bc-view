@@ -126,3 +126,38 @@ describe("buildReport", () => {
     expect(report).toMatchSnapshot()
   })
 })
+
+describe("buildReport with JSON nulls from svc-retire", () => {
+  // The wire format carries `null`, not `undefined`, for absent optionals.
+  const nulled = makeReportProjection({
+    fiAchievementAge: null as unknown as undefined,
+    cpfLifeAge: null as unknown as undefined,
+    liquidationAge: null as unknown as undefined,
+  })
+
+  it("should fall back to the no-age standing sentence when fiAchievementAge is null", () => {
+    const model = buildReport({
+      plan,
+      projection: nulled,
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(model.standing.sentence).not.toContain("null")
+    expect(model.standing.sentence).toContain("independence number")
+  })
+
+  it("should omit milestones whose age is null", () => {
+    const model = buildReport({
+      plan,
+      projection: nulled,
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(model.journey.milestones.join(" ")).not.toContain("null")
+    expect(
+      model.journey.milestones.some((m) => m.startsWith("Peak wealth")),
+    ).toBe(true)
+  })
+})
