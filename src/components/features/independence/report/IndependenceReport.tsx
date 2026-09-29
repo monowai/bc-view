@@ -223,7 +223,7 @@ export default function IndependenceReport({
     })),
     ...projection.yearlyProjections.map((r) => ({
       key: `ret-${r.year}`,
-      age: r.age ?? "—",
+      age: r.age ?? null,
       starting: r.startingBalance,
       growth: r.investment,
       income: r.incomeBreakdown?.totalIncome ?? 0,
@@ -286,7 +286,9 @@ export default function IndependenceReport({
           <div className="my-2">
             <div className="mb-1 flex justify-between text-xs text-gray-600">
               <span>Independence number progress</span>
-              <span className="tabular-nums">{Math.round(fiProgress)}%</span>
+              <span data-testid="report-fi-label" className="tabular-nums">
+                {Math.round(Math.max(0, Math.min(100, fiProgress)))}%
+              </span>
             </div>
             <div className="flex h-3 overflow-hidden rounded bg-gray-100">
               <div
@@ -440,7 +442,7 @@ export default function IndependenceReport({
                 key={r.key}
                 className="border-b border-gray-100 even:bg-gray-50"
               >
-                <td className="py-0.5">{r.age}</td>
+                <td className="py-0.5">{r.age ?? "—"}</td>
                 <td className="py-0.5 text-right">
                   {m(money(r.starting, sym))}
                 </td>

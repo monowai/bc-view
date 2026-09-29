@@ -114,6 +114,20 @@ describe("buildReport", () => {
     expect(onTrack?.tag).toBeUndefined()
   })
 
+  it("should treat an unresolved strategy as FIRE and leave findings untagged", () => {
+    const projection = makeReportProjection()
+    projection.effectiveStrategy = undefined
+    projection.primaryStrategy = undefined
+    const report = buildReport({
+      plan,
+      projection,
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(report.insights.findings.some((f) => f.tag)).toBe(false)
+  })
+
   it("should match the golden snapshot", () => {
     const report = buildReport({
       plan,

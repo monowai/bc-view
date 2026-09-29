@@ -350,7 +350,10 @@ function buildStress(
 function buildInsights(
   projection: RetirementProjection,
 ): ReportModel["insights"] {
-  const notFire = projection.effectiveStrategy !== "FIRE"
+  // Unresolved strategy reads as FIRE, matching defaultStrategyView.
+  const strategy =
+    projection.effectiveStrategy ?? projection.primaryStrategy ?? "FIRE"
+  const notFire = strategy !== "FIRE"
   const findings: ReportFinding[] = (projection.findings ?? []).map((f) => {
     const out: ReportFinding = { ...f }
     if (notFire && FIRE_LENS_CODES.has(f.code)) out.tag = "FIRE lens"

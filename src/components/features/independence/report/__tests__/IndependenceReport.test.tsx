@@ -127,6 +127,13 @@ describe("IndependenceReport robustness", () => {
     expect(bar).toHaveStyle({ width: "0%" })
   })
 
+  it("should clamp the progress label to the same 0-100 range as the bar", () => {
+    const projection = makeReportProjection()
+    projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: -12 }
+    render(<IndependenceReport {...baseProps} projection={projection} />)
+    expect(screen.getByTestId("report-fi-label")).toHaveTextContent("0%")
+  })
+
   it("should say the stress test failed when the simulation errored", () => {
     render(
       <IndependenceReport

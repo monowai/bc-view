@@ -43,4 +43,35 @@ describe("useMonteCarloSimulation seed", () => {
     const [, init] = (global.fetch as jest.Mock).mock.calls[0]
     expect(JSON.parse(init.body)).not.toHaveProperty("seed")
   })
+
+  it("should keep the latest run's result when an earlier run resolves last", async () => {
+    const slow = { ...fixtureMonteCarloResult, iterations: 111 }
+    const fast = { ...fixtureMonteCarloResult, iterations: 222 }
+    let releaseSlow: (v: unknown) => void = () => undefined
+    ;(global.fetch as jest.Mock)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSlow = resolve
+          }),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: fast }),
+      })
+    const { result } = renderHook(() =>
+      useMonteCarloSimulation({ plan, assets, seed: 4213 }),
+    )
+    let first: Promise<void> = Promise.resolve()
+    await act(async () => {
+      first = result.current.runSimulation()
+      await result.current.runSimulation()
+    })
+    await act(async () => {
+      releaseSlow({ ok: true, json: () => Promise.resolve({ data: slow }) })
+      await first
+    })
+    expect(result.current.result?.iterations).toBe(222)
+    expect(result.current.isRunning).toBe(false)
+  })
 })

@@ -61,7 +61,9 @@ export default function IndependenceReportContainer({
   // identity on any parent re-render that rebuilds assets/scenario, so key
   // the run on the inputs' content: equal inputs never re-post, changed
   // inputs (holdings refresh, scenario edit) re-run with the same seed.
-  const inputKey = JSON.stringify({
+  // Keys are sorted so a re-fetch that reorders a record (rental income by
+  // currency) does not count as a change.
+  const inputKey = stableStringify({
     seed,
     assets,
     scenario,
@@ -97,5 +99,17 @@ export default function IndependenceReportContainer({
       lifestyle={lifestyle}
       mcError={error?.message ?? null}
     />
+  )
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>).sort(([a], [b]) =>
+            a.localeCompare(b, "en-US"),
+          ),
+        )
+      : v,
   )
 }

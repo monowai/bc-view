@@ -99,6 +99,26 @@ describe("IndependenceReportContainer", () => {
     expect(mockRunSimulation).toHaveBeenCalledTimes(2)
   })
 
+  it("should not re-run when rental income arrives with its currencies in a different order", () => {
+    const rental = {
+      monthlyNetByCurrency: { SGD: 2000, NZD: 1500 },
+      totalMonthlyInPlanCurrency: 3300,
+    }
+    const { rerender } = render(
+      <IndependenceReportContainer {...props} rentalIncome={rental} />,
+    )
+    rerender(
+      <IndependenceReportContainer
+        {...props}
+        rentalIncome={{
+          monthlyNetByCurrency: { NZD: 1500, SGD: 2000 },
+          totalMonthlyInPlanCurrency: 3300,
+        }}
+      />,
+    )
+    expect(mockRunSimulation).toHaveBeenCalledTimes(1)
+  })
+
   it("should surface a failed simulation instead of the not-run message", () => {
     hookError = new Error("Failed to run Monte Carlo simulation")
     render(<IndependenceReportContainer {...props} />)
