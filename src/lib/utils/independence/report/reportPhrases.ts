@@ -9,7 +9,7 @@
  *
  * Spec: bc-claude/INDEPENDENCE_REPORT.md → Narrative.
  */
-export const REPORT_TEMPLATE_VERSION = "0.1"
+export const REPORT_TEMPLATE_VERSION = "0.2"
 
 /** Finding codes svc-retire's FindingsService can emit today. */
 export const FINDING_CODES = [
@@ -87,6 +87,21 @@ export const phrases = {
   ) =>
     `Your plan runs short at age ${s.depletionAge}, ${s.shortfallYears} years before age ${s.lifeExpectancy}. Sustainable spending is ${s.sustainableMonthlyExpense} a month, ${s.adjustmentPercent} ${s.adjustmentDirection} plan.`,
 
+  JOURNEY_HEADLINE_FUNDED: (s: Slots<"lifeExpectancy">) =>
+    `Your money lasts to age ${s.lifeExpectancy}`,
+  JOURNEY_HEADLINE_SHORT: (s: Slots<"depletionAge">) =>
+    `Your money runs out at age ${s.depletionAge}`,
+  JOURNEY_SHORTFALL: (
+    s: Slots<"depletionAge" | "shortfallYears" | "lifeExpectancy">,
+  ) =>
+    `Your journey runs short at age ${s.depletionAge}, ${s.shortfallYears} years before age ${s.lifeExpectancy}.`,
+  JOURNEY_STAGE_COUNT: (s: Slots<"count">) =>
+    s.count === "1" ? "1 stage" : `${s.count} stages`,
+  JOURNEY_STAGE_ASSUMPTIONS: (s: Slots<"equity" | "cash" | "inflation">) =>
+    `equity ${s.equity}, cash ${s.cash}, inflation ${s.inflation}`,
+  JOURNEY_STAGE_STANDALONE: () =>
+    "Run as a plan on its own, from today. The journey above is the combined answer.",
+
   KPI_AT_AGE: (s: Slots<"age">) => `at age ${s.age}`,
   KPI_VS_PLANNED: (s: Slots<"delta" | "planned">) =>
     `${s.delta} vs planned ${s.planned}`,
@@ -96,6 +111,7 @@ export const phrases = {
   KPI_MC_RUNS: (s: Slots<"iterations" | "seed">) =>
     `${s.iterations} runs, seed ${s.seed}`,
   KPI_NOT_RUN: () => "not run",
+  KPI_TARGET: (s: Slots<"target">) => `target ${s.target}`,
 
   STANDING_PROGRESS: (
     s: Slots<"fiProgress" | "fiNumber" | "fiAchievementAge">,

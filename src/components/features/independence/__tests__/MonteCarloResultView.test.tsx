@@ -57,3 +57,15 @@ describe("MonteCarloResultView — mounts ConfidenceRibbon", () => {
     expect(screen.getByText("72.5%")).toBeInTheDocument()
   })
 })
+
+describe("MonteCarloResultView — deterministic overlay", () => {
+  it("should print the deterministic runway by default", () => {
+    render(<MonteCarloResultView {...defaultProps} />)
+    expect(screen.getByText(/Deterministic runway/)).toBeInTheDocument()
+  })
+
+  it("should omit the deterministic runway when the caller has none to show", () => {
+    render(<MonteCarloResultView {...defaultProps} showDeterministic={false} />)
+    expect(screen.queryByText(/Deterministic runway/)).not.toBeInTheDocument()
+  })
+})

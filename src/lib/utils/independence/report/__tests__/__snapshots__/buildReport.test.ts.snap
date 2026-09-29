@@ -51,8 +51,8 @@ exports[`buildReport should match the golden snapshot 1`] = `
   },
   "footer": {
     "disclaimer": "Projections are estimates, not advice.",
-    "line": "Base plan · as of 2026-09-28 · report v0.1",
-    "templateVersion": "0.1",
+    "line": "Base plan · as of 2026-09-28 · report v0.2",
+    "templateVersion": "0.2",
   },
   "insights": {
     "empty": null,

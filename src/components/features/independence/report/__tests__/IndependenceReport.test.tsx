@@ -99,7 +99,7 @@ describe("IndependenceReport", () => {
   it("should render the versioned footer", () => {
     render(<IndependenceReport {...baseProps} />)
     expect(screen.getByTestId("report-footer")).toHaveTextContent(
-      "Base plan · as of 2026-09-28 · report v0.1",
+      "Base plan · as of 2026-09-28 · report v0.2",
     )
   })
 

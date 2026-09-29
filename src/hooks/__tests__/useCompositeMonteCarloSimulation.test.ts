@@ -231,4 +231,34 @@ describe("useCompositeMonteCarloSimulation", () => {
 
     expect(global.fetch).not.toHaveBeenCalled()
   })
+
+  it("should keep the latest run's result when an earlier run resolves last", async () => {
+    const slow = { ...fixtureMonteCarloResult, iterations: 111 }
+    const fast = { ...fixtureMonteCarloResult, iterations: 222 }
+    let releaseSlow: (v: unknown) => void = () => undefined
+    ;(global.fetch as jest.Mock)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSlow = resolve
+          }),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: fast }),
+      })
+    const { result } = renderHook(() => useCompositeMonteCarloSimulation())
+    const args = { iterations: 1000, phases, displayCurrency: "SGD" }
+    let first: Promise<void> = Promise.resolve()
+    await act(async () => {
+      first = result.current.runSimulation(args)
+      await result.current.runSimulation(args)
+    })
+    await act(async () => {
+      releaseSlow({ ok: true, json: () => Promise.resolve({ data: slow }) })
+      await first
+    })
+    expect(result.current.result?.iterations).toBe(222)
+    expect(result.current.isRunning).toBe(false)
+  })
 })
