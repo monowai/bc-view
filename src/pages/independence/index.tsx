@@ -385,7 +385,11 @@ function PlanCard({
 function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
-  const { settings, mutateSettings } = useIndependenceSettings()
+  const {
+    settings,
+    isLoading: settingsLoading,
+    mutateSettings,
+  } = useIndependenceSettings()
   // The journey being viewed — `?plan=<id>`, else the default, else the
   // first by name. Owns the composite config the Plan tab reads and writes.
   const {
@@ -818,7 +822,7 @@ function RetirementPlanning(): React.ReactElement {
   // `?view=report` swaps the page for the printable journey report.
   if (requestedView === "report") {
     const reportBody = (): React.ReactElement => {
-      if (isLoading || journeysLoading) {
+      if (isLoading || journeysLoading || settingsLoading || holdingsLoading) {
         return (
           <div className="py-12 text-center">
             <Spinner label="Preparing report..." size="lg" />

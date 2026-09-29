@@ -86,8 +86,10 @@ export default function JourneyReport({
     })),
   ]
   // Three states, one level of JSX: ran, failed, not run.
-  const stressBody = (ran: React.ReactNode): React.ReactNode => {
-    if (model.stress && mc) return ran
+  const stressBody = (
+    ran: (result: MonteCarloResult) => React.ReactNode,
+  ): React.ReactNode => {
+    if (model.stress && mc) return ran(mc)
     if (mcError) {
       return (
         <p className="text-red-700">
@@ -173,14 +175,14 @@ export default function JourneyReport({
 
       {/* 5. Stress test */}
       <Section id="stress" title="5. Stress test" breakBefore>
-        {stressBody(
+        {stressBody((result) => (
           <>
             <p className="mb-3">{m(model.stress?.sentence ?? "")}</p>
             {model.stress?.depletionLine && (
               <p className="mb-3 text-gray-700">{model.stress.depletionLine}</p>
             )}
             <MonteCarloResultView
-              result={mc as MonteCarloResult}
+              result={result}
               currency={currency}
               hideValues={hideValues}
               showDeterministic={false}
@@ -193,8 +195,8 @@ export default function JourneyReport({
               symbol={sym}
               hide={hideValues}
             />
-          </>,
-        )}
+          </>
+        ))}
       </Section>
 
       {/* 6. Stage by stage */}

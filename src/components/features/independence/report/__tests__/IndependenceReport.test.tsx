@@ -119,6 +119,14 @@ describe("IndependenceReport currency", () => {
 })
 
 describe("IndependenceReport robustness", () => {
+  it("should colour the bar as reached when the label rounds to 100%", () => {
+    const projection = makeReportProjection()
+    projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: 99.6 }
+    render(<IndependenceReport {...baseProps} projection={projection} />)
+    expect(screen.getByTestId("report-fi-label")).toHaveTextContent("100%")
+    expect(screen.getByTestId("report-fi-bar")).toHaveClass("bg-green-500")
+  })
+
   it("should clamp the progress bar at zero for a negative fiProgress", () => {
     const projection = makeReportProjection()
     projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: -12 }

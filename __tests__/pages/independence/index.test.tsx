@@ -38,8 +38,10 @@ jest.mock("@hooks/useIndependencePlans", () => ({
   }),
 }))
 
+let mockSettingsLoading = false
 jest.mock("@hooks/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
+    isLoading: mockSettingsLoading,
     settings: {
       yearOfBirth: 1970,
       monthOfBirth: 6,
@@ -578,6 +580,7 @@ describe("/independence — plan config lives with what it configures", () => {
 describe("/independence — journey report", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockSettingsLoading = false
     global.fetch = mockFetch
     mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve("") })
     mockActiveJourney = makeJourney({
@@ -606,6 +609,27 @@ describe("/independence — journey report", () => {
     expect(props.plans.map((p: RetirementPlan) => p.id)).toEqual([
       "plan-owning",
     ])
+  })
+
+  it("should hold the report until holdings have loaded", () => {
+    mockQuery = { plan: "jrn-owning", view: "report" }
+    const base = (useSwr as jest.Mock).getMockImplementation()!
+    ;(useSwr as jest.Mock).mockImplementation((key: string | null) =>
+      typeof key === "string" && key.includes("/holdings/")
+        ? { data: undefined, error: null, isLoading: true, mutate: jest.fn() }
+        : base(key),
+    )
+    render(<Page />)
+    expect(screen.getByText("Preparing report...")).toBeInTheDocument()
+    expect(mockJourneyReport).not.toHaveBeenCalled()
+  })
+
+  it("should hold the report until settings have loaded", () => {
+    mockQuery = { plan: "jrn-owning", view: "report" }
+    mockSettingsLoading = true
+    render(<Page />)
+    expect(screen.getByText("Preparing report...")).toBeInTheDocument()
+    expect(mockJourneyReport).not.toHaveBeenCalled()
   })
 
   it("should not offer the report for a journey with no stages", () => {

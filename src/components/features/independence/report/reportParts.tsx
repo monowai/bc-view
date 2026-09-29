@@ -146,7 +146,7 @@ export function FiProgressBar({
       <div className="flex h-3 overflow-hidden rounded bg-gray-100">
         <div
           data-testid="report-fi-bar"
-          className={`h-full ${fiProgress >= 100 ? "bg-green-500" : "bg-independence-500"}`}
+          className={`h-full ${clamped >= 100 ? "bg-green-500" : "bg-independence-500"}`}
           style={{ width: `${clamped}%` }}
         />
       </div>
