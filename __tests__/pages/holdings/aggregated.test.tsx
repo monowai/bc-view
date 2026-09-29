@@ -38,6 +38,15 @@ jest.mock("@components/features/holdings/SectorWeightingsPopup", () => ({
   ),
 }))
 
+let capturedTradeProps: Record<string, unknown> | null = null
+jest.mock("@components/features/transactions/TradeInputForm", () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => {
+    capturedTradeProps = props
+    return <div data-testid="trade-form" />
+  },
+}))
+
 const etf = makeAsset({
   id: "asset-voo",
   code: "VOO",
@@ -126,4 +135,53 @@ describe("Aggregated holdings — sector weightings", () => {
       )
     },
   )
+})
+
+describe("Aggregated holdings — trade a new asset", () => {
+  const closed = makePortfolio({ id: "pf-old", code: "OLD", active: false })
+  const growth = makePortfolio({ id: "pf-growth", code: "GROWTH" })
+
+  beforeEach(() => {
+    capturedTradeProps = null
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => {
+      if (typeof key === "string" && key.startsWith("/api/holdings/aggregated"))
+        return {
+          data: { data: holdingContract },
+          error: undefined,
+          isLoading: false,
+          mutate: jest.fn(),
+        }
+      if (typeof key === "string" && key.startsWith("/api/portfolios"))
+        return {
+          data: { data: [closed, growth] },
+          error: undefined,
+          isLoading: false,
+          mutate: jest.fn(),
+        }
+      return {
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        mutate: jest.fn(),
+      }
+    })
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it("opens a blank BUY trade against a real, active portfolio", () => {
+    render(<AggregatedHoldingsPage />)
+
+    expect(screen.queryByTestId("trade-form")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Trade an asset" }))
+
+    expect(screen.getByTestId("trade-form")).toBeInTheDocument()
+    expect((capturedTradeProps?.portfolio as { id: string }).id).toBe(
+      "pf-growth",
+    )
+    // No seed — TradeInputForm opens its blank new-trade (BUY) form.
+    expect(capturedTradeProps?.initialValues).toBeUndefined()
+  })
 })

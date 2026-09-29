@@ -299,6 +299,18 @@ function AggregatedHoldingsPage(): React.ReactElement {
     return map
   }, [portfoliosData])
 
+  // Toolbar "Trade" buys an asset the aggregate may not hold yet. Default the
+  // form to the first active portfolio in scope; its own picker can change it.
+  const [newTradePortfolio, setNewTradePortfolio] = useState<
+    Portfolio | undefined
+  >(undefined)
+  const defaultTradePortfolio = useMemo(() => {
+    const active = (portfoliosData?.data ?? []).filter(
+      (p) => p.active !== false,
+    )
+    return active.find((p) => portfolioCodes.includes(p.code)) ?? active[0]
+  }, [portfoliosData, portfolioCodes])
+
   const breakdownByAssetId = useMemo(
     () => indexBreakdownByAssetId(holdings?.holdingGroups ?? {}),
     [holdings],
@@ -575,6 +587,17 @@ function AggregatedHoldingsPage(): React.ReactElement {
             >
               <i className="fas fa-copy text-xs text-blue-500"></i>
             </button>
+            {defaultTradePortfolio && (
+              <button
+                type="button"
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-emerald-500 hover:bg-emerald-600 text-white"
+                onClick={() => setNewTradePortfolio(defaultTradePortfolio)}
+                aria-label="Trade an asset"
+                title="Trade an asset"
+              >
+                <i className="fas fa-right-left text-xs"></i>
+              </button>
+            )}
             <button
               className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-blue-500 hover:bg-blue-600 text-white"
               onClick={() => {
@@ -800,6 +823,15 @@ function AggregatedHoldingsPage(): React.ReactElement {
             initialValues={quickSellData}
             weightBasisMarketValue={tradeWeight?.marketValue}
             currentWeightOverride={tradeWeight?.currentWeight}
+          />
+        )}
+        {newTradePortfolio && (
+          <TradeInputForm
+            portfolio={newTradePortfolio}
+            modalOpen={true}
+            setModalOpen={(open) => {
+              if (!open) setNewTradePortfolio(undefined)
+            }}
           />
         )}
         {cashBalanceData && cashPortfolio && (
