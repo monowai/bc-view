@@ -161,3 +161,17 @@ describe("buildReport with JSON nulls from svc-retire", () => {
     ).toBe(true)
   })
 })
+
+describe("buildReport shortfall guard", () => {
+  it("should clamp shortfall years at zero when depletion lands past the horizon", () => {
+    const model = buildReport({
+      plan,
+      projection: makeReportProjection({ depletionAge: 95 }),
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(model.verdict.sentence).toContain("runs short at age 95, 0 years")
+    expect(model.verdict.sentence).not.toContain("-5")
+  })
+})

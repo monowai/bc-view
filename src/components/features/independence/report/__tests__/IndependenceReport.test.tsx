@@ -6,6 +6,12 @@ import { makeReportProjection } from "@lib/independence/report/__fixtures__/repo
 import { fixtureMonteCarloResult } from "@components/features/independence/__fixtures__/monteCarloResult"
 import type { RetirementPlan } from "types/independence"
 
+// The timeline is the plan page's own component and is covered by its own
+// tests; stub it so key/console assertions here are about the report only.
+jest.mock("@components/features/independence/TimelineTabContent", () => ({
+  __esModule: true,
+  default: (): React.ReactElement => <div data-testid="timeline-stub" />,
+}))
 jest.mock("recharts", () => {
   const OriginalModule = jest.requireActual("recharts")
   return {
@@ -109,5 +115,43 @@ describe("IndependenceReport currency", () => {
     const verdict = screen.getByTestId("report-verdict")
     expect(verdict.textContent).toContain("S$")
     expect(verdict.textContent).not.toMatch(/SGD\d/)
+  })
+})
+
+describe("IndependenceReport robustness", () => {
+  it("should clamp the progress bar at zero for a negative fiProgress", () => {
+    const projection = makeReportProjection()
+    projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: -12 }
+    render(<IndependenceReport {...baseProps} projection={projection} />)
+    const bar = screen.getByTestId("report-fi-bar")
+    expect(bar).toHaveStyle({ width: "0%" })
+  })
+
+  it("should say the stress test failed when the simulation errored", () => {
+    render(
+      <IndependenceReport
+        {...baseProps}
+        mc={null}
+        mcError="Failed to run Monte Carlo simulation"
+      />,
+    )
+    expect(screen.getByTestId("report-stress")).toHaveTextContent(
+      "Stress test failed: Failed to run Monte Carlo simulation",
+    )
+  })
+
+  it("should give appendix rows unique keys when retirement rows carry no age", () => {
+    const projection = makeReportProjection()
+    projection.yearlyProjections = projection.yearlyProjections.map((r) => ({
+      ...r,
+      age: undefined,
+    }))
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {})
+    render(<IndependenceReport {...baseProps} projection={projection} />)
+    const keyWarnings = spy.mock.calls.filter((c) =>
+      String(c[0]).includes("same key"),
+    )
+    spy.mockRestore()
+    expect(keyWarnings).toHaveLength(0)
   })
 })

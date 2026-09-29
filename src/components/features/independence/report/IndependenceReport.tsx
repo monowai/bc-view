@@ -40,6 +40,8 @@ export interface IndependenceReportProps {
   effectiveCurrency: string
   hideValues: boolean
   lifestyle: LifestyleSummaryModel | null
+  /** Message from a failed Monte Carlo run; distinguishes failed from not run. */
+  mcError?: string | null
   /** Where "Back to plan" goes. Defaults to the plan page. */
   backHref?: string
 }
@@ -107,7 +109,7 @@ function Kpis({
   hide: boolean
 }): React.ReactElement {
   return (
-    <dl className="my-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <dl className="report-keep my-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
       {kpis.map((k) => (
         <div
           key={k.label}
@@ -163,6 +165,7 @@ export default function IndependenceReport({
   effectiveCurrency,
   hideValues,
   lifestyle,
+  mcError = null,
   backHref,
 }: IndependenceReportProps): React.ReactElement {
   const model = useMemo(
@@ -183,6 +186,7 @@ export default function IndependenceReport({
   const fiProgress = projection.fiMetrics?.fiProgress
   const yearRows = [
     ...(projection.accumulationProjections ?? []).map((r) => ({
+      key: `acc-${r.year}`,
       age: r.age,
       starting: r.startingBalance,
       growth: r.investmentGrowth,
@@ -192,6 +196,7 @@ export default function IndependenceReport({
       total: r.totalWealth,
     })),
     ...projection.yearlyProjections.map((r) => ({
+      key: `ret-${r.year}`,
       age: r.age ?? 0,
       starting: r.startingBalance,
       growth: r.investment,
@@ -225,7 +230,7 @@ export default function IndependenceReport({
       {/* 0. Cover band */}
       <header
         data-testid="report-cover"
-        className="grid grid-cols-[1fr_auto] gap-3 border-b-2 border-gray-900 pb-3"
+        className="report-cover report-keep grid grid-cols-[1fr_auto] gap-3 border-b-2 border-gray-900 pb-3"
       >
         <div>
           <h1 className="text-2xl font-bold">{model.cover.title}</h1>
@@ -259,8 +264,11 @@ export default function IndependenceReport({
             </div>
             <div className="flex h-3 overflow-hidden rounded bg-gray-100">
               <div
+                data-testid="report-fi-bar"
                 className={`h-full ${fiProgress >= 100 ? "bg-green-500" : "bg-independence-500"}`}
-                style={{ width: `${Math.min(100, Math.round(fiProgress))}%` }}
+                style={{
+                  width: `${Math.max(0, Math.min(100, Math.round(fiProgress)))}%`,
+                }}
               />
             </div>
           </div>
@@ -325,6 +333,10 @@ export default function IndependenceReport({
               hide={hideValues}
             />
           </>
+        ) : mcError ? (
+          <p className="text-red-700">
+            Stress test failed: {mcError}. Reload the report to retry.
+          </p>
         ) : (
           <p className="text-gray-600">
             Stress test not run. Open the plan and run the simulation, then
@@ -342,7 +354,7 @@ export default function IndependenceReport({
             {model.insights.findings.map((f) => {
               const s = SEVERITY[f.severity]
               return (
-                <li key={f.code} className="flex gap-3 py-2">
+                <li key={f.code} className="report-keep flex gap-3 py-2">
                   <i
                     className={`fas ${s.icon} ${s.color} mt-0.5`}
                     aria-hidden="true"
@@ -408,7 +420,7 @@ export default function IndependenceReport({
           <tbody>
             {yearRows.map((r) => (
               <tr
-                key={r.age}
+                key={r.key}
                 className="border-b border-gray-100 even:bg-gray-50"
               >
                 <td className="py-0.5">{r.age}</td>

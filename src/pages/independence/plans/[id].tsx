@@ -378,6 +378,18 @@ function PlanView(): React.ReactElement {
 
   // Determine if assets are loaded (for enabling asset-dependent tabs)
   const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0
+  // Stable reference for the report container: an inline literal would
+  // change identity every render and re-key its Monte Carlo callback.
+  const reportAssets = useMemo(
+    () => ({
+      liquidAssets,
+      nonSpendableAssets,
+      totalAssets,
+      hasAssets,
+      isLoaded: true,
+    }),
+    [liquidAssets, nonSpendableAssets, totalAssets, hasAssets],
+  )
 
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
@@ -868,18 +880,24 @@ function PlanView(): React.ReactElement {
         </Head>
         <div className="min-h-screen bg-gray-50 py-4 print:bg-white print:py-0">
           <div className="container mx-auto px-4 print:px-0">
-            {adjustedProjection ? (
+            {!hasAssets ? (
+              <div className="py-12 text-center text-gray-600">
+                <p>
+                  This plan has no assets yet, so there is nothing to report.
+                </p>
+                <Link
+                  href={`/independence/plans/${plan.id}`}
+                  className="mt-3 inline-block text-independence-600 hover:underline"
+                >
+                  Back to plan
+                </Link>
+              </div>
+            ) : adjustedProjection ? (
               <IndependenceReportContainer
                 plan={plan}
                 projection={adjustedProjection}
                 baselineProjection={baselineProjection}
-                assets={{
-                  liquidAssets,
-                  nonSpendableAssets,
-                  totalAssets,
-                  hasAssets,
-                  isLoaded: true,
-                }}
+                assets={reportAssets}
                 scenario={scenario}
                 monthlyInvestment={monthlyInvestment}
                 rentalIncome={rentalIncome}

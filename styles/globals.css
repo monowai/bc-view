@@ -381,22 +381,32 @@ body {
   margin: 14mm;
 }
 @media print {
-  header,
+  /* Site chrome only: the report's own cover band is a <header> too. */
+  header:not(.report-cover),
   nav,
   .report-toolbar {
     display: none !important;
   }
+
   body {
     background: #fff;
   }
+
   .report {
     max-width: none;
   }
+
+  /* Long sections (journey, stress test, appendix) paginate naturally;
+     only small indivisible blocks carry .report-keep. */
   .report-section {
-    break-inside: avoid;
     border: 0;
     padding: 0;
   }
+
+  .report-keep {
+    break-inside: avoid;
+  }
+
   .report-break {
     break-before: page;
   }

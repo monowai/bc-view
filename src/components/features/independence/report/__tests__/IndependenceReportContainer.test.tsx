@@ -11,15 +11,16 @@ import { DEFAULT_SCENARIO_STATE } from "@components/features/independence/scenar
 
 const mockRunSimulation = jest.fn()
 let capturedHookProps: UseMonteCarloSimulationProps | undefined
+let hookError: Error | null = null
 
 jest.mock("@components/features/independence/useMonteCarloSimulation", () => ({
   useMonteCarloSimulation: (props: UseMonteCarloSimulationProps) => {
     capturedHookProps = props
     return {
-      result: fixtureMonteCarloResult,
+      result: hookError ? null : fixtureMonteCarloResult,
       isRunning: false,
-      error: null,
-      runSimulation: mockRunSimulation,
+      error: hookError,
+      runSimulation: (): Promise<void> => mockRunSimulation() as Promise<void>,
     }
   },
 }))
@@ -75,6 +76,24 @@ describe("IndependenceReportContainer", () => {
   beforeEach(() => {
     mockRunSimulation.mockClear()
     capturedHookProps = undefined
+    hookError = null
+  })
+
+  it("should run the simulation once per seed even when the parent re-renders with a fresh assets object", () => {
+    const { rerender } = render(<IndependenceReportContainer {...props} />)
+    rerender(
+      <IndependenceReportContainer {...props} assets={{ ...props.assets }} />,
+    )
+    rerender(<IndependenceReportContainer {...props} hideValues />)
+    expect(mockRunSimulation).toHaveBeenCalledTimes(1)
+  })
+
+  it("should surface a failed simulation instead of the not-run message", () => {
+    hookError = new Error("Failed to run Monte Carlo simulation")
+    render(<IndependenceReportContainer {...props} />)
+    expect(screen.getByTestId("report-stress")).toHaveTextContent(
+      "Stress test failed: Failed to run Monte Carlo simulation",
+    )
   })
 
   it("should run one seeded simulation derived from plan id and as-of date", () => {

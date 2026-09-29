@@ -220,7 +220,9 @@ function buildVerdict(
   if (has(projection.depletionAge)) {
     sentence = phrases.VERDICT_SHORTFALL({
       depletionAge: String(projection.depletionAge),
-      shortfallYears: String(ages.lifeExpectancy - projection.depletionAge),
+      shortfallYears: String(
+        Math.max(0, ages.lifeExpectancy - projection.depletionAge),
+      ),
       lifeExpectancy,
       sustainableMonthlyExpense: has(sustainable)
         ? money(sustainable, sym)

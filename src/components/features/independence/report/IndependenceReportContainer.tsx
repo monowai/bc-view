@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useRef } from "react"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import { buildLifestyleSummary } from "@lib/independence/lifestyleSummary"
 import { reportSeed } from "@lib/independence/report/reportSeed"
@@ -48,7 +48,7 @@ export default function IndependenceReportContainer({
   hideValues,
 }: IndependenceReportContainerProps): React.ReactElement {
   const seed = reportSeed(plan.id, projection.asOfDate)
-  const { result, runSimulation } = useMonteCarloSimulation({
+  const { result, error, runSimulation } = useMonteCarloSimulation({
     plan,
     assets,
     monthlyInvestment,
@@ -57,10 +57,15 @@ export default function IndependenceReportContainer({
     displayCurrency,
     seed,
   })
-  // One seeded run per projection. Same seed + same inputs = same fan chart.
+  // One seeded run per seed (plan + as-of date). `runSimulation` changes
+  // identity whenever the parent re-renders with a fresh assets/scenario
+  // object, so key the effect on the seed and read the latest callback.
+  const lastSeedRun = useRef<number | null>(null)
   useEffect(() => {
+    if (lastSeedRun.current === seed) return
+    lastSeedRun.current = seed
     void runSimulation()
-  }, [runSimulation])
+  }, [seed, runSimulation])
 
   const { expenses } = usePlanExpenses(plan.id)
   const { labels } = useExpenseCategories()
@@ -81,6 +86,7 @@ export default function IndependenceReportContainer({
       effectiveCurrency={effectiveCurrency}
       hideValues={hideValues}
       lifestyle={lifestyle}
+      mcError={error?.message ?? null}
     />
   )
 }

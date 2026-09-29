@@ -129,5 +129,5 @@ export function makeReportProjection(
     ],
     warnings: [],
     ...overrides,
-  } as unknown as RetirementProjection
+  } as RetirementProjection
 }
