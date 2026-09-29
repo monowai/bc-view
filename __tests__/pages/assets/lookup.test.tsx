@@ -12,20 +12,30 @@ import {
 
 // Mock next/router — hydrate selectedAsset straight from the query string so
 // tests don't have to drive AssetSearch's own fetch/debounce flow.
+const defaultQuery: Record<string, string> = {
+  assetId: "asset-1",
+  symbol: "AAPL",
+  market: "NASDAQ",
+  name: "Apple Inc",
+  currency: "USD",
+  type: "EQUITY",
+}
+let mockQuery: Record<string, string> = defaultQuery
 jest.mock("next/router", () => ({
   useRouter: () => ({
     isReady: true,
-    query: {
-      assetId: "asset-1",
-      symbol: "AAPL",
-      market: "NASDAQ",
-      name: "Apple Inc",
-      currency: "USD",
-      type: "EQUITY",
-    },
+    query: mockQuery,
     push: jest.fn(),
   }),
 }))
+
+let capturedSectorProps: Record<string, unknown> | null = null
+jest.mock("@components/features/holdings/SectorWeightingsPopup", () => {
+  return function SectorWeightingsPopup(props: Record<string, unknown>) {
+    capturedSectorProps = props
+    return props.modalOpen ? <div data-testid="sector-popup" /> : null
+  }
+})
 
 jest.mock("@contexts/UserPreferencesContext", () => ({
   useUserPreferences: () => ({ preferences: {}, isLoading: false }),
@@ -121,6 +131,7 @@ function mockSwrData(): void {
 
 describe("Asset Lookup Page — tabbed layout", () => {
   beforeEach(() => {
+    mockQuery = defaultQuery
     capturedTradeProps = null
     capturedBrokersTabProps = null
     mockSwrData()
@@ -200,5 +211,72 @@ describe("Asset Lookup Page — tabbed layout", () => {
     expect(
       screen.queryByRole("button", { name: /^sell/i }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("Asset Lookup Page — ETF sectors", () => {
+  const originalFetch = global.fetch
+
+  beforeEach(() => {
+    mockQuery = defaultQuery
+    capturedSectorProps = null
+    mockSwrData()
+  })
+
+  afterEach(() => {
+    global.fetch = originalFetch
+  })
+
+  it("does not offer Sectors for an equity", () => {
+    render(<AssetLookupPage />)
+
+    expect(
+      screen.queryByRole("button", { name: /sectors/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("opens the sector weightings for a known ETF", async () => {
+    mockQuery = {
+      ...defaultQuery,
+      symbol: "VOO",
+      name: "Vanguard S&P 500",
+      type: "ETF",
+    }
+    render(<AssetLookupPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: /sectors/i }))
+
+    expect(await screen.findByTestId("sector-popup")).toBeInTheDocument()
+    expect((capturedSectorProps?.asset as { id: string }).id).toBe("asset-1")
+  })
+
+  it("offers Sectors for a search hit typed as a mutual fund", () => {
+    mockQuery = { ...defaultQuery, symbol: "SPY", type: "Mutual Fund" }
+    render(<AssetLookupPage />)
+
+    expect(screen.getByRole("button", { name: /sectors/i })).toBeInTheDocument()
+  })
+
+  it("resolves an ETF not yet known to BC before showing its sectors", async () => {
+    mockQuery = {
+      symbol: "VTI",
+      market: "US",
+      name: "Vanguard Total Market",
+      currency: "USD",
+      type: "ETF",
+    }
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { VTI: makeAsset({ id: "vti-id", code: "VTI" }) },
+        }),
+    }) as unknown as typeof fetch
+    render(<AssetLookupPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: /sectors/i }))
+
+    expect(await screen.findByTestId("sector-popup")).toBeInTheDocument()
+    expect((capturedSectorProps?.asset as { id: string }).id).toBe("vti-id")
   })
 })
