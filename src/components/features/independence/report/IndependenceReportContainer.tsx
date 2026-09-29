@@ -57,15 +57,24 @@ export default function IndependenceReportContainer({
     displayCurrency,
     seed,
   })
-  // One seeded run per seed (plan + as-of date). `runSimulation` changes
-  // identity whenever the parent re-renders with a fresh assets/scenario
-  // object, so key the effect on the seed and read the latest callback.
-  const lastSeedRun = useRef<number | null>(null)
+  // One seeded run per distinct set of inputs. `runSimulation` changes
+  // identity on any parent re-render that rebuilds assets/scenario, so key
+  // the run on the inputs' content: equal inputs never re-post, changed
+  // inputs (holdings refresh, scenario edit) re-run with the same seed.
+  const inputKey = JSON.stringify({
+    seed,
+    assets,
+    scenario,
+    monthlyInvestment,
+    rentalIncome,
+    displayCurrency,
+  })
+  const lastRunKey = useRef<string | null>(null)
   useEffect(() => {
-    if (lastSeedRun.current === seed) return
-    lastSeedRun.current = seed
+    if (lastRunKey.current === inputKey) return
+    lastRunKey.current = inputKey
     void runSimulation()
-  }, [seed, runSimulation])
+  }, [inputKey, runSimulation])
 
   const { expenses } = usePlanExpenses(plan.id)
   const { labels } = useExpenseCategories()

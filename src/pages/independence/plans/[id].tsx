@@ -66,7 +66,10 @@ function PlanView(): React.ReactElement {
   const { id } = router.query
   // `?view=report` swaps the tabbed UI for the printable Independence
   // analysis report, fed the same projection this page computed.
-  const isReportView = router.query.view === "report"
+  const viewParam = Array.isArray(router.query.view)
+    ? router.query.view[0]
+    : router.query.view
+  const isReportView = viewParam === "report"
   const { hideValues } = usePrivacyMode()
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
@@ -534,6 +537,7 @@ function PlanView(): React.ReactElement {
     adjustedProjection,
     baselineProjection,
     isCalculating,
+    error: projectionError,
     resetProjection,
   } = useUnifiedProjection({
     plan,
@@ -873,6 +877,62 @@ function PlanView(): React.ReactElement {
   }
 
   if (isReportView) {
+    const backLink = (
+      <Link
+        href={`/independence/plans/${plan.id}`}
+        className="mt-3 inline-block text-independence-600 hover:underline"
+      >
+        Back to plan
+      </Link>
+    )
+    // One level of JSX: no assets, ready, failed, still calculating.
+    const reportBody = (): React.ReactElement => {
+      if (!hasAssets) {
+        return (
+          <div className="py-12 text-center text-gray-600">
+            <p>This plan has no assets yet, so there is nothing to report.</p>
+            {backLink}
+          </div>
+        )
+      }
+      if (adjustedProjection) {
+        return (
+          <IndependenceReportContainer
+            plan={plan}
+            projection={adjustedProjection}
+            baselineProjection={baselineProjection}
+            assets={reportAssets}
+            scenario={scenario}
+            monthlyInvestment={monthlyInvestment}
+            rentalIncome={rentalIncome}
+            displayCurrency={displayCurrency ?? undefined}
+            effectiveCurrency={effectiveCurrency}
+            planCurrency={planCurrency}
+            ages={{
+              currentAge: displayCurrentAge,
+              retirementAge: displayRetirementAge,
+              lifeExpectancy: displayLifeExpectancy,
+            }}
+            hideValues={hideValues}
+          />
+        )
+      }
+      if (!isCalculating && projectionError) {
+        return (
+          <div className="py-12 text-center text-gray-600">
+            <p>
+              The projection could not be calculated: {projectionError.message}
+            </p>
+            {backLink}
+          </div>
+        )
+      }
+      return (
+        <div className="text-center py-12">
+          <Spinner label="Preparing report..." size="lg" />
+        </div>
+      )
+    }
     return (
       <>
         <Head>
@@ -880,42 +940,7 @@ function PlanView(): React.ReactElement {
         </Head>
         <div className="min-h-screen bg-gray-50 py-4 print:bg-white print:py-0">
           <div className="container mx-auto px-4 print:px-0">
-            {!hasAssets ? (
-              <div className="py-12 text-center text-gray-600">
-                <p>
-                  This plan has no assets yet, so there is nothing to report.
-                </p>
-                <Link
-                  href={`/independence/plans/${plan.id}`}
-                  className="mt-3 inline-block text-independence-600 hover:underline"
-                >
-                  Back to plan
-                </Link>
-              </div>
-            ) : adjustedProjection ? (
-              <IndependenceReportContainer
-                plan={plan}
-                projection={adjustedProjection}
-                baselineProjection={baselineProjection}
-                assets={reportAssets}
-                scenario={scenario}
-                monthlyInvestment={monthlyInvestment}
-                rentalIncome={rentalIncome}
-                displayCurrency={displayCurrency ?? undefined}
-                effectiveCurrency={effectiveCurrency}
-                planCurrency={planCurrency}
-                ages={{
-                  currentAge: displayCurrentAge,
-                  retirementAge: displayRetirementAge,
-                  lifeExpectancy: displayLifeExpectancy,
-                }}
-                hideValues={hideValues}
-              />
-            ) : (
-              <div className="text-center py-12">
-                <Spinner label="Preparing report..." size="lg" />
-              </div>
-            )}
+            {reportBody()}
           </div>
         </div>
       </>

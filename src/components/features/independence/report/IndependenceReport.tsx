@@ -69,10 +69,19 @@ const SEVERITY: Record<
 }
 
 /** Privacy mode hides money, not the shape of the report. */
+const MONEY_PATTERNS = new Map<string, RegExp>()
+function moneyPattern(symbol: string): RegExp {
+  let re = MONEY_PATTERNS.get(symbol)
+  if (!re) {
+    const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    re = new RegExp(`-?${escaped}[\\d,.]+[mk]?`, "g")
+    MONEY_PATTERNS.set(symbol, re)
+  }
+  return re
+}
 function maskMoney(text: string, symbol: string, hide: boolean): string {
   if (!hide) return text
-  const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return text.replace(new RegExp(`-?${escaped}[\\d,.]+[mk]?`, "g"), "•••")
+  return text.replace(moneyPattern(symbol), "•••")
 }
 
 function Section({
@@ -182,6 +191,23 @@ export default function IndependenceReport({
   )
   const sym = currencySymbolFor(effectiveCurrency)
   const m = (s: string): string => maskMoney(s, sym, hideValues)
+  // Three states, one level of JSX: ran, failed, not run.
+  const stressBody = (ran: React.ReactNode): React.ReactNode => {
+    if (model.stress && mc) return ran
+    if (mcError) {
+      return (
+        <p className="text-red-700">
+          Stress test failed: {mcError}. Reload the report to retry.
+        </p>
+      )
+    }
+    return (
+      <p className="text-gray-600">
+        Stress test not run. Open the plan and run the simulation, then print
+        again.
+      </p>
+    )
+  }
   const firstFinding = projection.findings?.[0]
   const fiProgress = projection.fiMetrics?.fiProgress
   const yearRows = [
@@ -197,7 +223,7 @@ export default function IndependenceReport({
     })),
     ...projection.yearlyProjections.map((r) => ({
       key: `ret-${r.year}`,
-      age: r.age ?? 0,
+      age: r.age ?? "—",
       starting: r.startingBalance,
       growth: r.investment,
       income: r.incomeBreakdown?.totalIncome ?? 0,
@@ -312,14 +338,14 @@ export default function IndependenceReport({
 
       {/* 5. Stress test */}
       <Section id="stress" title="5. Stress test" breakBefore>
-        {model.stress && mc ? (
+        {stressBody(
           <>
-            <p className="mb-3">{m(model.stress.sentence)}</p>
-            {model.stress.depletionLine && (
+            <p className="mb-3">{m(model.stress?.sentence ?? "")}</p>
+            {model.stress?.depletionLine && (
               <p className="mb-3 text-gray-700">{model.stress.depletionLine}</p>
             )}
             <MonteCarloResultView
-              result={mc}
+              result={mc as MonteCarloResult}
               deterministicProjection={projection}
               currency={effectiveCurrency}
               hideValues={hideValues}
@@ -328,20 +354,11 @@ export default function IndependenceReport({
               Parameters
             </h3>
             <Rows
-              rows={model.stress.parameters}
+              rows={model.stress?.parameters ?? []}
               symbol={sym}
               hide={hideValues}
             />
-          </>
-        ) : mcError ? (
-          <p className="text-red-700">
-            Stress test failed: {mcError}. Reload the report to retry.
-          </p>
-        ) : (
-          <p className="text-gray-600">
-            Stress test not run. Open the plan and run the simulation, then
-            print again.
-          </p>
+          </>,
         )}
       </Section>
 

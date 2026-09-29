@@ -155,3 +155,20 @@ describe("IndependenceReport robustness", () => {
     expect(keyWarnings).toHaveLength(0)
   })
 })
+
+describe("IndependenceReport appendix ages", () => {
+  it("should print a dash, not 0, for retirement rows without an age", () => {
+    const projection = makeReportProjection()
+    projection.yearlyProjections = projection.yearlyProjections.map((r) => ({
+      ...r,
+      age: undefined,
+    }))
+    render(<IndependenceReport {...baseProps} projection={projection} />)
+    const cells = screen
+      .getByTestId("report-appendix")
+      .querySelectorAll("tbody td:first-child")
+    const dashes = [...cells].filter((c) => c.textContent === "—").length
+    expect(dashes).toBe(projection.yearlyProjections.length)
+    expect([...cells].some((c) => c.textContent === "0")).toBe(false)
+  })
+})

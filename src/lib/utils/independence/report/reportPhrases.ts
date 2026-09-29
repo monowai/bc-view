@@ -57,8 +57,12 @@ const FINDING_GLOSS: Record<FindingCode, string> = {
     "Planned contributions exceed the annual ISA allowance. The excess is treated as taxable savings.",
 }
 
-export function findingPhrase(code: string): string | undefined {
-  return (FINDING_GLOSS as Record<string, string>)[code]
+export function isFindingCode(code: string): code is FindingCode {
+  return (FINDING_CODES as readonly string[]).includes(code)
+}
+
+export function findingPhrase(code: FindingCode): string {
+  return FINDING_GLOSS[code]
 }
 
 type Slots<K extends string> = Record<K, string>
@@ -78,9 +82,10 @@ export const phrases = {
       | "lifeExpectancy"
       | "sustainableMonthlyExpense"
       | "adjustmentPercent"
+      | "adjustmentDirection"
     >,
   ) =>
-    `Your plan runs short at age ${s.depletionAge}, ${s.shortfallYears} years before age ${s.lifeExpectancy}. Sustainable spending is ${s.sustainableMonthlyExpense} a month, ${s.adjustmentPercent} below plan.`,
+    `Your plan runs short at age ${s.depletionAge}, ${s.shortfallYears} years before age ${s.lifeExpectancy}. Sustainable spending is ${s.sustainableMonthlyExpense} a month, ${s.adjustmentPercent} ${s.adjustmentDirection} plan.`,
 
   KPI_AT_AGE: (s: Slots<"age">) => `at age ${s.age}`,
   KPI_VS_PLANNED: (s: Slots<"delta" | "planned">) =>

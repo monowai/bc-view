@@ -10,6 +10,7 @@ import {
   REPORT_TEMPLATE_VERSION,
   findingPhrase,
   phrases,
+  isFindingCode,
 } from "./reportPhrases"
 
 /**
@@ -228,6 +229,9 @@ function buildVerdict(
         ? money(sustainable, sym)
         : "—",
       adjustmentPercent: has(adjustment) ? percent(Math.abs(adjustment)) : "—",
+      // expenseAdjustmentPercent is signed: negative = cut, positive = room.
+      adjustmentDirection:
+        has(adjustment) && adjustment > 0 ? "above" : "below",
     })
   } else if (mc) {
     sentence = phrases.VERDICT_FUNDED({
@@ -253,7 +257,8 @@ function buildStanding(
 ): string | null {
   const fi = projection.fiMetrics
   if (!fi) return null
-  const fiProgress = percent(fi.fiProgress)
+  // Behind-plan holders can carry a negative fiProgress; report 0%, not -N%.
+  const fiProgress = percent(Math.max(0, fi.fiProgress))
   const fiNumber = money(fi.fiNumber, sym)
   const coast = projection.findings?.some((f) => f.code === "COAST_FI_REACHED")
   if (coast) {
@@ -349,7 +354,7 @@ function buildInsights(
   const findings: ReportFinding[] = (projection.findings ?? []).map((f) => {
     const out: ReportFinding = { ...f }
     if (notFire && FIRE_LENS_CODES.has(f.code)) out.tag = "FIRE lens"
-    const gloss = findingPhrase(f.code)
+    const gloss = isFindingCode(f.code) ? findingPhrase(f.code) : undefined
     if (gloss) out.gloss = gloss
     return out
   })

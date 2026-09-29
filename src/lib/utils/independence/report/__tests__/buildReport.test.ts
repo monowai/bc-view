@@ -175,3 +175,33 @@ describe("buildReport shortfall guard", () => {
     expect(model.verdict.sentence).not.toContain("-5")
   })
 })
+
+describe("buildReport sign handling", () => {
+  it("should floor a negative fiProgress at 0% in the standing sentence", () => {
+    const projection = makeReportProjection()
+    projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: -12 }
+    const model = buildReport({
+      plan,
+      projection,
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(model.standing.sentence).toContain("You have 0% of")
+    expect(model.standing.sentence).not.toContain("-12%")
+  })
+
+  it("should say above plan when a shortfall carries a positive adjustment", () => {
+    const model = buildReport({
+      plan,
+      projection: makeReportProjection({
+        depletionAge: 84,
+        expenseAdjustmentPercent: 5,
+      }),
+      mc: null,
+      ages,
+      currencySymbol: "S$",
+    })
+    expect(model.verdict.sentence).toContain("5% above plan")
+  })
+})

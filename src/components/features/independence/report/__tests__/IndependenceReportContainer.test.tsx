@@ -88,6 +88,17 @@ describe("IndependenceReportContainer", () => {
     expect(mockRunSimulation).toHaveBeenCalledTimes(1)
   })
 
+  it("should re-run when the simulation inputs actually change", () => {
+    const { rerender } = render(<IndependenceReportContainer {...props} />)
+    rerender(
+      <IndependenceReportContainer
+        {...props}
+        assets={{ ...props.assets, liquidAssets: 1_400_000 }}
+      />,
+    )
+    expect(mockRunSimulation).toHaveBeenCalledTimes(2)
+  })
+
   it("should surface a failed simulation instead of the not-run message", () => {
     hookError = new Error("Failed to run Monte Carlo simulation")
     render(<IndependenceReportContainer {...props} />)
