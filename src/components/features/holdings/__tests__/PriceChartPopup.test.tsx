@@ -221,6 +221,34 @@ function resolveKeys(): string[] {
 }
 
 describe("PriceChartPopup", () => {
+  // The popup's default 6m window is anchored on today's date, and the
+  // fixtures sit in March-April 2026. Pin the clock so the trades stay inside
+  // the window; without this the suite started failing on 2026-09-29.
+  beforeAll(() => {
+    jest.useFakeTimers({
+      now: new Date("2026-04-25T00:00:00Z"),
+      doNotFake: [
+        "setTimeout",
+        "clearTimeout",
+        "setInterval",
+        "clearInterval",
+        "setImmediate",
+        "clearImmediate",
+        "nextTick",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "performance",
+        "hrtime",
+      ],
+    })
+  })
+  afterAll(() => {
+    jest.useRealTimers()
+  })
+
   beforeEach(() => {
     mockUseSwr.mockReset()
     mockUsePermissions.mockReturnValue({

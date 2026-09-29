@@ -373,3 +373,41 @@ body {
     animation: none;
   }
 }
+
+/* Independence analysis report — print layout. The report is the same DOM
+   on screen and paper; these rules only paginate it. */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+@media print {
+  /* Site chrome only: the report's own cover band is a <header> too. */
+  header:not(.report-cover),
+  nav,
+  .report-toolbar {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .report {
+    max-width: none;
+  }
+
+  /* Long sections (journey, stress test, appendix) paginate naturally;
+     only small indivisible blocks carry .report-keep. */
+  .report-section {
+    border: 0;
+    padding: 0;
+  }
+
+  .report-keep {
+    break-inside: avoid;
+  }
+
+  .report-break {
+    break-before: page;
+  }
+}

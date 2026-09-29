@@ -46,6 +46,7 @@ import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import IndependenceReportContainer from "@components/features/independence/report/IndependenceReportContainer"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import type { PlansResponse } from "types/independence"
@@ -63,6 +64,12 @@ import { resolveDisplayAges } from "@lib/independence/age"
 function PlanView(): React.ReactElement {
   const router = useRouter()
   const { id } = router.query
+  // `?view=report` swaps the tabbed UI for the printable Independence
+  // analysis report, fed the same projection this page computed.
+  const viewParam = Array.isArray(router.query.view)
+    ? router.query.view[0]
+    : router.query.view
+  const isReportView = viewParam === "report"
   const { hideValues } = usePrivacyMode()
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
@@ -374,6 +381,18 @@ function PlanView(): React.ReactElement {
 
   // Determine if assets are loaded (for enabling asset-dependent tabs)
   const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0
+  // Stable reference for the report container: an inline literal would
+  // change identity every render and re-key its Monte Carlo callback.
+  const reportAssets = useMemo(
+    () => ({
+      liquidAssets,
+      nonSpendableAssets,
+      totalAssets,
+      hasAssets,
+      isLoaded: true,
+    }),
+    [liquidAssets, nonSpendableAssets, totalAssets, hasAssets],
+  )
 
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
@@ -518,6 +537,7 @@ function PlanView(): React.ReactElement {
     adjustedProjection,
     baselineProjection,
     isCalculating,
+    error: projectionError,
     resetProjection,
   } = useUnifiedProjection({
     plan,
@@ -856,6 +876,77 @@ function PlanView(): React.ReactElement {
     )
   }
 
+  if (isReportView) {
+    const backLink = (
+      <Link
+        href={`/independence/plans/${plan.id}`}
+        className="mt-3 inline-block text-independence-600 hover:underline"
+      >
+        Back to plan
+      </Link>
+    )
+    // One level of JSX: no assets, ready, failed, still calculating.
+    const reportBody = (): React.ReactElement => {
+      if (!hasAssets) {
+        return (
+          <div className="py-12 text-center text-gray-600">
+            <p>This plan has no assets yet, so there is nothing to report.</p>
+            {backLink}
+          </div>
+        )
+      }
+      if (adjustedProjection) {
+        return (
+          <IndependenceReportContainer
+            plan={plan}
+            projection={adjustedProjection}
+            baselineProjection={baselineProjection}
+            assets={reportAssets}
+            scenario={scenario}
+            monthlyInvestment={monthlyInvestment}
+            rentalIncome={rentalIncome}
+            displayCurrency={displayCurrency ?? undefined}
+            effectiveCurrency={effectiveCurrency}
+            planCurrency={planCurrency}
+            ages={{
+              currentAge: displayCurrentAge,
+              retirementAge: displayRetirementAge,
+              lifeExpectancy: displayLifeExpectancy,
+            }}
+            hideValues={hideValues}
+          />
+        )
+      }
+      if (!isCalculating && projectionError) {
+        return (
+          <div className="py-12 text-center text-gray-600">
+            <p>
+              The projection could not be calculated: {projectionError.message}
+            </p>
+            {backLink}
+          </div>
+        )
+      }
+      return (
+        <div className="text-center py-12">
+          <Spinner label="Preparing report..." size="lg" />
+        </div>
+      )
+    }
+    return (
+      <>
+        <Head>
+          <title>{plan.name} | Independence analysis | Beancounter</title>
+        </Head>
+        <div className="min-h-screen bg-gray-50 py-4 print:bg-white print:py-0">
+          <div className="container mx-auto px-4 print:px-0">
+            {reportBody()}
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Head>
@@ -973,6 +1064,17 @@ function PlanView(): React.ReactElement {
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
           />
+          {hasAssets && (
+            <div className="-mt-2 mb-4 text-right">
+              <Link
+                href={`/independence/plans/${plan.id}?view=report`}
+                className="text-xs text-gray-500 hover:text-gray-900"
+              >
+                <i className="fas fa-file-lines mr-1" aria-hidden="true" />
+                Independence analysis report
+              </Link>
+            </div>
+          )}
 
           {/* ——— Where you stand ——— */}
           {effectiveTab === "standing" && (
