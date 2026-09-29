@@ -70,6 +70,37 @@ function assetOptionFromQuery(
   }
 }
 
+/** Create (or fetch, if it already exists) the BC asset for a search hit. */
+async function createAsset(option: AssetOption): Promise<Asset> {
+  if (!option.market || !option.symbol) {
+    throw new Error("Cannot resolve this asset — missing market or symbol")
+  }
+  const code = option.symbol.toUpperCase()
+  const response = await fetch("/api/assets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        [code]: {
+          market: option.market,
+          code,
+          name: option.name || code,
+          currency: option.currency,
+          category: option.type || "EQUITY",
+          owner: "",
+        },
+      },
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`Could not resolve asset (${response.status})`)
+  }
+  const body = (await response.json()) as { data: Record<string, Asset> }
+  const created = body.data?.[code]
+  if (!created?.id) throw new Error("Asset response missing id")
+  return created
+}
+
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
   // Search hits carry the provider's casing ("Mutual Fund"); BC category ids
@@ -151,13 +182,11 @@ function AssetLookupPage(): React.ReactElement {
     simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
   )
 
-  // Latest close from svc-data: stored price, else fetched from the market
-  // provider. Unknown search hits go by market/code (empty until BC has them).
+  // Latest quote from svc-data: the provider's live/delayed price where its
+  // plan allows, else the stored close.
   const priceKey = selectedAsset?.assetId
-    ? `/api/prices/${selectedAsset.assetId}`
-    : selectedAsset?.market && selectedAsset.symbol
-      ? `/api/prices/${selectedAsset.market}/${selectedAsset.symbol}`
-      : null
+    ? `/api/prices/${selectedAsset.assetId}/quote`
+    : null
   const { data: priceResponse } = useSWR<{ data: PriceData[] }>(
     priceKey,
     priceKey ? simpleFetcher(priceKey) : null,
@@ -218,39 +247,9 @@ function AssetLookupPage(): React.ReactElement {
   const resolveAsset = async (option: AssetOption): Promise<Asset | null> => {
     setResolveError(null)
     if (option.assetId) return assetOptionToAsset(option)
-    if (!option.market || !option.symbol) {
-      setResolveError("Cannot resolve this asset — missing market or symbol")
-      return null
-    }
     setResolvingAsset(true)
     try {
-      const code = option.symbol.toUpperCase()
-      const response = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [code]: {
-              market: option.market,
-              code,
-              name: option.name || code,
-              currency: option.currency,
-              category: option.type || "EQUITY",
-              owner: "",
-            },
-          },
-        }),
-      })
-      if (!response.ok) {
-        setResolveError(`Could not resolve asset (${response.status})`)
-        return null
-      }
-      const body = (await response.json()) as { data: Record<string, Asset> }
-      const created = body.data?.[code]
-      if (!created?.id) {
-        setResolveError("Asset response missing id")
-        return null
-      }
+      const created = await createAsset(option)
       setSelectedAsset({ ...option, assetId: created.id })
       return created
     } catch (e) {
@@ -260,6 +259,31 @@ function AssetLookupPage(): React.ReactElement {
       setResolvingAsset(false)
     }
   }
+
+  // A search hit BC hasn't seen has no id, so nothing to price. Create it as
+  // soon as it's picked so the card can show its quote. Keyed on the
+  // unresolved symbol, so a failed create doesn't retry in a loop.
+  const pending =
+    selectedAsset && !selectedAsset.assetId ? selectedAsset : undefined
+  const pendingSymbol = pending?.symbol
+  useEffect(() => {
+    if (!pending) return undefined
+    let cancelled = false
+    createAsset(pending)
+      .then((created) => {
+        if (!cancelled) setSelectedAsset({ ...pending, assetId: created.id })
+      })
+      .catch((e: unknown) => {
+        if (!cancelled)
+          setResolveError(
+            e instanceof Error ? e.message : "Failed to load asset",
+          )
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSymbol])
 
   const openChartFor = async (option: AssetOption): Promise<void> => {
     const asset = await resolveAsset(option)

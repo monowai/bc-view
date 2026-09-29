@@ -75,7 +75,7 @@ jest.mock("swr", () => ({
 const positionsKey = "/api/assets/asset-1/positions?date=today"
 const modelsKeyUrl = "/api/rebalance/assets/asset-1/models"
 const permissionsKey = "/api/auth/permissions"
-const priceKey = "/api/prices/asset-1"
+const priceKey = "/api/prices/asset-1/quote"
 const defaultPrice = {
   data: [
     {
@@ -333,6 +333,45 @@ describe("Asset Lookup Page — last close", () => {
     const lastClose = screen.getByTestId("last-close")
     expect(lastClose).toHaveTextContent("227.21")
     expect(lastClose).not.toHaveTextContent("0.00%")
+  })
+
+  it("creates a search hit BC doesn't know yet, then shows its quote", async () => {
+    mockQuery = {
+      symbol: "PLTR",
+      market: "US",
+      name: "Palantir",
+      currency: "USD",
+      type: "Common Stock",
+    }
+    const originalFetch = global.fetch
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { PLTR: makeAsset({ id: "pltr-id", code: "PLTR" }) },
+        }),
+    })
+    global.fetch = fetchMock as unknown as typeof fetch
+    const swr = useSWR as unknown as jest.Mock
+    const base = swr.getMockImplementation()!
+    swr.mockImplementation((key: unknown) =>
+      key === "/api/prices/pltr-id/quote"
+        ? { data: defaultPrice, isLoading: false }
+        : base(key),
+    )
+    try {
+      render(<AssetLookupPage />)
+
+      expect(await screen.findByTestId("last-close")).toHaveTextContent(
+        "181.42",
+      )
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/assets",
+        expect.objectContaining({ method: "POST" }),
+      )
+    } finally {
+      global.fetch = originalFetch
+    }
   })
 
   it("hides last close when the provider returns no price", () => {
