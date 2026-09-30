@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSWR from "swr"
 import AssetLookupPage from "@pages/assets/lookup"
@@ -63,6 +63,16 @@ jest.mock("@components/features/assets/AssetBrokersTab", () => {
   return function AssetBrokersTab(props: Record<string, unknown>) {
     capturedBrokersTabProps = props
     return <div data-testid="brokers-tab-content">{"Brokers Tab"}</div>
+  }
+})
+
+// Stub the search box so tests can pick hits directly, without driving
+// AssetSearch's own fetch/debounce flow.
+let capturedSearchProps: Record<string, unknown> | null = null
+jest.mock("@components/features/assets/AssetSearch", () => {
+  return function AssetSearch(props: Record<string, unknown>) {
+    capturedSearchProps = props
+    return <div data-testid="asset-search" />
   }
 })
 
@@ -291,10 +301,13 @@ describe("Asset Lookup Page — ETF sectors", () => {
     }) as unknown as typeof fetch
     render(<AssetLookupPage />)
 
-    fireEvent.click(screen.getByRole("button", { name: /sectors/i }))
+    const sectors = screen.getByRole("button", { name: /sectors/i })
+    await waitFor(() => expect(sectors).toBeEnabled())
+    fireEvent.click(sectors)
 
     expect(await screen.findByTestId("sector-popup")).toBeInTheDocument()
     expect((capturedSectorProps?.asset as { id: string }).id).toBe("vti-id")
+    expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -369,6 +382,85 @@ describe("Asset Lookup Page — last close", () => {
         "/api/assets",
         expect.objectContaining({ method: "POST" }),
       )
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it("creates the newly picked hit when it shares a symbol with a pending one", async () => {
+    const originalFetch = global.fetch
+    const created = (
+      id: string,
+    ): { ok: boolean; json: () => Promise<unknown> } => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { VOO: makeAsset({ id, code: "VOO" }) } }),
+    })
+    // First create hangs, so the second pick lands while it is in flight.
+    const fetchMock = jest
+      .fn()
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValueOnce(created("voo-lse"))
+    global.fetch = fetchMock as unknown as typeof fetch
+    const onSelect = (option: Record<string, string>): void =>
+      (capturedSearchProps?.onSelect as (o: unknown) => void)(option)
+    const hit = (market: string): Record<string, string> => ({
+      value: "VOO",
+      label: `VOO - Vanguard S&P 500 (${market})`,
+      symbol: "VOO",
+      name: "Vanguard S&P 500",
+      market,
+      currency: "USD",
+      type: "ETF",
+    })
+    try {
+      render(<AssetLookupPage />)
+      act(() => onSelect(hit("US")))
+      act(() => onSelect(hit("LSE")))
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+      const body = JSON.parse(fetchMock.mock.calls[1][1].body)
+      expect(body.data.VOO.market).toBe("LSE")
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it("holds the Chart button while a picked hit is still being created", async () => {
+    mockQuery = {
+      symbol: "PLTR",
+      market: "US",
+      name: "Palantir",
+      currency: "USD",
+      type: "Common Stock",
+    }
+    const originalFetch = global.fetch
+    let finish: (value: unknown) => void = () => {}
+    const fetchMock = jest.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    global.fetch = fetchMock as unknown as typeof fetch
+    try {
+      render(<AssetLookupPage />)
+      const chart = screen.getByRole("button", {
+        name: /price chart for PLTR/i,
+      })
+      expect(chart).toBeDisabled()
+
+      act(() => {
+        finish({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: { PLTR: makeAsset({ id: "pltr-id", code: "PLTR" }) },
+            }),
+        })
+      })
+
+      await waitFor(() => expect(chart).toBeEnabled())
+      expect(fetchMock).toHaveBeenCalledTimes(1)
     } finally {
       global.fetch = originalFetch
     }

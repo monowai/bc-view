@@ -71,6 +71,12 @@ function assetOptionFromQuery(
 }
 
 /** Create (or fetch, if it already exists) the BC asset for a search hit. */
+function changeClass(change: number): string {
+  if (change < 0) return "text-red-600"
+  if (change > 0) return "text-emerald-600"
+  return "text-gray-600"
+}
+
 async function createAsset(option: AssetOption): Promise<Asset> {
   if (!option.market || !option.symbol) {
     throw new Error("Cannot resolve this asset — missing market or symbol")
@@ -261,11 +267,15 @@ function AssetLookupPage(): React.ReactElement {
   }
 
   // A search hit BC hasn't seen has no id, so nothing to price. Create it as
-  // soon as it's picked so the card can show its quote. Keyed on the
-  // unresolved symbol, so a failed create doesn't retry in a loop.
+  // soon as it's picked so the card can show its quote. Keyed on market and
+  // symbol: a same-symbol hit on another market is a different asset, and a
+  // failed create doesn't retry in a loop.
   const pending =
     selectedAsset && !selectedAsset.assetId ? selectedAsset : undefined
-  const pendingSymbol = pending?.symbol
+  const pendingKey = pending ? `${pending.market}:${pending.symbol}` : undefined
+  // Hold Chart / Sectors while that create is in flight, so they don't POST
+  // the same asset again. A failed create sets resolveError and frees them.
+  const creatingPending = !!pending && !resolveError
   useEffect(() => {
     if (!pending) return undefined
     let cancelled = false
@@ -283,7 +293,7 @@ function AssetLookupPage(): React.ReactElement {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingSymbol])
+  }, [pendingKey])
 
   const openChartFor = async (option: AssetOption): Promise<void> => {
     const asset = await resolveAsset(option)
@@ -464,13 +474,7 @@ function AssetLookupPage(): React.ReactElement {
                   {/* No previous close = no real change; don't show 0.00%. */}
                   {lastClose.previousClose > 0 && (
                     <span
-                      className={`tabular-nums ${
-                        lastClose.change < 0
-                          ? "text-red-600"
-                          : lastClose.change > 0
-                            ? "text-emerald-600"
-                            : "text-gray-600"
-                      }`}
+                      className={`tabular-nums ${changeClass(lastClose.change)}`}
                     >
                       {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
                     </span>
@@ -491,7 +495,7 @@ function AssetLookupPage(): React.ReactElement {
                 <button
                   type="button"
                   onClick={() => openChartFor(selectedAsset)}
-                  disabled={resolvingAsset}
+                  disabled={resolvingAsset || creatingPending}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={`Show price chart for ${selectedAsset.symbol}`}
                   title="Price Chart"
@@ -505,7 +509,7 @@ function AssetLookupPage(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => openSectorsFor(selectedAsset)}
-                    disabled={resolvingAsset}
+                    disabled={resolvingAsset || creatingPending}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                     aria-label={`Show sectors for ${selectedAsset.symbol}`}
                     title="Sector Weightings"
