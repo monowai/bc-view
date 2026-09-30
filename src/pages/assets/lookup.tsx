@@ -18,6 +18,8 @@ import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
+import { isFundLike } from "@lib/assets/assetUtils"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
@@ -68,8 +70,11 @@ function assetOptionFromQuery(
 
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
+  // Search hits carry the provider's casing ("Mutual Fund"); BC category ids
+  // are upper case.
+  const categoryId = (option.type || "EQUITY").toUpperCase()
   const category: AssetCategory = {
-    id: option.type || "EQUITY",
+    id: categoryId,
     name: option.type || "EQUITY",
   }
   return {
@@ -90,7 +95,8 @@ function AssetLookupPage(): React.ReactElement {
     preferences?.defaultMarket || "",
   )
   const [chartAsset, setChartAsset] = useState<Asset | null>(null)
-  const [resolvingChart, setResolvingChart] = useState(false)
+  const [sectorAsset, setSectorAsset] = useState<Asset | null>(null)
+  const [resolvingAsset, setResolvingAsset] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const { popup: reviewPopup, showReview } = useAssetReview()
   const { ai: canRunAi, preview: canPreview, admin: isAdmin } = usePermissions()
@@ -192,17 +198,16 @@ function AssetLookupPage(): React.ReactElement {
     type: "SELL",
   })
 
-  const openChartFor = async (option: AssetOption): Promise<void> => {
+  // Search hits for assets BC hasn't seen yet carry no id — create the asset
+  // first so the chart / sector popups have something to fetch against.
+  const resolveAsset = async (option: AssetOption): Promise<Asset | null> => {
     setResolveError(null)
-    if (option.assetId) {
-      setChartAsset(assetOptionToAsset(option))
-      return
-    }
+    if (option.assetId) return assetOptionToAsset(option)
     if (!option.market || !option.symbol) {
-      setResolveError("Cannot chart this asset — missing market or symbol")
-      return
+      setResolveError("Cannot resolve this asset — missing market or symbol")
+      return null
     }
-    setResolvingChart(true)
+    setResolvingAsset(true)
     try {
       const code = option.symbol.toUpperCase()
       const response = await fetch("/api/assets", {
@@ -223,21 +228,32 @@ function AssetLookupPage(): React.ReactElement {
       })
       if (!response.ok) {
         setResolveError(`Could not resolve asset (${response.status})`)
-        return
+        return null
       }
       const body = (await response.json()) as { data: Record<string, Asset> }
       const created = body.data?.[code]
       if (!created?.id) {
         setResolveError("Asset response missing id")
-        return
+        return null
       }
       setSelectedAsset({ ...option, assetId: created.id })
-      setChartAsset(created)
+      return created
     } catch (e) {
-      setResolveError(e instanceof Error ? e.message : "Failed to load chart")
+      setResolveError(e instanceof Error ? e.message : "Failed to load asset")
+      return null
     } finally {
-      setResolvingChart(false)
+      setResolvingAsset(false)
     }
+  }
+
+  const openChartFor = async (option: AssetOption): Promise<void> => {
+    const asset = await resolveAsset(option)
+    if (asset) setChartAsset(asset)
+  }
+
+  const openSectorsFor = async (option: AssetOption): Promise<void> => {
+    const asset = await resolveAsset(option)
+    if (asset) setSectorAsset(asset)
   }
 
   // Navigate to transactions on double-click
@@ -406,15 +422,29 @@ function AssetLookupPage(): React.ReactElement {
                 <button
                   type="button"
                   onClick={() => openChartFor(selectedAsset)}
-                  disabled={resolvingChart}
+                  disabled={resolvingAsset}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={`Show price chart for ${selectedAsset.symbol}`}
                   title="Price Chart"
                 >
                   <i className="fas fa-chart-line"></i>
-                  <span>{resolvingChart ? "Loading..." : "Chart"}</span>
+                  <span>{resolvingAsset ? "Loading..." : "Chart"}</span>
                 </button>
               )}
+              {selectedAsset.symbol &&
+                isFundLike(assetOptionToAsset(selectedAsset)) && (
+                  <button
+                    type="button"
+                    onClick={() => openSectorsFor(selectedAsset)}
+                    disabled={resolvingAsset}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                    aria-label={`Show sectors for ${selectedAsset.symbol}`}
+                    title="Sector Weightings"
+                  >
+                    <i className="fas fa-chart-pie"></i>
+                    <span>{"Sectors"}</span>
+                  </button>
+                )}
               {canReviewAsset && (
                 <button
                   type="button"
@@ -488,6 +518,13 @@ function AssetLookupPage(): React.ReactElement {
           asset={chartAsset}
           currencySymbol=""
           onClose={() => setChartAsset(null)}
+        />
+      )}
+      {sectorAsset && (
+        <SectorWeightingsPopup
+          asset={sectorAsset}
+          modalOpen={true}
+          onClose={() => setSectorAsset(null)}
         />
       )}
 
