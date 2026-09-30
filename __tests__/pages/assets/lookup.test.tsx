@@ -1,9 +1,10 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSWR from "swr"
 import AssetLookupPage from "@pages/assets/lookup"
 import { marketsKey } from "@utils/api/fetchHelper"
+import { formatDate } from "@lib/formatters"
 import {
   makeAsset,
   makePortfolio,
@@ -65,6 +66,16 @@ jest.mock("@components/features/assets/AssetBrokersTab", () => {
   }
 })
 
+// Stub the search box so tests can pick hits directly, without driving
+// AssetSearch's own fetch/debounce flow.
+let capturedSearchProps: Record<string, unknown> | null = null
+jest.mock("@components/features/assets/AssetSearch", () => {
+  return function AssetSearch(props: Record<string, unknown>) {
+    capturedSearchProps = props
+    return <div data-testid="asset-search" />
+  }
+})
+
 jest.mock("swr", () => ({
   __esModule: true,
   default: jest.fn(),
@@ -74,6 +85,19 @@ jest.mock("swr", () => ({
 const positionsKey = "/api/assets/asset-1/positions?date=today"
 const modelsKeyUrl = "/api/rebalance/assets/asset-1/models"
 const permissionsKey = "/api/auth/permissions"
+const priceKey = "/api/prices/asset-1/quote"
+const defaultPrice = {
+  data: [
+    {
+      close: 181.42,
+      change: -2.1,
+      changePercent: -0.0114,
+      previousClose: 183.52,
+      priceDate: "2026-09-29",
+    },
+  ],
+}
+let priceFixture: unknown = defaultPrice
 
 const growthPortfolio = makePortfolio({ id: "pf-1", code: "GROWTH" })
 const incomePortfolio = makePortfolio({ id: "pf-2", code: "INCOME" })
@@ -124,6 +148,9 @@ function mockSwrData(): void {
     }
     if (key === permissionsKey) {
       return { data: undefined, isLoading: false }
+    }
+    if (key === priceKey) {
+      return { data: priceFixture, isLoading: false }
     }
     return { data: undefined, isLoading: false }
   })
@@ -274,9 +301,175 @@ describe("Asset Lookup Page — ETF sectors", () => {
     }) as unknown as typeof fetch
     render(<AssetLookupPage />)
 
-    fireEvent.click(screen.getByRole("button", { name: /sectors/i }))
+    const sectors = screen.getByRole("button", { name: /sectors/i })
+    await waitFor(() => expect(sectors).toBeEnabled())
+    fireEvent.click(sectors)
 
     expect(await screen.findByTestId("sector-popup")).toBeInTheDocument()
     expect((capturedSectorProps?.asset as { id: string }).id).toBe("vti-id")
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("Asset Lookup Page — last close", () => {
+  beforeEach(() => {
+    mockQuery = defaultQuery
+    priceFixture = defaultPrice
+    mockSwrData()
+  })
+
+  it("shows the provider's latest close, change and price date", () => {
+    render(<AssetLookupPage />)
+
+    const lastClose = screen.getByTestId("last-close")
+    expect(lastClose).toHaveTextContent("Last Close")
+    expect(lastClose).toHaveTextContent("181.42")
+    expect(lastClose).toHaveTextContent("-2.10")
+    expect(lastClose).toHaveTextContent("-1.14%")
+    expect(lastClose).toHaveTextContent(formatDate("2026-09-29"))
+  })
+
+  it("omits the change when the provider sent no previous close", () => {
+    priceFixture = {
+      data: [
+        {
+          close: 227.21,
+          change: 0,
+          changePercent: 0,
+          previousClose: 0,
+          priceDate: "2026-09-29",
+        },
+      ],
+    }
+    render(<AssetLookupPage />)
+
+    const lastClose = screen.getByTestId("last-close")
+    expect(lastClose).toHaveTextContent("227.21")
+    expect(lastClose).not.toHaveTextContent("0.00%")
+  })
+
+  it("creates a search hit BC doesn't know yet, then shows its quote", async () => {
+    mockQuery = {
+      symbol: "PLTR",
+      market: "US",
+      name: "Palantir",
+      currency: "USD",
+      type: "Common Stock",
+    }
+    const originalFetch = global.fetch
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { PLTR: makeAsset({ id: "pltr-id", code: "PLTR" }) },
+        }),
+    })
+    global.fetch = fetchMock as unknown as typeof fetch
+    const swr = useSWR as unknown as jest.Mock
+    const base = swr.getMockImplementation()!
+    swr.mockImplementation((key: unknown) =>
+      key === "/api/prices/pltr-id/quote"
+        ? { data: defaultPrice, isLoading: false }
+        : base(key),
+    )
+    try {
+      render(<AssetLookupPage />)
+
+      expect(await screen.findByTestId("last-close")).toHaveTextContent(
+        "181.42",
+      )
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/assets",
+        expect.objectContaining({ method: "POST" }),
+      )
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it("creates the newly picked hit when it shares a symbol with a pending one", async () => {
+    const originalFetch = global.fetch
+    const created = (
+      id: string,
+    ): { ok: boolean; json: () => Promise<unknown> } => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { VOO: makeAsset({ id, code: "VOO" }) } }),
+    })
+    // First create hangs, so the second pick lands while it is in flight.
+    const fetchMock = jest
+      .fn()
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValueOnce(created("voo-lse"))
+    global.fetch = fetchMock as unknown as typeof fetch
+    const onSelect = (option: Record<string, string>): void =>
+      (capturedSearchProps?.onSelect as (o: unknown) => void)(option)
+    const hit = (market: string): Record<string, string> => ({
+      value: "VOO",
+      label: `VOO - Vanguard S&P 500 (${market})`,
+      symbol: "VOO",
+      name: "Vanguard S&P 500",
+      market,
+      currency: "USD",
+      type: "ETF",
+    })
+    try {
+      render(<AssetLookupPage />)
+      act(() => onSelect(hit("US")))
+      act(() => onSelect(hit("LSE")))
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+      const body = JSON.parse(fetchMock.mock.calls[1][1].body)
+      expect(body.data.VOO.market).toBe("LSE")
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it("holds the Chart button while a picked hit is still being created", async () => {
+    mockQuery = {
+      symbol: "PLTR",
+      market: "US",
+      name: "Palantir",
+      currency: "USD",
+      type: "Common Stock",
+    }
+    const originalFetch = global.fetch
+    let finish: (value: unknown) => void = () => {}
+    const fetchMock = jest.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    global.fetch = fetchMock as unknown as typeof fetch
+    try {
+      render(<AssetLookupPage />)
+      const chart = screen.getByRole("button", {
+        name: /price chart for PLTR/i,
+      })
+      expect(chart).toBeDisabled()
+
+      act(() => {
+        finish({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: { PLTR: makeAsset({ id: "pltr-id", code: "PLTR" }) },
+            }),
+        })
+      })
+
+      await waitFor(() => expect(chart).toBeEnabled())
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it("hides last close when the provider returns no price", () => {
+    priceFixture = { data: [] }
+    render(<AssetLookupPage />)
+
+    expect(screen.queryByTestId("last-close")).not.toBeInTheDocument()
   })
 })

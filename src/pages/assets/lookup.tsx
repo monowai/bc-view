@@ -12,6 +12,7 @@ import {
   Market,
   Portfolio,
   Position,
+  PriceData,
   QuickSellData,
 } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
@@ -20,6 +21,7 @@ import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import { isFundLike } from "@lib/assets/assetUtils"
+import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
@@ -66,6 +68,43 @@ function assetOptionFromQuery(
     currency: queryString(query.currency),
     type: queryString(query.type),
   }
+}
+
+/** Create (or fetch, if it already exists) the BC asset for a search hit. */
+function changeClass(change: number): string {
+  if (change < 0) return "text-red-600"
+  if (change > 0) return "text-emerald-600"
+  return "text-gray-600"
+}
+
+async function createAsset(option: AssetOption): Promise<Asset> {
+  if (!option.market || !option.symbol) {
+    throw new Error("Cannot resolve this asset — missing market or symbol")
+  }
+  const code = option.symbol.toUpperCase()
+  const response = await fetch("/api/assets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        [code]: {
+          market: option.market,
+          code,
+          name: option.name || code,
+          currency: option.currency,
+          category: option.type || "EQUITY",
+          owner: "",
+        },
+      },
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`Could not resolve asset (${response.status})`)
+  }
+  const body = (await response.json()) as { data: Record<string, Asset> }
+  const created = body.data?.[code]
+  if (!created?.id) throw new Error("Asset response missing id")
+  return created
 }
 
 function assetOptionToAsset(option: AssetOption): Asset {
@@ -149,6 +188,17 @@ function AssetLookupPage(): React.ReactElement {
     simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
   )
 
+  // Latest quote from svc-data: the provider's live/delayed price where its
+  // plan allows, else the stored close.
+  const priceKey = selectedAsset?.assetId
+    ? `/api/prices/${selectedAsset.assetId}/quote`
+    : null
+  const { data: priceResponse } = useSWR<{ data: PriceData[] }>(
+    priceKey,
+    priceKey ? simpleFetcher(priceKey) : null,
+  )
+  const lastClose = priceResponse?.data?.[0]
+
   const positions = positionsData?.data || []
   // Zero-balance rows (fully sold out / roundtripped) add no value to "who
   // holds this asset" — hide them. Keep negative/short balances visible.
@@ -203,39 +253,9 @@ function AssetLookupPage(): React.ReactElement {
   const resolveAsset = async (option: AssetOption): Promise<Asset | null> => {
     setResolveError(null)
     if (option.assetId) return assetOptionToAsset(option)
-    if (!option.market || !option.symbol) {
-      setResolveError("Cannot resolve this asset — missing market or symbol")
-      return null
-    }
     setResolvingAsset(true)
     try {
-      const code = option.symbol.toUpperCase()
-      const response = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [code]: {
-              market: option.market,
-              code,
-              name: option.name || code,
-              currency: option.currency,
-              category: option.type || "EQUITY",
-              owner: "",
-            },
-          },
-        }),
-      })
-      if (!response.ok) {
-        setResolveError(`Could not resolve asset (${response.status})`)
-        return null
-      }
-      const body = (await response.json()) as { data: Record<string, Asset> }
-      const created = body.data?.[code]
-      if (!created?.id) {
-        setResolveError("Asset response missing id")
-        return null
-      }
+      const created = await createAsset(option)
       setSelectedAsset({ ...option, assetId: created.id })
       return created
     } catch (e) {
@@ -245,6 +265,35 @@ function AssetLookupPage(): React.ReactElement {
       setResolvingAsset(false)
     }
   }
+
+  // A search hit BC hasn't seen has no id, so nothing to price. Create it as
+  // soon as it's picked so the card can show its quote. Keyed on market and
+  // symbol: a same-symbol hit on another market is a different asset, and a
+  // failed create doesn't retry in a loop.
+  const pending =
+    selectedAsset && !selectedAsset.assetId ? selectedAsset : undefined
+  const pendingKey = pending ? `${pending.market}:${pending.symbol}` : undefined
+  // Hold Chart / Sectors while that create is in flight, so they don't POST
+  // the same asset again. A failed create sets resolveError and frees them.
+  const creatingPending = !!pending && !resolveError
+  useEffect(() => {
+    if (!pending) return undefined
+    let cancelled = false
+    createAsset(pending)
+      .then((created) => {
+        if (!cancelled) setSelectedAsset({ ...pending, assetId: created.id })
+      })
+      .catch((e: unknown) => {
+        if (!cancelled)
+          setResolveError(
+            e instanceof Error ? e.message : "Failed to load asset",
+          )
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingKey])
 
   const openChartFor = async (option: AssetOption): Promise<void> => {
     const asset = await resolveAsset(option)
@@ -413,6 +462,30 @@ function AssetLookupPage(): React.ReactElement {
                   </span>
                 )}
               </div>
+              {lastClose && (
+                <div
+                  data-testid="last-close"
+                  className="flex flex-wrap items-baseline gap-x-2 mt-2 text-sm"
+                >
+                  <span className="text-gray-500">{"Last Close"}</span>
+                  <span className="text-base font-semibold text-gray-900 tabular-nums">
+                    {formatCurrency(lastClose.close)}
+                  </span>
+                  {/* No previous close = no real change; don't show 0.00%. */}
+                  {lastClose.previousClose > 0 && (
+                    <span
+                      className={`tabular-nums ${changeClass(lastClose.change)}`}
+                    >
+                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
+                    </span>
+                  )}
+                  {lastClose.priceDate && (
+                    <span className="text-gray-500">
+                      {formatDate(lastClose.priceDate)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedAsset.symbol && (
@@ -422,7 +495,7 @@ function AssetLookupPage(): React.ReactElement {
                 <button
                   type="button"
                   onClick={() => openChartFor(selectedAsset)}
-                  disabled={resolvingAsset}
+                  disabled={resolvingAsset || creatingPending}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={`Show price chart for ${selectedAsset.symbol}`}
                   title="Price Chart"
@@ -436,7 +509,7 @@ function AssetLookupPage(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => openSectorsFor(selectedAsset)}
-                    disabled={resolvingAsset}
+                    disabled={resolvingAsset || creatingPending}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                     aria-label={`Show sectors for ${selectedAsset.symbol}`}
                     title="Sector Weightings"
