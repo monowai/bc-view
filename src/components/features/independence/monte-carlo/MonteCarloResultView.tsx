@@ -15,6 +15,11 @@ interface MonteCarloResultViewProps {
 * remain visible — privacy mode hides money, not the shape of the result.
    */
   hideValues: boolean
+  /**
+   * False where the simulation has no deterministic overlay — the composite
+   * (journey) run sends a zero runway placeholder, not a runway.
+   */
+  showDeterministic?: boolean
 }
 
 const HIDDEN_VALUE = "****"
@@ -36,6 +41,7 @@ export function MonteCarloResultView({
   deterministicProjection,
   currency,
   hideValues,
+  showDeterministic = true,
 }: MonteCarloResultViewProps): React.ReactElement {
   return (
     <>
@@ -59,16 +65,19 @@ export function MonteCarloResultView({
               full planning horizon
             </div>
           </div>
-          <div className="text-right text-sm text-gray-500">
-            <div>
-              Deterministic runway: {result.deterministicRunwayYears} years
-            </div>
-            {result.deterministicDepletionAge && (
+          {showDeterministic && (
+            <div className="text-right text-sm text-gray-500">
               <div>
-                Deterministic depletion age: {result.deterministicDepletionAge}
+                Deterministic runway: {result.deterministicRunwayYears} years
               </div>
-            )}
-          </div>
+              {result.deterministicDepletionAge && (
+                <div>
+                  Deterministic depletion age:{" "}
+                  {result.deterministicDepletionAge}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

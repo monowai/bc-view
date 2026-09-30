@@ -26,7 +26,7 @@ import {
  */
 
 /** svc-retire serialises absent optionals as JSON `null`; treat both as unset. */
-function has<T>(v: T | null | undefined): v is T {
+export function has<T>(v: T | null | undefined): v is T {
   return v !== null && v !== undefined
 }
 
@@ -107,6 +107,11 @@ const WARNING_TEXT: Record<ProjectionWarning, string> = {
     "A portfolio valuation was unavailable; the last known value was used.",
   WORK_SCENARIO_MISSING:
     "No active work scenario; working income was taken from the plan.",
+}
+
+/** Report text for a projection warning; unknown codes print verbatim. */
+export function warningText(code: string): string {
+  return WARNING_TEXT[code as ProjectionWarning] ?? code
 }
 
 const VALUE_BASIS_TEXT: Record<string, string> = {
@@ -312,7 +317,7 @@ function buildMilestones(
   return out
 }
 
-function buildStress(
+export function buildStress(
   mc: MonteCarloResult | null,
   seed: number | null,
   ages: ReportAges,
@@ -347,7 +352,7 @@ function buildStress(
   }
 }
 
-function buildInsights(
+export function buildInsights(
   projection: RetirementProjection,
 ): ReportModel["insights"] {
   // Unresolved strategy reads as FIRE, matching defaultStrategyView.
@@ -361,9 +366,7 @@ function buildInsights(
     if (gloss) out.gloss = gloss
     return out
   })
-  const warnings = (projection.warnings ?? []).map(
-    (w) => WARNING_TEXT[w] ?? String(w),
-  )
+  const warnings = (projection.warnings ?? []).map(warningText)
   return {
     findings,
     warnings,

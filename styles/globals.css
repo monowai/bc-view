@@ -384,7 +384,12 @@ body {
   /* Site chrome only: the report's own cover band is a <header> too. */
   header:not(.report-cover),
   nav,
-  .report-toolbar {
+  .report-toolbar,
+  /* Charts borrowed from the app keep their controls on screen; paper
+     gets the chart alone. */
+  .report button,
+  .report select,
+  .report input {
     display: none !important;
   }
 

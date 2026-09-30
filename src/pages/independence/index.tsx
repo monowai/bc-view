@@ -42,6 +42,7 @@ import CompositeTab from "@components/features/independence/CompositeTab"
 import IndependencePlanSwitcher from "@components/features/independence/IndependencePlanSwitcher"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
+import JourneyReportContainer from "@components/features/independence/report/JourneyReportContainer"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
@@ -384,7 +385,11 @@ function PlanCard({
 function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
-  const { settings, mutateSettings } = useIndependenceSettings()
+  const {
+    settings,
+    isLoading: settingsLoading,
+    mutateSettings,
+  } = useIndependenceSettings()
   // The journey being viewed — `?plan=<id>`, else the default, else the
   // first by name. Owns the composite config the Plan tab reads and writes.
   const {
@@ -814,6 +819,57 @@ function RetirementPlanning(): React.ReactElement {
     }
   }
 
+  // `?view=report` swaps the page for the printable journey report.
+  if (requestedView === "report") {
+    const reportBody = (): React.ReactElement => {
+      if (isLoading || journeysLoading || settingsLoading || holdingsLoading) {
+        return (
+          <div className="py-12 text-center">
+            <Spinner label="Preparing report..." size="lg" />
+          </div>
+        )
+      }
+      if (!activeJourney || !activeJourneyPhased) {
+        return (
+          <div className="py-12 text-center text-gray-600">
+            <p>This plan has no stages yet, so there is nothing to report.</p>
+            <Link
+              href="/independence"
+              className="mt-3 inline-block text-independence-600 hover:underline"
+            >
+              Back to your plan
+            </Link>
+          </div>
+        )
+      }
+      return (
+        <JourneyReportContainer
+          journeyId={activeJourney.id}
+          journeyName={activeJourney.name}
+          plans={phaseTabPlans}
+          settings={settings}
+          assets={assets}
+          hideValues={hideValues}
+        />
+      )
+    }
+    return (
+      <>
+        <Head>
+          <title>
+            {activeJourney?.name ?? "Your plan"} | Independence analysis |
+            Beancounter
+          </title>
+        </Head>
+        <div className="min-h-screen bg-gray-50 py-4 print:bg-white print:py-0">
+          <div className="container mx-auto px-4 print:px-0">
+            {reportBody()}
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Head>
@@ -1230,12 +1286,25 @@ function RetirementPlanning(): React.ReactElement {
             // ages across all of them. Passing every owned row put the *other*
             // journey's phases on this journey's plan, one click from being
             // seeded and saved into this journey's composite.
-            <CompositeTab
-              plans={phaseTabPlans}
-              settings={settings}
-              activePlanId={activePlanId}
-              mode="plan"
-            />
+            <>
+              {activePlanId && (
+                <div className="-mt-2 mb-4 text-right">
+                  <Link
+                    href={`/independence?plan=${encodeURIComponent(activePlanId)}&view=report`}
+                    className="text-xs text-gray-500 hover:text-gray-900"
+                  >
+                    <i className="fas fa-file-lines mr-1" aria-hidden="true" />
+                    Independence analysis report
+                  </Link>
+                </div>
+              )}
+              <CompositeTab
+                plans={phaseTabPlans}
+                settings={settings}
+                activePlanId={activePlanId}
+                mode="plan"
+              />
+            </>
           )}
         </div>
       </div>

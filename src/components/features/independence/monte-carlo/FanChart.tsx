@@ -211,17 +211,20 @@ export function FanChart({
             dot={false}
             name="p50"
           />
-          {/* Deterministic overlay */}
-          <Line
-            type="monotone"
-            dataKey="deterministic"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            strokeDasharray="6 3"
-            dot={false}
-            name="deterministic"
-            connectNulls={false}
-          />
+          {/* Deterministic overlay — only when there is one to draw, or the
+              legend labels a line that is not there. */}
+          {deterministicProjection && (
+            <Line
+              type="monotone"
+              dataKey="deterministic"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              dot={false}
+              name="deterministic"
+              connectNulls={false}
+            />
+          )}
           {/* Property liquidation marker */}
           {liquidationAge && (
             <ReferenceLine

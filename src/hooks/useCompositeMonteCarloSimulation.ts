@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import type {
   CompositePhase,
   MonteCarloResponse,
@@ -33,6 +33,9 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
   const [result, setResult] = useState<MonteCarloResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  // Each run takes a ticket; only the latest ticket may write state, so a
+  // slow earlier request cannot overwrite the result of a later one.
+  const latestRun = useRef(0)
 
   const runSimulation = useCallback(
     async ({
@@ -44,6 +47,7 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
     }: CompositeMonteCarloRunArgs): Promise<void> => {
       if (phases.length === 0) return
 
+      const run = ++latestRun.current
       setIsRunning(true)
       setError(null)
 
@@ -66,6 +70,7 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
           body: JSON.stringify(requestBody),
         })
 
+        if (run !== latestRun.current) return
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}))
           const message =
@@ -76,11 +81,13 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
         }
 
         const data: MonteCarloResponse = await response.json()
+        if (run !== latestRun.current) return
         setResult(data.data)
       } catch (err) {
+        if (run !== latestRun.current) return
         setError(err instanceof Error ? err : new Error(String(err)))
       } finally {
-        setIsRunning(false)
+        if (run === latestRun.current) setIsRunning(false)
       }
     },
     [],

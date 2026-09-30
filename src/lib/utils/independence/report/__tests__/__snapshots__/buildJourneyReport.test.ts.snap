@@ -1,0 +1,126 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`buildJourneyReport should match the golden snapshot 1`] = `
+{
+  "assumptions": [
+    {
+      "label": "Display currency",
+      "value": "SGD",
+    },
+    {
+      "label": "Independence age",
+      "value": "60",
+    },
+    {
+      "label": "Planning horizon",
+      "value": "age 90",
+    },
+    {
+      "label": "Singapore",
+      "value": "equity 6.0%, cash 2.0%, inflation 2.5%",
+    },
+    {
+      "label": "New Zealand",
+      "value": "equity 6.0%, cash 2.0%, inflation 2.5%",
+    },
+    {
+      "label": "Thailand",
+      "value": "equity 6.0%, cash 2.0%, inflation 2.5%",
+    },
+  ],
+  "cover": {
+    "ageLine": "Age 52, planning to age 90, independence target age 60",
+    "asOfDate": "2026-09-29",
+    "currency": "SGD",
+    "journeyName": "Slow travel",
+    "stageLine": "3 stages",
+    "title": "Independence analysis",
+  },
+  "footer": {
+    "disclaimer": "Projections are estimates, not advice.",
+    "line": "Slow travel · as of 2026-09-29 · report v0.2",
+    "templateVersion": "0.2",
+  },
+  "stages": [
+    {
+      "ages": "60–69",
+      "endingBalance": "S$1,831,401",
+      "firstYearSpend": "S$84,000",
+      "name": "Singapore",
+      "planId": "p-sg",
+    },
+    {
+      "ages": "70–79",
+      "endingBalance": "S$2,077,553",
+      "firstYearSpend": "S$72,000",
+      "name": "New Zealand",
+      "planId": "p-nz",
+    },
+    {
+      "ages": "80–90",
+      "endingBalance": "S$2,871,397",
+      "firstYearSpend": "S$48,000",
+      "name": "Thailand",
+      "planId": "p-th",
+    },
+  ],
+  "standing": {
+    "fiProgress": 61.5,
+    "sentence": "You have 62% of your independence number of S$1,950,000.",
+  },
+  "stress": {
+    "depletionLine": null,
+    "parameters": [
+      {
+        "label": "Expected return",
+        "value": "5.8%",
+      },
+      {
+        "label": "Volatility",
+        "value": "12.4%",
+      },
+      {
+        "label": "Inflation",
+        "value": "3.0%",
+      },
+      {
+        "label": "Iterations",
+        "value": "1,000",
+      },
+      {
+        "label": "Seed",
+        "value": "4213",
+      },
+    ],
+    "seed": 4213,
+    "sentence": "In 73% of 1,000 simulated markets the plan lasts to age 90. The worst tenth of outcomes end with S$50,000; the median with S$600,000.",
+  },
+  "verdict": {
+    "headline": "Your money lasts to age 90",
+    "kpis": [
+      {
+        "caption": "at age 60",
+        "label": "Liquid wealth at independence",
+        "value": "S$1.8m",
+      },
+      {
+        "caption": "beyond age 90",
+        "label": "Money lasts until",
+        "value": "90+",
+      },
+      {
+        "caption": "at age 90",
+        "label": "Ending liquid balance",
+        "value": "S$2.9m",
+      },
+      {
+        "caption": "1,000 runs, seed 4213",
+        "label": "Stress-test success",
+        "value": "73%",
+      },
+    ],
+    "sentence": "Your plan funds every year to age 90 with S$600,000 to spare in the median case.",
+  },
+  "warnings": [],
+}
+`;

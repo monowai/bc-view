@@ -38,8 +38,10 @@ jest.mock("@hooks/useIndependencePlans", () => ({
   }),
 }))
 
+let mockSettingsLoading = false
 jest.mock("@hooks/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
+    isLoading: mockSettingsLoading,
     settings: {
       yearOfBirth: 1970,
       monthOfBirth: 6,
@@ -91,6 +93,18 @@ jest.mock("@components/features/shares/PendingResourceSharesPanel", () => ({
   __esModule: true,
   default: () => <div data-testid="pending-shares" />,
 }))
+
+const mockJourneyReport = jest.fn()
+jest.mock(
+  "@components/features/independence/report/JourneyReportContainer",
+  () => ({
+    __esModule: true,
+    default: (props: { journeyName: string; plans: RetirementPlan[] }) => {
+      mockJourneyReport(props)
+      return <div data-testid="journey-report" />
+    },
+  }),
+)
 
 import IndependencePage from "@pages/independence/index"
 
@@ -560,5 +574,70 @@ describe("/independence — plan config lives with what it configures", () => {
       (call) => (call[0] as { mode?: string }).mode,
     )
     expect(modes).toContain("work")
+  })
+})
+
+describe("/independence — journey report", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockSettingsLoading = false
+    global.fetch = mockFetch
+    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve("") })
+    mockActiveJourney = makeJourney({
+      id: "jrn-owning",
+      name: "With Property",
+      phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+    })
+    mockSwr([ownedPhase, ...otherPhases])
+  })
+
+  it("should link to the journey report from the plan view", () => {
+    mockQuery = {}
+    render(<Page />)
+    expect(
+      screen.getByRole("link", { name: /Independence analysis report/ }),
+    ).toHaveAttribute("href", "/independence?plan=jrn-owning&view=report")
+  })
+
+  it("should render the journey report, with only this journey's stages, in place of the page", () => {
+    mockQuery = { plan: "jrn-owning", view: "report" }
+    render(<Page />)
+    expect(screen.getByTestId("journey-report")).toBeInTheDocument()
+    expect(screen.queryByTestId("plan-switcher")).not.toBeInTheDocument()
+    const props = mockJourneyReport.mock.calls[0][0]
+    expect(props.journeyName).toBe("With Property")
+    expect(props.plans.map((p: RetirementPlan) => p.id)).toEqual([
+      "plan-owning",
+    ])
+  })
+
+  it("should hold the report until holdings have loaded", () => {
+    mockQuery = { plan: "jrn-owning", view: "report" }
+    const base = (useSwr as jest.Mock).getMockImplementation()!
+    ;(useSwr as jest.Mock).mockImplementation((key: string | null) =>
+      typeof key === "string" && key.includes("/holdings/")
+        ? { data: undefined, error: null, isLoading: true, mutate: jest.fn() }
+        : base(key),
+    )
+    render(<Page />)
+    expect(screen.getByText("Preparing report...")).toBeInTheDocument()
+    expect(mockJourneyReport).not.toHaveBeenCalled()
+  })
+
+  it("should hold the report until settings have loaded", () => {
+    mockQuery = { plan: "jrn-owning", view: "report" }
+    mockSettingsLoading = true
+    render(<Page />)
+    expect(screen.getByText("Preparing report...")).toBeInTheDocument()
+    expect(mockJourneyReport).not.toHaveBeenCalled()
+  })
+
+  it("should not offer the report for a journey with no stages", () => {
+    mockActiveJourney = makeJourney({ id: "jrn-owning" })
+    mockQuery = {}
+    render(<Page />)
+    expect(
+      screen.queryByRole("link", { name: /Independence analysis report/ }),
+    ).not.toBeInTheDocument()
   })
 })

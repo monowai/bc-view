@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from "react"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import { buildLifestyleSummary } from "@lib/independence/lifestyleSummary"
 import { reportSeed } from "@lib/independence/report/reportSeed"
+import { stableStringify } from "@lib/independence/report/inputKey"
 import type { ReportAges } from "@lib/independence/report/buildReport"
 import type { ScenarioState } from "../scenario/types"
 import type { AssetBreakdown } from "../useAssetBreakdown"
@@ -99,17 +100,5 @@ export default function IndependenceReportContainer({
       lifestyle={lifestyle}
       mcError={error?.message ?? null}
     />
-  )
-}
-
-function stableStringify(value: unknown): string {
-  return JSON.stringify(value, (_key, v: unknown) =>
-    v && typeof v === "object" && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.entries(v as Record<string, unknown>).sort(([a], [b]) =>
-            a.localeCompare(b, "en-US"),
-          ),
-        )
-      : v,
   )
 }
