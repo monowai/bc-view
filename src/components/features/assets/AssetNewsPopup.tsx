@@ -87,11 +87,16 @@ export default function AssetNewsPopup({
   return (
     <Dialog
       title={
-        <span>
-          <i className="fas fa-newspaper text-blue-600 mr-2"></i>
-          {`News — ${symbol}`}
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span>
+            <i className="fas fa-newspaper text-blue-600 mr-2"></i>
+            {`News — ${symbol}`}
+          </span>
+          {name && name !== symbol && (
+            <span className="text-base font-medium text-gray-700">{name}</span>
+          )}
           {market && (
-            <span className="ml-2 text-sm font-normal text-gray-500">
+            <span className="text-sm font-normal text-gray-500">
               {`(${market})`}
             </span>
           )}
@@ -101,7 +106,6 @@ export default function AssetNewsPopup({
       maxWidth="2xl"
       scrollable
     >
-      {name && <p className="text-sm text-gray-600">{name}</p>}
       {isLoading ? (
         <div className="py-8 text-center text-gray-500">
           <Spinner className="mr-2" />

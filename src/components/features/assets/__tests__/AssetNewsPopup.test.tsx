@@ -44,6 +44,15 @@ describe("AssetNewsPopup", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/news?tickers=GNE&market=NZX")
   })
 
+  it("names the asset beside its ticker in the heading", async () => {
+    respond({})
+    renderPopup({ symbol: "AMZN", market: "US", name: "Amazon.com Inc" })
+
+    const heading = await screen.findByRole("heading", { level: 2 })
+    expect(heading).toHaveTextContent("AMZN")
+    expect(heading).toHaveTextContent("Amazon.com Inc")
+  })
+
   it("lists each article with its sentiment and summary", async () => {
     respond({
       feed: [
