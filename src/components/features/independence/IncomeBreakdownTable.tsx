@@ -39,12 +39,18 @@ interface IncomeBreakdownTableProps {
   embedded?: boolean
   /** Backend-supplied value basis driving the inflation-indexed indicators. */
   valueBasis?: ValueBasis
+  /** Opens the year's sources-and-uses drill-down. */
+  onSelectYear?: (projection: YearlyProjection) => void
+  /** Years the drill-down can explain; all of them when omitted. */
+  isYearSelectable?: (projection: YearlyProjection) => boolean
 }
 
 export default function IncomeBreakdownTable({
   projections,
   embedded = false,
   valueBasis,
+  onSelectYear,
+  isYearSelectable,
 }: IncomeBreakdownTableProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
   const { hideValues } = usePrivacyMode()
@@ -110,16 +116,16 @@ export default function IncomeBreakdownTable({
   }
 
   // Only show first few and last few years when collapsed
-  const displayProjections = isExpanded
-    ? projections
-    : [
-        ...projections.slice(0, 3),
-        ...(projections.length > 6 ? [null] : []), // null represents "..." row
-        ...projections.slice(-3),
-      ].filter(
-        (p, i, arr) =>
-          p !== null || (i > 0 && arr[i - 1] !== null && i < arr.length - 1),
-      )
+  // Six or fewer years fit as they are; slicing first and last three would
+  // show the overlap twice.
+  const displayProjections =
+    isExpanded || projections.length <= 6
+      ? projections
+      : [
+          ...projections.slice(0, 3),
+          null, // null represents "..." row
+          ...projections.slice(-3),
+        ]
 
   const expandButton = (
     <button
@@ -289,7 +295,19 @@ export default function IncomeBreakdownTable({
                   } ${hasPropertyLiquidation ? "bg-purple-50" : ""} ${hasLumpSum ? "bg-pink-50" : ""} ${hasLifeEvent ? "bg-amber-50" : ""}`}
                 >
                   <td className="py-2 px-2 font-medium border-r border-gray-200">
-                    {projection.age}
+                    {onSelectYear &&
+                    (isYearSelectable?.(projection) ?? true) ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectYear(projection)}
+                        aria-label={`Show where the money goes at age ${projection.age}`}
+                        className="rounded px-1 text-independence-700 underline decoration-dotted underline-offset-2 hover:bg-independence-50"
+                      >
+                        {projection.age}
+                      </button>
+                    ) : (
+                      projection.age
+                    )}
                     {hasPropertyLiquidation && (
                       <i
                         className="fas fa-home text-purple-500 ml-1"

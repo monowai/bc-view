@@ -1,7 +1,10 @@
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import type { CompositeYearlyProjection } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+import YearFlowDialog from "../YearFlowDialog"
+import { usePlanExpenses } from "../usePlanExpenses"
+import { expenseShares } from "@lib/independence/yearFlows"
 
 const HIDDEN_VALUE = "****"
 
@@ -17,10 +20,18 @@ function formatMoney(value: number, currency: string, hide: boolean): string {
  * prominence as the question "will my money last" — it is the evidence for
  * that answer, not a peer of it. It now lives in a disclosure under the
  * chart, closed by default.
+ *
+ * Each age opens that year's sources-and-uses drill-down, labelled with the
+ * stage the year falls in.
  */
 export default function YearByYearTable(): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
   const { displayCurrency, projection } = useCompositeProjectionContext()
+  const [selected, setSelected] = useState<CompositeYearlyProjection | null>(
+    null,
+  )
+  const { expenses } = usePlanExpenses(selected?.planId)
+  const expenseMix = useMemo(() => expenseShares(expenses), [expenses])
 
   // Index of the row where housing drops to 0 (property liquidated).
   // CompositeYearlyProjection lacks the propertyLiquidated flag, so we detect
@@ -51,6 +62,9 @@ export default function YearByYearTable(): React.ReactElement | null {
 
   return (
     <>
+      <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+        Choose an age to see where that year&rsquo;s money comes from and goes.
+      </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <caption className="sr-only">
@@ -110,7 +124,14 @@ export default function YearByYearTable(): React.ReactElement | null {
                       } ${row.endingBalance <= 0 ? "bg-red-50 dark:bg-red-950" : ""}`}
                     >
                       <td className="px-2 py-1.5 tabular-nums text-gray-600 dark:text-gray-400">
-                        {row.age}
+                        <button
+                          type="button"
+                          onClick={() => setSelected(row)}
+                          aria-label={`Show where the money goes at age ${row.age}`}
+                          className="rounded px-1 text-independence-700 underline decoration-dotted underline-offset-2 hover:bg-independence-50 dark:text-independence-300 dark:hover:bg-gray-800"
+                        >
+                          {row.age}
+                        </button>
                       </td>
                       <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
                         {isPhaseStart ? (
@@ -158,6 +179,15 @@ export default function YearByYearTable(): React.ReactElement | null {
           These balances are money you can spend. Property and other tied-up
           assets show under &ldquo;What it&rsquo;s made of&rdquo; on the chart.
         </p>
+      )}
+      {selected && (
+        <YearFlowDialog
+          title={`Age ${selected.age} · ${selected.planName}`}
+          currency={displayCurrency}
+          row={selected}
+          expenseMix={expenseMix}
+          onClose={() => setSelected(null)}
+        />
       )}
     </>
   )

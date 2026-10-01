@@ -502,6 +502,8 @@ export interface PlanExpense {
   monthlyAmount: number
   currency: string
   sortOrder: number
+  /** Which part of life the expense belongs to; svc-retire defaults to RETIREMENT. */
+  expensePhase?: "WORKING" | "RETIREMENT"
 }
 
 export interface PlanExpenseRequest {
@@ -733,6 +735,11 @@ export interface YearlyProjection {
   taxDeferredValue?: number
   /** Roth 401(k)/IRA + UK ISA balance at year end. See taxDeferredValue. */
   taxFreeValue?: number
+  /**
+   * Tax and early-withdrawal penalty paid on this year's deferred-pool
+   * distribution. Null when the plan has no US pools.
+   */
+  withdrawalTaxPaid?: number | null
 }
 
 /**
