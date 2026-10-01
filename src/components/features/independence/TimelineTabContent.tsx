@@ -14,7 +14,7 @@ import {
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
 import CollapsibleSection from "@components/ui/CollapsibleSection"
-import { RetirementProjection } from "types/independence"
+import { RetirementProjection, YearlyProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import { netHousingValue } from "@lib/independence/wealthJourneyChartData"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
@@ -26,6 +26,7 @@ import {
 import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibbon"
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
+import YearFlowDialog from "@components/features/independence/YearFlowDialog"
 
 interface TimelineTabContentProps {
   projection: RetirementProjection | null
@@ -54,6 +55,7 @@ export default function TimelineTabContent({
 
   // Track which collapsible sections are open
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const [flowYear, setFlowYear] = useState<YearlyProjection | null>(null)
   const toggleSection = (key: string): void =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
 
@@ -772,7 +774,21 @@ export default function TimelineTabContent({
           })()}
           valueBasis={projection.valueBasis}
           embedded
+          onSelectYear={setFlowYear}
+          // Accumulation rows above are stitched together here, not sent with
+          // an income breakdown, so only projected years get the drill-down.
+          isYearSelectable={(y) =>
+            projection.yearlyProjections.some((p) => p.age === y.age)
+          }
         />
+        {flowYear && (
+          <YearFlowDialog
+            age={flowYear.age}
+            currency={flowYear.currency}
+            row={flowYear}
+            onClose={() => setFlowYear(null)}
+          />
+        )}
       </CollapsibleSection>
     </div>
   )

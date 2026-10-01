@@ -733,6 +733,11 @@ export interface YearlyProjection {
   taxDeferredValue?: number
   /** Roth 401(k)/IRA + UK ISA balance at year end. See taxDeferredValue. */
   taxFreeValue?: number
+  /**
+   * Tax and early-withdrawal penalty paid on this year's deferred-pool
+   * distribution. Null when the plan has no US pools.
+   */
+  withdrawalTaxPaid?: number | null
 }
 
 /**
