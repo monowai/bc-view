@@ -502,6 +502,8 @@ export interface PlanExpense {
   monthlyAmount: number
   currency: string
   sortOrder: number
+  /** Which part of life the expense belongs to; svc-retire defaults to RETIREMENT. */
+  expensePhase?: "WORKING" | "RETIREMENT"
 }
 
 export interface PlanExpenseRequest {

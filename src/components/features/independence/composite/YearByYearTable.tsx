@@ -3,6 +3,8 @@ import type { CompositeYearlyProjection } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
 import YearFlowDialog from "../YearFlowDialog"
+import { usePlanExpenses } from "../usePlanExpenses"
+import { expenseShares } from "@lib/independence/yearFlows"
 
 const HIDDEN_VALUE = "****"
 
@@ -28,6 +30,8 @@ export default function YearByYearTable(): React.ReactElement | null {
   const [selected, setSelected] = useState<CompositeYearlyProjection | null>(
     null,
   )
+  const { expenses } = usePlanExpenses(selected?.planId)
+  const expenseMix = useMemo(() => expenseShares(expenses), [expenses])
 
   // Index of the row where housing drops to 0 (property liquidated).
   // CompositeYearlyProjection lacks the propertyLiquidated flag, so we detect
@@ -178,10 +182,10 @@ export default function YearByYearTable(): React.ReactElement | null {
       )}
       {selected && (
         <YearFlowDialog
-          age={selected.age}
-          stage={selected.planName}
+          title={`Age ${selected.age} · ${selected.planName}`}
           currency={displayCurrency}
           row={selected}
+          expenseMix={expenseMix}
           onClose={() => setSelected(null)}
         />
       )}

@@ -25,6 +25,35 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
 }))
 
+jest.mock("../../usePlanExpenses", () => ({
+  usePlanExpenses: (planId: string | undefined) => ({
+    expenses:
+      planId === "Slow-go years"
+        ? [
+            {
+              id: "e1",
+              planId,
+              categoryLabelId: "housing",
+              categoryName: "Housing",
+              monthlyAmount: 3_000,
+              currency: "SGD",
+              sortOrder: 0,
+            },
+            {
+              id: "e2",
+              planId,
+              categoryLabelId: "travel",
+              categoryName: "Travel",
+              monthlyAmount: 1_000,
+              currency: "SGD",
+              sortOrder: 1,
+            },
+          ]
+        : undefined,
+    isLoading: false,
+  }),
+}))
+
 import YearByYearTable from "../YearByYearTable"
 
 const row = (
@@ -92,6 +121,18 @@ describe("YearByYearTable year drill-down", () => {
     expect(sources).toHaveTextContent("SGD 30,000")
     expect(sources).toHaveTextContent("From portfolio")
     expect(sources).toHaveTextContent("SGD 20,000")
+  })
+
+  it("should split the year's living expenses across that stage's categories", async () => {
+    renderTable()
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /where the money goes at age 75/i }),
+    )
+
+    const uses = screen.getByRole("list", { name: "Where it went" })
+    expect(uses).toHaveTextContent("HousingSGD 37,500")
+    expect(uses).toHaveTextContent("TravelSGD 12,500")
   })
 
   it("should close the drill-down", async () => {

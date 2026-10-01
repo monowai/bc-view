@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import LifestyleSummary from "@components/features/independence/LifestyleSummary"
@@ -6,6 +6,8 @@ import { usePlanExpenses } from "@components/features/independence/usePlanExpens
 import { useExpenseCategories } from "@components/features/independence/useExpenseCategories"
 import { useLifestyleCatalog } from "@components/features/independence/useLifestyleCatalog"
 import { buildExpenseMix } from "@lib/independence/lifestyleSummary"
+import { expenseShares, typicalYear } from "@lib/independence/yearFlows"
+import YearFlowDialog from "@components/features/independence/YearFlowDialog"
 import { currencySymbolFor } from "@lib/formatters"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import Spinner from "@components/ui/Spinner"
@@ -64,7 +66,21 @@ function PhaseSpend({
 }): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
+  const { projection, displayCurrency } = useCompositeProjectionContext()
+  const [showTypicalYear, setShowTypicalYear] = useState(false)
   const { expenses, isLoading } = usePlanExpenses(phase.planId)
+  const stageRows = useMemo(
+    () =>
+      (projection?.yearlyProjections ?? []).filter(
+        (r) =>
+          r.planId === phase.planId &&
+          r.age >= phase.fromAge &&
+          r.age <= phase.toAge,
+      ),
+    [projection, phase],
+  )
+  const typical = useMemo(() => typicalYear(stageRows), [stageRows])
+  const expenseMix = useMemo(() => expenseShares(expenses), [expenses])
   const { labels } = useExpenseCategories()
   const { catalog } = useLifestyleCatalog(phase.expensesCurrency)
   const mix = buildExpenseMix({ expenses, labels, catalog })
@@ -73,25 +89,50 @@ function PhaseSpend({
   // belongs here, and its empty board is exactly where the edit link needs to
   // be reachable. LifestyleSummary carries the teaching empty message.
   return (
-    <LifestyleSummary
-      model={mix}
-      title={`${phase.planName} · age ${phase.fromAge}–${phase.toAge}`}
-      currencySymbol={currencySymbolFor(phase.expensesCurrency)}
-      hideValues={hideValues}
-      isLoading={isLoading && !mix}
-      emptyMessage={`Add what you expect to spend from age ${phase.fromAge} and we'll show the life this stage supports.`}
-      action={
-        <Link
-          // Straight to Expenses: this board is about what the stage spends,
-          // so that's the part of the wizard the user came to change.
-          href={editPhaseHref(phase.planId, router.asPath, "expenses")}
-          aria-label={`Edit ${phase.planName}`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-        >
-          <i aria-hidden="true" className="fas fa-pen text-[10px]" />
-          Edit
-        </Link>
-      }
-    />
+    <>
+      <LifestyleSummary
+        model={mix}
+        title={`${phase.planName} · age ${phase.fromAge}–${phase.toAge}`}
+        currencySymbol={currencySymbolFor(phase.expensesCurrency)}
+        hideValues={hideValues}
+        isLoading={isLoading && !mix}
+        emptyMessage={`Add what you expect to spend from age ${phase.fromAge} and we'll show the life this stage supports.`}
+        action={
+          <div className="flex shrink-0 items-center gap-2">
+            {stageRows.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowTypicalYear(true)}
+                aria-label={`Show where the money goes in a typical ${phase.planName} year`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <i aria-hidden="true" className="fas fa-random text-[10px]" />
+                Typical year
+              </button>
+            )}
+            <Link
+              // Straight to Expenses: this board is about what the stage spends,
+              // so that's the part of the wizard the user came to change.
+              href={editPhaseHref(phase.planId, router.asPath, "expenses")}
+              aria-label={`Edit ${phase.planName}`}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <i aria-hidden="true" className="fas fa-pen text-[10px]" />
+              Edit
+            </Link>
+          </div>
+        }
+      />
+      {showTypicalYear && (
+        <YearFlowDialog
+          title={`${phase.planName} · typical year, age ${phase.fromAge}–${phase.toAge}`}
+          currency={displayCurrency}
+          row={typical}
+          expenseMix={expenseMix}
+          average
+          onClose={() => setShowTypicalYear(false)}
+        />
+      )}
+    </>
   )
 }

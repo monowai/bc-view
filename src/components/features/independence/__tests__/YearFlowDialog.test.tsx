@@ -48,8 +48,7 @@ describe("YearFlowDialog", () => {
   it("should show salary fanning out to expenses and surplus in a working year", () => {
     render(
       <YearFlowDialog
-        age={45}
-        stage="Working"
+        title="Age 45 · Working"
         currency="SGD"
         row={{
           expenses: 60_000,
@@ -86,8 +85,7 @@ describe("YearFlowDialog", () => {
   it("should show pension and a portfolio withdrawal converging on expenses in a retirement year", () => {
     render(
       <YearFlowDialog
-        age={70}
-        stage="Retired"
+        title="Age 70 · Retired"
         currency="USD"
         row={{
           inflationAdjustedExpenses: 80_000,
@@ -114,7 +112,7 @@ describe("YearFlowDialog", () => {
   it("should flag an unfunded shortfall as a warning, not a negative flow", () => {
     render(
       <YearFlowDialog
-        age={88}
+        title="Age 88"
         currency="USD"
         row={{ inflationAdjustedExpenses: 50_000, unfundedExpense: 50_000 }}
         onClose={jest.fn()}
@@ -131,7 +129,7 @@ describe("YearFlowDialog", () => {
   it("should say so when nothing moved in the year", () => {
     render(
       <YearFlowDialog
-        age={60}
+        title="Age 60"
         currency="USD"
         row={{ expenses: 0 }}
         onClose={jest.fn()}
@@ -146,7 +144,7 @@ describe("YearFlowDialog", () => {
     const onClose = jest.fn()
     render(
       <YearFlowDialog
-        age={60}
+        title="Age 60"
         currency="USD"
         row={{ expenses: 10_000 }}
         onClose={onClose}
@@ -155,5 +153,56 @@ describe("YearFlowDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it("should split living expenses into the stage's categories under a subtotal", () => {
+    render(
+      <YearFlowDialog
+        title="Age 70 · Retired"
+        currency="USD"
+        row={{
+          inflationAdjustedExpenses: 80_000,
+          incomeBreakdown: breakdown({ pension: 80_000 }),
+        }}
+        expenseMix={[
+          { key: "housing", label: "Housing", share: 0.75 },
+          { key: "food", label: "Food", share: 0.25 },
+        ]}
+        onClose={jest.fn()}
+      />,
+    )
+
+    const uses = screen.getByRole("list", { name: "Where it went" })
+    const items = within(uses)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent)
+    expect(items).toEqual([
+      "Living expensesUSD 80,000",
+      "HousingUSD 60,000",
+      "FoodUSD 20,000",
+    ])
+    expect(screen.getByTestId("sankey")).toHaveAttribute(
+      "data-nodes",
+      "Pension|This year|Housing|Food",
+    )
+    expect(screen.getByText(/split in the proportions/)).toBeInTheDocument()
+  })
+
+  it("should present a stage's average year as a typical year", () => {
+    render(
+      <YearFlowDialog
+        title="Go-Go · typical year"
+        currency="USD"
+        average
+        row={{ expenses: 50_000 }}
+        onClose={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/in a typical year came from/)).toBeInTheDocument()
+    expect(screen.getByTestId("sankey").getAttribute("data-nodes")).toContain(
+      "Each year",
+    )
+    expect(screen.getByText(/yearly average/)).toBeInTheDocument()
   })
 })

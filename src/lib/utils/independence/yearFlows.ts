@@ -1,4 +1,5 @@
-import type { IncomeBreakdown } from "types/independence"
+import type { IncomeBreakdown, PlanExpense } from "types/independence"
+import { buildExpenseMix } from "./lifestyleSummary"
 
 /**
  * One projected year's cash, as sources and uses — the data behind the
@@ -10,6 +11,11 @@ import type { IncomeBreakdown } from "types/independence"
  * is flagged `residual` so the UI labels it as a balancing figure rather than
  * a backend number. Investment returns are left out: they are growth inside
  * the portfolio, not cash the year spends.
+ *
+ * Living expenses can be split across the stage's expense categories. The
+ * engine inflates one total at one rate, so each category's share of that
+ * total holds for every year of the stage: the split distributes the
+ * backend's figure, it never derives a new one.
  */
 
 /** The fields both single-plan and composite rows can carry. */
@@ -32,6 +38,15 @@ export interface FlowNode {
   kind: FlowNodeKind
   /** True when the value balances the year rather than coming from the row. */
   residual: boolean
+  /** The total this node is a share of, e.g. "Living expenses". */
+  group?: string
+}
+
+/** One category's share of a stage's living expenses. */
+export interface ExpenseShare {
+  key: string
+  label: string
+  share: number
 }
 
 export interface YearFlows {
@@ -65,25 +80,39 @@ function node(
   return { key, label, value, kind, residual }
 }
 
+const LIVING_EXPENSES = "Living expenses"
+
 const isFlow = (n: FlowNode): boolean => n.value >= MIN_FLOW
 
 const sum = (nodes: FlowNode[]): number =>
   nodes.reduce((total, n) => total + n.value, 0)
 
-export function buildYearFlows(row: FlowRow): YearFlows {
+export function buildYearFlows(
+  row: FlowRow,
+  expenseMix: ExpenseShare[] = [],
+): YearFlows {
   const breakdown = row.incomeBreakdown
+  const living = row.inflationAdjustedExpenses ?? row.expenses ?? 0
 
   const income = INCOME_STREAMS.map(([key, label]) =>
     node(key, label, Number(breakdown?.[key] ?? 0), "income"),
   ).filter(isFlow)
 
+  const livingNodes =
+    expenseMix.length > 0
+      ? expenseMix.map((s, i) => ({
+          ...node(
+            `expense-${i}-${s.key}`,
+            s.label,
+            living * s.share,
+            "spending",
+          ),
+          group: LIVING_EXPENSES,
+        }))
+      : [node("expenses", LIVING_EXPENSES, living, "spending")]
+
   const spending = [
-    node(
-      "expenses",
-      "Living expenses",
-      row.inflationAdjustedExpenses ?? row.expenses ?? 0,
-      "spending",
-    ),
+    ...livingNodes,
     node(
       "lifeEventExpense",
       "Life event expense",
@@ -113,4 +142,57 @@ export function buildYearFlows(row: FlowRow): YearFlows {
   ].filter(isFlow)
 
   return { sources, uses, total: sum(sources) }
+}
+
+/**
+ * The stage's retirement expense categories as shares of their total, largest
+ * first, the tail rolled into "Everything else" exactly as the stage's
+ * spending board groups it. Working-years expenses are left out: the engine's
+ * living-expense figure is built from retirement categories only.
+ */
+export function expenseShares(
+  expenses: PlanExpense[] | undefined,
+  maxCategories = 5,
+): ExpenseShare[] {
+  const retirement = (expenses ?? []).filter(
+    (e) => (e.expensePhase ?? "RETIREMENT") === "RETIREMENT",
+  )
+  const mix = buildExpenseMix({ expenses: retirement, maxCategories })
+  if (!mix) return []
+  return mix.categories.map((c) => ({
+    key: c.isRollup ? "rollup" : c.categoryLabelId,
+    label: c.categoryName,
+    share: c.amount / mix.monthlyTotal,
+  }))
+}
+
+/**
+ * A stage's average year: every flow averaged over the stage's rows. Flows
+ * add, so the average balances the same way each year does.
+ */
+export function typicalYear(rows: FlowRow[]): FlowRow {
+  const n = rows.length || 1
+  const mean = (pick: (row: FlowRow) => number | null | undefined): number =>
+    rows.reduce((total, row) => total + (pick(row) ?? 0), 0) / n
+  const stream = (key: keyof IncomeBreakdown): number =>
+    mean((row) => row.incomeBreakdown?.[key] as number | undefined)
+
+  return {
+    expenses: mean((row) => row.inflationAdjustedExpenses ?? row.expenses),
+    unfundedExpense: mean((row) => row.unfundedExpense),
+    withdrawalTaxPaid: mean((row) => row.withdrawalTaxPaid),
+    incomeBreakdown: {
+      investmentReturns: stream("investmentReturns"),
+      pension: stream("pension"),
+      assetPensions: stream("assetPensions"),
+      lumpSumPayout: stream("lumpSumPayout"),
+      socialSecurity: stream("socialSecurity"),
+      otherIncome: stream("otherIncome"),
+      rentalIncome: stream("rentalIncome"),
+      workingIncome: stream("workingIncome"),
+      lifeEventIncome: stream("lifeEventIncome"),
+      lifeEventExpense: stream("lifeEventExpense"),
+      totalIncome: stream("totalIncome"),
+    },
+  }
 }

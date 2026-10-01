@@ -27,6 +27,8 @@ import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibb
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
 import YearFlowDialog from "@components/features/independence/YearFlowDialog"
+import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
+import { expenseShares } from "@lib/independence/yearFlows"
 
 interface TimelineTabContentProps {
   projection: RetirementProjection | null
@@ -56,6 +58,12 @@ export default function TimelineTabContent({
   // Track which collapsible sections are open
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
   const [flowYear, setFlowYear] = useState<YearlyProjection | null>(null)
+  // Rows from a composite projection name their own stage plan.
+  const flowPlanId = flowYear
+    ? ((flowYear as { planId?: string }).planId ?? projection?.planId)
+    : undefined
+  const { expenses } = usePlanExpenses(flowPlanId)
+  const expenseMix = useMemo(() => expenseShares(expenses), [expenses])
   const toggleSection = (key: string): void =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
 
@@ -783,9 +791,10 @@ export default function TimelineTabContent({
         />
         {flowYear && (
           <YearFlowDialog
-            age={flowYear.age}
+            title={`Age ${flowYear.age}`}
             currency={flowYear.currency}
             row={flowYear}
+            expenseMix={expenseMix}
             onClose={() => setFlowYear(null)}
           />
         )}

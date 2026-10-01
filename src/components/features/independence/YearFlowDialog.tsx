@@ -4,6 +4,7 @@ import Dialog from "@components/ui/Dialog"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import {
   buildYearFlows,
+  type ExpenseShare,
   type FlowNode,
   type FlowNodeKind,
   type FlowRow,
@@ -24,8 +25,6 @@ const KIND_COLOUR: Record<FlowNodeKind | "hub", string> = {
   hub: "#9ca3af",
 }
 
-const HUB_LABEL = "This year"
-
 interface ChartNode {
   name: string
   kind: FlowNodeKind | "hub"
@@ -34,11 +33,13 @@ interface ChartNode {
 }
 
 interface YearFlowDialogProps {
-  age?: number
-  /** Stage (phase plan) the year belongs to, when the view has stages. */
-  stage?: string
+  title: string
   currency: string
   row: FlowRow
+  /** The stage's expense categories; living expenses split across them. */
+  expenseMix?: ExpenseShare[]
+  /** The row is a stage's average year rather than one projected year. */
+  average?: boolean
   onClose: () => void
 }
 
@@ -48,27 +49,30 @@ interface YearFlowDialogProps {
  * as two lists (the table view, and what screen readers get).
  */
 export default function YearFlowDialog({
-  age,
-  stage,
+  title,
   currency,
   row,
+  expenseMix,
+  average = false,
   onClose,
 }: YearFlowDialogProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
-  const flows = useMemo(() => buildYearFlows(row), [row])
+  const flows = useMemo(
+    () => buildYearFlows(row, expenseMix),
+    [row, expenseMix],
+  )
   const format = (value: number): string =>
     hideValues
       ? HIDDEN_VALUE
       : `${currency} ${Math.round(value).toLocaleString()}`
 
-  const title = [age !== undefined ? `Age ${age}` : null, stage]
-    .filter(Boolean)
-    .join(" · ")
+  const period = average ? "a typical year" : "this year"
+  const hasCategories = flows.uses.some((n) => n.group)
   const hasResidual = [...flows.sources, ...flows.uses].some((n) => n.residual)
 
   return (
     <Dialog
-      title={title || "Year"}
+      title={title}
       onClose={onClose}
       maxWidth="3xl"
       scrollable
@@ -84,12 +88,12 @@ export default function YearFlowDialog({
     >
       {flows.total === 0 ? (
         <p className="text-sm text-gray-600">
-          No cash moved in or out this year.
+          No cash moved in or out in {period}.
         </p>
       ) : (
         <>
           <p className="text-sm text-gray-600">
-            Where this year&rsquo;s money came from and where it went &mdash;{" "}
+            Where the money in {period} came from and where it went &mdash;{" "}
             <span className="font-medium text-gray-900">
               {format(flows.total)} in total
             </span>
@@ -98,6 +102,7 @@ export default function YearFlowDialog({
           <FlowChart
             sources={flows.sources}
             uses={flows.uses}
+            hubLabel={average ? "Each year" : "This year"}
             format={format}
           />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -112,11 +117,27 @@ export default function YearFlowDialog({
               format={format}
             />
           </div>
-          {hasResidual && (
-            <p className="text-xs text-gray-500">
-              * Balancing figure: the gap between this year&rsquo;s income and
-              its spending, drawn from or added to the portfolio.
-            </p>
+          {(hasResidual || hasCategories || average) && (
+            <div className="space-y-1 text-xs text-gray-500">
+              {average && (
+                <p>
+                  Each flow is the stage&rsquo;s yearly average, so one-off
+                  events are spread across its years.
+                </p>
+              )}
+              {hasCategories && (
+                <p>
+                  Living expenses are split in the proportions of the
+                  stage&rsquo;s spending categories.
+                </p>
+              )}
+              {hasResidual && (
+                <p>
+                  * Balancing figure: the gap between income and spending, drawn
+                  from or added to the portfolio.
+                </p>
+              )}
+            </div>
           )}
         </>
       )}
@@ -127,10 +148,12 @@ export default function YearFlowDialog({
 function FlowChart({
   sources,
   uses,
+  hubLabel,
   format,
 }: {
   sources: FlowNode[]
   uses: FlowNode[]
+  hubLabel: string
   format: (value: number) => string
 }): React.ReactElement {
   const data = useMemo(() => {
@@ -143,7 +166,7 @@ function FlowChart({
     const hub = sources.length
     const nodes: ChartNode[] = [
       ...sources.map((n) => toChart(n, "source")),
-      { name: HUB_LABEL, kind: "hub", residual: false, side: "hub" },
+      { name: hubLabel, kind: "hub", residual: false, side: "hub" },
       ...uses.map((n) => toChart(n, "use")),
     ]
     const links = [
@@ -155,7 +178,7 @@ function FlowChart({
       })),
     ]
     return { nodes, links }
-  }, [sources, uses])
+  }, [sources, uses, hubLabel])
 
   const height = Math.max(sources.length, uses.length, 2) * 56 + 40
 
@@ -282,29 +305,55 @@ function FlowList({
         {title}
       </h3>
       <ul aria-labelledby={id} className="space-y-1 text-sm">
-        {nodes.map((n) => (
-          <li key={n.key} className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-gray-800">
-              <span
-                aria-hidden="true"
-                className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: KIND_COLOUR[n.kind] }}
-              />
-              {n.kind === "shortfall" && (
-                <i
-                  aria-hidden="true"
-                  className="fas fa-exclamation-triangle text-red-600"
-                />
-              )}
-              <span>{n.label}</span>
-              {n.residual && <span aria-label="balancing figure">*</span>}
-            </span>
-            <span className="tabular-nums text-gray-900">
-              {format(n.value)}
-            </span>
-          </li>
+        {nodes.map((n, i) => (
+          <React.Fragment key={n.key}>
+            {n.group && nodes[i - 1]?.group !== n.group && (
+              <li className="flex items-center justify-between gap-3 font-medium text-gray-900">
+                <span>{n.group}</span>
+                <span className="tabular-nums">
+                  {format(
+                    nodes
+                      .filter((g) => g.group === n.group)
+                      .reduce((total, g) => total + g.value, 0),
+                  )}
+                </span>
+              </li>
+            )}
+            <FlowItem node={n} format={format} />
+          </React.Fragment>
         ))}
       </ul>
     </div>
+  )
+}
+
+function FlowItem({
+  node: n,
+  format,
+}: {
+  node: FlowNode
+  format: (value: number) => string
+}): React.ReactElement {
+  return (
+    <li
+      className={`flex items-center justify-between gap-3 ${n.group ? "pl-4" : ""}`}
+    >
+      <span className="flex items-center gap-2 text-gray-800">
+        <span
+          aria-hidden="true"
+          className="inline-block h-2.5 w-2.5 rounded-sm"
+          style={{ backgroundColor: KIND_COLOUR[n.kind] }}
+        />
+        {n.kind === "shortfall" && (
+          <i
+            aria-hidden="true"
+            className="fas fa-exclamation-triangle text-red-600"
+          />
+        )}
+        <span>{n.label}</span>
+        {n.residual && <span aria-label="balancing figure">*</span>}
+      </span>
+      <span className="tabular-nums text-gray-900">{format(n.value)}</span>
+    </li>
   )
 }
