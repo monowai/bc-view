@@ -52,7 +52,10 @@ export interface ExpenseShare {
 export interface YearFlows {
   sources: FlowNode[]
   uses: FlowNode[]
-  /** Total cash through the year; sources and uses both sum to it. */
+  /**
+   * Total cash through the year: the sum of the sources. The uses match it to
+   * within MIN_FLOW, because a balancing figure below that is dropped as noise.
+   */
   total: number
 }
 
@@ -98,17 +101,15 @@ export function buildYearFlows(
     node(key, label, Number(breakdown?.[key] ?? 0), "income"),
   ).filter(isFlow)
 
+  const categories = expenseMix.map((s, i) => ({
+    ...node(`expense-${i}-${s.key}`, s.label, living * s.share, "spending"),
+    group: LIVING_EXPENSES,
+  }))
+  // Split only when every category is a flow: dropping one would leave the
+  // subtotal short of the backend's figure.
   const livingNodes =
-    expenseMix.length > 0
-      ? expenseMix.map((s, i) => ({
-          ...node(
-            `expense-${i}-${s.key}`,
-            s.label,
-            living * s.share,
-            "spending",
-          ),
-          group: LIVING_EXPENSES,
-        }))
+    categories.length > 0 && categories.every(isFlow)
+      ? categories
       : [node("expenses", LIVING_EXPENSES, living, "spending")]
 
   const spending = [
@@ -182,6 +183,7 @@ export function typicalYear(rows: FlowRow[]): FlowRow {
     unfundedExpense: mean((row) => row.unfundedExpense),
     withdrawalTaxPaid: mean((row) => row.withdrawalTaxPaid),
     incomeBreakdown: {
+      // investmentReturns and totalIncome complete the type; neither is a flow.
       investmentReturns: stream("investmentReturns"),
       pension: stream("pension"),
       assetPensions: stream("assetPensions"),

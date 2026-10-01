@@ -58,11 +58,9 @@ export default function TimelineTabContent({
   // Track which collapsible sections are open
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
   const [flowYear, setFlowYear] = useState<YearlyProjection | null>(null)
-  // Rows from a composite projection name their own stage plan.
-  const flowPlanId = flowYear
-    ? ((flowYear as { planId?: string }).planId ?? projection?.planId)
-    : undefined
-  const { expenses } = usePlanExpenses(flowPlanId)
+  const { expenses } = usePlanExpenses(
+    flowYear ? projection?.planId : undefined,
+  )
   const expenseMix = useMemo(() => expenseShares(expenses), [expenses])
   const toggleSection = (key: string): void =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))

@@ -161,6 +161,16 @@ describe("buildYearFlows", () => {
     expect(sum(flows.uses)).toBe(sum(flows.sources))
   })
 
+  it("should keep living expenses whole when a category would round away", () => {
+    const flows = buildYearFlows({ expenses: 2 }, [
+      { key: "housing", label: "Housing", share: 0.8 },
+      { key: "food", label: "Food", share: 0.2 },
+    ])
+
+    expect(summary(flows.uses)).toEqual([["Living expenses", 2, false]])
+    expect(summary(flows.sources)).toEqual([["From portfolio", 2, true]])
+  })
+
   it("should keep one living expenses node when there is no category mix", () => {
     const flows = buildYearFlows({ expenses: 10_000 }, [])
 
