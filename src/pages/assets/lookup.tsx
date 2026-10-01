@@ -129,7 +129,10 @@ function PanelSkeleton(): React.ReactElement {
 
 // Secondary actions share one quiet shape so Trade stays the only primary.
 const toolButton =
-  "inline-flex h-8 items-center gap-2 rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+  "inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+
+// On a phone the secondary actions share the row and Trade takes its own.
+const fillOnPhone = "flex-auto justify-center sm:flex-none"
 
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
@@ -444,27 +447,26 @@ function AssetLookupPage(): React.ReactElement {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{"Asset Lookup"}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {"Search for an asset to see which portfolios hold it"}
-        </p>
-      </div>
-
-      {/* Search Box */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {"Search Asset"}
-        </label>
-        <div className="flex flex-col sm:flex-row gap-3">
+      {/* Title and search share a row on wide screens. */}
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="shrink-0">
+          <h1 className="text-2xl font-bold text-gray-900">{"Asset Lookup"}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {"Search for an asset to see which portfolios hold it"}
+          </p>
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:max-w-3xl">
+          <label htmlFor="lookup-market" className="sr-only">
+            {"Market"}
+          </label>
           <select
+            id="lookup-market"
             value={selectedMarket}
             onChange={(e) => {
               setSelectedMarket(e.target.value)
               setSelectedAsset(null)
             }}
-            className="w-full sm:w-auto border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="input-height w-full sm:w-48 border border-gray-300 rounded-md px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">{"All Markets"}</option>
             {(marketsData?.data || []).map((market) => (
@@ -473,9 +475,13 @@ function AssetLookupPage(): React.ReactElement {
               </option>
             ))}
           </select>
-          <div className="flex-1">
+          <label htmlFor="lookup-asset" className="sr-only">
+            {"Search Asset"}
+          </label>
+          <div className="min-w-0 flex-1">
             <AssetSearch
               key={selectedMarket}
+              inputId="lookup-asset"
               market={selectedMarket}
               knownMarkets={knownMarkets}
               value={selectedAsset}
@@ -495,14 +501,14 @@ function AssetLookupPage(): React.ReactElement {
         />
       )}
 
-      {/* Selected asset: identity and price lead, one primary action, the
-          rest as a quiet toolbar. */}
+      {/* Selected asset: identity, price, then every action in one group —
+          a single row on wide screens. */}
       {selectedAsset && (
         <section
           aria-labelledby="selected-asset-heading"
-          className="mb-6 rounded-lg border border-gray-200 bg-white"
+          className="mb-5 flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 lg:flex-row lg:items-center lg:justify-between lg:px-5"
         >
-          <div className="flex items-start justify-between gap-4 p-4 sm:p-5">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-10">
             <div className="min-w-0">
               <h2
                 id="selected-asset-heading"
@@ -521,12 +527,11 @@ function AssetLookupPage(): React.ReactElement {
               {assetFacts && (
                 <p className="mt-0.5 text-sm text-gray-500">{assetFacts}</p>
               )}
-              {lastClose ? (
-                <div
-                  data-testid="last-close"
-                  className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1"
-                >
-                  <span className="font-mono text-2xl font-semibold text-gray-900 tabular-nums">
+            </div>
+            {lastClose ? (
+              <div data-testid="last-close" className="shrink-0">
+                <div className="flex flex-wrap items-baseline gap-x-3">
+                  <span className="font-mono text-xl font-semibold text-gray-900 tabular-nums">
                     {formatCurrency(lastClose.close)}
                   </span>
                   {/* No previous close = no real change; don't show 0.00%. */}
@@ -543,34 +548,29 @@ function AssetLookupPage(): React.ReactElement {
                       {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
                     </span>
                   )}
-                  <span className="text-xs text-gray-500">
-                    {lastClose.priceDate
-                      ? `Last Close · ${formatDate(lastClose.priceDate)}`
-                      : "Last Close"}
-                  </span>
                 </div>
-              ) : loadingPrice || creatingPending ? (
-                <div
-                  role="status"
-                  aria-label="Loading price"
-                  className="mt-3 h-8 w-44 rounded-md bg-gray-100 animate-pulse motion-reduce:animate-none"
-                ></div>
-              ) : null}
-            </div>
-            {selectedAsset.symbol && (
-              <div className="shrink-0">
-                <TradeAssetAction asset={selectedAsset} />
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {lastClose.priceDate
+                    ? `Last Close · ${formatDate(lastClose.priceDate)}`
+                    : "Last Close"}
+                </p>
               </div>
-            )}
+            ) : loadingPrice || creatingPending ? (
+              <div
+                role="status"
+                aria-label="Loading price"
+                className="h-11 w-40 shrink-0 rounded-md bg-gray-100 animate-pulse motion-reduce:animate-none"
+              ></div>
+            ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
             {selectedAsset.market && selectedAsset.symbol && (
               <button
                 type="button"
                 onClick={() => openChartFor(selectedAsset)}
                 disabled={resolvingAsset || creatingPending}
-                className={toolButton}
+                className={`${toolButton} ${fillOnPhone}`}
                 aria-label={`Show price chart for ${selectedAsset.symbol}`}
                 title="Price Chart"
               >
@@ -587,7 +587,7 @@ function AssetLookupPage(): React.ReactElement {
                   type="button"
                   onClick={() => openSectorsFor(selectedAsset)}
                   disabled={resolvingAsset || creatingPending}
-                  className={toolButton}
+                  className={`${toolButton} ${fillOnPhone}`}
                   aria-label={`Show sectors for ${selectedAsset.symbol}`}
                   title="Sector Weightings"
                 >
@@ -602,7 +602,7 @@ function AssetLookupPage(): React.ReactElement {
               <button
                 type="button"
                 onClick={() => setNewsAsset(selectedAsset)}
-                className={toolButton}
+                className={`${toolButton} ${fillOnPhone}`}
                 aria-label={`Show news for ${selectedAsset.symbol}`}
                 title="News"
               >
@@ -617,7 +617,7 @@ function AssetLookupPage(): React.ReactElement {
               <button
                 type="button"
                 onClick={() => showReview(selectedAsset)}
-                className={toolButton}
+                className={`${toolButton} ${fillOnPhone}`}
                 aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
                 title="AI Asset Review"
               >
@@ -628,23 +628,28 @@ function AssetLookupPage(): React.ReactElement {
                 <span>{"AI Review"}</span>
               </button>
             )}
-            {adminActions.length > 0 && (
-              <div className="ml-auto">
-                <ActionMenu
-                  items={adminActions}
-                  label={`More actions for ${selectedAsset.symbol}`}
-                  triggerClassName={`${toolButton} w-8 justify-center px-0`}
-                />
+            {selectedAsset.symbol && (
+              <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
+                <TradeAssetAction asset={selectedAsset} />
               </div>
             )}
+            {adminActions.length > 0 && (
+              <ActionMenu
+                items={adminActions}
+                label={`More actions for ${selectedAsset.symbol}`}
+                triggerClassName={`${toolButton} w-8 justify-center px-0`}
+              />
+            )}
           </div>
-          {deleteError && deleteError.assetId === selectedAsset.assetId && (
-            <div className="px-4 pb-4 sm:px-5">
-              <Alert variant="error">{deleteError.message}</Alert>
-            </div>
-          )}
         </section>
       )}
+      {selectedAsset &&
+        deleteError &&
+        deleteError.assetId === selectedAsset.assetId && (
+          <Alert variant="error" className="mb-5">
+            {deleteError.message}
+          </Alert>
+        )}
       {/* Admin: edit (name/category) + classify popup, replaces the
           separate Admin → Asset Classifications screen. */}
       {isAdmin && selectedAsset?.assetId && showAdminEdit && (
