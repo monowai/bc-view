@@ -33,9 +33,10 @@ jest.mock("@utils/api/responseWriter", () => {
       (
         _req: unknown,
         res: { status: jest.Mock; json: jest.Mock },
-        error: { message: string },
+        error: { message: string; statusCode?: number },
       ) => {
-        res.status(500).json({ error: error.message })
+        // Mirrors the real writer: a BcApiError keeps its own status.
+        res.status(error.statusCode ?? 500).json({ error: error.message })
       },
     ),
   }
@@ -91,6 +92,17 @@ describe("/api/news route", () => {
       "http://data.test/news?tickers=GNE&market=NZX",
       expect.any(Object),
     )
+  })
+
+  it("rejects a request without a ticker instead of asking for 'undefined'", async () => {
+    const res = makeRes()
+    await newsHandler(
+      makeReq({}) as unknown as Parameters<typeof newsHandler>[0],
+      res as unknown as Parameters<typeof newsHandler>[1],
+    )
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(400)
   })
 
   it("omits market when not supplied", async () => {

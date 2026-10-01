@@ -22,15 +22,22 @@ const publishedDate = (timePublished: string): string =>
 
 const isUrl = (source: string): boolean => /^https?:\/\//.test(source)
 
-const sourceLabel = (source: string): string =>
-  isUrl(source) ? new URL(source).hostname.replace(/^www\./, "") : source
+// A provider can send a malformed URL ("https://"); show it raw rather than
+// let one bad article take down the popup.
+const sourceLabel = (source: string): string => {
+  if (!isUrl(source)) return source
+  try {
+    return new URL(source).hostname.replace(/^www\./, "")
+  } catch {
+    return source
+  }
+}
 
-const sentimentClass = (label: string): string =>
-  label.includes("Bullish")
-    ? "bg-green-100 text-green-800"
-    : label.includes("Bearish")
-      ? "bg-red-100 text-red-800"
-      : "bg-gray-100 text-gray-700"
+const sentimentClass = (label: string): string => {
+  if (label.includes("Bullish")) return "bg-green-100 text-green-800"
+  if (label.includes("Bearish")) return "bg-red-100 text-red-800"
+  return "bg-gray-100 text-gray-700"
+}
 
 function ArticleRow({ article }: { article: NewsArticle }): React.ReactElement {
   return (
@@ -71,6 +78,46 @@ function ArticleRow({ article }: { article: NewsArticle }): React.ReactElement {
   )
 }
 
+function NewsBody({
+  symbol,
+  feed,
+  isLoading,
+  failed,
+}: {
+  symbol: string
+  feed: NewsArticle[]
+  isLoading: boolean
+  failed: boolean
+}): React.ReactElement {
+  if (isLoading) {
+    return (
+      <div className="py-8 text-center text-gray-500">
+        <Spinner className="mr-2" />
+        {"Loading news..."}
+      </div>
+    )
+  }
+  if (failed) {
+    return (
+      <Alert variant="error">{"Could not load news. Try again later."}</Alert>
+    )
+  }
+  if (feed.length === 0) {
+    return (
+      <p className="py-8 text-center text-gray-500">
+        {`No recent news for ${symbol}.`}
+      </p>
+    )
+  }
+  return (
+    <ul className="divide-y divide-gray-200">
+      {feed.map((article, i) => (
+        <ArticleRow key={`${article.title}-${i}`} article={article} />
+      ))}
+    </ul>
+  )
+}
+
 export default function AssetNewsPopup({
   symbol,
   market,
@@ -106,24 +153,12 @@ export default function AssetNewsPopup({
       maxWidth="2xl"
       scrollable
     >
-      {isLoading ? (
-        <div className="py-8 text-center text-gray-500">
-          <Spinner className="mr-2" />
-          {"Loading news..."}
-        </div>
-      ) : error ? (
-        <Alert variant="error">{"Could not load news. Try again later."}</Alert>
-      ) : feed.length === 0 ? (
-        <p className="py-8 text-center text-gray-500">
-          {`No recent news for ${symbol}.`}
-        </p>
-      ) : (
-        <ul className="divide-y divide-gray-200">
-          {feed.map((article, i) => (
-            <ArticleRow key={`${article.title}-${i}`} article={article} />
-          ))}
-        </ul>
-      )}
+      <NewsBody
+        symbol={symbol}
+        feed={feed}
+        isLoading={isLoading}
+        failed={!!error}
+      />
     </Dialog>
   )
 }

@@ -95,6 +95,16 @@ describe("AssetNewsPopup", () => {
     expect(screen.getByText("reuters.com")).toBeInTheDocument()
   })
 
+  it("still renders an article whose source URL is malformed", async () => {
+    respond({
+      feed: [makeNewsArticle({ title: "Odd source", source: "https://" })],
+    })
+    renderPopup()
+
+    expect(await screen.findByText("Odd source")).toBeInTheDocument()
+    expect(screen.getByText("https://")).toBeInTheDocument()
+  })
+
   it("shows the publisher name when the source is not a URL", async () => {
     respond({
       feed: [makeNewsArticle({ title: "Headline", source: "Benzinga" })],

@@ -109,6 +109,12 @@ async function createAsset(option: AssetOption): Promise<Asset> {
   return created
 }
 
+function deleteTitle(checking: boolean, held: boolean): string {
+  if (checking) return "Checking whether this asset is held in any portfolio…"
+  if (held) return "Cannot delete — asset is held in one or more portfolios"
+  return "Delete asset (admin)"
+}
+
 /** Placeholder rows while a tab's table loads. */
 function PanelSkeleton(): React.ReactElement {
   return (
@@ -436,11 +442,7 @@ function AssetLookupPage(): React.ReactElement {
             destructive: true,
             onSelect: handleDeleteAsset,
             disabled: deleting || loadingPositions || positions.length > 0,
-            title: loadingPositions
-              ? "Checking whether this asset is held in any portfolio…"
-              : positions.length > 0
-                ? "Cannot delete — asset is held in one or more portfolios"
-                : "Delete asset (admin)",
+            title: deleteTitle(loadingPositions, positions.length > 0),
           },
         ]
       : []
@@ -528,7 +530,7 @@ function AssetLookupPage(): React.ReactElement {
                 <p className="mt-0.5 text-sm text-gray-500">{assetFacts}</p>
               )}
             </div>
-            {lastClose ? (
+            {lastClose && (
               <div data-testid="last-close" className="shrink-0">
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-mono text-xl font-semibold text-gray-900 tabular-nums">
@@ -555,13 +557,14 @@ function AssetLookupPage(): React.ReactElement {
                     : "Last Close"}
                 </p>
               </div>
-            ) : loadingPrice || creatingPending ? (
+            )}
+            {!lastClose && (loadingPrice || creatingPending) && (
               <div
                 role="status"
                 aria-label="Loading price"
                 className="h-11 w-40 shrink-0 rounded-md bg-gray-100 animate-pulse motion-reduce:animate-none"
               ></div>
-            ) : null}
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
