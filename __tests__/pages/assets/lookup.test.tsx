@@ -42,6 +42,19 @@ jest.mock("@contexts/UserPreferencesContext", () => ({
   useUserPreferences: () => ({ preferences: {}, isLoading: false }),
 }))
 
+let mockPermissions = { ai: false, preview: false, admin: false }
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({ ...mockPermissions, isLoading: false }),
+}))
+
+let capturedNewsProps: Record<string, unknown> | null = null
+jest.mock("@components/features/assets/AssetNewsPopup", () => {
+  return function AssetNewsPopup(props: Record<string, unknown>) {
+    capturedNewsProps = props
+    return <div data-testid="news-popup" />
+  }
+})
+
 let capturedTradeProps: Record<string, unknown> | null = null
 jest.mock("@components/features/transactions/TradeInputForm", () => {
   return function TradeInputForm(props: Record<string, unknown>) {
@@ -471,5 +484,112 @@ describe("Asset Lookup Page — last close", () => {
     render(<AssetLookupPage />)
 
     expect(screen.queryByTestId("last-close")).not.toBeInTheDocument()
+  })
+})
+
+describe("Asset Lookup Page — news", () => {
+  beforeEach(() => {
+    mockQuery = defaultQuery
+    capturedNewsProps = null
+    mockSwrData()
+  })
+
+  it("opens the news popup for the selected search result", () => {
+    render(<AssetLookupPage />)
+
+    expect(screen.queryByTestId("news-popup")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /news for AAPL/i }))
+
+    expect(screen.getByTestId("news-popup")).toBeInTheDocument()
+    expect(capturedNewsProps).toMatchObject({
+      symbol: "AAPL",
+      market: "NASDAQ",
+      name: "Apple Inc",
+    })
+  })
+
+  it("closes the news popup", () => {
+    render(<AssetLookupPage />)
+    fireEvent.click(screen.getByRole("button", { name: /news for AAPL/i }))
+
+    act(() => (capturedNewsProps?.onClose as () => void)())
+
+    expect(screen.queryByTestId("news-popup")).not.toBeInTheDocument()
+  })
+})
+
+describe("Asset Lookup Page — quiet by default", () => {
+  beforeEach(() => {
+    mockQuery = defaultQuery
+    mockPermissions = { ai: false, preview: false, admin: false }
+    mockSwrData()
+    ;(useSWR as unknown as jest.Mock).mockClear()
+  })
+
+  const requestedKeys = (): unknown[] =>
+    (useSWR as unknown as jest.Mock).mock.calls.map((call) => call[0])
+
+  it("does not ask the rebalance service for models until the Models tab is opened", () => {
+    render(<AssetLookupPage />)
+
+    expect(requestedKeys()).not.toContain(modelsKeyUrl)
+
+    fireEvent.click(screen.getByRole("button", { name: /models/i }))
+
+    expect(requestedKeys()).toContain(modelsKeyUrl)
+  })
+
+  it("offers no overflow menu to a non-admin", () => {
+    render(<AssetLookupPage />)
+
+    expect(
+      screen.queryByRole("button", { name: /more actions/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("keeps admin Edit and Delete behind the overflow menu", () => {
+    mockPermissions = { ai: false, preview: false, admin: true }
+    render(<AssetLookupPage />)
+
+    expect(
+      screen.queryByRole("button", { name: /delete asset/i }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
+
+    expect(screen.getByRole("menuitem", { name: /edit/i })).toBeEnabled()
+    // AAPL is held in GROWTH, so it cannot be deleted.
+    expect(screen.getByRole("menuitem", { name: /delete/i })).toBeDisabled()
+  })
+
+  it("shows why the backend refused a delete", async () => {
+    mockPermissions = { ai: false, preview: false, admin: true }
+    ;(useSWR as unknown as jest.Mock).mockImplementation((key: unknown) =>
+      key === positionsKey
+        ? { data: { data: [] }, isLoading: false }
+        : { data: undefined, isLoading: false },
+    )
+    const originalFetch = global.fetch
+    const originalConfirm = window.confirm
+    window.confirm = jest.fn(() => true)
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: "Conflict",
+      text: () => Promise.resolve(JSON.stringify({ message: "Asset in use" })),
+    }) as unknown as typeof fetch
+    try {
+      render(<AssetLookupPage />)
+      fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
+      fireEvent.click(screen.getByRole("menuitem", { name: /delete/i }))
+
+      expect(await screen.findByText("Asset in use")).toBeInTheDocument()
+      expect(global.fetch).toHaveBeenCalledWith("/api/assets/admin/asset-1", {
+        method: "DELETE",
+      })
+    } finally {
+      global.fetch = originalFetch
+      window.confirm = originalConfirm
+    }
   })
 })

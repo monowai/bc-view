@@ -678,6 +678,23 @@ export interface AssetOption {
   region?: string
 }
 
+// svc-data GET /news article. `source` is the article URL (EODHD) or the
+// publisher name (AlphaVantage).
+export interface NewsArticle {
+  title: string
+  summary: string
+  source: string
+  timePublished: string
+  sentimentLabel: string
+  sentimentScore: number
+}
+
+// svc-data GET /news body — an empty object when the provider has no coverage.
+export interface NewsResponse {
+  feed?: NewsArticle[]
+  count?: number
+}
+
 // Asset search result from backend search
 export interface AssetSearchResult {
   symbol: string

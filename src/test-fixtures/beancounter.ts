@@ -17,6 +17,7 @@ import {
   Holdings,
   HoldingGroup,
   MoneyValues,
+  NewsArticle,
   Portfolio,
   PortfolioBreakdown,
   Position,
@@ -315,6 +316,20 @@ export function makeApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
     expiresAt: null,
     lastUsedAt: null,
     revokedAt: null,
+    ...overrides,
+  }
+}
+
+export function makeNewsArticle(
+  overrides: Partial<NewsArticle> = {},
+): NewsArticle {
+  return {
+    title: "Headline",
+    summary: "Summary.",
+    source: "https://news.example.com/a",
+    timePublished: "2026-09-30T12:00:00",
+    sentimentLabel: "Neutral",
+    sentimentScore: 0,
     ...overrides,
   }
 }

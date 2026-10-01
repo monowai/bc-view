@@ -96,6 +96,12 @@ export const tradeKeyMulti = (
 export const eventKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/events/${portfolioId}/${assetId}`
 
+export const newsKey = (symbol: string, market?: string): string => {
+  const params = new URLSearchParams({ tickers: symbol })
+  if (market) params.append("market", market)
+  return `${apiRoot}/news?${params.toString()}`
+}
+
 export const holdingKey = (portfolioCode: string, asAt: string): string =>
   `${apiRoot}/holdings/${portfolioCode}?asAt=${asAt}`
 
