@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import useSWR, { mutate } from "swr"
@@ -20,10 +20,12 @@ import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
+import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import { isFundLike } from "@lib/assets/assetUtils"
 import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
-import Spinner from "@components/ui/Spinner"
+import EmptyState from "@components/ui/EmptyState"
+import ActionMenu, { ActionMenuItem } from "@components/ui/ActionMenu"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
@@ -107,6 +109,28 @@ async function createAsset(option: AssetOption): Promise<Asset> {
   return created
 }
 
+/** Placeholder rows while a tab's table loads. */
+function PanelSkeleton(): React.ReactElement {
+  return (
+    <div
+      role="status"
+      aria-label="Loading"
+      className="divide-y divide-gray-100 animate-pulse motion-reduce:animate-none"
+    >
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center justify-between px-4 py-4">
+          <div className="h-4 w-32 rounded bg-gray-100"></div>
+          <div className="h-4 w-20 rounded bg-gray-100"></div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Secondary actions share one quiet shape so Trade stays the only primary.
+const toolButton =
+  "inline-flex h-8 items-center gap-2 rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
   // Search hits carry the provider's casing ("Mutual Fund"); BC category ids
@@ -135,24 +159,23 @@ function AssetLookupPage(): React.ReactElement {
   )
   const [chartAsset, setChartAsset] = useState<Asset | null>(null)
   const [sectorAsset, setSectorAsset] = useState<Asset | null>(null)
+  const [newsAsset, setNewsAsset] = useState<AssetOption | null>(null)
   const [resolvingAsset, setResolvingAsset] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const { popup: reviewPopup, showReview } = useAssetReview()
   const { ai: canRunAi, preview: canPreview, admin: isAdmin } = usePermissions()
   const canReviewAsset = canRunAi || canPreview
   const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  // Keyed by asset so a late delete response can only ever surface against
+  // the asset it was for, never one the user picked while it was in flight.
+  const [deleteError, setDeleteError] = useState<{
+    assetId: string
+    message: string
+  } | null>(null)
   const [showAdminEdit, setShowAdminEdit] = useState(false)
   const [activeTab, setActiveTab] = useState<AssetLookupTabId>("portfolios")
   const [sellRow, setSellRow] = useState<AssetPosition | null>(null)
   const [sellModalOpen, setSellModalOpen] = useState(false)
-  // Mirror selectedAsset into a ref so the in-flight delete handler can
-  // identity-check against the LATEST selection at the time the response
-  // resolves, not the value it closed over when invoked.
-  const selectedAssetRef = useRef<AssetOption | null>(null)
-  useEffect(() => {
-    selectedAssetRef.current = selectedAsset
-  }, [selectedAsset])
 
   // Hydrate selected asset from query string (header search deep-link).
   useEffect(() => {
@@ -178,11 +201,12 @@ function AssetLookupPage(): React.ReactElement {
     simpleFetcher(marketsKey),
   )
 
-  // Fetch positions when an asset is selected
+  // Each tab loads its own data when opened. Positions also back the admin
+  // Delete guard (an asset held anywhere can't be deleted).
   const { data: positionsData, isLoading: loadingPositions } = useSWR<{
     data: AssetPosition[]
   }>(
-    selectedAsset?.assetId
+    selectedAsset?.assetId && (activeTab === "portfolios" || isAdmin)
       ? `/api/assets/${selectedAsset.assetId}/positions?date=today`
       : null,
     simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
@@ -193,10 +217,9 @@ function AssetLookupPage(): React.ReactElement {
   const priceKey = selectedAsset?.assetId
     ? `/api/prices/${selectedAsset.assetId}/quote`
     : null
-  const { data: priceResponse } = useSWR<{ data: PriceData[] }>(
-    priceKey,
-    priceKey ? simpleFetcher(priceKey) : null,
-  )
+  const { data: priceResponse, isLoading: loadingPrice } = useSWR<{
+    data: PriceData[]
+  }>(priceKey, priceKey ? simpleFetcher(priceKey) : null)
   const lastClose = priceResponse?.data?.[0]
 
   const positions = positionsData?.data || []
@@ -204,10 +227,10 @@ function AssetLookupPage(): React.ReactElement {
   // holds this asset" — hide them. Keep negative/short balances visible.
   const visiblePositions = positions.filter((ap) => ap.balance !== 0)
 
-  // Fetch models with active plans containing this asset
+  // Models live in svc-rebalance — only ask when the Models tab is open.
   const { data: modelsData, isLoading: loadingModels } =
     useSWR<ModelsContainingAssetResponse>(
-      selectedAsset?.assetId
+      selectedAsset?.assetId && activeTab === "models"
         ? `/api/rebalance/assets/${selectedAsset.assetId}/models`
         : null,
       simpleFetcher(`/api/rebalance/assets/${selectedAsset?.assetId}/models`),
@@ -312,9 +335,8 @@ function AssetLookupPage(): React.ReactElement {
 
   const handleDeleteAsset = async (): Promise<void> => {
     if (!selectedAsset?.assetId) return
-    // Snapshot the target identity so a late response can't clear or
-    // overwrite state for a different asset the user picked while the
-    // delete was in flight.
+    // Snapshot the target identity: every state update below is conditional
+    // on it, so a late response can't clear a different asset's selection.
     const targetAssetId = selectedAsset.assetId
     const label = selectedAsset.symbol || selectedAsset.assetId
     if (
@@ -326,8 +348,8 @@ function AssetLookupPage(): React.ReactElement {
     }
     setDeleting(true)
     setDeleteError(null)
-    const isStillSelected = (): boolean =>
-      selectedAssetRef.current?.assetId === targetAssetId
+    const fail = (message: string): void =>
+      setDeleteError({ assetId: targetAssetId, message })
     try {
       const response = await fetch(
         `/api/assets/admin/${encodeURIComponent(targetAssetId)}`,
@@ -351,24 +373,18 @@ function AssetLookupPage(): React.ReactElement {
             errorMessage = raw
           }
         }
-        if (isStillSelected()) {
-          setDeleteError(
-            errorMessage ||
-              `Delete failed (${response.status} ${response.statusText})`,
-          )
-        }
+        fail(
+          errorMessage ||
+            `Delete failed (${response.status} ${response.statusText})`,
+        )
         return
       }
-      if (isStillSelected()) {
-        setSelectedAsset(null)
-        setChartAsset(null)
-      }
+      setSelectedAsset((prev) =>
+        prev?.assetId === targetAssetId ? null : prev,
+      )
+      setChartAsset((prev) => (prev?.id === targetAssetId ? null : prev))
     } catch (e) {
-      if (isStillSelected()) {
-        setDeleteError(
-          e instanceof Error ? e.message : "Failed to delete asset",
-        )
-      }
+      fail(e instanceof Error ? e.message : "Failed to delete asset")
     } finally {
       setDeleting(false)
     }
@@ -397,6 +413,35 @@ function AssetLookupPage(): React.ReactElement {
     return `${(value * 100).toFixed(2)}%`
   }
 
+  const assetFacts = selectedAsset
+    ? [selectedAsset.market, selectedAsset.currency, selectedAsset.type]
+        .filter(Boolean)
+        .join(" · ")
+    : ""
+
+  const adminActions: ActionMenuItem[] =
+    isAdmin && selectedAsset?.assetId
+      ? [
+          {
+            label: "Edit",
+            icon: "fa-pen",
+            onSelect: () => setShowAdminEdit(true),
+          },
+          {
+            label: deleting ? "Deleting..." : "Delete",
+            icon: "fa-trash",
+            destructive: true,
+            onSelect: handleDeleteAsset,
+            disabled: deleting || loadingPositions || positions.length > 0,
+            title: loadingPositions
+              ? "Checking whether this asset is held in any portfolio…"
+              : positions.length > 0
+                ? "Cannot delete — asset is held in one or more portfolios"
+                : "Delete asset (admin)",
+          },
+        ]
+      : []
+
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
@@ -408,7 +453,7 @@ function AssetLookupPage(): React.ReactElement {
       </div>
 
       {/* Search Box */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4 mb-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {"Search Asset"}
         </label>
@@ -442,135 +487,163 @@ function AssetLookupPage(): React.ReactElement {
         </div>
       </div>
 
-      {/* Selected Asset Info */}
+      {!selectedAsset && (
+        <EmptyState
+          icon="fas fa-magnifying-glass-chart"
+          title="Look up any listed asset"
+          description="See its last close, chart it, read the news, and find which portfolios hold it."
+        />
+      )}
+
+      {/* Selected asset: identity and price lead, one primary action, the
+          rest as a quiet toolbar. */}
       {selectedAsset && (
-        <div className="bg-invest-50 border border-invest-200 rounded-lg p-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {selectedAsset.label}
+        <section
+          aria-labelledby="selected-asset-heading"
+          className="mb-6 rounded-lg border border-gray-200 bg-white"
+        >
+          <div className="flex items-start justify-between gap-4 p-4 sm:p-5">
+            <div className="min-w-0">
+              <h2
+                id="selected-asset-heading"
+                className="flex flex-wrap items-baseline gap-x-2"
+              >
+                <span className="font-mono text-xl font-semibold text-gray-900">
+                  {selectedAsset.symbol}
+                </span>
+                {selectedAsset.name &&
+                  selectedAsset.name !== selectedAsset.symbol && (
+                    <span className="text-base font-medium text-gray-700">
+                      {selectedAsset.name}
+                    </span>
+                  )}
               </h2>
-              <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                {selectedAsset.market && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                    {selectedAsset.market}
-                  </span>
-                )}
-                {selectedAsset.currency && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                    {selectedAsset.currency}
-                  </span>
-                )}
-              </div>
-              {lastClose && (
+              {assetFacts && (
+                <p className="mt-0.5 text-sm text-gray-500">{assetFacts}</p>
+              )}
+              {lastClose ? (
                 <div
                   data-testid="last-close"
-                  className="flex flex-wrap items-baseline gap-x-2 mt-2 text-sm"
+                  className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1"
                 >
-                  <span className="text-gray-500">{"Last Close"}</span>
-                  <span className="text-base font-semibold text-gray-900 tabular-nums">
+                  <span className="font-mono text-2xl font-semibold text-gray-900 tabular-nums">
                     {formatCurrency(lastClose.close)}
                   </span>
                   {/* No previous close = no real change; don't show 0.00%. */}
                   {lastClose.previousClose > 0 && (
                     <span
-                      className={`tabular-nums ${changeClass(lastClose.change)}`}
+                      className={`inline-flex items-center gap-1 font-mono text-sm font-medium tabular-nums ${changeClass(lastClose.change)}`}
                     >
+                      {lastClose.change !== 0 && (
+                        <i
+                          aria-hidden="true"
+                          className={`fas ${lastClose.change > 0 ? "fa-caret-up" : "fa-caret-down"}`}
+                        ></i>
+                      )}
                       {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
                     </span>
                   )}
-                  {lastClose.priceDate && (
-                    <span className="text-gray-500">
-                      {formatDate(lastClose.priceDate)}
-                    </span>
-                  )}
+                  <span className="text-xs text-gray-500">
+                    {lastClose.priceDate
+                      ? `Last Close · ${formatDate(lastClose.priceDate)}`
+                      : "Last Close"}
+                  </span>
                 </div>
-              )}
+              ) : loadingPrice || creatingPending ? (
+                <div
+                  role="status"
+                  aria-label="Loading price"
+                  className="mt-3 h-8 w-44 rounded-md bg-gray-100 animate-pulse motion-reduce:animate-none"
+                ></div>
+              ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedAsset.symbol && (
+            {selectedAsset.symbol && (
+              <div className="shrink-0">
                 <TradeAssetAction asset={selectedAsset} />
-              )}
-              {selectedAsset.market && selectedAsset.symbol && (
-                <button
-                  type="button"
-                  onClick={() => openChartFor(selectedAsset)}
-                  disabled={resolvingAsset || creatingPending}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
-                  aria-label={`Show price chart for ${selectedAsset.symbol}`}
-                  title="Price Chart"
-                >
-                  <i className="fas fa-chart-line"></i>
-                  <span>{resolvingAsset ? "Loading..." : "Chart"}</span>
-                </button>
-              )}
-              {selectedAsset.symbol &&
-                isFundLike(assetOptionToAsset(selectedAsset)) && (
-                  <button
-                    type="button"
-                    onClick={() => openSectorsFor(selectedAsset)}
-                    disabled={resolvingAsset || creatingPending}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
-                    aria-label={`Show sectors for ${selectedAsset.symbol}`}
-                    title="Sector Weightings"
-                  >
-                    <i className="fas fa-chart-pie"></i>
-                    <span>{"Sectors"}</span>
-                  </button>
-                )}
-              {canReviewAsset && (
-                <button
-                  type="button"
-                  onClick={() => showReview(selectedAsset)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
-                  aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
-                  title="AI Asset Review"
-                >
-                  <i className="fas fa-microscope"></i>
-                  <span>AI Review</span>
-                </button>
-              )}
-              {isAdmin && selectedAsset.assetId && (
-                <button
-                  type="button"
-                  onClick={() => setShowAdminEdit(true)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
-                  aria-label={`Edit asset ${selectedAsset.symbol || selectedAsset.assetId}`}
-                  title="Edit asset (admin)"
-                >
-                  <i className="fas fa-user-shield"></i>
-                  <span>{"Edit"}</span>
-                </button>
-              )}
-              {isAdmin && selectedAsset.assetId && (
-                <button
-                  type="button"
-                  onClick={handleDeleteAsset}
-                  disabled={
-                    deleting || loadingPositions || positions.length > 0
-                  }
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
-                  aria-label={`Delete asset ${selectedAsset.symbol || selectedAsset.assetId}`}
-                  title={
-                    loadingPositions
-                      ? "Checking whether this asset is held in any portfolio…"
-                      : positions.length > 0
-                        ? "Cannot delete — asset is held in one or more portfolios"
-                        : "Delete asset (admin)"
-                  }
-                >
-                  <i className="fas fa-trash"></i>
-                  <span>{deleting ? "Deleting..." : "Delete"}</span>
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-          {deleteError && (
-            <Alert variant="error" className="mt-3">
-              {deleteError}
-            </Alert>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-4 py-3 sm:px-5">
+            {selectedAsset.market && selectedAsset.symbol && (
+              <button
+                type="button"
+                onClick={() => openChartFor(selectedAsset)}
+                disabled={resolvingAsset || creatingPending}
+                className={toolButton}
+                aria-label={`Show price chart for ${selectedAsset.symbol}`}
+                title="Price Chart"
+              >
+                <i
+                  aria-hidden="true"
+                  className={`fas ${resolvingAsset ? "fa-circle-notch fa-spin" : "fa-chart-line"} text-gray-400`}
+                ></i>
+                <span>{"Chart"}</span>
+              </button>
+            )}
+            {selectedAsset.symbol &&
+              isFundLike(assetOptionToAsset(selectedAsset)) && (
+                <button
+                  type="button"
+                  onClick={() => openSectorsFor(selectedAsset)}
+                  disabled={resolvingAsset || creatingPending}
+                  className={toolButton}
+                  aria-label={`Show sectors for ${selectedAsset.symbol}`}
+                  title="Sector Weightings"
+                >
+                  <i
+                    aria-hidden="true"
+                    className="fas fa-chart-pie text-gray-400"
+                  ></i>
+                  <span>{"Sectors"}</span>
+                </button>
+              )}
+            {selectedAsset.symbol && (
+              <button
+                type="button"
+                onClick={() => setNewsAsset(selectedAsset)}
+                className={toolButton}
+                aria-label={`Show news for ${selectedAsset.symbol}`}
+                title="News"
+              >
+                <i
+                  aria-hidden="true"
+                  className="fas fa-newspaper text-gray-400"
+                ></i>
+                <span>{"News"}</span>
+              </button>
+            )}
+            {canReviewAsset && (
+              <button
+                type="button"
+                onClick={() => showReview(selectedAsset)}
+                className={toolButton}
+                aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
+                title="AI Asset Review"
+              >
+                <i
+                  aria-hidden="true"
+                  className="fas fa-microscope text-gray-400"
+                ></i>
+                <span>{"AI Review"}</span>
+              </button>
+            )}
+            {adminActions.length > 0 && (
+              <div className="ml-auto">
+                <ActionMenu
+                  items={adminActions}
+                  label={`More actions for ${selectedAsset.symbol}`}
+                  triggerClassName={`${toolButton} w-8 justify-center px-0`}
+                />
+              </div>
+            )}
+          </div>
+          {deleteError && deleteError.assetId === selectedAsset.assetId && (
+            <div className="px-4 pb-4 sm:px-5">
+              <Alert variant="error">{deleteError.message}</Alert>
+            </div>
           )}
-        </div>
+        </section>
       )}
       {/* Admin: edit (name/category) + classify popup, replaces the
           separate Admin → Asset Classifications screen. */}
@@ -593,6 +666,14 @@ function AssetLookupPage(): React.ReactElement {
           onClose={() => setChartAsset(null)}
         />
       )}
+      {newsAsset && (
+        <AssetNewsPopup
+          symbol={newsAsset.symbol}
+          market={newsAsset.market}
+          name={newsAsset.name}
+          onClose={() => setNewsAsset(null)}
+        />
+      )}
       {sectorAsset && (
         <SectorWeightingsPopup
           asset={sectorAsset}
@@ -608,19 +689,9 @@ function AssetLookupPage(): React.ReactElement {
 
       {/* Portfolios Tab */}
       {selectedAsset && activeTab === "portfolios" && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700">
-              <i className="fas fa-briefcase mr-2 text-gray-400"></i>
-              {"Portfolios Holding This Asset"}
-            </h3>
-          </div>
-
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           {loadingPositions ? (
-            <div className="p-8 text-center text-gray-500">
-              <Spinner className="mr-2" />
-              {"Loading..."}
-            </div>
+            <PanelSkeleton />
           ) : visiblePositions.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-folder-open text-3xl mb-2 text-gray-300"></i>
@@ -755,10 +826,11 @@ function AssetLookupPage(): React.ReactElement {
                         {moneyValues ? (
                           <div
                             className={
-                              gain >= 0 ? "text-green-600" : "text-red-600"
+                              gain >= 0 ? "text-emerald-600" : "text-red-600"
                             }
                           >
                             <div>
+                              {gain > 0 ? "+" : ""}
                               {formatValue(gain, portfolio.currency.code)}
                             </div>
                             <div className="text-xs">
@@ -780,7 +852,7 @@ function AssetLookupPage(): React.ReactElement {
                             e.stopPropagation()
                             openSell(ap)
                           }}
-                          className="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50"
+                          className="rounded-md px-2 py-1 text-sm font-medium text-gray-600 transition-colors duration-150 hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 motion-reduce:transition-none"
                           title={`Sell ${selectedAsset.symbol || ""} from ${portfolio.code}`}
                         >
                           <i className="fas fa-hand-holding-usd mr-1"></i>
@@ -805,13 +877,7 @@ function AssetLookupPage(): React.ReactElement {
 
       {/* Brokers Tab */}
       {selectedAsset && activeTab === "brokers" && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700">
-              <i className="fas fa-building-columns mr-2 text-gray-400"></i>
-              {"Brokers Holding This Asset"}
-            </h3>
-          </div>
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           {selectedAsset.assetId ? (
             <AssetBrokersTab assetId={selectedAsset.assetId} />
           ) : (
@@ -824,19 +890,9 @@ function AssetLookupPage(): React.ReactElement {
 
       {/* Models Table */}
       {selectedAsset && activeTab === "models" && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700">
-              <i className="fas fa-sitemap mr-2 text-gray-400"></i>
-              {"Models With Active Plans"}
-            </h3>
-          </div>
-
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           {loadingModels ? (
-            <div className="p-8 text-center text-gray-500">
-              <Spinner className="mr-2" />
-              {"Loading..."}
-            </div>
+            <PanelSkeleton />
           ) : models.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-sitemap text-3xl mb-2 text-gray-300"></i>

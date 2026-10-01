@@ -58,7 +58,7 @@ export default function TradeAssetAction({
         type="button"
         onClick={start}
         disabled={noPortfolios}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-600 text-white text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="btn-primary btn-primary--sm gap-2 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
         aria-label={`Trade ${asset.symbol}`}
         title={noPortfolios ? "Create a portfolio first" : "Trade this asset"}
       >
