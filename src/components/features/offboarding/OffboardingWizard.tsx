@@ -142,6 +142,13 @@ export default function OffboardingWizard(): React.ReactElement {
         // brokers + tax rates + the user (it is the superset). Do NOT call
         // /api/offboard/wealth here — that would race against account on the
         // same rows and cause an optimistic-lock collision.
+        //
+        // AI chat history goes first, awaited: svc-agent resolves the owner
+        // via svc-data /me, which fails once the account is gone. Best effort
+        // — a failure here must not block closing the account.
+        await fetch("/api/offboard/conversations", { method: "DELETE" }).catch(
+          () => null,
+        )
         const [plansRes, modelsRes, accountRes] = await Promise.all([
           fetch("/api/offboard/plans", { method: "DELETE" }).catch(() => null),
           fetch("/api/offboard/models", { method: "DELETE" }).catch(() => null),

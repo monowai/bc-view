@@ -8,6 +8,7 @@ import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
 import ChatFab from "@components/features/chat/ChatFab"
+import { ChatProvider } from "@components/features/chat/ChatProvider"
 import MilestoneToast from "@components/ui/MilestoneToast"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
@@ -39,14 +40,17 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
   return (
     <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
-      <div className="bg-gray-100 min-h-screen">
-        <StaleVersionBanner />
-        <Header />
-        <div className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4">
-          <Component {...pageProps} />
+      {/* One chat shared by the FAB and the /chat page. */}
+      <ChatProvider>
+        <div className="bg-gray-100 min-h-screen">
+          <StaleVersionBanner />
+          <Header />
+          <div className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4">
+            <Component {...pageProps} />
+          </div>
         </div>
-      </div>
-      <ChatFab />
+        <ChatFab />
+      </ChatProvider>
       <GitInfo />
     </div>
   )

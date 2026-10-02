@@ -40,8 +40,7 @@ function NewsPage(): React.ReactElement {
     [pageCtx.page, pageCtx.description, activeCode, tickers],
   )
 
-  const { messages, isLoading, sendMessage, clearMessages, cancel } =
-    useChat(context)
+  const { messages, isLoading, sendMessage, newChat, cancel } = useChat(context)
 
   return (
     <>
@@ -92,7 +91,7 @@ function NewsPage(): React.ReactElement {
             messages={messages}
             isLoading={isLoading}
             onSend={sendMessage}
-            onClear={clearMessages}
+            onNewChat={newChat}
             onCancel={cancel}
             placeholder={pageCtx.placeholder}
             suggestions={pageCtx.suggestions}

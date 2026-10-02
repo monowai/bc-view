@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
-import { useChat } from "@hooks/useChat"
 import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
+import { useSharedChat } from "./ChatProvider"
 import { getPageContext } from "./pageContext"
 import {
   CORNER_LAYOUT,
@@ -70,19 +70,20 @@ export default function ChatFab(): React.ReactElement {
     return ctx
   }, [pageContext.page, pageContext.description, routeParams, livePageContext])
   const context = threadContext ?? routeContext
-  const {
-    messages,
-    isLoading,
-    sendMessage,
-    clearMessages,
-    loadTranscript,
-    cancel,
-  } = useChat(context)
+  // The chat itself is app-wide (shared with /chat); the page context is
+  // this FAB's, so it rides along on each send rather than living in the hook.
+  const { messages, isLoading, sendMessage, newChat, loadTranscript, cancel } =
+    useSharedChat()
+  const send = useCallback(
+    (query: string, deepThink?: boolean, think?: boolean) =>
+      sendMessage(query, deepThink, think, undefined, context),
+    [sendMessage, context],
+  )
 
-  const clear = useCallback(() => {
-    clearMessages()
+  const startNewChat = useCallback(() => {
+    newChat()
     setThreadContext(null)
-  }, [clearMessages])
+  }, [newChat])
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -112,10 +113,10 @@ export default function ChatFab(): React.ReactElement {
           loadTranscript(transcript)
           setThreadContext(handed ?? null)
         } else if (prompt) {
-          void sendMessage(prompt)
+          void send(prompt)
         }
       }),
-    [sendMessage, loadTranscript],
+    [send, loadTranscript],
   )
 
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
@@ -143,8 +144,9 @@ export default function ChatFab(): React.ReactElement {
         <ChatPanel
           messages={messages}
           isLoading={isLoading}
-          onSend={sendMessage}
-          onClear={clear}
+          onSend={send}
+          onNewChat={startNewChat}
+          historyHref="/chat"
           onCancel={cancel}
           onExpand={expand}
           onClose={close}

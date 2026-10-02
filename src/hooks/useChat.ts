@@ -1,9 +1,74 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { describeAgentError } from "@utils/agent/agentErrors"
-import { ChatMessage, ChatTurn } from "types/agent"
+import {
+  ChatMessage,
+  ChatTurn,
+  ConversationDetail,
+  ConversationTurn,
+} from "types/agent"
 
 /** Trailing turns sent as history — mirrors svc-agent's server-side cap. */
 const MAX_HISTORY_TURNS = 6
+
+const CONVERSATIONS_API = "/api/agent/conversations"
+
+/** localStorage key holding the persisted chat's current conversation id. */
+export const CONVERSATION_STORAGE_KEY = "bc.chat.conversationId"
+
+// localStorage can be missing (SSR) or throw (private mode, blocked storage);
+// the conversation id is a convenience, so every access fails soft.
+function readStoredConversationId(): string | null {
+  try {
+    return window.localStorage.getItem(CONVERSATION_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function storeConversationId(id: string | null): void {
+  try {
+    if (id) window.localStorage.setItem(CONVERSATION_STORAGE_KEY, id)
+    else window.localStorage.removeItem(CONVERSATION_STORAGE_KEY)
+  } catch {
+    // Storage unavailable — the conversation just won't resume on reload.
+  }
+}
+
+/**
+ * A stored turn as the chat renders it. A failed answer is stored with empty
+ * content and its svc-agent code; it is described exactly as a live `error`
+ * event is, so a reloaded failure reads the same as when it happened.
+ */
+export function turnToMessage(turn: ConversationTurn): ChatMessage {
+  return {
+    id: turn.id,
+    role: turn.role,
+    content:
+      turn.error && turn.content.length === 0
+        ? describeAgentError(turn.error).message
+        : turn.content,
+    timestamp: turn.timestamp,
+    deepThink: turn.deepThink || undefined,
+    error: turn.error,
+  }
+}
+
+/** Starts an empty server-side conversation; null when that isn't possible. */
+async function createConversation(signal: AbortSignal): Promise<string | null> {
+  try {
+    const res = await fetch(CONVERSATIONS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      signal,
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { data?: { id?: string } }
+    return json.data?.id ?? null
+  } catch {
+    return null
+  }
+}
 
 /**
  * Next SSE frame boundary — a blank line as either `\n\n` or `\r\n\r\n`.
@@ -21,6 +86,13 @@ function findSeparator(buf: string): { index: number; len: number } | null {
 interface UseChatOptions {
   /** Transcript to resume from, e.g. a cached Quick Analysis thread. */
   initialMessages?: ChatMessage[]
+  /**
+   * Record the chat server-side as a svc-agent conversation. The first send
+   * of a fresh chat creates one; later sends continue it by id instead of
+   * replaying `history`. The id survives a reload via localStorage. Off by
+   * default — Quick Analysis threads and other one-off chats stay stateless.
+   */
+  persist?: boolean
 }
 
 export interface UseChatReturn {
@@ -34,16 +106,30 @@ export interface UseChatReturn {
    * `true` (`AgentQuery.think`). Persisted on the user message via `deepThink`
    * so chat history can render a badge. `label`, when set, is displayed in
    * place of `query` on the user message (see `ChatMessage.label`).
+   * `context`, when given, is sent in place of the hook's — a shared chat
+   * passes the caller's current page context per send.
    */
   sendMessage: (
     query: string,
     deepThink?: boolean,
     think?: boolean,
     label?: string,
+    context?: Record<string, unknown>,
   ) => Promise<void>
-  clearMessages: () => void
-  /** Replaces the conversation, e.g. with a thread handed over to the FAB. */
+  /** Starts over: clears the transcript and forgets the conversation. */
+  newChat: () => void
+  /**
+   * Replaces the transcript, e.g. with a thread handed over to the FAB. The
+   * thread is not a stored conversation, so it continues statelessly.
+   */
   loadTranscript: (messages: ChatMessage[]) => void
+  /** Persisted conversation being continued; null for a fresh/stateless chat. */
+  conversationId: string | null
+  /**
+   * Replaces the transcript with a stored conversation. An id the server no
+   * longer knows (404) is forgotten and the chat starts fresh.
+   */
+  loadConversation: (id: string) => Promise<void>
   /**
    * Aborts the in-flight stream. Any tokens already received remain on the
    * assistant message; isLoading flips false. No-op when nothing is in flight.
@@ -67,8 +153,16 @@ export function useChat(
     () => options.initialMessages ?? [],
   )
   const [isLoading, setIsLoading] = useState(false)
+  const persist = options.persist ?? false
+  const [conversationId, setConversationIdState] = useState<string | null>(null)
+  // Source of truth for sends — sendMessage is memoized and must see the id
+  // a previous send just created without waiting for a re-render.
+  const conversationIdRef = useRef<string | null>(null)
+  // Bumped whenever the transcript is replaced, so a slow conversation load
+  // can't overwrite a newer choice (New chat, another conversation).
+  const loadSeqRef = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
-  // sendMessage is memoized on [context] only, so it can't read `messages`
+  // sendMessage is memoized, so it can't read `messages`
   // directly without going stale after the first render — mirror it into a
   // ref instead so each call sees the latest transcript.
   const messagesRef = useRef<ChatMessage[]>(messages)
@@ -80,13 +174,28 @@ export function useChat(
     abortRef.current?.abort()
   }, [])
 
+  const setConversation = useCallback(
+    (id: string | null) => {
+      conversationIdRef.current = id
+      setConversationIdState(id)
+      if (persist) storeConversationId(id)
+    },
+    [persist],
+  )
+
   const sendMessage = useCallback(
     async (
       query: string,
       deepThink: boolean = false,
       think: boolean = false,
       label?: string,
+      callContext?: Record<string, unknown>,
     ) => {
+      // A send supersedes any conversation load still in flight.
+      loadSeqRef.current++
+      // Only a chat started from empty becomes a stored conversation; a
+      // handed-over transcript has no server-side twin, so it stays stateless.
+      const freshChat = messagesRef.current.length === 0
       // Snapshot the transcript so far as history — before appending this
       // turn's placeholders — so the model sees its own prior question when
       // the user replies to it instead of retyping the whole context. Error
@@ -135,6 +244,16 @@ export function useChat(
       abortRef.current = controller
 
       try {
+        let activeId = persist ? conversationIdRef.current : null
+        if (persist && activeId === null && freshChat) {
+          // Can't create one (agent down, etc.)? Still answer — statelessly.
+          activeId = await createConversation(controller.signal)
+          if (activeId !== null && !controller.signal.aborted) {
+            setConversation(activeId)
+          }
+        }
+        // A stored conversation is replayed server-side, so `history` would
+        // be ignored — don't send it.
         const res = await fetch("/api/agent/query/stream", {
           method: "POST",
           headers: {
@@ -143,13 +262,19 @@ export function useChat(
           },
           body: JSON.stringify({
             query,
-            context,
+            context: callContext ?? context,
             deepThink,
             think,
-            history: history.length > 0 ? history : undefined,
+            history:
+              activeId === null && history.length > 0 ? history : undefined,
+            conversationId: activeId ?? undefined,
           }),
           signal: controller.signal,
         })
+        if (activeId !== null && res.status === 404) {
+          // Expired (90-day retention) or deleted elsewhere — forget it.
+          setConversation(null)
+        }
         if (!res.ok || !res.body) {
           // One extraction feeds both fields: `content` is the copy, `error`
           // is the raw signal it was derived from, so a recorded failure and
@@ -252,21 +377,72 @@ export function useChat(
         setIsLoading(false)
       }
     },
-    [context],
+    [context, persist, setConversation],
   )
 
-  const clearMessages = useCallback(() => setMessages([]), [])
+  const newChat = useCallback(() => {
+    loadSeqRef.current++
+    abortRef.current?.abort()
+    setConversation(null)
+    setMessages([])
+  }, [setConversation])
+
   const loadTranscript = useCallback(
-    (transcript: ChatMessage[]) => setMessages(transcript),
-    [],
+    (transcript: ChatMessage[]) => {
+      loadSeqRef.current++
+      setConversation(null)
+      setMessages(transcript)
+    },
+    [setConversation],
   )
+
+  const loadConversation = useCallback(
+    async (id: string) => {
+      const seq = ++loadSeqRef.current
+      abortRef.current?.abort()
+      try {
+        const res = await fetch(
+          `${CONVERSATIONS_API}/${encodeURIComponent(id)}`,
+        )
+        if (seq !== loadSeqRef.current) return
+        if (res.status === 404) {
+          setConversation(null)
+          setMessages([])
+          return
+        }
+        // Any other failure is treated as transient: keep the id so the
+        // next load (or reload) can still resume it.
+        if (!res.ok) return
+        const json = (await res.json()) as { data: ConversationDetail }
+        if (seq !== loadSeqRef.current) return
+        setMessages(json.data.messages.map(turnToMessage))
+        setConversation(json.data.id)
+      } catch {
+        // Network failure — leave the current chat as it is.
+      }
+    },
+    [setConversation],
+  )
+
+  // Resume the stored conversation. Post-mount, because localStorage doesn't
+  // exist during SSR — reading it in render would mismatch hydration. Same
+  // post-mount hydration pattern as ChatFab's corner; state only changes after
+  // the fetch resolves, the compiler just can't see past the await.
+  useEffect(() => {
+    if (!persist) return
+    const stored = readStoredConversationId()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored) void loadConversation(stored)
+  }, [persist, loadConversation])
 
   return {
     messages,
     isLoading,
     sendMessage,
-    clearMessages,
+    newChat,
     loadTranscript,
     cancel,
+    conversationId,
+    loadConversation,
   }
 }

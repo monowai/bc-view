@@ -10,7 +10,7 @@ describe("ChatPanel", () => {
     messages: [] as ChatMessage[],
     isLoading: false,
     onSend: jest.fn(),
-    onClear: jest.fn(),
+    onNewChat: jest.fn(),
   }
 
   beforeEach(() => {
@@ -109,26 +109,39 @@ describe("ChatPanel", () => {
     expect(screen.getByText("Thinking...")).toBeInTheDocument()
   })
 
-  it("Clear button is disabled with no messages and enabled with messages", () => {
-    const onClear = jest.fn()
+  it("New chat button is disabled with no messages and enabled with messages", () => {
+    const onNewChat = jest.fn()
     const { rerender } = render(
-      <ChatPanel {...defaultProps} onClear={onClear} />,
+      <ChatPanel {...defaultProps} onNewChat={onNewChat} />,
     )
-    const clearBtn = screen.getByRole("button", { name: /clear chat/i })
-    expect(clearBtn).toBeDisabled()
-    fireEvent.click(clearBtn)
-    expect(onClear).not.toHaveBeenCalled()
+    const newChatBtn = screen.getByRole("button", { name: /new chat/i })
+    expect(newChatBtn).toBeDisabled()
+    fireEvent.click(newChatBtn)
+    expect(onNewChat).not.toHaveBeenCalled()
 
     const messages: ChatMessage[] = [
       { id: "1", role: "user", content: "hi", timestamp: "t" },
     ]
     rerender(
-      <ChatPanel {...defaultProps} onClear={onClear} messages={messages} />,
+      <ChatPanel {...defaultProps} onNewChat={onNewChat} messages={messages} />,
     )
-    const enabled = screen.getByRole("button", { name: /clear chat/i })
+    const enabled = screen.getByRole("button", { name: /new chat/i })
     expect(enabled).not.toBeDisabled()
     fireEvent.click(enabled)
-    expect(onClear).toHaveBeenCalledTimes(1)
+    expect(onNewChat).toHaveBeenCalledTimes(1)
+  })
+
+  it("links to the chat history only when historyHref is given", () => {
+    const { rerender } = render(<ChatPanel {...defaultProps} />)
+    expect(
+      screen.queryByRole("link", { name: /history/i }),
+    ).not.toBeInTheDocument()
+
+    rerender(<ChatPanel {...defaultProps} historyHref="/chat" />)
+    expect(screen.getByRole("link", { name: /history/i })).toHaveAttribute(
+      "href",
+      "/chat",
+    )
   })
 
   it("renders Close icon only when onClose provided and calls it", () => {
