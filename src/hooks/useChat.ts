@@ -5,7 +5,25 @@ import { ChatMessage, ChatTurn } from "types/agent"
 /** Trailing turns sent as history — mirrors svc-agent's server-side cap. */
 const MAX_HISTORY_TURNS = 6
 
-interface UseChatReturn {
+/**
+ * Next SSE frame boundary — a blank line as either `\n\n` or `\r\n\r\n`.
+ * Proxies (CDN / load balancer) may normalise line endings to CRLF.
+ */
+function findSeparator(buf: string): { index: number; len: number } | null {
+  const lf = buf.indexOf("\n\n")
+  const crlf = buf.indexOf("\r\n\r\n")
+  if (lf === -1 && crlf === -1) return null
+  if (lf === -1) return { index: crlf, len: 4 }
+  if (crlf === -1) return { index: lf, len: 2 }
+  return crlf < lf ? { index: crlf, len: 4 } : { index: lf, len: 2 }
+}
+
+interface UseChatOptions {
+  /** Transcript to resume from, e.g. a cached Quick Analysis thread. */
+  initialMessages?: ChatMessage[]
+}
+
+export interface UseChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
   /**
@@ -14,14 +32,18 @@ interface UseChatReturn {
    * `false`) enables DeepSeek thinking mode — pre-canned / suggested prompts
    * leave it `false` for the fastest response; the free-text Chat FAB passes
    * `true` (`AgentQuery.think`). Persisted on the user message via `deepThink`
-   * so chat history can render a badge.
+   * so chat history can render a badge. `label`, when set, is displayed in
+   * place of `query` on the user message (see `ChatMessage.label`).
    */
   sendMessage: (
     query: string,
     deepThink?: boolean,
     think?: boolean,
+    label?: string,
   ) => Promise<void>
   clearMessages: () => void
+  /** Replaces the conversation, e.g. with a thread handed over to the FAB. */
+  loadTranscript: (messages: ChatMessage[]) => void
   /**
    * Aborts the in-flight stream. Any tokens already received remain on the
    * assistant message; isLoading flips false. No-op when nothing is in flight.
@@ -37,8 +59,13 @@ interface UseChatReturn {
  * routinely exceed mobile-Safari's ~30s idle-timeout and surface as a generic
  * "Load failed" — see `pages/api/agent/query/stream.ts` for the proxy.
  */
-export function useChat(context?: Record<string, unknown>): UseChatReturn {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+export function useChat(
+  context?: Record<string, unknown>,
+  options: UseChatOptions = {},
+): UseChatReturn {
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => options.initialMessages ?? [],
+  )
   const [isLoading, setIsLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   // sendMessage is memoized on [context] only, so it can't read `messages`
@@ -58,6 +85,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
       query: string,
       deepThink: boolean = false,
       think: boolean = false,
+      label?: string,
     ) => {
       // Snapshot the transcript so far as history — before appending this
       // turn's placeholders — so the model sees its own prior question when
@@ -76,6 +104,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         content: query,
         timestamp: new Date().toISOString(),
         deepThink: deepThink || undefined,
+        label,
       }
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
@@ -125,10 +154,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
           // One extraction feeds both fields: `content` is the copy, `error`
           // is the raw signal it was derived from, so a recorded failure and
           // the message on screen can never describe different things.
+          // A classified status (402 / 429 / 504) keeps its code rather than
+          // the bare "HTTP 402", so a consumer re-describing `error` gets the
+          // same copy back.
           const failure = describeAgentError(`HTTP ${res.status}`, res.status)
           finalize(() => ({
             content: failure.message,
-            error: failure.detail,
+            error: failure.code === "unknown" ? failure.detail : failure.code,
           }))
           return
         }
@@ -136,7 +168,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
         let buffer = ""
 
-        // SSE event blocks are delimited by a blank line. Inside each block
+        // SSE event blocks are delimited by a blank line (see findSeparator). Inside each block
         // we look for `event: <type>` and `data: <body>` lines. We accept
         // multi-`data:` events by joining their bodies with newlines.
         //
@@ -149,7 +181,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         const flush = (block: string): void => {
           let event = "message"
           const dataLines: string[] = []
-          for (const raw of block.split("\n")) {
+          for (const raw of block.split(/\r?\n/)) {
             if (raw.startsWith(":")) continue
             if (raw.startsWith("event:")) {
               event = raw.slice(6).trim()
@@ -191,12 +223,12 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
           const { value, done } = await reader.read()
           if (done) break
           buffer += value
-          let sep = buffer.indexOf("\n\n")
-          while (sep !== -1) {
-            const block = buffer.slice(0, sep)
-            buffer = buffer.slice(sep + 2)
+          let sep = findSeparator(buffer)
+          while (sep !== null) {
+            const block = buffer.slice(0, sep.index)
+            buffer = buffer.slice(sep.index + sep.len)
             if (block.length > 0) flush(block)
-            sep = buffer.indexOf("\n\n")
+            sep = findSeparator(buffer)
           }
         }
         if (buffer.trim().length > 0) flush(buffer)
@@ -224,6 +256,17 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
   )
 
   const clearMessages = useCallback(() => setMessages([]), [])
+  const loadTranscript = useCallback(
+    (transcript: ChatMessage[]) => setMessages(transcript),
+    [],
+  )
 
-  return { messages, isLoading, sendMessage, clearMessages, cancel }
+  return {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    loadTranscript,
+    cancel,
+  }
 }

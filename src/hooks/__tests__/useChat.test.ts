@@ -431,4 +431,116 @@ describe("useChat", () => {
 
     expect(result.current.messages[1].content).toBe("# Summary\nReal content")
   })
+
+  it("keeps a classified HTTP failure's code so the copy can be rebuilt from it", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 402, body: null })
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].error).toBe("provider-quota")
+    expect(result.current.messages[1].content).toContain("credit")
+  })
+
+  it("shows a label in place of the query while sending the full query", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "## Review" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage(
+        "Produce an Asset Review for AAPL. Cover company and sector...",
+        false,
+        false,
+        "Asset Review — AAPL",
+      )
+    })
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.query).toBe(
+      "Produce an Asset Review for AAPL. Cover company and sector...",
+    )
+    expect(result.current.messages[0]).toMatchObject({
+      role: "user",
+      label: "Asset Review — AAPL",
+    })
+  })
+
+  it("starts from initialMessages and threads them as history", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "Around 20%." }]),
+    )
+    const initialMessages = [
+      {
+        id: "u1",
+        role: "user" as const,
+        content: "Produce an Asset Review for AAPL",
+        label: "Asset Review — AAPL",
+        timestamp: "2026-10-02T00:00:00Z",
+      },
+      {
+        id: "a1",
+        role: "assistant" as const,
+        content: "## AAPL — Bullish",
+        timestamp: "2026-10-02T00:00:01Z",
+      },
+    ]
+    const { result } = renderHook(() =>
+      useChat({ page: "Asset Review" }, { initialMessages }),
+    )
+    expect(result.current.messages).toEqual(initialMessages)
+
+    await act(async () => {
+      await result.current.sendMessage("How exposed is it to China?")
+    })
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
+    expect(body.context).toEqual({ page: "Asset Review" })
+    expect(body.history).toEqual([
+      { role: "user", content: "Produce an Asset Review for AAPL" },
+      { role: "assistant", content: "## AAPL — Bullish" },
+    ])
+    expect(result.current.messages).toHaveLength(4)
+  })
+
+  it("loadTranscript replaces the conversation with a handed-off thread", () => {
+    const { result } = renderHook(() => useChat())
+    const transcript = [
+      {
+        id: "u1",
+        role: "user" as const,
+        content: "q",
+        timestamp: "2026-10-02T00:00:00Z",
+      },
+    ]
+
+    act(() => result.current.loadTranscript(transcript))
+
+    expect(result.current.messages).toEqual(transcript)
+  })
+
+  it("parses SSE frames separated by CRLF (proxy-normalised line endings)", async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(
+          encoder.encode(
+            "event:token\r\ndata:Hi\r\n\r\nevent:token\r\ndata: there\r\n\r\n",
+          ),
+        )
+        c.close()
+      },
+    })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].content).toBe("Hi there")
+  })
 })

@@ -1,158 +1,143 @@
 import React from "react"
-import { render, screen, waitFor } from "@testing-library/react"
-import NewsSentimentPopup, { clearNewsCache } from "../NewsSentimentPopup"
+import { render, screen } from "@testing-library/react"
+import NewsSentimentPopup from "../NewsSentimentPopup"
+import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
+import { sseAnswer, sseResponse } from "@test-fixtures/sse"
 
-// react-markdown / remark-gfm are mocked globally in jest.setup.js
+// react-markdown / remark-gfm are mocked globally in jest.setup.js.
+// Shared Quick Analysis behaviour (follow-ups, Open in chat, failed runs not
+// cached) lives in features/chat/__tests__/AnalysisDialog.test.tsx.
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
+function bodyOf(call: number): Record<string, unknown> & {
+  query: string
+  context: Record<string, unknown>
+} {
+  return JSON.parse(mockFetch.mock.calls[call][1].body as string)
+}
+
 describe("NewsSentimentPopup", () => {
   beforeEach(() => {
     mockFetch.mockReset()
-    clearNewsCache()
+    clearAnalysisCache()
   })
 
-  // These tests cover sync render output, but the component kicks off an
-  // async fetch inside useEffect — `findBy*` waits for the resolved state
-  // so the setState lands inside act() and no warning fires.
   it("renders with the ticker in the title", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          response: "Some news",
-          timestamp: "2026-04-15T00:00:00Z",
-        }),
-    })
+    mockFetch.mockResolvedValueOnce(sseAnswer("Some news"))
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
-    expect(await screen.findByText(/AAPL/)).toBeInTheDocument()
+    expect(screen.getByText("News & Sentiment — AAPL")).toBeInTheDocument()
+    await screen.findByText("Some news")
   })
 
   it("renders market code in the title when provided", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          response: "NZX news",
-          timestamp: "2026-04-15T00:00:00Z",
-        }),
-    })
+    mockFetch.mockResolvedValueOnce(sseAnswer("NZX news"))
     render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={jest.fn()} />)
-    expect(await screen.findByText(/GNE/)).toBeInTheDocument()
+    expect(screen.getByText("News & Sentiment — GNE")).toBeInTheDocument()
     expect(screen.getByText("(NZX)")).toBeInTheDocument()
+    await screen.findByText("NZX news")
   })
 
-  it("shows loading spinner while fetching", async () => {
-    mockFetch.mockReturnValue(new Promise(() => {})) // never resolves
+  it("shows the news loading copy until the first token arrives", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse(
+        [
+          { event: "token", data: "Fresh headlines" },
+          { event: "done", data: "{}" },
+        ],
+        { delayMs: 20 },
+      ),
+    )
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
     expect(await screen.findByText("Fetching news...")).toBeInTheDocument()
+    expect(await screen.findByText("Fresh headlines")).toBeInTheDocument()
+    expect(screen.queryByText("Fetching news...")).not.toBeInTheDocument()
   })
 
-  it("renders the agent response as markdown", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          response: "AAPL is bullish today",
-          timestamp: "2026-04-15T00:00:00Z",
-        }),
-    })
+  it("streams the agent response as markdown", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL is bullish today"))
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText("AAPL is bullish today")).toBeInTheDocument()
+    expect(await screen.findByText("AAPL is bullish today")).toBeInTheDocument()
+    expect(mockFetch.mock.calls[0][0]).toBe("/api/agent/query/stream")
+  })
+
+  it("asks for live news with a labelled general-knowledge fallback and no preamble", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Some news"))
+    render(
+      <NewsSentimentPopup
+        ticker="AAPL"
+        market="NASDAQ"
+        assetName="Apple Inc."
+        onClose={jest.fn()}
+      />,
+    )
+    await screen.findByText("Some news")
+    const body = bodyOf(0)
+    expect(body.query).toContain(
+      "Get news and sentiment for AAPL (Apple Inc.) listed on the NASDAQ exchange",
+    )
+    expect(body.query).toMatch(/general-knowledge summary/i)
+    expect(body.query).toMatch(/no preamble/i)
+    expect(body.context).toEqual({
+      page: "News & Sentiment",
+      description: "Quick news lookup for a single asset",
+      tickers: "AAPL",
+      market: "NASDAQ",
+      assetName: "Apple Inc.",
     })
   })
 
   it("shows error on fetch failure", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ message: "Server error" }),
-    })
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: null })
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument()
-    })
+    expect(
+      await screen.findByText(/an error occurred: HTTP 500/i),
+    ).toBeInTheDocument()
+  })
+
+  it("explains an out-of-credit provider", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 402, body: null })
+    render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
+    expect(await screen.findByText(/run out of credit/i)).toBeInTheDocument()
   })
 
   it("uses cached response for the same ticker", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          response: "Cached news",
-          timestamp: "2026-04-15T00:00:00Z",
-        }),
-    })
+    mockFetch.mockResolvedValueOnce(sseAnswer("Cached news"))
     const onClose = jest.fn()
     const { unmount } = render(
       <NewsSentimentPopup ticker="MSFT" onClose={onClose} />,
     )
-    await waitFor(() => {
-      expect(screen.getByText("Cached news")).toBeInTheDocument()
-    })
-    expect(mockFetch).toHaveBeenCalledTimes(1)
+    await screen.findByText("Cached news")
     unmount()
 
-    // Re-render with same ticker — should use cache
     render(<NewsSentimentPopup ticker="MSFT" onClose={onClose} />)
-    await waitFor(() => {
-      expect(screen.getByText("Cached news")).toBeInTheDocument()
-    })
-    // Still only 1 fetch call
+    expect(screen.getByText("Cached news")).toBeInTheDocument()
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
   it("uses separate cache entries for same ticker on different markets", async () => {
     mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            response: "US GNE news",
-            timestamp: "2026-04-15T00:00:00Z",
-          }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            response: "NZX GNE news",
-            timestamp: "2026-04-15T00:00:00Z",
-          }),
-      })
+      .mockResolvedValueOnce(sseAnswer("US GNE news"))
+      .mockResolvedValueOnce(sseAnswer("NZX GNE news"))
     const onClose = jest.fn()
 
     const { unmount } = render(
       <NewsSentimentPopup ticker="GNE" onClose={onClose} />,
     )
-    await waitFor(() => {
-      expect(screen.getByText("US GNE news")).toBeInTheDocument()
-    })
+    await screen.findByText("US GNE news")
     unmount()
 
     render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={onClose} />)
-    await waitFor(() => {
-      expect(screen.getByText("NZX GNE news")).toBeInTheDocument()
-    })
+    expect(await screen.findByText("NZX GNE news")).toBeInTheDocument()
     expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 
   it("includes market in the fetch query", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          response: "NZX data",
-          timestamp: "2026-04-15T00:00:00Z",
-        }),
-    })
+    mockFetch.mockResolvedValueOnce(sseAnswer("NZX data"))
     render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={jest.fn()} />)
-    await waitFor(() => {
-      expect(screen.getByText("NZX data")).toBeInTheDocument()
-    })
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    await screen.findByText("NZX data")
+    const body = bodyOf(0)
     expect(body.query).toContain("NZX")
     expect(body.context.market).toBe("NZX")
   })

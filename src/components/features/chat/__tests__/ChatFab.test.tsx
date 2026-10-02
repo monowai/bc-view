@@ -1,7 +1,10 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import ChatFab from "../ChatFab"
+import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
+import { requestChatOpen } from "../chatBus"
+import { ChatMessage } from "types/agent"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -124,5 +127,77 @@ describe("ChatFab", () => {
     expect(body.context.currentState).toBe(
       "DRAFT rebalance: cash short by 200.00",
     )
+  })
+
+  describe("Quick Analysis hand-off", () => {
+    const transcript: ChatMessage[] = [
+      {
+        id: "u1",
+        role: "user",
+        content: "Produce an Asset Review for AAPL. Cover company context.",
+        label: "Asset Review — AAPL",
+        timestamp: "2026-10-02T00:00:00Z",
+      },
+      {
+        id: "a1",
+        role: "assistant",
+        content: "AAPL looks Bullish",
+        timestamp: "2026-10-02T00:00:01Z",
+      },
+    ]
+    const analysisContext = { page: "Asset Review", tickers: "AAPL" }
+
+    const handOff = (): void => {
+      act(() => requestChatOpen({ transcript, context: analysisContext }))
+    }
+
+    interface QueryBody {
+      context: Record<string, unknown>
+      history?: unknown
+    }
+
+    const ask = (question: string): QueryBody => {
+      fireEvent.change(screen.getByRole("textbox"), {
+        target: { value: question },
+      })
+      fireEvent.submit(screen.getByRole("textbox").closest("form")!)
+      const calls = (global.fetch as jest.Mock).mock.calls
+      return JSON.parse(calls[calls.length - 1][1].body)
+    }
+
+    it("opens with the handed-off thread, showing the label instead of the canned prompt", () => {
+      render(<ChatFab />)
+      handOff()
+
+      expect(screen.getByText("Asset Review — AAPL")).toBeInTheDocument()
+      expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
+      expect(
+        screen.queryByText(/Produce an Asset Review/),
+      ).not.toBeInTheDocument()
+    })
+
+    it("sends follow-ups with the analysis context and the thread as history", () => {
+      render(<ChatFab />)
+      handOff()
+
+      const body = ask("How exposed is it to China?")
+
+      expect(body.context).toEqual(analysisContext)
+      expect(body.history).toEqual([
+        { role: "user", content: transcript[0].content },
+        { role: "assistant", content: "AAPL looks Bullish" },
+      ])
+    })
+
+    it("returns to the page's own context once the thread is cleared", () => {
+      render(<ChatFab />)
+      handOff()
+
+      fireEvent.click(screen.getByLabelText("Clear chat"))
+      const body = ask("show my portfolios")
+
+      expect(body.context.page).not.toBe("Asset Review")
+      expect(body.context).not.toHaveProperty("tickers")
+    })
   })
 })

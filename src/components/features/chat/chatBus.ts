@@ -6,14 +6,36 @@
  *
  * ChatFab subscribes via `useEffect`; callers fire `requestChatOpen({...})`.
  */
+import { ChatMessage } from "types/agent"
+
 const EVENT = "bc:chat-open"
 
-export interface ChatOpenDetail {
-  /** If set, immediately submitted as a user message after opening. */
-  prompt?: string
+interface ChatOpenBase {
   /** Open in the wider expanded layout instead of the default panel. */
   expanded?: boolean
 }
+
+/** Open the FAB, optionally submitting `prompt` as a new user message. */
+interface ChatOpenPrompt extends ChatOpenBase {
+  prompt?: string
+  transcript?: never
+  context?: never
+}
+
+/**
+ * Continue an existing thread (a Quick Analysis popup handing over to the
+ * FAB). Replaces the FAB's conversation; `context` is the agent context the
+ * thread was started with, used instead of the route's context until the
+ * conversation is cleared. Never combined with `prompt`: a prompt sent in
+ * the same tick would read the pre-handover history and context.
+ */
+interface ChatOpenThread extends ChatOpenBase {
+  transcript: ChatMessage[]
+  context?: Record<string, unknown>
+  prompt?: never
+}
+
+export type ChatOpenDetail = ChatOpenPrompt | ChatOpenThread
 
 export function requestChatOpen(detail: ChatOpenDetail = {}): void {
   if (typeof window === "undefined") return
