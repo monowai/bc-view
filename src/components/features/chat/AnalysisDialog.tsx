@@ -21,6 +21,10 @@ interface AnalysisDialogProps {
   onClose: () => void
 }
 
+// Within this many pixels of the bottom still counts as "at the bottom";
+// browser scroll math has sub-pixel rounding.
+const STICK_TO_BOTTOM_THRESHOLD_PX = 24
+
 const REPORT_PROSE = `prose prose-sm sm:prose-base max-w-none
   prose-headings:text-slate-900 prose-headings:font-semibold
   prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
@@ -57,9 +61,35 @@ export default function AnalysisDialog({
   const last = messages[messages.length - 1]
   const awaitingFirstToken = isLoading && !last?.content
 
+  // Stick to the bottom while a follow-up answer streams, unless the reader
+  // has scrolled up to re-read — same rule as ChatPanel. The Dialog body
+  // (this thread's parent) is the scroll container.
+  const stickToBottomRef = useRef(true)
   useEffect(() => {
+    const scroller = threadEndRef.current?.parentElement
+    if (!scroller) return () => {}
+    const onScroll = (): void => {
+      stickToBottomRef.current =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <
+        STICK_TO_BOTTOM_THRESHOLD_PX
+    }
+    scroller.addEventListener("scroll", onScroll)
+    return () => scroller.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // A new question always brings the thread into view.
+  useEffect(() => {
+    stickToBottomRef.current = true
     threadEndRef.current?.scrollIntoView?.({ block: "end" })
   }, [followUps.length])
+
+  // The opening report is read top-down, so only follow-up answers are followed.
+  const followUpChars = followUps.length > 0 ? (last?.content.length ?? 0) : 0
+  useEffect(() => {
+    if (stickToBottomRef.current) {
+      threadEndRef.current?.scrollIntoView?.({ block: "end" })
+    }
+  }, [followUpChars])
 
   // Closing abandons an in-flight stream rather than leaving it to bill.
   const close = (): void => {

@@ -111,8 +111,9 @@ export default function ChatFab(): React.ReactElement {
         if (transcript) {
           loadTranscript(transcript)
           setThreadContext(handed ?? null)
+        } else if (prompt) {
+          void sendMessage(prompt)
         }
-        if (prompt) void sendMessage(prompt)
       }),
     [sendMessage, loadTranscript],
   )

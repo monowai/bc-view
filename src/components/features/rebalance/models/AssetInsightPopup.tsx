@@ -31,10 +31,10 @@ const CACHE_TTL_MS = 30 * 60 * 1000
 
 function buildRequest(
   asset: AssetWeightWithDetails,
+  displayCode: string,
   modelName: string | undefined,
   promptOverride: AssetInsightPromptOverride | undefined,
 ): AnalysisRequest {
-  const displayCode = asset.assetCode || asset.assetId
   return {
     cacheKey: `asset-insight|${displayCode}|${modelName ?? ""}|${promptOverride?.query ?? ""}`,
     query: promptOverride?.query ?? ASSET_INSIGHT_PROMPT,
@@ -58,11 +58,11 @@ export default function AssetInsightPopup({
   onClose,
   promptOverride,
 }: AssetInsightPopupProps): React.ReactElement {
-  const request = useMemo(
-    () => buildRequest(asset, modelName, promptOverride),
-    [asset, modelName, promptOverride],
-  )
   const displayCode = asset.assetCode || asset.assetId
+  const request = useMemo(
+    () => buildRequest(asset, displayCode, modelName, promptOverride),
+    [asset, displayCode, modelName, promptOverride],
+  )
 
   return (
     <AnalysisDialog
