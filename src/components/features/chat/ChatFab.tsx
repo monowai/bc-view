@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
-import { useChat } from "@hooks/useChat"
 import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
+import { useSharedChat } from "./ChatProvider"
 import { getPageContext } from "./pageContext"
 import {
   CORNER_LAYOUT,
@@ -33,6 +33,20 @@ export default function ChatFab(): React.ReactElement {
   const router = useRouter()
   const pageContext = getPageContext(router.pathname)
   const routeParams = router.query
+
+  // /chat takes over the conversation, and the FAB hides there. Close it on
+  // arrival so leaving /chat shows the button, not a panel left open.
+  // Adjusting state while rendering on a prop change (React's documented
+  // alternative to a setState-in-effect); the shared chat is untouched.
+  const onChatPage = router.pathname === "/chat"
+  const [wasOnChatPage, setWasOnChatPage] = useState(onChatPage)
+  if (onChatPage !== wasOnChatPage) {
+    setWasOnChatPage(onChatPage)
+    if (onChatPage) {
+      setIsOpen(false)
+      setIsExpanded(false)
+    }
+  }
 
   // Live, page-published context (e.g. the current in-progress draft
   // rebalance) — see pageContextBus.ts. Generic: any page can publish, this
@@ -70,19 +84,20 @@ export default function ChatFab(): React.ReactElement {
     return ctx
   }, [pageContext.page, pageContext.description, routeParams, livePageContext])
   const context = threadContext ?? routeContext
-  const {
-    messages,
-    isLoading,
-    sendMessage,
-    clearMessages,
-    loadTranscript,
-    cancel,
-  } = useChat(context)
+  // The chat itself is app-wide (shared with /chat); the page context is
+  // this FAB's, so it rides along on each send rather than living in the hook.
+  const { messages, isLoading, sendMessage, newChat, loadTranscript, cancel } =
+    useSharedChat()
+  const send = useCallback(
+    (query: string, deepThink?: boolean, think?: boolean) =>
+      sendMessage(query, deepThink, think, undefined, context),
+    [sendMessage, context],
+  )
 
-  const clear = useCallback(() => {
-    clearMessages()
+  const startNewChat = useCallback(() => {
+    newChat()
     setThreadContext(null)
-  }, [clearMessages])
+  }, [newChat])
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -112,16 +127,16 @@ export default function ChatFab(): React.ReactElement {
           loadTranscript(transcript)
           setThreadContext(handed ?? null)
         } else if (prompt) {
-          void sendMessage(prompt)
+          void send(prompt)
         }
       }),
-    [sendMessage, loadTranscript],
+    [send, loadTranscript],
   )
 
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
 
   // Hide FAB on the /chat page — it's redundant there
-  if (router.pathname === "/chat") return <></>
+  if (onChatPage) return <></>
   // Hide entirely until permissions resolve, then only render if user has AI access.
   if (permsLoading || !canRunAi) return <></>
 
@@ -143,8 +158,9 @@ export default function ChatFab(): React.ReactElement {
         <ChatPanel
           messages={messages}
           isLoading={isLoading}
-          onSend={sendMessage}
-          onClear={clear}
+          onSend={send}
+          onNewChat={startNewChat}
+          historyHref="/chat"
           onCancel={cancel}
           onExpand={expand}
           onClose={close}

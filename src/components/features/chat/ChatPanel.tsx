@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { ChatMessage } from "types/agent"
 import ChatBubble from "./ChatBubble"
 import Spinner from "@components/ui/Spinner"
@@ -19,7 +20,10 @@ interface ChatPanelProps {
    * `true`; suggested/pre-canned prompts pass `false` for the fastest response.
    */
   onSend: (query: string, deepThink: boolean, think: boolean) => void
-  onClear: () => void
+  /** Starts a fresh conversation (the previous one stays in history). */
+  onNewChat: () => void
+  /** When set, the header links here as "History" (the /chat page). */
+  historyHref?: string
   /**
    * Aborts an in-flight stream. When provided and `isLoading` is true the
    * panel renders a Cancel button beside Send. Optional so callers that
@@ -30,7 +34,7 @@ interface ChatPanelProps {
   placeholder?: string
   suggestions?: string[]
   onExpand?: () => void
-  /** When provided, the header shows a small blue X next to Clear that calls this. */
+  /** When provided, the header shows a small blue X next to New chat that calls this. */
   onClose?: () => void
   /** Current FAB corner; pass with onMove to enable the picker. */
   corner?: ChatCorner
@@ -54,7 +58,8 @@ export default function ChatPanel({
   messages,
   isLoading,
   onSend,
-  onClear,
+  onNewChat,
+  historyHref,
   onCancel,
   className = "",
   placeholder = "Ask about your portfolios...",
@@ -171,13 +176,21 @@ export default function ChatPanel({
               <i className="fas fa-expand-alt"></i>
             </button>
           )}
+          {historyHref && (
+            <Link
+              href={historyHref}
+              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+              title="Past conversations"
+            >
+              History
+            </Link>
+          )}
           <button
-            onClick={onClear}
+            onClick={onNewChat}
             disabled={messages.length === 0}
             className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
-            aria-label="Clear chat"
           >
-            Clear
+            New chat
           </button>
           {onClose && (
             <button

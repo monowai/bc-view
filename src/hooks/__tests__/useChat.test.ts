@@ -1,5 +1,7 @@
-import { renderHook, act } from "@testing-library/react"
-import { useChat } from "../useChat"
+import { renderHook, act, waitFor } from "@testing-library/react"
+import { useChat, CONVERSATION_STORAGE_KEY } from "../useChat"
+import { describeAgentError } from "@utils/agent/agentErrors"
+import { ConversationDetail } from "types/agent"
 
 // Mock fetch globally
 const mockFetch = jest.fn()
@@ -180,7 +182,7 @@ describe("useChat", () => {
     expect(result.current.messages[1].error).toBe("Network error")
   })
 
-  it("clears messages", async () => {
+  it("newChat clears messages", async () => {
     mockFetch.mockResolvedValueOnce(
       sseResponse([{ event: "token", data: "Hi!" }]),
     )
@@ -193,7 +195,7 @@ describe("useChat", () => {
     expect(result.current.messages).toHaveLength(2)
 
     act(() => {
-      result.current.clearMessages()
+      result.current.newChat()
     })
     expect(result.current.messages).toEqual([])
   })
@@ -542,5 +544,304 @@ describe("useChat", () => {
     })
 
     expect(result.current.messages[1].content).toBe("Hi there")
+  })
+})
+
+describe("useChat with persisted conversations", () => {
+  const STREAM = "/api/agent/query/stream"
+  const CONVERSATIONS = "/api/agent/conversations"
+
+  function json(status: number, body?: unknown): unknown {
+    return {
+      ok: status < 400,
+      status,
+      json: () => Promise.resolve(body),
+    }
+  }
+
+  const detail: ConversationDetail = {
+    id: "c-1",
+    title: "NZD exposure",
+    createdAt: "2026-10-01T00:00:00Z",
+    updatedAt: "2026-10-01T00:01:00Z",
+    messages: [
+      {
+        id: "t1",
+        role: "user",
+        content: "what's my NZD exposure?",
+        timestamp: "2026-10-01T00:00:00Z",
+        error: null,
+        deepThink: true,
+      },
+      {
+        id: "t2",
+        role: "assistant",
+        content: "",
+        timestamp: "2026-10-01T00:00:05Z",
+        error: "provider-rate",
+        deepThink: false,
+      },
+    ],
+  }
+
+  /** Route fetches by method + URL; unmatched calls fail the test loudly. */
+  function route(handlers: Record<string, () => unknown>): void {
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      const key = `${init?.method ?? "GET"} ${url}`
+      const handler = handlers[key]
+      if (!handler) throw new Error(`unexpected fetch ${key}`)
+      return Promise.resolve(handler())
+    })
+  }
+
+  function streamBodies(): Record<string, unknown>[] {
+    return mockFetch.mock.calls
+      .filter(([url]) => url === STREAM)
+      .map(([, init]) => JSON.parse(init.body as string))
+  }
+
+  beforeEach(() => {
+    mockFetch.mockReset()
+    localStorage.clear()
+  })
+
+  it("creates a conversation on the first send and streams it without history", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+    await act(async () => {
+      await result.current.sendMessage("and again")
+    })
+
+    const creates = mockFetch.mock.calls.filter(
+      ([url, init]) => url === CONVERSATIONS && init?.method === "POST",
+    )
+    expect(creates).toHaveLength(1)
+    const bodies = streamBodies()
+    expect(bodies[0]).toMatchObject({ query: "hello", conversationId: "c-new" })
+    expect(bodies[1]).toMatchObject({
+      query: "and again",
+      conversationId: "c-new",
+    })
+    expect(bodies[1].history).toBeUndefined()
+    expect(result.current.conversationId).toBe("c-new")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-new")
+    expect(result.current.messages.map((m) => m.content)).toEqual([
+      "hello",
+      "ok",
+      "and again",
+      "ok",
+    ])
+  })
+
+  it("sends the per-call context in place of the hook's", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() =>
+      useChat({ page: "Stale" }, { persist: true }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage("hi", false, true, undefined, {
+        page: "Holdings",
+      })
+    })
+
+    expect(streamBodies()[0].context).toEqual({ page: "Holdings" })
+  })
+
+  it("falls back to a stateless send when the conversation can't be created", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(503, {}),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(streamBodies()[0].conversationId).toBeUndefined()
+    expect(result.current.messages[1].content).toBe("ok")
+    expect(result.current.conversationId).toBeNull()
+  })
+
+  it("loadConversation renders stored turns, failed answers as live failures do", async () => {
+    route({ [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }) })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.loadConversation("c-1")
+    })
+
+    expect(result.current.conversationId).toBe("c-1")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-1")
+    expect(result.current.messages).toEqual([
+      {
+        id: "t1",
+        role: "user",
+        content: "what's my NZD exposure?",
+        timestamp: "2026-10-01T00:00:00Z",
+        deepThink: true,
+        error: null,
+      },
+      {
+        id: "t2",
+        role: "assistant",
+        content: describeAgentError("provider-rate").message,
+        timestamp: "2026-10-01T00:00:05Z",
+        deepThink: undefined,
+        error: "provider-rate",
+      },
+    ])
+  })
+
+  it("continues a loaded conversation by id, not by history", async () => {
+    route({
+      [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.loadConversation("c-1")
+    })
+    await act(async () => {
+      await result.current.sendMessage("try again")
+    })
+
+    const body = streamBodies()[0]
+    expect(body.conversationId).toBe("c-1")
+    expect(body.history).toBeUndefined()
+  })
+
+  it("drops a conversation id the server no longer knows", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "gone")
+    route({ [`GET ${CONVERSATIONS}/gone`]: () => json(404, {}) })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await waitFor(() =>
+      expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull(),
+    )
+    expect(result.current.conversationId).toBeNull()
+    expect(result.current.messages).toEqual([])
+  })
+
+  it("starts a new conversation on the next send after the stream loses the current one", async () => {
+    const ids = ["c-1", "c-2"]
+    const streams = [
+      () => json(404, {}),
+      () => sseResponse([{ event: "token", data: "ok" }]),
+    ]
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: ids.shift() } }),
+      [`POST ${STREAM}`]: () => streams.shift()!(),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+    await act(async () => {
+      await result.current.sendMessage("still there?")
+    })
+
+    const creates = mockFetch.mock.calls.filter(
+      ([url, init]) => url === CONVERSATIONS && init?.method === "POST",
+    )
+    expect(creates).toHaveLength(2)
+    const bodies = streamBodies()
+    expect(bodies[0].conversationId).toBe("c-1")
+    expect(bodies[1]).toMatchObject({
+      query: "still there?",
+      conversationId: "c-2",
+    })
+    expect(result.current.conversationId).toBe("c-2")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-2")
+    // The transcript stays on screen; only the server-side thread is new.
+    expect(result.current.messages).toHaveLength(4)
+    expect(result.current.messages[0].content).toBe("hello")
+    expect(result.current.messages[3].content).toBe("ok")
+  })
+
+  it("resumes the stored conversation on mount", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
+    route({ [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }) })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(2))
+    expect(result.current.conversationId).toBe("c-1")
+  })
+
+  it("newChat forgets the conversation", async () => {
+    route({ [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }) })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+    await act(async () => {
+      await result.current.loadConversation("c-1")
+    })
+
+    act(() => result.current.newChat())
+
+    expect(result.current.messages).toEqual([])
+    expect(result.current.conversationId).toBeNull()
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull()
+  })
+
+  it("keeps a handed-over transcript stateless — threads history, creates nothing", async () => {
+    route({
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    act(() =>
+      result.current.loadTranscript([
+        {
+          id: "u1",
+          role: "user",
+          content: "Asset Review for AAPL",
+          timestamp: "2026-10-02T00:00:00Z",
+        },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "## AAPL",
+          timestamp: "2026-10-02T00:00:01Z",
+        },
+      ]),
+    )
+    await act(async () => {
+      await result.current.sendMessage("China exposure?")
+    })
+
+    const body = streamBodies()[0]
+    expect(body.conversationId).toBeUndefined()
+    expect(body.history).toEqual([
+      { role: "user", content: "Asset Review for AAPL" },
+      { role: "assistant", content: "## AAPL" },
+    ])
+  })
+
+  it("never touches conversations when not persisting", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
+    route({
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(streamBodies()[0].conversationId).toBeUndefined()
+    expect(result.current.conversationId).toBeNull()
   })
 })

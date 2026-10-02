@@ -1,6 +1,7 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ChatFab from "../ChatFab"
+import { ChatProvider } from "../ChatProvider"
 import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
 import { requestChatOpen } from "../chatBus"
@@ -9,16 +10,41 @@ import { ChatMessage } from "types/agent"
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
 const mockPush = jest.fn()
+let mockPathname = "/wealth"
 jest.mock("next/router", () => ({
-  useRouter: () => ({ pathname: "/wealth", query: {}, push: mockPush }),
+  useRouter: () => ({ pathname: mockPathname, query: {}, push: mockPush }),
 }))
 
 // Mock fetch for useChat
 global.fetch = jest.fn()
 
+const STREAM = "/api/agent/query/stream"
+
+function renderFab(): ReturnType<typeof render> {
+  return render(
+    <ChatProvider>
+      <ChatFab />
+    </ChatProvider>,
+  )
+}
+
+/** Body of the latest stream request, once the (async) send has issued it. */
+async function lastStreamBody(): Promise<Record<string, any>> {
+  let body: Record<string, any> | undefined
+  await waitFor(() => {
+    const calls = (global.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => url === STREAM,
+    )
+    expect(calls.length).toBeGreaterThan(0)
+    body = JSON.parse(calls[calls.length - 1][1].body)
+  })
+  return body!
+}
+
 describe("ChatFab", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockPathname = "/wealth"
     window.localStorage.removeItem("bc-chat-corner")
     // pageContextBus retains its last-published value across renders (by
     // design — see its module doc) so a leftover from another test/page
@@ -27,18 +53,18 @@ describe("ChatFab", () => {
   })
 
   it("renders the FAB button", () => {
-    render(<ChatFab />)
+    renderFab()
     expect(screen.getByLabelText("Chat")).toBeInTheDocument()
   })
 
   it("opens panel when FAB is clicked", () => {
-    render(<ChatFab />)
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
   })
 
   it("FAB unmounts while the panel is open and the header Close X dismisses it", () => {
-    render(<ChatFab />)
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
     expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
@@ -51,7 +77,7 @@ describe("ChatFab", () => {
   })
 
   it("closes panel on Escape key", () => {
-    render(<ChatFab />)
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
     fireEvent.keyDown(document, { key: "Escape" })
@@ -61,7 +87,7 @@ describe("ChatFab", () => {
   })
 
   it("expand button toggles expanded panel size", () => {
-    render(<ChatFab />)
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
     const panel = screen.getByTestId("chat-panel-container")
     expect(panel.className).toContain("w-[60vw]")
@@ -75,11 +101,20 @@ describe("ChatFab", () => {
     expect(panel.className).toContain("w-[60vw]")
   })
 
+  it("links to the full chat history", () => {
+    renderFab()
+    fireEvent.click(screen.getByLabelText("Chat"))
+    expect(screen.getByRole("link", { name: /history/i })).toHaveAttribute(
+      "href",
+      "/chat",
+    )
+  })
+
   // --- Live page-context injection (pageContextBus) ---
 
-  it("includes a page's published context as context.currentState in the outgoing query payload", () => {
+  it("includes a page's published context as context.currentState in the outgoing query payload", async () => {
     setPageContext("DRAFT rebalance: AAPL 20% -> 30%")
-    render(<ChatFab />)
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
 
     fireEvent.change(screen.getByRole("textbox"), {
@@ -87,18 +122,12 @@ describe("ChatFab", () => {
     })
     fireEvent.submit(screen.getByRole("textbox").closest("form")!)
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      "/api/agent/query/stream",
-      expect.objectContaining({
-        body: expect.stringContaining(
-          '"currentState":"DRAFT rebalance: AAPL 20% -> 30%"',
-        ),
-      }),
-    )
+    const body = await lastStreamBody()
+    expect(body.context.currentState).toBe("DRAFT rebalance: AAPL 20% -> 30%")
   })
 
-  it("omits context.currentState from the outgoing payload when nothing has been published", () => {
-    render(<ChatFab />)
+  it("omits context.currentState from the outgoing payload when nothing has been published", async () => {
+    renderFab()
     fireEvent.click(screen.getByLabelText("Chat"))
 
     fireEvent.change(screen.getByRole("textbox"), {
@@ -106,13 +135,12 @@ describe("ChatFab", () => {
     })
     fireEvent.submit(screen.getByRole("textbox").closest("form")!)
 
-    const call = (global.fetch as jest.Mock).mock.calls[0]
-    const body = JSON.parse(call[1].body)
+    const body = await lastStreamBody()
     expect(body.context).not.toHaveProperty("currentState")
   })
 
-  it("picks up a context published AFTER mount (subscribe delivers the retained current value, and later updates arrive live)", () => {
-    render(<ChatFab />)
+  it("picks up a context published AFTER mount (subscribe delivers the retained current value, and later updates arrive live)", async () => {
+    renderFab()
     // Published after ChatFab has already mounted/subscribed.
     setPageContext("DRAFT rebalance: cash short by 200.00")
     fireEvent.click(screen.getByLabelText("Chat"))
@@ -122,8 +150,7 @@ describe("ChatFab", () => {
     })
     fireEvent.submit(screen.getByRole("textbox").closest("form")!)
 
-    const call = (global.fetch as jest.Mock).mock.calls[0]
-    const body = JSON.parse(call[1].body)
+    const body = await lastStreamBody()
     expect(body.context.currentState).toBe(
       "DRAFT rebalance: cash short by 200.00",
     )
@@ -156,17 +183,46 @@ describe("ChatFab", () => {
       history?: unknown
     }
 
-    const ask = (question: string): QueryBody => {
+    const ask = async (question: string): Promise<QueryBody> => {
       fireEvent.change(screen.getByRole("textbox"), {
         target: { value: question },
       })
       fireEvent.submit(screen.getByRole("textbox").closest("form")!)
-      const calls = (global.fetch as jest.Mock).mock.calls
-      return JSON.parse(calls[calls.length - 1][1].body)
+      return (await lastStreamBody()) as QueryBody
     }
 
+    it("closes when /chat takes over, so leaving /chat shows only the FAB with the conversation intact", () => {
+      const fab = (): React.ReactElement => (
+        <ChatProvider>
+          <ChatFab />
+        </ChatProvider>
+      )
+      const { rerender } = render(fab())
+      handOff()
+      fireEvent.click(screen.getByLabelText("Expand chat"))
+      expect(screen.getByTestId("chat-panel-container").className).toContain(
+        "w-[80vw]",
+      )
+
+      mockPathname = "/chat"
+      rerender(fab())
+      expect(
+        screen.queryByTestId("chat-panel-container"),
+      ).not.toBeInTheDocument()
+
+      mockPathname = "/wealth"
+      rerender(fab())
+      const panel = screen.getByTestId("chat-panel-container")
+      expect(panel.className).toContain("pointer-events-none")
+      expect(panel.className).toContain("w-[60vw]")
+      expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+
+      fireEvent.click(screen.getByLabelText("Chat"))
+      expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
+    })
+
     it("opens with the handed-off thread, showing the label instead of the canned prompt", () => {
-      render(<ChatFab />)
+      renderFab()
       handOff()
 
       expect(screen.getByText("Asset Review — AAPL")).toBeInTheDocument()
@@ -176,11 +232,11 @@ describe("ChatFab", () => {
       ).not.toBeInTheDocument()
     })
 
-    it("sends follow-ups with the analysis context and the thread as history", () => {
-      render(<ChatFab />)
+    it("sends follow-ups with the analysis context and the thread as history", async () => {
+      renderFab()
       handOff()
 
-      const body = ask("How exposed is it to China?")
+      const body = await ask("How exposed is it to China?")
 
       expect(body.context).toEqual(analysisContext)
       expect(body.history).toEqual([
@@ -189,12 +245,12 @@ describe("ChatFab", () => {
       ])
     })
 
-    it("returns to the page's own context once the thread is cleared", () => {
-      render(<ChatFab />)
+    it("returns to the page's own context once a new chat is started", async () => {
+      renderFab()
       handOff()
 
-      fireEvent.click(screen.getByLabelText("Clear chat"))
-      const body = ask("show my portfolios")
+      fireEvent.click(screen.getByRole("button", { name: /new chat/i }))
+      const body = await ask("show my portfolios")
 
       expect(body.context.page).not.toBe("Asset Review")
       expect(body.context).not.toHaveProperty("tickers")

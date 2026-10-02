@@ -235,4 +235,89 @@ describe("OffboardingWizard", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("Log Out Now")).toBeInTheDocument()
   })
+
+  // ---- AI chat history: deleted BEFORE the account ---------------------------
+  // svc-agent resolves the owner via svc-data /me, which fails once the
+  // account is gone — so conversations must be deleted first.
+
+  const urlOf = (input: unknown): string =>
+    typeof input === "string" ? input : ((input as Request).url ?? "")
+
+  it("deletes AI conversations before deleting the account", async () => {
+    let releaseConversations!: () => void
+    const conversationsDone = new Promise<Response>((resolve) => {
+      releaseConversations = () => resolve(okResponse({ deleted: 3 }))
+    })
+    const mockFetch = setupDefaultFetch({
+      "/api/offboard/account": () =>
+        okResponse({ success: true, deletedCount: 1, type: "account" }),
+      "/api/offboard/plans": () =>
+        okResponse({ success: true, deletedCount: 0, type: "plans" }),
+      "/api/offboard/models": () =>
+        okResponse({ success: true, deletedCount: 0, type: "models" }),
+    })
+    const base = mockFetch.getMockImplementation()!
+    mockFetch.mockImplementation((input: RequestInfo | URL) =>
+      urlOf(input) === "/api/offboard/conversations"
+        ? conversationsDone
+        : base(input),
+    )
+
+    await driveToAccountDeletion(mockFetch)
+
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.some(
+          ([input]) => urlOf(input) === "/api/offboard/conversations",
+        ),
+      ).toBe(true),
+    )
+    const conversationsCall = mockFetch.mock.calls.find(
+      ([input]) => urlOf(input) === "/api/offboard/conversations",
+    )!
+    expect(conversationsCall[1]).toMatchObject({ method: "DELETE" })
+    // Account deletion waits on the conversations delete.
+    expect(
+      mockFetch.mock.calls.some(([input]) =>
+        urlOf(input).includes("/api/offboard/account"),
+      ),
+    ).toBe(false)
+
+    releaseConversations()
+
+    await waitFor(() =>
+      expect(screen.getByText("Deletion Complete")).toBeInTheDocument(),
+    )
+    expect(
+      mockFetch.mock.calls.some(([input]) =>
+        urlOf(input).includes("/api/offboard/account"),
+      ),
+    ).toBe(true)
+  })
+
+  it("still deletes the account when the conversations delete fails", async () => {
+    const mockFetch = setupDefaultFetch({
+      "/api/offboard/account": () =>
+        okResponse({ success: true, deletedCount: 1, type: "account" }),
+      "/api/offboard/plans": () =>
+        okResponse({ success: true, deletedCount: 0, type: "plans" }),
+      "/api/offboard/models": () =>
+        okResponse({ success: true, deletedCount: 0, type: "models" }),
+    })
+    const base = mockFetch.getMockImplementation()!
+    mockFetch.mockImplementation((input: RequestInfo | URL) =>
+      urlOf(input) === "/api/offboard/conversations"
+        ? Promise.reject(new Error("agent down"))
+        : base(input),
+    )
+
+    await driveToAccountDeletion(mockFetch)
+
+    await waitFor(() =>
+      expect(screen.getByText("Deletion Complete")).toBeInTheDocument(),
+    )
+    expect(
+      screen.getByText(/your account has been closed/i),
+    ).toBeInTheDocument()
+  })
 })

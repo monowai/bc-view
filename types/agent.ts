@@ -15,6 +15,36 @@ export interface AgentQuery {
    * truncates to the trailing 6 turns regardless of length.
    */
   history?: ChatTurn[]
+  /**
+   * Persisted conversation to continue. When present svc-agent ignores
+   * `history`, replays its stored turns and records this exchange.
+   */
+  conversationId?: string
+}
+
+/** A persisted svc-agent chat conversation, as listed. Timestamps are ISO-8601. */
+export interface ConversationSummary {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * One stored turn. A failed answer is stored with `content: ""` and `error`
+ * holding the svc-agent code (e.g. `provider-rate`).
+ */
+export interface ConversationTurn {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: string
+  error: string | null
+  deepThink: boolean
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  messages: ConversationTurn[]
 }
 
 export interface AgentResponse {
