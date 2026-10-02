@@ -1,50 +1,32 @@
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import PortfolioReviewPopup, {
-  clearPortfolioReviewCache,
-} from "@components/features/holdings/PortfolioReviewPopup"
+import PortfolioReviewPopup from "@components/features/holdings/PortfolioReviewPopup"
+import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
+import { sseAnswer, sseResponse } from "@test-fixtures/sse"
 
-// react-markdown / remark-gfm are mocked globally in jest.setup.js
+// react-markdown / remark-gfm are mocked globally in jest.setup.js.
+// Shared Quick Analysis behaviour (follow-ups, Open in chat, failed runs not
+// cached) lives in features/chat/__tests__/AnalysisDialog.test.tsx.
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-// Build a Response-shaped object whose body is a ReadableStream of SSE events.
-function sseResponse(
-  events: Array<{ event: string; data: string }>,
-  opts: { delayMs?: number } = {},
-): { ok: true; status: number; body: ReadableStream<Uint8Array> } {
-  const encoder = new TextEncoder()
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      for (const e of events) {
-        if (opts.delayMs) {
-          await new Promise((r) => setTimeout(r, opts.delayMs))
-        }
-        controller.enqueue(
-          encoder.encode(`event:${e.event}\ndata:${e.data}\n\n`),
-        )
-      }
-      controller.close()
-    },
-  })
-  return { ok: true, status: 200, body }
+function bodyOf(call: number): Record<string, unknown> & {
+  query: string
+  context: Record<string, unknown>
+} {
+  return JSON.parse(mockFetch.mock.calls[call][1].body as string)
 }
 
 describe("PortfolioReviewPopup", () => {
   beforeEach(() => {
     mockFetch.mockReset()
-    clearPortfolioReviewCache()
+    clearAnalysisCache()
   })
 
   it("posts portfolio context to the streaming endpoint for a single portfolio", async () => {
-    mockFetch.mockResolvedValueOnce(
-      sseResponse([
-        { event: "token", data: "Hi" },
-        { event: "done", data: "{}" },
-      ]),
-    )
+    mockFetch.mockResolvedValueOnce(sseAnswer("Hi"))
     render(
       <PortfolioReviewPopup
         target={{
@@ -56,12 +38,13 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
+    await screen.findByText("Hi")
+    expect(mockFetch).toHaveBeenCalledTimes(1)
     const [url, init] = mockFetch.mock.calls[0]
     expect(url).toBe("/api/agent/query/stream")
     expect(init.headers.Accept).toBe("text/event-stream")
     expect(init.signal).toBeInstanceOf(AbortSignal)
-    const body = JSON.parse(init.body)
+    const body = bodyOf(0)
     expect(body.context.page).toBe("Portfolio Review")
     expect(body.context.portfolioId).toBe("p-123")
     expect(body.context.portfolioCode).toBe("TEST")
@@ -69,10 +52,25 @@ describe("PortfolioReviewPopup", () => {
     expect(body.query).toMatch(/financial columnist/i)
   })
 
-  it("briefing prompt classifies the book and gates XIRR on holding age", async () => {
-    mockFetch.mockResolvedValueOnce(
-      sseResponse([{ event: "done", data: "{}" }]),
+  it("titles the dialog with the portfolio name", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Hi"))
+    render(
+      <PortfolioReviewPopup
+        target={{
+          kind: "portfolio",
+          id: "p-123",
+          code: "TEST",
+          name: "Test Portfolio",
+        }}
+        onClose={jest.fn()}
+      />,
     )
+    expect(screen.getByText("AI Summary — Test Portfolio")).toBeInTheDocument()
+    await screen.findByText("Hi")
+  })
+
+  it("briefing prompt classifies the book and gates XIRR on holding age", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Bond brief"))
     render(
       <PortfolioReviewPopup
         target={{
@@ -84,8 +82,8 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    await screen.findByText("Bond brief")
+    const body = bodyOf(0)
     // Same prompt for every portfolio — the model must work out whether it
     // is looking at an equity, fixed-income, mixed, or cash book and pick the
     // matching vocabulary and yardstick, rather than assuming stocks.
@@ -101,19 +99,22 @@ describe("PortfolioReviewPopup", () => {
     expect(body.query).toMatch(/NO duration/)
   })
 
-  it("posts portfolioCodes for an aggregated target", async () => {
-    mockFetch.mockResolvedValueOnce(
-      sseResponse([{ event: "done", data: "{}" }]),
-    )
+  it("posts portfolioCodes for an aggregated target and titles it by count", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Aggregate brief"))
     render(
       <PortfolioReviewPopup
         target={{ kind: "aggregated", codes: ["A", "B"] }}
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    await screen.findByText("Aggregate brief")
+    const body = bodyOf(0)
+    expect(body.context.page).toBe("Portfolio Review")
     expect(body.context.portfolioCodes).toEqual(["A", "B"])
+    expect(body.context.portfolioId).toBeUndefined()
+    expect(
+      screen.getByText("AI Summary — Aggregated — 2 portfolios"),
+    ).toBeInTheDocument()
   })
 
   it("renders streamed token chunks as they arrive", async () => {
@@ -130,12 +131,10 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() =>
-      expect(screen.getByText("Headwinds: rates")).toBeInTheDocument(),
-    )
+    expect(await screen.findByText("Headwinds: rates")).toBeInTheDocument()
   })
 
-  it("shows a Cancel button while loading and aborts the stream when clicked", async () => {
+  it("shows the summary loading copy and a Cancel button that aborts the stream", async () => {
     mockFetch.mockImplementationOnce(
       (_url: string, init: { signal: AbortSignal }) =>
         new Promise((_resolve, reject) => {
@@ -152,19 +151,18 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    const cancelBtn = await screen.findByRole("button", {
-      name: /cancel summary generation/i,
-    })
-    await userEvent.click(cancelBtn)
+    expect(await screen.findByText("Generating summary...")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: /cancel/i }))
     expect(mockFetch).toHaveBeenCalledTimes(1)
     const [, init] = mockFetch.mock.calls[0]
     expect((init.signal as AbortSignal).aborted).toBe(true)
-    // Cancel resets isLoading so the Cancel button disappears immediately.
+    // Cancel resets isLoading so the Cancel button disappears.
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: /cancel summary generation/i }),
+        screen.queryByRole("button", { name: /cancel/i }),
       ).not.toBeInTheDocument(),
     )
+    expect(screen.queryByText("Generating summary...")).not.toBeInTheDocument()
   })
 
   it("surfaces stream-level error events", async () => {
@@ -180,9 +178,9 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() =>
-      expect(screen.getByText(/AI features are paused/i)).toBeInTheDocument(),
-    )
+    expect(
+      await screen.findByText(/AI features are paused/i),
+    ).toBeInTheDocument()
     expect(screen.getByText(/run out of credit/i)).toBeInTheDocument()
   })
 
@@ -204,17 +202,12 @@ describe("PortfolioReviewPopup", () => {
       />,
     )
     await waitFor(() =>
-      expect(screen.getByText("Hi there")).toBeInTheDocument(),
+      expect(screen.getByTestId("markdown").textContent).toBe("Hi there"),
     )
   })
 
   it("caches by target so reopening the same portfolio does not re-fetch", async () => {
-    mockFetch.mockResolvedValueOnce(
-      sseResponse([
-        { event: "token", data: "Cached" },
-        { event: "done", data: "{}" },
-      ]),
-    )
+    mockFetch.mockResolvedValueOnce(sseAnswer("Cached"))
     const target = {
       kind: "portfolio" as const,
       id: "p-1",
@@ -224,12 +217,53 @@ describe("PortfolioReviewPopup", () => {
     const { unmount } = render(
       <PortfolioReviewPopup target={target} onClose={jest.fn()} />,
     )
-    await waitFor(() => expect(screen.getByText("Cached")).toBeInTheDocument())
+    await screen.findByText("Cached")
     unmount()
     render(<PortfolioReviewPopup target={target} onClose={jest.fn()} />)
-    await waitFor(() =>
-      expect(screen.getAllByText("Cached")[0]).toBeInTheDocument(),
+    expect(screen.getByText("Cached")).toBeInTheDocument()
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("re-fetches for a different portfolio", async () => {
+    mockFetch
+      .mockResolvedValueOnce(sseAnswer("First brief"))
+      .mockResolvedValueOnce(sseAnswer("Second brief"))
+    const { unmount } = render(
+      <PortfolioReviewPopup
+        target={{ kind: "portfolio", id: "p-1", code: "X", name: "X" }}
+        onClose={jest.fn()}
+      />,
     )
+    await screen.findByText("First brief")
+    unmount()
+    render(
+      <PortfolioReviewPopup
+        target={{ kind: "portfolio", id: "p-2", code: "Y", name: "Y" }}
+        onClose={jest.fn()}
+      />,
+    )
+    expect(await screen.findByText("Second brief")).toBeInTheDocument()
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(bodyOf(1).context.portfolioId).toBe("p-2")
+  })
+
+  it("reuses an aggregated briefing regardless of portfolio code order", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Aggregate brief"))
+    const { unmount } = render(
+      <PortfolioReviewPopup
+        target={{ kind: "aggregated", codes: ["A", "B"] }}
+        onClose={jest.fn()}
+      />,
+    )
+    await screen.findByText("Aggregate brief")
+    unmount()
+    render(
+      <PortfolioReviewPopup
+        target={{ kind: "aggregated", codes: ["B", "A"] }}
+        onClose={jest.fn()}
+      />,
+    )
+    expect(screen.getByText("Aggregate brief")).toBeInTheDocument()
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
@@ -275,14 +309,11 @@ describe("PortfolioReviewPopup", () => {
     )
 
     // Reopening the same target renders from cache — the cached text must be
-    // the post-reset content only, proving the accumulator (not just the
-    // rendered state) was cleared on reset.
+    // the post-reset content only.
     unmount()
     render(<PortfolioReviewPopup target={target} onClose={jest.fn()} />)
-    await waitFor(() =>
-      expect(screen.getAllByTestId("markdown")[0].textContent).toBe(
-        "# Summary\nReal content",
-      ),
+    expect(screen.getByTestId("markdown").textContent).toBe(
+      "# Summary\nReal content",
     )
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })

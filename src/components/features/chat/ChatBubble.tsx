@@ -35,7 +35,7 @@ export default function ChatBubble({
               <i className="fas fa-brain mr-1"></i>deep
             </span>
           )}
-          {message.content}
+          {message.label ?? message.content}
           <div className="flex justify-end gap-2 mt-1">
             {onRetry && (
               <button

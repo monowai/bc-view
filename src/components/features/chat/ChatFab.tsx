@@ -40,7 +40,14 @@ export default function ChatFab(): React.ReactElement {
   const [livePageContext, setLivePageContext] = useState<string | null>(null)
   useEffect(() => onPageContextChange(setLivePageContext), [])
 
-  const context = useMemo(() => {
+  // Context of a thread handed over by a Quick Analysis popup (chatBus
+  // `transcript`). Wins over the route's context until the chat is cleared.
+  const [threadContext, setThreadContext] = useState<Record<
+    string,
+    unknown
+  > | null>(null)
+
+  const routeContext = useMemo(() => {
     const ctx: Record<string, unknown> = {
       page: pageContext.page,
       description: pageContext.description,
@@ -62,8 +69,20 @@ export default function ChatFab(): React.ReactElement {
     if (routeParams.modelId) ctx.modelId = routeParams.modelId
     return ctx
   }, [pageContext.page, pageContext.description, routeParams, livePageContext])
-  const { messages, isLoading, sendMessage, clearMessages, cancel } =
-    useChat(context)
+  const context = threadContext ?? routeContext
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    loadTranscript,
+    cancel,
+  } = useChat(context)
+
+  const clear = useCallback(() => {
+    clearMessages()
+    setThreadContext(null)
+  }, [clearMessages])
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -86,12 +105,16 @@ export default function ChatFab(): React.ReactElement {
 
   useEffect(
     () =>
-      onChatOpen(({ prompt, expanded }) => {
+      onChatOpen(({ prompt, expanded, transcript, context: handed }) => {
         setIsOpen(true)
         if (expanded) setIsExpanded(true)
+        if (transcript) {
+          loadTranscript(transcript)
+          setThreadContext(handed ?? null)
+        }
         if (prompt) void sendMessage(prompt)
       }),
-    [sendMessage],
+    [sendMessage, loadTranscript],
   )
 
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
@@ -120,7 +143,7 @@ export default function ChatFab(): React.ReactElement {
           messages={messages}
           isLoading={isLoading}
           onSend={sendMessage}
-          onClear={clearMessages}
+          onClear={clear}
           onCancel={cancel}
           onExpand={expand}
           onClose={close}

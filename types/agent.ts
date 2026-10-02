@@ -45,4 +45,10 @@ export interface ChatMessage {
   error?: string | null
   /** True when the user message was sent with the deep-think toggle on. */
   deepThink?: boolean
+  /**
+   * Shown in place of `content` on a user message whose content is a long
+   * canned prompt (a Quick Analysis request). `content` is still what is sent
+   * and replayed as history.
+   */
+  label?: string
 }

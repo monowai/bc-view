@@ -6,6 +6,8 @@
  *
  * ChatFab subscribes via `useEffect`; callers fire `requestChatOpen({...})`.
  */
+import { ChatMessage } from "types/agent"
+
 const EVENT = "bc:chat-open"
 
 export interface ChatOpenDetail {
@@ -13,6 +15,17 @@ export interface ChatOpenDetail {
   prompt?: string
   /** Open in the wider expanded layout instead of the default panel. */
   expanded?: boolean
+  /**
+   * Continue an existing thread (a Quick Analysis popup handing over to the
+   * FAB). Replaces the FAB's conversation.
+   */
+  transcript?: ChatMessage[]
+  /**
+   * Agent context the thread was started with. Used instead of the route's
+   * context until the conversation is cleared, so follow-ups keep the
+   * ticker / portfolio the analysis was about.
+   */
+  context?: Record<string, unknown>
 }
 
 export function requestChatOpen(detail: ChatOpenDetail = {}): void {

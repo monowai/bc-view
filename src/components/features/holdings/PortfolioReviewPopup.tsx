@@ -1,9 +1,6 @@
-import React, { useEffect, useRef, useState } from "react"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import Dialog from "@components/ui/Dialog"
-import Spinner from "@components/ui/Spinner"
-import { describeAgentError, AgentErrorCopy } from "@utils/agent/agentErrors"
+import React, { useMemo } from "react"
+import AnalysisDialog from "@components/features/chat/AnalysisDialog"
+import { AnalysisRequest } from "@components/features/chat/useAnalysisChat"
 
 export type PortfolioReviewTarget =
   | { kind: "portfolio"; id: string; code: string; name: string }
@@ -53,15 +50,7 @@ Style rules:
 \t• If data is missing or news is thin, say so plainly rather than padding.
 \t• Length: roughly 250–400 words. A morning read, not a research note.`
 
-// Module-level cache: key -> { response, fetchedAt }. Only fully-completed
-// streams populate the cache; aborted runs are not cached so the user can
-// retry by reopening.
-const reviewCache = new Map<string, { response: string; fetchedAt: number }>()
 const CACHE_TTL_MS = 30 * 60 * 1000
-
-export function clearPortfolioReviewCache(): void {
-  reviewCache.clear()
-}
 
 function targetKey(target: PortfolioReviewTarget): string {
   if (target.kind === "portfolio") return `P|${target.id}`
@@ -75,13 +64,16 @@ function targetTitle(target: PortfolioReviewTarget): string {
   return `Aggregated — ${target.codes.length} portfolios`
 }
 
-function buildRequest(target: PortfolioReviewTarget): {
-  query: string
-  context: Record<string, unknown>
-} {
+function buildRequest(target: PortfolioReviewTarget): AnalysisRequest {
+  const common = {
+    cacheKey: `portfolio-review|${targetKey(target)}`,
+    query: DAILY_BRIEFING_PROMPT,
+    label: `AI Summary — ${targetTitle(target)}`,
+    ttlMs: CACHE_TTL_MS,
+  }
   if (target.kind === "portfolio") {
     return {
-      query: DAILY_BRIEFING_PROMPT,
+      ...common,
       context: {
         page: "Portfolio Review",
         description:
@@ -93,7 +85,7 @@ function buildRequest(target: PortfolioReviewTarget): {
     }
   }
   return {
-    query: DAILY_BRIEFING_PROMPT,
+    ...common,
     context: {
       page: "Portfolio Review",
       description:
@@ -107,201 +99,18 @@ export default function PortfolioReviewPopup({
   target,
   onClose,
 }: PortfolioReviewPopupProps): React.ReactElement {
-  const [response, setResponse] = useState<string>("")
-  const [error, setError] = useState<AgentErrorCopy | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const abortRef = useRef<AbortController | null>(null)
-
-  const key = targetKey(target)
-
-  const cancel = (): void => {
-    abortRef.current?.abort()
-    setIsLoading(false)
-  }
-
-  useEffect(() => {
-    const cached = reviewCache.get(key)
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      // Effect genuinely syncs an external system (cached SSE stream result);
-      // populating state from the module-level cache on mount is the intended
-      // behaviour and cannot move to render without re-running the fetch.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setResponse(cached.response)
-      setIsLoading(false)
-      return () => {}
-    }
-
-    const controller = new AbortController()
-    abortRef.current = controller
-    setIsLoading(true)
-    setError(null)
-    setResponse("")
-
-    const run = async (): Promise<void> => {
-      const { query, context } = buildRequest(target)
-      let accumulated = ""
-      let streamError: string | null = null
-      try {
-        const res = await fetch("/api/agent/query/stream", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "text/event-stream",
-          },
-          body: JSON.stringify({ query, context }),
-          signal: controller.signal,
-        })
-        if (!res.ok || !res.body) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-
-        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
-        let buffer = ""
-
-        // SSE event blocks delimited by blank line; each block carries an
-        // `event:` line and one or more `data:` lines. Accept both `\n\n`
-        // and `\r\n\r\n` separators — proxies (CDN / load balancer) may
-        // normalise line endings. Don't strip leading space from `data:`
-        // payloads — Spring's SSE writer treats the space as content.
-        const flush = (block: string): void => {
-          let event = "message"
-          const dataLines: string[] = []
-          for (const raw of block.split(/\r?\n/)) {
-            if (raw.startsWith(":")) continue
-            if (raw.startsWith("event:")) {
-              event = raw.slice(6).trim()
-            } else if (raw.startsWith("data:")) {
-              dataLines.push(raw.slice(5))
-            }
-          }
-          const data = dataLines.join("\n")
-          if (event === "token") {
-            accumulated += data
-            setResponse(accumulated)
-          } else if (event === "reset") {
-            // Emitted after a narration turn (the LLM's "I'll gather the
-            // data…" preamble before tool calls). Discard everything
-            // accumulated so far — the final answer arrives after the last
-            // reset — so this must clear both the accumulator (what the
-            // cache below persists) and the rendered state.
-            accumulated = ""
-            setResponse("")
-          } else if (event === "error") {
-            streamError = data || "stream-error"
-          }
-        }
-
-        const findSeparator = (
-          buf: string,
-        ): { index: number; len: number } | null => {
-          const lf = buf.indexOf("\n\n")
-          const crlf = buf.indexOf("\r\n\r\n")
-          if (lf === -1 && crlf === -1) return null
-          if (lf === -1) return { index: crlf, len: 4 }
-          if (crlf === -1) return { index: lf, len: 2 }
-          return crlf < lf ? { index: crlf, len: 4 } : { index: lf, len: 2 }
-        }
-
-        for (;;) {
-          const { value, done } = await reader.read()
-          if (done) break
-          buffer += value
-          let sep = findSeparator(buffer)
-          while (sep !== null) {
-            const block = buffer.slice(0, sep.index)
-            buffer = buffer.slice(sep.index + sep.len)
-            if (block.length > 0) flush(block)
-            sep = findSeparator(buffer)
-          }
-        }
-        if (buffer.trim().length > 0) flush(buffer)
-
-        if (streamError) {
-          setError(describeAgentError(streamError))
-        } else if (accumulated.length > 0) {
-          reviewCache.set(key, {
-            response: accumulated,
-            fetchedAt: Date.now(),
-          })
-        }
-      } catch (e: unknown) {
-        if (controller.signal.aborted) return
-        setError(describeAgentError(e))
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false)
-      }
-    }
-
-    void run()
-
-    return () => {
-      controller.abort()
-    }
-  }, [key, target])
-
-  const showSpinner = isLoading && response.length === 0
-
-  const cancelButton = isLoading ? (
-    <button
-      type="button"
-      onClick={cancel}
-      className="px-2 py-1 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 ring-1 ring-slate-200"
-      aria-label="Cancel summary generation"
-      title="Cancel"
-    >
-      <i className="fas fa-stop text-[10px] mr-1"></i>
-      Cancel
-    </button>
-  ) : null
-
+  const request = useMemo(() => buildRequest(target), [target])
   return (
-    <Dialog
+    <AnalysisDialog
       title={
         <span className="flex items-center">
           <i className="fas fa-robot text-blue-500 mr-2"></i>
           AI Summary — {targetTitle(target)}
         </span>
       }
+      request={request}
+      loadingLabel="Generating summary..."
       onClose={onClose}
-      maxWidth="4xl"
-      scrollable
-    >
-      {showSpinner && (
-        <div className="flex flex-col items-center gap-3 text-gray-500 py-12">
-          <div className="flex items-center gap-2">
-            <Spinner />
-            <span>Generating summary...</span>
-          </div>
-          {cancelButton}
-        </div>
-      )}
-      {response.length > 0 && (
-        <div
-          className="prose prose-sm sm:prose-base max-w-none
-            prose-headings:text-slate-900 prose-headings:font-semibold
-            prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-            prose-h2:mt-6 prose-h2:mb-3 prose-h3:mt-4 prose-h3:mb-2
-            prose-p:text-slate-700 prose-p:leading-relaxed
-            prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-            prose-strong:text-slate-900
-            prose-ul:my-3 prose-li:my-1
-            prose-table:text-sm"
-        >
-          <Markdown remarkPlugins={[remarkGfm]}>{response}</Markdown>
-        </div>
-      )}
-      {isLoading && response.length > 0 && (
-        <div className="mt-3 flex items-center gap-2 text-gray-400 text-xs">
-          <Spinner />
-          <span>Streaming…</span>
-          {cancelButton}
-        </div>
-      )}
-      <Dialog.ErrorAlert
-        title={error?.title}
-        tone={error?.tone}
-        message={error?.message ?? null}
-      />
-    </Dialog>
+    />
   )
 }
