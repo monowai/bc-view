@@ -124,14 +124,14 @@ export default function AnalysisDialog({
   )
 
   const footer = succeeded ? (
-    <form onSubmit={ask} className="flex flex-1 items-center gap-2">
+    <form onSubmit={ask} className="flex flex-1 min-w-0 items-center gap-2">
       <input
         type="text"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="Ask a follow-up about this analysis..."
         aria-label="Follow-up question"
-        className="flex-1 min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-0 flex-1 min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       <button
         type="submit"
@@ -148,9 +148,11 @@ export default function AnalysisDialog({
           disabled={isLoading}
           className="px-3 py-2 rounded-md text-sm text-blue-700 hover:bg-blue-50 whitespace-nowrap disabled:opacity-50"
           title="Continue this conversation in the chat panel"
+          aria-label="Open in chat"
         >
-          <i className="fas fa-comments mr-1"></i>
-          Open in chat
+          {/* Icon only on phones: the label would push the footer off-screen. */}
+          <i className="fas fa-comments sm:mr-1"></i>
+          <span className="hidden sm:inline">Open in chat</span>
         </button>
       )}
     </form>
