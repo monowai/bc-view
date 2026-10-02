@@ -34,6 +34,20 @@ export default function ChatFab(): React.ReactElement {
   const pageContext = getPageContext(router.pathname)
   const routeParams = router.query
 
+  // /chat takes over the conversation, and the FAB hides there. Close it on
+  // arrival so leaving /chat shows the button, not a panel left open.
+  // Adjusting state while rendering on a prop change (React's documented
+  // alternative to a setState-in-effect); the shared chat is untouched.
+  const onChatPage = router.pathname === "/chat"
+  const [wasOnChatPage, setWasOnChatPage] = useState(onChatPage)
+  if (onChatPage !== wasOnChatPage) {
+    setWasOnChatPage(onChatPage)
+    if (onChatPage) {
+      setIsOpen(false)
+      setIsExpanded(false)
+    }
+  }
+
   // Live, page-published context (e.g. the current in-progress draft
   // rebalance) — see pageContextBus.ts. Generic: any page can publish, this
   // component just folds whatever is current into the outgoing payload.
@@ -122,7 +136,7 @@ export default function ChatFab(): React.ReactElement {
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
 
   // Hide FAB on the /chat page — it's redundant there
-  if (router.pathname === "/chat") return <></>
+  if (onChatPage) return <></>
   // Hide entirely until permissions resolve, then only render if user has AI access.
   if (permsLoading || !canRunAi) return <></>
 

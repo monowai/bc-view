@@ -10,8 +10,9 @@ import { ChatMessage } from "types/agent"
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
 const mockPush = jest.fn()
+let mockPathname = "/wealth"
 jest.mock("next/router", () => ({
-  useRouter: () => ({ pathname: "/wealth", query: {}, push: mockPush }),
+  useRouter: () => ({ pathname: mockPathname, query: {}, push: mockPush }),
 }))
 
 // Mock fetch for useChat
@@ -43,6 +44,7 @@ async function lastStreamBody(): Promise<Record<string, any>> {
 describe("ChatFab", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockPathname = "/wealth"
     window.localStorage.removeItem("bc-chat-corner")
     // pageContextBus retains its last-published value across renders (by
     // design — see its module doc) so a leftover from another test/page
@@ -188,6 +190,36 @@ describe("ChatFab", () => {
       fireEvent.submit(screen.getByRole("textbox").closest("form")!)
       return (await lastStreamBody()) as QueryBody
     }
+
+    it("closes when /chat takes over, so leaving /chat shows only the FAB with the conversation intact", () => {
+      const fab = (): React.ReactElement => (
+        <ChatProvider>
+          <ChatFab />
+        </ChatProvider>
+      )
+      const { rerender } = render(fab())
+      handOff()
+      fireEvent.click(screen.getByLabelText("Expand chat"))
+      expect(screen.getByTestId("chat-panel-container").className).toContain(
+        "w-[80vw]",
+      )
+
+      mockPathname = "/chat"
+      rerender(fab())
+      expect(
+        screen.queryByTestId("chat-panel-container"),
+      ).not.toBeInTheDocument()
+
+      mockPathname = "/wealth"
+      rerender(fab())
+      const panel = screen.getByTestId("chat-panel-container")
+      expect(panel.className).toContain("pointer-events-none")
+      expect(panel.className).toContain("w-[60vw]")
+      expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+
+      fireEvent.click(screen.getByLabelText("Chat"))
+      expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
+    })
 
     it("opens with the handed-off thread, showing the label instead of the canned prompt", () => {
       renderFab()
