@@ -735,6 +735,43 @@ describe("useChat with persisted conversations", () => {
     expect(result.current.messages).toEqual([])
   })
 
+  it("starts a new conversation on the next send after the stream loses the current one", async () => {
+    const ids = ["c-1", "c-2"]
+    const streams = [
+      () => json(404, {}),
+      () => sseResponse([{ event: "token", data: "ok" }]),
+    ]
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: ids.shift() } }),
+      [`POST ${STREAM}`]: () => streams.shift()!(),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+    await act(async () => {
+      await result.current.sendMessage("still there?")
+    })
+
+    const creates = mockFetch.mock.calls.filter(
+      ([url, init]) => url === CONVERSATIONS && init?.method === "POST",
+    )
+    expect(creates).toHaveLength(2)
+    const bodies = streamBodies()
+    expect(bodies[0].conversationId).toBe("c-1")
+    expect(bodies[1]).toMatchObject({
+      query: "still there?",
+      conversationId: "c-2",
+    })
+    expect(result.current.conversationId).toBe("c-2")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-2")
+    // The transcript stays on screen; only the server-side thread is new.
+    expect(result.current.messages).toHaveLength(4)
+    expect(result.current.messages[0].content).toBe("hello")
+    expect(result.current.messages[3].content).toBe("ok")
+  })
+
   it("resumes the stored conversation on mount", async () => {
     localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
     route({ [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }) })

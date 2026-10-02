@@ -91,13 +91,15 @@ function ChatPage(): React.ReactElement {
   const remove = useCallback(
     async (id: string) => {
       try {
-        await fetch(`/api/agent/conversations/${encodeURIComponent(id)}`, {
-          method: "DELETE",
-        })
+        const res = await fetch(
+          `/api/agent/conversations/${encodeURIComponent(id)}`,
+          { method: "DELETE" },
+        )
+        // Only a delete that took leaves the open chat with nothing behind it.
+        if (res.ok && id === conversationId) newChat()
       } catch {
-        // Network failure — the refreshed list below shows what survived.
+        // Network failure — keep the chat; the list below shows what survived.
       }
-      if (id === conversationId) newChat()
       void mutate()
     },
     [conversationId, newChat, mutate],

@@ -90,6 +90,8 @@ function sseResponse(text: string): unknown {
 }
 
 let mockFetch: jest.Mock
+/** What svc-agent answers when the open conversation (c-1) is deleted. */
+let deleteOpenStatus = 204
 
 function routeFetch(): void {
   mockFetch = jest.fn((url: string, init?: RequestInit) => {
@@ -101,6 +103,11 @@ function routeFetch(): void {
         return Promise.resolve(json({ data: detail }))
       case "DELETE /api/agent/conversations/c-2":
         return Promise.resolve({ ok: true, status: 204 })
+      case "DELETE /api/agent/conversations/c-1":
+        return Promise.resolve({
+          ok: deleteOpenStatus < 400,
+          status: deleteOpenStatus,
+        })
       case "POST /api/agent/conversations":
         return Promise.resolve(json({ data: { id: "c-new" } }, 201))
       case `POST ${STREAM}`:
@@ -134,6 +141,7 @@ const sidebar = (): HTMLElement =>
 describe("/chat page", () => {
   beforeEach(() => {
     localStorage.clear()
+    deleteOpenStatus = 204
     routeFetch()
   })
 
@@ -184,6 +192,45 @@ describe("/chat page", () => {
     )
     expect(confirmSpy).not.toHaveBeenCalled()
     confirmSpy.mockRestore()
+  })
+
+  async function deleteOpenConversation(): Promise<void> {
+    renderPage()
+    fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+    await screen.findByText("About 40% of your wealth.")
+    const listCallsBefore = callsTo("GET", LIST)
+
+    fireEvent.click(
+      within(sidebar()).getByRole("button", { name: 'Delete "NZD exposure"' }),
+    )
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Delete" }))
+
+    await waitFor(() =>
+      expect(callsTo("DELETE", "/api/agent/conversations/c-1")).toBe(1),
+    )
+    await waitFor(() =>
+      expect(callsTo("GET", LIST)).toBeGreaterThan(listCallsBefore),
+    )
+  }
+
+  it("resets the open chat once its conversation is deleted", async () => {
+    await deleteOpenConversation()
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("About 40% of your wealth."),
+      ).not.toBeInTheDocument(),
+    )
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull()
+  })
+
+  it("keeps the open chat when deleting its conversation fails", async () => {
+    deleteOpenStatus = 500
+
+    await deleteOpenConversation()
+
+    expect(screen.getByText("About 40% of your wealth.")).toBeInTheDocument()
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-1")
   })
 
   it("keeps the conversation when the delete is cancelled", async () => {

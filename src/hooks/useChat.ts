@@ -161,6 +161,10 @@ export function useChat(
   // Bumped whenever the transcript is replaced, so a slow conversation load
   // can't overwrite a newer choice (New chat, another conversation).
   const loadSeqRef = useRef(0)
+  // Set when the stream reports the open conversation gone (404). The
+  // transcript stays on screen, so the next send would otherwise carry on
+  // statelessly and never be saved again — this flag starts a new one.
+  const conversationLostRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
   // sendMessage is memoized, so it can't read `messages`
   // directly without going stale after the first render — mirror it into a
@@ -195,7 +199,10 @@ export function useChat(
       loadSeqRef.current++
       // Only a chat started from empty becomes a stored conversation; a
       // handed-over transcript has no server-side twin, so it stays stateless.
-      const freshChat = messagesRef.current.length === 0
+      // A chat whose stored conversation vanished mid-thread is saved afresh
+      // too; the model loses the earlier turns, the screen keeps them.
+      const startConversation =
+        messagesRef.current.length === 0 || conversationLostRef.current
       // Snapshot the transcript so far as history — before appending this
       // turn's placeholders — so the model sees its own prior question when
       // the user replies to it instead of retyping the whole context. Error
@@ -245,10 +252,11 @@ export function useChat(
 
       try {
         let activeId = persist ? conversationIdRef.current : null
-        if (persist && activeId === null && freshChat) {
+        if (persist && activeId === null && startConversation) {
           // Can't create one (agent down, etc.)? Still answer — statelessly.
           activeId = await createConversation(controller.signal)
           if (activeId !== null && !controller.signal.aborted) {
+            conversationLostRef.current = false
             setConversation(activeId)
           }
         }
@@ -272,8 +280,10 @@ export function useChat(
           signal: controller.signal,
         })
         if (activeId !== null && res.status === 404) {
-          // Expired (90-day retention) or deleted elsewhere — forget it.
+          // Expired (90-day retention) or deleted elsewhere — forget it, and
+          // start a new one on the next send so the chat keeps being saved.
           setConversation(null)
+          conversationLostRef.current = true
         }
         if (!res.ok || !res.body) {
           // One extraction feeds both fields: `content` is the copy, `error`
@@ -383,6 +393,7 @@ export function useChat(
   const newChat = useCallback(() => {
     loadSeqRef.current++
     abortRef.current?.abort()
+    conversationLostRef.current = false
     setConversation(null)
     setMessages([])
   }, [setConversation])
@@ -390,6 +401,8 @@ export function useChat(
   const loadTranscript = useCallback(
     (transcript: ChatMessage[]) => {
       loadSeqRef.current++
+      // A handed-over thread stays stateless, whatever came before it.
+      conversationLostRef.current = false
       setConversation(null)
       setMessages(transcript)
     },
@@ -415,6 +428,7 @@ export function useChat(
         if (!res.ok) return
         const json = (await res.json()) as { data: ConversationDetail }
         if (seq !== loadSeqRef.current) return
+        conversationLostRef.current = false
         setMessages(json.data.messages.map(turnToMessage))
         setConversation(json.data.id)
       } catch {
