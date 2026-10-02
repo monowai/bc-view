@@ -11,6 +11,7 @@ import ChatPage from "@pages/chat"
 import ChatFab from "@components/features/chat/ChatFab"
 import { ChatProvider } from "@components/features/chat/ChatProvider"
 import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
+import { SIDEBAR_COLLAPSED_KEY } from "@components/features/chat/chatSidebar"
 import { ConversationDetail, ConversationSummary } from "types/agent"
 
 // next/router, next/link, react-markdown and the Auth0 client are mocked
@@ -246,5 +247,132 @@ describe("/chat page", () => {
     await waitFor(() =>
       expect(screen.getAllByText("Here you go")).toHaveLength(2),
     )
+  })
+
+  describe("collapsible sidebar", () => {
+    const originalMatchMedia = window.matchMedia
+
+    // jsdom has no matchMedia; the page treats that as a desktop viewport.
+    function viewport(wide: boolean): void {
+      window.matchMedia = jest.fn((query: string) => ({
+        matches: wide,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })) as unknown as typeof window.matchMedia
+    }
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia
+    })
+
+    const queryNav = (): HTMLElement | null =>
+      screen.queryByRole("navigation", { name: /conversations/i })
+
+    it("hides and shows the conversations, remembering the choice", async () => {
+      renderPage()
+      await within(sidebar()).findByText("NZD exposure")
+
+      const hide = screen.getByRole("button", { name: "Hide conversations" })
+      expect(hide).toHaveAttribute("aria-expanded", "true")
+      fireEvent.click(hide)
+
+      expect(queryNav()).not.toBeInTheDocument()
+      const show = screen.getByRole("button", { name: "Show conversations" })
+      expect(show).toHaveAttribute("aria-expanded", "false")
+      expect(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)).toBe("true")
+
+      fireEvent.click(show)
+
+      expect(await within(sidebar()).findByText("NZD exposure")).toBeVisible()
+      expect(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)).toBe("false")
+    })
+
+    it("restores a collapsed sidebar on the next visit", async () => {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, "true")
+      renderPage()
+
+      expect(
+        await screen.findByRole("button", { name: "Show conversations" }),
+      ).toBeInTheDocument()
+      expect(queryNav()).not.toBeInTheDocument()
+    })
+
+    it("starts a new chat from the collapsed rail", async () => {
+      renderPage()
+      fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+      await screen.findByText("About 40% of your wealth.")
+      fireEvent.click(
+        screen.getByRole("button", { name: "Hide conversations" }),
+      )
+      const rail = screen.getByRole("button", {
+        name: "Show conversations",
+      }).parentElement!
+
+      fireEvent.click(within(rail).getByRole("button", { name: "New chat" }))
+
+      expect(
+        screen.queryByText("About 40% of your wealth."),
+      ).not.toBeInTheDocument()
+      expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull()
+    })
+
+    it("starts expanded on a wide screen", async () => {
+      viewport(true)
+      renderPage()
+
+      expect(await within(sidebar()).findByText("NZD exposure")).toBeVisible()
+    })
+
+    it("starts collapsed on a narrow screen", async () => {
+      viewport(false)
+      renderPage()
+
+      expect(
+        await screen.findByRole("button", { name: "Show conversations" }),
+      ).toBeInTheDocument()
+      expect(queryNav()).not.toBeInTheDocument()
+    })
+
+    it("lets a stored choice override the narrow-screen default", async () => {
+      viewport(false)
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, "false")
+      renderPage()
+
+      expect(await within(sidebar()).findByText("NZD exposure")).toBeVisible()
+    })
+
+    it("closes the overlay after picking a conversation on a narrow screen", async () => {
+      viewport(false)
+      renderPage()
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Show conversations" }),
+      )
+
+      fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+
+      expect(
+        await screen.findByText("About 40% of your wealth."),
+      ).toBeInTheDocument()
+      expect(queryNav()).not.toBeInTheDocument()
+      // Closing the overlay is not a preference change.
+      expect(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)).toBe("false")
+    })
+
+    it("keeps the sidebar open after picking a conversation on a wide screen", async () => {
+      viewport(true)
+      renderPage()
+
+      fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+
+      expect(
+        await screen.findByText("About 40% of your wealth."),
+      ).toBeInTheDocument()
+      expect(sidebar()).toBeInTheDocument()
+    })
   })
 })

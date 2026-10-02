@@ -3,7 +3,14 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import useSwr from "swr"
 import { ChatPanel } from "@components/features/chat"
-import ConversationList from "@components/features/chat/ConversationList"
+import ConversationList, {
+  ConversationRail,
+} from "@components/features/chat/ConversationList"
+import {
+  isNarrowViewport,
+  loadSidebarCollapsed,
+  saveSidebarCollapsed,
+} from "@components/features/chat/chatSidebar"
 import { useSharedChat } from "@components/features/chat/ChatProvider"
 import { fetcher } from "@utils/api/fetchHelper"
 import { ConversationSummary } from "types/agent"
@@ -26,7 +33,26 @@ function ChatPage(): React.ReactElement {
     isLoading: listLoading,
     mutate,
   } = useSwr<{ data: ConversationSummary[] }>(CONVERSATIONS_KEY, fetcher)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  // null until mounted: the server can't know the viewport or the stored
+  // choice, so the first render leans on CSS breakpoints alone.
+  const [collapsed, setCollapsed] = useState<boolean | null>(null)
+  // Hydrate post-mount to avoid an SSR/CSR mismatch (same as ChatFab's corner).
+  useEffect(
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    () => setCollapsed(loadSidebarCollapsed() ?? isNarrowViewport()),
+    [],
+  )
+
+  const toggleSidebar = useCallback((next: boolean) => {
+    setCollapsed(next)
+    saveSidebarCollapsed(next)
+  }, [])
+
+  // On a phone the open list overlays the chat; get it out of the way once
+  // the viewer has picked something. Not a preference change, so not saved.
+  const dismissOverlay = useCallback(() => {
+    if (isNarrowViewport()) setCollapsed(true)
+  }, [])
 
   // A finished send creates or bumps a conversation — refresh the list.
   const wasLoading = useRef(isLoading)
@@ -37,16 +63,16 @@ function ChatPage(): React.ReactElement {
 
   const select = useCallback(
     (id: string) => {
-      setSidebarOpen(false)
+      dismissOverlay()
       void loadConversation(id)
     },
-    [loadConversation],
+    [dismissOverlay, loadConversation],
   )
 
   const startNewChat = useCallback(() => {
-    setSidebarOpen(false)
+    dismissOverlay()
     newChat()
-  }, [newChat])
+  }, [dismissOverlay, newChat])
 
   const remove = useCallback(
     async (id: string) => {
@@ -69,27 +95,28 @@ function ChatPage(): React.ReactElement {
         <title>Chat - Holdsworth</title>
       </Head>
       <div className="mx-auto flex h-[calc(100vh-5rem)] max-w-6xl flex-col gap-2 px-2 sm:px-1 md:px-0">
-        <button
-          type="button"
-          onClick={() => setSidebarOpen((v) => !v)}
-          aria-expanded={sidebarOpen}
-          className="md:hidden self-start text-sm text-gray-600 hover:text-blue-600 transition-colors"
-        >
-          <i className="fas fa-history mr-1"></i>
-          Conversations
-        </button>
         <div className="relative flex min-h-0 flex-1 gap-3">
-          <ConversationList
-            conversations={data?.data ?? []}
-            activeId={conversationId}
-            isLoading={listLoading}
-            onSelect={select}
-            onDelete={(id) => void remove(id)}
-            onNewChat={startNewChat}
-            className={`${
-              sidebarOpen ? "flex" : "hidden"
-            } absolute inset-y-0 left-0 z-10 w-full max-w-xs md:static md:flex md:w-64 md:shrink-0`}
-          />
+          {collapsed !== false && (
+            <ConversationRail
+              onExpand={() => toggleSidebar(false)}
+              onNewChat={startNewChat}
+              className={collapsed ? "flex" : "flex md:hidden"}
+            />
+          )}
+          {collapsed !== true && (
+            <ConversationList
+              conversations={data?.data ?? []}
+              activeId={conversationId}
+              isLoading={listLoading}
+              onSelect={select}
+              onDelete={(id) => void remove(id)}
+              onNewChat={startNewChat}
+              onCollapse={() => toggleSidebar(true)}
+              className={`${
+                collapsed === false ? "flex" : "hidden md:flex"
+              } absolute inset-y-0 left-0 z-10 w-full max-w-xs md:static md:w-64 md:shrink-0`}
+            />
+          )}
           <ChatPanel
             messages={messages}
             isLoading={isLoading}

@@ -9,6 +9,8 @@ interface ConversationListProps {
   onSelect: (id: string) => void
   onDelete: (id: string) => void
   onNewChat: () => void
+  /** When given, a toggle in the header hides the sidebar. */
+  onCollapse?: () => void
   className?: string
 }
 
@@ -23,6 +25,7 @@ export default function ConversationList({
   onSelect,
   onDelete,
   onNewChat,
+  onCollapse,
   className = "",
 }: ConversationListProps): React.ReactElement {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
@@ -32,11 +35,23 @@ export default function ConversationList({
       aria-label="Conversations"
       className={`flex flex-col bg-white rounded-lg shadow-lg overflow-hidden ${className}`}
     >
-      <div className="px-3 py-3 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center gap-2 px-3 py-3 border-b border-gray-200 bg-gray-50">
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Hide conversations"
+            aria-expanded={true}
+            title="Hide conversations"
+            className="shrink-0 w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+          >
+            <i className="fas fa-angle-double-left"></i>
+          </button>
+        )}
         <button
           type="button"
           onClick={onNewChat}
-          className="btn-primary btn-primary--sm w-full justify-center"
+          className="btn-primary btn-primary--sm flex-1 justify-center"
         >
           <i className="fas fa-plus mr-2"></i>
           New chat
@@ -122,5 +137,47 @@ export default function ConversationList({
         })}
       </ul>
     </nav>
+  )
+}
+
+interface ConversationRailProps {
+  onExpand: () => void
+  onNewChat: () => void
+  className?: string
+}
+
+/**
+ * Slim rail shown in place of the collapsed sidebar: just the toggle to
+ * bring the conversations back and a "New chat" shortcut.
+ */
+export function ConversationRail({
+  onExpand,
+  onNewChat,
+  className = "",
+}: ConversationRailProps): React.ReactElement {
+  return (
+    <div
+      className={`flex-col items-center gap-2 w-11 shrink-0 py-3 bg-white rounded-lg shadow-lg ${className}`}
+    >
+      <button
+        type="button"
+        onClick={onExpand}
+        aria-label="Show conversations"
+        aria-expanded={false}
+        title="Show conversations"
+        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+      >
+        <i className="fas fa-angle-double-right"></i>
+      </button>
+      <button
+        type="button"
+        onClick={onNewChat}
+        aria-label="New chat"
+        title="New chat"
+        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+      >
+        <i className="fas fa-plus"></i>
+      </button>
+    </div>
   )
 }
