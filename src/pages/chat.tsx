@@ -10,6 +10,7 @@ import {
   isNarrowViewport,
   loadSidebarCollapsed,
   saveSidebarCollapsed,
+  TITLE_REFRESH_DELAYS_MS,
 } from "@components/features/chat/chatSidebar"
 import { useSharedChat } from "@components/features/chat/ChatProvider"
 import { fetcher } from "@utils/api/fetchHelper"
@@ -54,11 +55,24 @@ function ChatPage(): React.ReactElement {
     if (isNarrowViewport()) setCollapsed(true)
   }, [])
 
-  // A finished send creates or bumps a conversation — refresh the list.
+  // A finished send creates or bumps a conversation — refresh the list. The
+  // first answer of a new conversation also gets a model-written title a
+  // moment later, so look again for it.
   const wasLoading = useRef(isLoading)
+  const messageCount = useRef(messages.length)
   useEffect(() => {
-    if (wasLoading.current && !isLoading) void mutate()
+    messageCount.current = messages.length
+  }, [messages.length])
+  useEffect(() => {
+    const finished = wasLoading.current && !isLoading
     wasLoading.current = isLoading
+    if (!finished) return undefined
+    void mutate()
+    if (messageCount.current > 2) return undefined
+    const timers = TITLE_REFRESH_DELAYS_MS.map((ms) =>
+      setTimeout(() => void mutate(), ms),
+    )
+    return () => timers.forEach(clearTimeout)
   }, [isLoading, mutate])
 
   const select = useCallback(

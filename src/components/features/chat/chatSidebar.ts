@@ -42,3 +42,9 @@ export function isNarrowViewport(): boolean {
     return false
   }
 }
+
+/**
+ * svc-agent writes a new conversation's title in the background a moment
+ * after its first answer, so the list is fetched again at these delays.
+ */
+export const TITLE_REFRESH_DELAYS_MS = [3000, 8000]

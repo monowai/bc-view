@@ -14,6 +14,13 @@ import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
 import { SIDEBAR_COLLAPSED_KEY } from "@components/features/chat/chatSidebar"
 import { ConversationDetail, ConversationSummary } from "types/agent"
 
+// svc-agent titles a new conversation in the background after its first
+// answer; shrink the follow-up refresh delays so the test needn't wait.
+jest.mock("@components/features/chat/chatSidebar", () => ({
+  ...jest.requireActual("@components/features/chat/chatSidebar"),
+  TITLE_REFRESH_DELAYS_MS: [30, 60],
+}))
+
 // next/router, next/link, react-markdown and the Auth0 client are mocked
 // globally in jest.setup.js (pathname "" — so the FAB is visible too).
 
@@ -226,6 +233,23 @@ describe("/chat page", () => {
     expect(await screen.findByText("Here you go")).toBeInTheDocument()
     await waitFor(() =>
       expect(callsTo("GET", LIST)).toBeGreaterThan(listCallsBefore),
+    )
+  })
+
+  it("looks again for a new conversation's generated title after its first answer", async () => {
+    renderPage()
+    await within(sidebar()).findByText("NZD exposure")
+    const listCallsBefore = callsTo("GET", LIST)
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "How am I tracking?" },
+    })
+    fireEvent.submit(screen.getByRole("textbox").closest("form")!)
+
+    expect(await screen.findByText("Here you go")).toBeInTheDocument()
+    // Once on completion, then once per follow-up delay.
+    await waitFor(() =>
+      expect(callsTo("GET", LIST)).toBeGreaterThanOrEqual(listCallsBefore + 3),
     )
   })
 
