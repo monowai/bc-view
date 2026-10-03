@@ -376,15 +376,55 @@ describe("/chat page", () => {
       expect(within(sidebar()).getByText("Hedging plan")).toBeInTheDocument()
       fail()
 
-      expect(
-        await within(sidebar()).findByText("Rebalance ideas"),
-      ).toBeInTheDocument()
-      expect(within(sidebar()).getByRole("alert")).toHaveTextContent(
+      expect(await within(sidebar()).findByRole("alert")).toHaveTextContent(
         /couldn.t rename/i,
       )
       expect(screen.queryByText("Hedging plan")).not.toBeInTheDocument()
       expect(alertSpy).not.toHaveBeenCalled()
       alertSpy.mockRestore()
+    })
+
+    it("reopens a failed rename with the attempted title, ready to retry", async () => {
+      answerRename = () => Promise.resolve(json({ message: "boom" }, 500))
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      expect(await within(sidebar()).findByRole("alert")).toHaveTextContent(
+        /couldn.t rename/i,
+      )
+      expect(titleInput()).toHaveValue("Hedging plan")
+      expect(titleInput()).toHaveFocus()
+
+      answerRename = (id, title) => {
+        renamed[id] = title
+        return Promise.resolve(json({ data: { ...detail, id, title } }))
+      }
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      await waitFor(() =>
+        expect(patchesTo("c-2")).toEqual([
+          { title: "Hedging plan" },
+          { title: "Hedging plan" },
+        ]),
+      )
+      expect(await screen.findByText("Hedging plan")).toBeInTheDocument()
+      expect(within(sidebar()).queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("clears a rename error once a conversation is selected", async () => {
+      answerRename = () => Promise.resolve(json({ message: "boom" }, 500))
+      await startRenaming()
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+      await within(sidebar()).findByRole("alert")
+      fireEvent.keyDown(titleInput(), { key: "Escape" })
+      expect(within(sidebar()).getByRole("alert")).toBeInTheDocument()
+
+      fireEvent.click(within(sidebar()).getByText("NZD exposure"))
+
+      expect(within(sidebar()).queryByRole("alert")).not.toBeInTheDocument()
     })
 
     it("edits one row at a time", async () => {
@@ -425,6 +465,23 @@ describe("/chat page", () => {
       fireEvent.doubleClick(title)
 
       expect(titleInput()).toHaveValue("Rebalance ideas")
+    })
+
+    it("renames the open conversation on a double-click without reloading it", async () => {
+      renderPage()
+      fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+      await screen.findByText("About 40% of your wealth.")
+      const loadsBefore = callsTo("GET", "/api/agent/conversations/c-1")
+
+      // A browser double-click is click, click, dblclick.
+      const title = within(sidebar()).getByText("NZD exposure")
+      fireEvent.click(title)
+      fireEvent.click(title)
+      fireEvent.doubleClick(title)
+
+      expect(titleInput()).toHaveValue("NZD exposure")
+      expect(callsTo("GET", "/api/agent/conversations/c-1")).toBe(loadsBefore)
+      expect(screen.getByText("About 40% of your wealth.")).toBeInTheDocument()
     })
   })
 

@@ -30,6 +30,8 @@ function without(
 
 interface TitleInputProps {
   title: string
+  /** What the field starts with, when not the title — a failed attempt. */
+  draft?: string
   onSave: (title: string) => void
   onCancel: () => void
 }
@@ -41,6 +43,7 @@ interface TitleInputProps {
  */
 function TitleInput({
   title,
+  draft,
   onSave,
   onCancel,
 }: TitleInputProps): React.ReactElement {
@@ -64,7 +67,7 @@ function TitleInput({
     <input
       ref={inputRef}
       type="text"
-      defaultValue={title}
+      defaultValue={draft ?? title}
       maxLength={TITLE_MAX_LENGTH}
       aria-label="Conversation title"
       enterKeyHint="done"
@@ -84,6 +87,9 @@ function TitleInput({
   )
 }
 
+type InlineMode =
+  { kind: "confirm"; id: string } | { kind: "edit"; id: string; draft?: string }
+
 /**
  * Sidebar of past AI conversations for the /chat page. Deleting asks for an
  * inline confirmation on the row itself, and renaming edits the title in
@@ -100,35 +106,56 @@ export default function ConversationList({
   onCollapse,
   className = "",
 }: ConversationListProps): React.ReactElement {
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  // One row is in an inline mode at a time: confirming a delete, or editing
+  // its title — reopened with a failed attempt's text as `draft`.
+  const [inline, setInline] = useState<InlineMode | null>(null)
   // Titles shown while a rename is in flight, by conversation id.
   const [savingTitles, setSavingTitles] = useState<Record<string, string>>({})
   const [failedId, setFailedId] = useState<string | null>(null)
+  const confirmingId = inline?.kind === "confirm" ? inline.id : null
+  const editing = inline?.kind === "edit" ? inline : null
 
   const startRename = (id: string): void => {
-    setConfirmingId(null)
     setFailedId(null)
-    setEditingId(id)
+    setInline({ kind: "edit", id })
   }
 
   const startDelete = (id: string): void => {
-    setEditingId(null)
     setFailedId(null)
-    setConfirmingId(id)
+    setInline({ kind: "confirm", id })
   }
 
   // Only clear the edit this row owns — a late blur must not end another's.
   const stopEditing = (id: string): void =>
-    setEditingId((current) => (current === id ? null : current))
+    setInline((current) =>
+      current?.kind === "edit" && current.id === id ? null : current,
+    )
 
+  const select = (id: string): void => {
+    setFailedId(null)
+    onSelect(id)
+  }
+
+  // A failed save reopens the editor with what was typed, so the viewer can
+  // retry without retyping — unless they have moved on to another row.
   const save = (id: string, title: string): void => {
     stopEditing(id)
+    setFailedId(null)
     setSavingTitles((titles) => ({ ...titles, [id]: title }))
     onRename(id, title)
-      .catch(() => setFailedId(id))
+      .catch(() => {
+        setFailedId(id)
+        setInline((current) => current ?? { kind: "edit", id, draft: title })
+      })
       .finally(() => setSavingTitles((titles) => without(titles, id)))
   }
+
+  const renameError = (id: string): React.ReactElement | null =>
+    failedId === id ? (
+      <p role="alert" className="px-2 pb-2 text-xs text-red-600">
+        Couldn’t rename — try again.
+      </p>
+    ) : null
 
   return (
     <nav
@@ -182,7 +209,7 @@ export default function ConversationList({
                   <button
                     type="button"
                     onClick={() => {
-                      setConfirmingId(null)
+                      setInline(null)
                       onDelete(c.id)
                     }}
                     className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
@@ -191,7 +218,7 @@ export default function ConversationList({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmingId(null)}
+                    onClick={() => setInline(null)}
                     className="px-2 py-1 text-xs text-gray-600 rounded hover:bg-gray-100 transition-colors"
                   >
                     Keep
@@ -200,19 +227,21 @@ export default function ConversationList({
               </li>
             )
           }
-          if (editingId === c.id) {
+          if (editing?.id === c.id) {
             return (
               <li
                 key={c.id}
-                className={`flex items-center rounded-md ${
-                  active ? "bg-blue-50" : "bg-gray-50"
-                }`}
+                className={`rounded-md ${active ? "bg-blue-50" : "bg-gray-50"}`}
               >
-                <TitleInput
-                  title={c.title}
-                  onSave={(next) => save(c.id, next)}
-                  onCancel={() => stopEditing(c.id)}
-                />
+                <div className="flex items-center">
+                  <TitleInput
+                    title={c.title}
+                    draft={editing.draft}
+                    onSave={(next) => save(c.id, next)}
+                    onCancel={() => stopEditing(c.id)}
+                  />
+                </div>
+                {renameError(c.id)}
               </li>
             )
           }
@@ -226,7 +255,7 @@ export default function ConversationList({
               <div className="flex items-center">
                 <button
                   type="button"
-                  onClick={() => onSelect(c.id)}
+                  onClick={() => select(c.id)}
                   onDoubleClick={() => startRename(c.id)}
                   aria-current={active ? "true" : undefined}
                   className="flex-1 min-w-0 text-left px-2 py-2"
@@ -261,11 +290,7 @@ export default function ConversationList({
                   <i className="fas fa-trash-alt"></i>
                 </button>
               </div>
-              {failedId === c.id && (
-                <p role="alert" className="px-2 pb-2 text-xs text-red-600">
-                  Couldn’t rename — try again.
-                </p>
-              )}
+              {renameError(c.id)}
             </li>
           )
         })}

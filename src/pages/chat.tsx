@@ -75,12 +75,14 @@ function ChatPage(): React.ReactElement {
     return () => timers.forEach(clearTimeout)
   }, [isLoading, mutate])
 
+  // Picking the open conversation doesn't reload it: a reload would cancel
+  // an answer in flight, and a double-click (to rename) clicks twice.
   const select = useCallback(
     (id: string) => {
       dismissOverlay()
-      void loadConversation(id)
+      if (id !== conversationId) void loadConversation(id)
     },
-    [dismissOverlay, loadConversation],
+    [conversationId, dismissOverlay, loadConversation],
   )
 
   const startNewChat = useCallback(() => {
