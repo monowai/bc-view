@@ -105,6 +105,23 @@ function ChatPage(): React.ReactElement {
     [conversationId, newChat, mutate],
   )
 
+  // Not an overlay-dismissing pick: the viewer stays in the list.
+  const rename = useCallback(
+    async (id: string, title: string) => {
+      const res = await fetch(
+        `/api/agent/conversations/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        },
+      )
+      if (!res.ok) throw new Error(`Rename failed: ${res.status}`)
+      await mutate()
+    },
+    [mutate],
+  )
+
   return (
     <>
       <Head>
@@ -126,6 +143,7 @@ function ChatPage(): React.ReactElement {
               isLoading={listLoading}
               onSelect={select}
               onDelete={(id) => void remove(id)}
+              onRename={rename}
               onNewChat={startNewChat}
               onCollapse={() => toggleSidebar(true)}
               className={`${

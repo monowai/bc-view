@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { ConversationSummary } from "types/agent"
 import { formatRelativeTime } from "./relativeTime"
 
@@ -8,15 +8,86 @@ interface ConversationListProps {
   isLoading?: boolean
   onSelect: (id: string) => void
   onDelete: (id: string) => void
+  /** Saves a new title; resolves once the list shows it, rejects on failure. */
+  onRename: (id: string, title: string) => Promise<void>
   onNewChat: () => void
   /** When given, a toggle in the header hides the sidebar. */
   onCollapse?: () => void
   className?: string
 }
 
+/** svc-agent clips titles to this length; stop the input there too. */
+export const TITLE_MAX_LENGTH = 60
+
+function without(
+  titles: Record<string, string>,
+  id: string,
+): Record<string, string> {
+  const rest = { ...titles }
+  delete rest[id]
+  return rest
+}
+
+interface TitleInputProps {
+  title: string
+  onSave: (title: string) => void
+  onCancel: () => void
+}
+
+/**
+ * Inline title editor. Enter or leaving the field saves, Escape cancels; a
+ * blank or unchanged title cancels too. Settles once — the blur that follows
+ * Enter or Escape unmounting the field is ignored.
+ */
+function TitleInput({
+  title,
+  onSave,
+  onCancel,
+}: TitleInputProps): React.ReactElement {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const settled = useRef(false)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  const finish = (save: boolean): void => {
+    if (settled.current) return
+    settled.current = true
+    const next = inputRef.current?.value.trim() ?? ""
+    if (save && next && next !== title) onSave(next)
+    else onCancel()
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      defaultValue={title}
+      maxLength={TITLE_MAX_LENGTH}
+      aria-label="Conversation title"
+      enterKeyHint="done"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          finish(true)
+        } else if (e.key === "Escape") {
+          e.preventDefault()
+          e.stopPropagation()
+          finish(false)
+        }
+      }}
+      onBlur={() => finish(true)}
+      className="flex-1 min-w-0 m-1 px-2 py-1.5 text-sm text-gray-900 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  )
+}
+
 /**
  * Sidebar of past AI conversations for the /chat page. Deleting asks for an
- * inline confirmation on the row itself — no browser dialogs.
+ * inline confirmation on the row itself, and renaming edits the title in
+ * place — no browser dialogs. One row is in an inline mode at a time.
  */
 export default function ConversationList({
   conversations,
@@ -24,11 +95,40 @@ export default function ConversationList({
   isLoading = false,
   onSelect,
   onDelete,
+  onRename,
   onNewChat,
   onCollapse,
   className = "",
 }: ConversationListProps): React.ReactElement {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  // Titles shown while a rename is in flight, by conversation id.
+  const [savingTitles, setSavingTitles] = useState<Record<string, string>>({})
+  const [failedId, setFailedId] = useState<string | null>(null)
+
+  const startRename = (id: string): void => {
+    setConfirmingId(null)
+    setFailedId(null)
+    setEditingId(id)
+  }
+
+  const startDelete = (id: string): void => {
+    setEditingId(null)
+    setFailedId(null)
+    setConfirmingId(id)
+  }
+
+  // Only clear the edit this row owns — a late blur must not end another's.
+  const stopEditing = (id: string): void =>
+    setEditingId((current) => (current === id ? null : current))
+
+  const save = (id: string, title: string): void => {
+    stopEditing(id)
+    setSavingTitles((titles) => ({ ...titles, [id]: title }))
+    onRename(id, title)
+      .catch(() => setFailedId(id))
+      .finally(() => setSavingTitles((titles) => without(titles, id)))
+  }
 
   return (
     <nav
@@ -68,6 +168,7 @@ export default function ConversationList({
         )}
         {conversations.map((c) => {
           const active = c.id === activeId
+          const title = savingTitles[c.id] ?? c.title
           if (confirmingId === c.id) {
             return (
               <li
@@ -99,39 +200,72 @@ export default function ConversationList({
               </li>
             )
           }
+          if (editingId === c.id) {
+            return (
+              <li
+                key={c.id}
+                className={`flex items-center rounded-md ${
+                  active ? "bg-blue-50" : "bg-gray-50"
+                }`}
+              >
+                <TitleInput
+                  title={c.title}
+                  onSave={(next) => save(c.id, next)}
+                  onCancel={() => stopEditing(c.id)}
+                />
+              </li>
+            )
+          }
           return (
             <li
               key={c.id}
-              className={`group flex items-center rounded-md transition-colors ${
+              className={`group rounded-md transition-colors ${
                 active ? "bg-blue-50" : "hover:bg-gray-50"
               }`}
             >
-              <button
-                type="button"
-                onClick={() => onSelect(c.id)}
-                aria-current={active ? "true" : undefined}
-                className="flex-1 min-w-0 text-left px-2 py-2"
-              >
-                <span
-                  className={`block text-sm truncate ${
-                    active ? "font-semibold text-blue-700" : "text-gray-700"
-                  }`}
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => onSelect(c.id)}
+                  onDoubleClick={() => startRename(c.id)}
+                  aria-current={active ? "true" : undefined}
+                  className="flex-1 min-w-0 text-left px-2 py-2"
                 >
-                  {c.title}
-                </span>
-                <span className="block text-xs text-gray-400">
-                  {formatRelativeTime(c.updatedAt)}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingId(c.id)}
-                aria-label={`Delete "${c.title}"`}
-                title="Delete conversation"
-                className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-600 transition-colors"
-              >
-                <i className="fas fa-trash-alt"></i>
-              </button>
+                  <span
+                    className={`block text-sm truncate ${
+                      active ? "font-semibold text-blue-700" : "text-gray-700"
+                    }`}
+                  >
+                    {title}
+                  </span>
+                  <span className="block text-xs text-gray-400">
+                    {formatRelativeTime(c.updatedAt)}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startRename(c.id)}
+                  aria-label={`Rename "${title}"`}
+                  title="Rename conversation"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-blue-600 transition-colors"
+                >
+                  <i className="fas fa-pen"></i>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startDelete(c.id)}
+                  aria-label={`Delete "${title}"`}
+                  title="Delete conversation"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-600 transition-colors"
+                >
+                  <i className="fas fa-trash-alt"></i>
+                </button>
+              </div>
+              {failedId === c.id && (
+                <p role="alert" className="px-2 pb-2 text-xs text-red-600">
+                  Couldn’t rename — try again.
+                </p>
+              )}
             </li>
           )
         })}
