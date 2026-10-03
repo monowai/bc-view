@@ -6,6 +6,7 @@ import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
 import { requestChatOpen } from "../chatBus"
 import { ChatMessage } from "types/agent"
+import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -243,6 +244,28 @@ describe("ChatFab", () => {
         { role: "user", content: transcript[0].content },
         { role: "assistant", content: "AAPL looks Bullish" },
       ])
+    })
+
+    it("continues a saved analysis as the current conversation instead of replaying it", async () => {
+      renderFab()
+      act(() =>
+        requestChatOpen({
+          transcript,
+          context: analysisContext,
+          conversationId: "c-analysis",
+        }),
+      )
+
+      const body = (await ask("How exposed is it to China?")) as QueryBody & {
+        conversationId?: string
+      }
+
+      expect(body.conversationId).toBe("c-analysis")
+      expect(body.history).toBeUndefined()
+      expect(window.localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe(
+        "c-analysis",
+      )
+      window.localStorage.removeItem(CONVERSATION_STORAGE_KEY)
     })
 
     it("returns to the page's own context once a new chat is started", async () => {

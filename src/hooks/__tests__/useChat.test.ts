@@ -572,6 +572,7 @@ describe("useChat with persisted conversations", () => {
         timestamp: "2026-10-01T00:00:00Z",
         error: null,
         deepThink: true,
+        label: null,
       },
       {
         id: "t2",
@@ -580,6 +581,7 @@ describe("useChat with persisted conversations", () => {
         timestamp: "2026-10-01T00:00:05Z",
         error: "provider-rate",
         deepThink: false,
+        label: null,
       },
     ],
   }
@@ -827,6 +829,162 @@ describe("useChat with persisted conversations", () => {
       { role: "user", content: "Asset Review for AAPL" },
       { role: "assistant", content: "## AAPL" },
     ])
+  })
+
+  it("sends the label with a persisted send so the stored turn reads as it did on screen", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.sendMessage(
+        "Summarise news and sentiment for NATO.",
+        false,
+        false,
+        "News & Sentiment — NATO",
+      )
+    })
+    await act(async () => {
+      await result.current.sendMessage("and the risks?")
+    })
+
+    const bodies = streamBodies()
+    expect(bodies[0]).toMatchObject({
+      query: "Summarise news and sentiment for NATO.",
+      label: "News & Sentiment — NATO",
+      conversationId: "c-new",
+    })
+    expect(bodies[1].label).toBeUndefined()
+  })
+
+  it("shows a reloaded analysis turn by its label, not the canned prompt", async () => {
+    const labelled: ConversationDetail = {
+      ...detail,
+      messages: [
+        {
+          ...detail.messages[0],
+          content: "Summarise news and sentiment for NATO.",
+          label: "News & Sentiment — NATO",
+        },
+        { ...detail.messages[1], content: "Calm.", error: null },
+      ],
+    }
+    route({ [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: labelled }) })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    await act(async () => {
+      await result.current.loadConversation("c-1")
+    })
+
+    expect(result.current.messages[0]).toMatchObject({
+      content: "Summarise news and sentiment for NATO.",
+      label: "News & Sentiment — NATO",
+    })
+    expect(result.current.messages[1].label).toBeUndefined()
+  })
+
+  it("persists without touching the remembered conversation when remember is off", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-current")
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-popup" } }),
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() =>
+      useChat(undefined, { persist: true, remember: false }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    // No resume of the shared chat's conversation on mount.
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => url === `${CONVERSATIONS}/c-current`,
+      ),
+    ).toHaveLength(0)
+    expect(streamBodies()[0].conversationId).toBe("c-popup")
+    expect(result.current.conversationId).toBe("c-popup")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-current")
+  })
+
+  it("continues from an initial conversation id instead of starting a new one", async () => {
+    route({
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() =>
+      useChat(undefined, {
+        persist: true,
+        remember: false,
+        initialConversationId: "c-7",
+        initialMessages: [
+          {
+            id: "u1",
+            role: "user",
+            content: "Asset Review prompt",
+            label: "Asset Review — AAPL",
+            timestamp: "2026-10-02T00:00:00Z",
+          },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "## AAPL",
+            timestamp: "2026-10-02T00:00:01Z",
+          },
+        ],
+      }),
+    )
+    expect(result.current.conversationId).toBe("c-7")
+
+    await act(async () => {
+      await result.current.sendMessage("China exposure?")
+    })
+
+    const body = streamBodies()[0]
+    expect(body.conversationId).toBe("c-7")
+    expect(body.history).toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("adopts a handed-over transcript's conversation and remembers it as current", async () => {
+    route({
+      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    act(() =>
+      result.current.loadTranscript(
+        [
+          {
+            id: "u1",
+            role: "user",
+            content: "Asset Review prompt",
+            label: "Asset Review — AAPL",
+            timestamp: "2026-10-02T00:00:00Z",
+          },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "## AAPL",
+            timestamp: "2026-10-02T00:00:01Z",
+          },
+        ],
+        "c-9",
+      ),
+    )
+    expect(result.current.conversationId).toBe("c-9")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-9")
+
+    await act(async () => {
+      await result.current.sendMessage("China exposure?")
+    })
+
+    const body = streamBodies()[0]
+    expect(body.conversationId).toBe("c-9")
+    expect(body.history).toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
   it("never touches conversations when not persisting", async () => {

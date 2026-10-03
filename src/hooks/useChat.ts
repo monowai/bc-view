@@ -50,6 +50,7 @@ export function turnToMessage(turn: ConversationTurn): ChatMessage {
     timestamp: turn.timestamp,
     deepThink: turn.deepThink || undefined,
     error: turn.error,
+    label: turn.label ?? undefined,
   }
 }
 
@@ -89,10 +90,17 @@ interface UseChatOptions {
   /**
    * Record the chat server-side as a svc-agent conversation. The first send
    * of a fresh chat creates one; later sends continue it by id instead of
-   * replaying `history`. The id survives a reload via localStorage. Off by
-   * default — Quick Analysis threads and other one-off chats stay stateless.
+   * replaying `history`. Off by default — one-off chats stay stateless.
    */
   persist?: boolean
+  /**
+   * With `persist`, keep the conversation id as the app's current chat in
+   * localStorage and resume it on mount (default `true`, the shared chat).
+   * `false` saves the chat without touching that — a Quick Analysis popup.
+   */
+  remember?: boolean
+  /** Persisted conversation the `initialMessages` belong to, continued by id. */
+  initialConversationId?: string
 }
 
 export interface UseChatReturn {
@@ -119,10 +127,11 @@ export interface UseChatReturn {
   /** Starts over: clears the transcript and forgets the conversation. */
   newChat: () => void
   /**
-   * Replaces the transcript, e.g. with a thread handed over to the FAB. The
-   * thread is not a stored conversation, so it continues statelessly.
+   * Replaces the transcript, e.g. with a thread handed over to the FAB. With
+   * `conversationId` (a saved Quick Analysis) the chat adopts that stored
+   * conversation as its current one; without, it continues statelessly.
    */
-  loadTranscript: (messages: ChatMessage[]) => void
+  loadTranscript: (messages: ChatMessage[], conversationId?: string) => void
   /** Persisted conversation being continued; null for a fresh/stateless chat. */
   conversationId: string | null
   /**
@@ -154,10 +163,13 @@ export function useChat(
   )
   const [isLoading, setIsLoading] = useState(false)
   const persist = options.persist ?? false
-  const [conversationId, setConversationIdState] = useState<string | null>(null)
+  const remember = persist && (options.remember ?? true)
+  const [conversationId, setConversationIdState] = useState<string | null>(
+    () => (persist ? (options.initialConversationId ?? null) : null),
+  )
   // Source of truth for sends — sendMessage is memoized and must see the id
   // a previous send just created without waiting for a re-render.
-  const conversationIdRef = useRef<string | null>(null)
+  const conversationIdRef = useRef<string | null>(conversationId)
   // Bumped whenever the transcript is replaced, so a slow conversation load
   // can't overwrite a newer choice (New chat, another conversation).
   const loadSeqRef = useRef(0)
@@ -182,9 +194,9 @@ export function useChat(
     (id: string | null) => {
       conversationIdRef.current = id
       setConversationIdState(id)
-      if (persist) storeConversationId(id)
+      if (remember) storeConversationId(id)
     },
-    [persist],
+    [remember],
   )
 
   const sendMessage = useCallback(
@@ -276,6 +288,8 @@ export function useChat(
             history:
               activeId === null && history.length > 0 ? history : undefined,
             conversationId: activeId ?? undefined,
+            // Only a stored turn has anywhere to keep its label.
+            label: activeId !== null ? label : undefined,
           }),
           signal: controller.signal,
         })
@@ -399,14 +413,15 @@ export function useChat(
   }, [setConversation])
 
   const loadTranscript = useCallback(
-    (transcript: ChatMessage[]) => {
+    (transcript: ChatMessage[], id?: string) => {
       loadSeqRef.current++
-      // A handed-over thread stays stateless, whatever came before it.
+      // A saved thread is continued by id; an unsaved one stays stateless,
+      // whatever came before it.
       conversationLostRef.current = false
-      setConversation(null)
+      setConversation(persist ? (id ?? null) : null)
       setMessages(transcript)
     },
-    [setConversation],
+    [persist, setConversation],
   )
 
   const loadConversation = useCallback(
@@ -443,11 +458,11 @@ export function useChat(
   // post-mount hydration pattern as ChatFab's corner; state only changes after
   // the fetch resolves, the compiler just can't see past the await.
   useEffect(() => {
-    if (!persist) return
+    if (!remember) return
     const stored = readStoredConversationId()
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) void loadConversation(stored)
-  }, [persist, loadConversation])
+  }, [remember, loadConversation])
 
   return {
     messages,

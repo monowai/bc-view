@@ -46,7 +46,8 @@ export default function AnalysisDialog({
   loadingLabel,
   onClose,
 }: AnalysisDialogProps): React.ReactElement {
-  const { messages, isLoading, sendMessage, cancel } = useAnalysisChat(request)
+  const { messages, isLoading, sendMessage, cancel, conversationId } =
+    useAnalysisChat(request)
   const { ai: canChat } = usePermissions()
   const [question, setQuestion] = useState("")
   const threadEndRef = useRef<HTMLDivElement>(null)
@@ -106,7 +107,11 @@ export default function AnalysisDialog({
   }
 
   const openInChat = (): void => {
-    requestChatOpen({ transcript: messages, context: request.context })
+    requestChatOpen({
+      transcript: messages,
+      context: request.context,
+      conversationId: conversationId ?? undefined,
+    })
     close()
   }
 

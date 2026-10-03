@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import AssetInsightPopup from "../AssetInsightPopup"
 import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
-import { sseAnswer, sseResponse } from "@test-fixtures/sse"
+import { sseAnswer, sseResponse, withUnsavedAnalyses } from "@test-fixtures/sse"
 import { AssetWeightWithDetails } from "types/rebalance"
 
 void React
@@ -13,7 +13,7 @@ void React
 // cached) lives in features/chat/__tests__/AnalysisDialog.test.tsx.
 
 const mockFetch = jest.fn()
-global.fetch = mockFetch
+global.fetch = withUnsavedAnalyses(mockFetch)
 
 function bodyOf(call: number): Record<string, unknown> & {
   query: string
