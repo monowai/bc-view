@@ -2,14 +2,14 @@ import React from "react"
 import { render, screen } from "@testing-library/react"
 import NewsSentimentPopup from "../NewsSentimentPopup"
 import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
-import { sseAnswer, sseResponse } from "@test-fixtures/sse"
+import { sseAnswer, sseResponse, withUnsavedAnalyses } from "@test-fixtures/sse"
 
 // react-markdown / remark-gfm are mocked globally in jest.setup.js.
 // Shared Quick Analysis behaviour (follow-ups, Open in chat, failed runs not
 // cached) lives in features/chat/__tests__/AnalysisDialog.test.tsx.
 
 const mockFetch = jest.fn()
-global.fetch = mockFetch
+global.fetch = withUnsavedAnalyses(mockFetch)
 
 function bodyOf(call: number): Record<string, unknown> & {
   query: string

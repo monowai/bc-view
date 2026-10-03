@@ -20,6 +20,11 @@ export interface AgentQuery {
    * `history`, replays its stored turns and records this exchange.
    */
   conversationId?: string
+  /**
+   * Display label for the user turn (see `ChatMessage.label`). Stored with
+   * the turn when `conversationId` is set, and titles a new conversation.
+   */
+  label?: string
 }
 
 /** A persisted svc-agent chat conversation, as listed. Timestamps are ISO-8601. */
@@ -41,6 +46,11 @@ export interface ConversationTurn {
   timestamp: string
   error: string | null
   deepThink: boolean
+  /**
+   * Display label of a user turn sent with one (a Quick Analysis), shown in
+   * place of `content` — the canned prompt the model was asked.
+   */
+  label: string | null
 }
 
 export interface ConversationDetail extends ConversationSummary {

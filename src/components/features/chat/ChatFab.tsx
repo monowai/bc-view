@@ -120,16 +120,18 @@ export default function ChatFab(): React.ReactElement {
 
   useEffect(
     () =>
-      onChatOpen(({ prompt, expanded, transcript, context: handed }) => {
-        setIsOpen(true)
-        if (expanded) setIsExpanded(true)
-        if (transcript) {
-          loadTranscript(transcript)
-          setThreadContext(handed ?? null)
-        } else if (prompt) {
-          void send(prompt)
-        }
-      }),
+      onChatOpen(
+        ({ prompt, expanded, transcript, context: handed, conversationId }) => {
+          setIsOpen(true)
+          if (expanded) setIsExpanded(true)
+          if (transcript) {
+            loadTranscript(transcript, conversationId)
+            setThreadContext(handed ?? null)
+          } else if (prompt) {
+            void send(prompt)
+          }
+        },
+      ),
     [send, loadTranscript],
   )
 

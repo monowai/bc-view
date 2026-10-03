@@ -56,6 +56,7 @@ const detail: ConversationDetail = {
       timestamp: minutesAgo(6),
       error: null,
       deepThink: false,
+      label: null,
     },
     {
       id: "t2",
@@ -64,6 +65,7 @@ const detail: ConversationDetail = {
       timestamp: minutesAgo(5),
       error: null,
       deepThink: false,
+      label: null,
     },
   ],
 }

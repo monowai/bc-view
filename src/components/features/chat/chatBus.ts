@@ -20,18 +20,23 @@ interface ChatOpenPrompt extends ChatOpenBase {
   prompt?: string
   transcript?: never
   context?: never
+  conversationId?: never
 }
 
 /**
  * Continue an existing thread (a Quick Analysis popup handing over to the
  * FAB). Replaces the FAB's conversation; `context` is the agent context the
  * thread was started with, used instead of the route's context until the
- * conversation is cleared. Never combined with `prompt`: a prompt sent in
- * the same tick would read the pre-handover history and context.
+ * conversation is cleared. `conversationId` is the chat-history
+ * conversation the thread is saved as; the FAB continues it as its current
+ * chat, and without one the thread continues unsaved. Never combined with
+ * `prompt`: a prompt sent in the same tick would read the pre-handover
+ * history and context.
  */
 interface ChatOpenThread extends ChatOpenBase {
   transcript: ChatMessage[]
   context?: Record<string, unknown>
+  conversationId?: string
   prompt?: never
 }
 

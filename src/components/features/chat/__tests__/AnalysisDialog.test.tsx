@@ -6,6 +6,7 @@ import { AnalysisRequest, clearAnalysisCache } from "../useAnalysisChat"
 import { onChatOpen, ChatOpenDetail } from "../chatBus"
 import { usePermissions } from "@hooks/usePermissions"
 import { sseAnswer } from "@test-fixtures/sse"
+import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
 
 // react-markdown / remark-gfm are mocked globally in jest.setup.js
 
@@ -31,8 +32,36 @@ function renderDialog(onClose = jest.fn()): ReturnType<typeof render> {
   )
 }
 
+const CONVERSATIONS = "/api/agent/conversations"
+const STREAM = "/api/agent/query/stream"
+
+/** Answers handed to successive stream requests, in order. */
+let answers: unknown[] = []
+/** Reply to "create a conversation" — saved as `c-a` unless a test says not. */
+let created: () => unknown = () => ({
+  ok: true,
+  status: 201,
+  json: () => Promise.resolve({ data: { id: "c-a" } }),
+})
+
+function answer(...replies: unknown[]): void {
+  answers.push(...replies)
+}
+
+function streamCalls(): unknown[][] {
+  return mockFetch.mock.calls.filter(([url]) => url === STREAM)
+}
+
+function createCalls(): unknown[][] {
+  return mockFetch.mock.calls.filter(
+    ([url, init]) => url === CONVERSATIONS && init?.method === "POST",
+  )
+}
+
+/** Body of the nth stream request. */
 function bodyOf(call: number): Record<string, unknown> {
-  return JSON.parse(mockFetch.mock.calls[call][1].body as string)
+  const init = streamCalls()[call][1] as RequestInit
+  return JSON.parse(init.body as string)
 }
 
 describe("AnalysisDialog", () => {
@@ -45,10 +74,24 @@ describe("AnalysisDialog", () => {
   beforeEach(() => {
     mockFetch.mockReset()
     clearAnalysisCache()
+    localStorage.clear()
+    answers = []
+    created = () => ({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve({ data: { id: "c-a" } }),
+    })
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === CONVERSATIONS && init?.method === "POST") {
+        return Promise.resolve(created())
+      }
+      if (url === STREAM) return Promise.resolve(answers.shift())
+      throw new Error(`unexpected fetch ${init?.method ?? "GET"} ${url}`)
+    })
   })
 
   it("streams the analysis on open with the analysis context, never showing the canned prompt", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("AAPL looks Bullish"))
     renderDialog()
 
     expect(await screen.findByText("AAPL looks Bullish")).toBeInTheDocument()
@@ -62,7 +105,7 @@ describe("AnalysisDialog", () => {
   })
 
   it("restores the cached thread on reopen without calling the agent again", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("AAPL looks Bullish"))
     const first = renderDialog()
     await screen.findByText("AAPL looks Bullish")
     first.unmount()
@@ -70,26 +113,26 @@ describe("AnalysisDialog", () => {
     renderDialog()
 
     expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
-    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(streamCalls()).toHaveLength(1)
   })
 
   it("shows the provider copy for a failed analysis and does not cache it", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 402, body: null })
+    answer({ ok: false, status: 402, body: null })
     const first = renderDialog()
 
     expect(await screen.findByText(/credit/i)).toBeInTheDocument()
     expect(screen.queryByPlaceholderText(/follow-up/i)).not.toBeInTheDocument()
     first.unmount()
 
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("AAPL looks Bullish"))
     renderDialog()
     expect(await screen.findByText("AAPL looks Bullish")).toBeInTheDocument()
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(streamCalls()).toHaveLength(2)
   })
 
-  it("answers a follow-up under the report, replaying the analysis as history", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
-    mockFetch.mockResolvedValueOnce(sseAnswer("About 20% of revenue."))
+  it("answers a follow-up under the report, continuing the saved conversation", async () => {
+    answer(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("About 20% of revenue."))
     const user = userEvent.setup()
     renderDialog()
     await screen.findByText("AAPL looks Bullish")
@@ -105,16 +148,78 @@ describe("AnalysisDialog", () => {
     expect(bodyOf(1)).toMatchObject({
       query: "How exposed is it to China?",
       context: request.context,
+      conversationId: "c-a",
+    })
+    expect(bodyOf(1).history).toBeUndefined()
+  })
+
+  it("saves the analysis to chat history under its label, leaving the current chat alone", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-current")
+    answer(sseAnswer("AAPL looks Bullish"))
+    renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+
+    expect(createCalls()).toHaveLength(1)
+    expect(bodyOf(0)).toMatchObject({
+      query: request.query,
+      label: request.label,
+      conversationId: "c-a",
+    })
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-current")
+  })
+
+  it("keeps appending to the saved conversation when a cached thread is reopened", async () => {
+    answer(sseAnswer("AAPL looks Bullish"), sseAnswer("About 20% of revenue."))
+    const user = userEvent.setup()
+    const first = renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+    first.unmount()
+
+    renderDialog()
+    await user.type(
+      screen.getByPlaceholderText(/follow-up/i),
+      "How exposed is it to China?{Enter}",
+    )
+    await screen.findByText("About 20% of revenue.")
+
+    expect(createCalls()).toHaveLength(1)
+    expect(bodyOf(1)).toMatchObject({
+      query: "How exposed is it to China?",
+      conversationId: "c-a",
+    })
+    expect(bodyOf(1).history).toBeUndefined()
+  })
+
+  it("still runs the analysis, statelessly, when it can't be saved", async () => {
+    created = () => ({
+      ok: false,
+      status: 503,
+      json: () => Promise.resolve({}),
+    })
+    answer(sseAnswer("AAPL looks Bullish"), sseAnswer("About 20% of revenue."))
+    const user = userEvent.setup()
+    renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+
+    await user.type(
+      screen.getByPlaceholderText(/follow-up/i),
+      "How exposed is it to China?{Enter}",
+    )
+    await screen.findByText("About 20% of revenue.")
+
+    expect(bodyOf(0).conversationId).toBeUndefined()
+    expect(bodyOf(1)).toMatchObject({
       history: [
         { role: "user", content: request.query },
         { role: "assistant", content: "AAPL looks Bullish" },
       ],
     })
+    expect(bodyOf(1).conversationId).toBeUndefined()
   })
 
   it("keeps follow-ups in the cached thread", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
-    mockFetch.mockResolvedValueOnce(sseAnswer("About 20% of revenue."))
+    answer(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("About 20% of revenue."))
     const user = userEvent.setup()
     const first = renderDialog()
     await screen.findByText("AAPL looks Bullish")
@@ -128,11 +233,11 @@ describe("AnalysisDialog", () => {
     renderDialog()
 
     expect(screen.getByText("About 20% of revenue.")).toBeInTheDocument()
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(streamCalls()).toHaveLength(2)
   })
 
-  it("hands the thread and its context to the chat FAB, then closes", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
+  it("hands the thread, its context and its saved conversation to the chat FAB, then closes", async () => {
+    answer(sseAnswer("AAPL looks Bullish"))
     const opened: ChatOpenDetail[] = []
     const unsubscribe = onChatOpen((d) => opened.push(d))
     const onClose = jest.fn()
@@ -145,6 +250,7 @@ describe("AnalysisDialog", () => {
 
     expect(opened).toHaveLength(1)
     expect(opened[0].context).toEqual(request.context)
+    expect(opened[0].conversationId).toBe("c-a")
     expect(opened[0].transcript?.map((m) => m.content)).toEqual([
       request.query,
       "AAPL looks Bullish",
@@ -162,7 +268,7 @@ describe("AnalysisDialog", () => {
       isLoading: false,
     }))
     afterThis = () => permissions.mockImplementation(permissive)
-    mockFetch.mockResolvedValueOnce(sseAnswer("AAPL looks Bullish"))
+    answer(sseAnswer("AAPL looks Bullish"))
     renderDialog()
     await screen.findByText("AAPL looks Bullish")
 
