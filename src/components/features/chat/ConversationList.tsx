@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { ConversationSummary } from "types/agent"
 import { formatRelativeTime } from "./relativeTime"
 
@@ -8,15 +8,92 @@ interface ConversationListProps {
   isLoading?: boolean
   onSelect: (id: string) => void
   onDelete: (id: string) => void
+  /** Saves a new title; resolves once the list shows it, rejects on failure. */
+  onRename: (id: string, title: string) => Promise<void>
   onNewChat: () => void
   /** When given, a toggle in the header hides the sidebar. */
   onCollapse?: () => void
   className?: string
 }
 
+/** svc-agent clips titles to this length; stop the input there too. */
+export const TITLE_MAX_LENGTH = 60
+
+function without(
+  titles: Record<string, string>,
+  id: string,
+): Record<string, string> {
+  const rest = { ...titles }
+  delete rest[id]
+  return rest
+}
+
+interface TitleInputProps {
+  title: string
+  /** What the field starts with, when not the title — a failed attempt. */
+  draft?: string
+  onSave: (title: string) => void
+  onCancel: () => void
+}
+
+/**
+ * Inline title editor. Enter or leaving the field saves, Escape cancels; a
+ * blank or unchanged title cancels too. Settles once — the blur that follows
+ * Enter or Escape unmounting the field is ignored.
+ */
+function TitleInput({
+  title,
+  draft,
+  onSave,
+  onCancel,
+}: TitleInputProps): React.ReactElement {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const settled = useRef(false)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  const finish = (save: boolean): void => {
+    if (settled.current) return
+    settled.current = true
+    const next = inputRef.current?.value.trim() ?? ""
+    if (save && next && next !== title) onSave(next)
+    else onCancel()
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      defaultValue={draft ?? title}
+      maxLength={TITLE_MAX_LENGTH}
+      aria-label="Conversation title"
+      enterKeyHint="done"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          finish(true)
+        } else if (e.key === "Escape") {
+          e.preventDefault()
+          e.stopPropagation()
+          finish(false)
+        }
+      }}
+      onBlur={() => finish(true)}
+      className="flex-1 min-w-0 m-1 px-2 py-1.5 text-sm text-gray-900 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  )
+}
+
+type InlineMode =
+  { kind: "confirm"; id: string } | { kind: "edit"; id: string; draft?: string }
+
 /**
  * Sidebar of past AI conversations for the /chat page. Deleting asks for an
- * inline confirmation on the row itself — no browser dialogs.
+ * inline confirmation on the row itself, and renaming edits the title in
+ * place — no browser dialogs. One row is in an inline mode at a time.
  */
 export default function ConversationList({
   conversations,
@@ -24,11 +101,61 @@ export default function ConversationList({
   isLoading = false,
   onSelect,
   onDelete,
+  onRename,
   onNewChat,
   onCollapse,
   className = "",
 }: ConversationListProps): React.ReactElement {
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  // One row is in an inline mode at a time: confirming a delete, or editing
+  // its title — reopened with a failed attempt's text as `draft`.
+  const [inline, setInline] = useState<InlineMode | null>(null)
+  // Titles shown while a rename is in flight, by conversation id.
+  const [savingTitles, setSavingTitles] = useState<Record<string, string>>({})
+  const [failedId, setFailedId] = useState<string | null>(null)
+  const confirmingId = inline?.kind === "confirm" ? inline.id : null
+  const editing = inline?.kind === "edit" ? inline : null
+
+  const startRename = (id: string): void => {
+    setFailedId(null)
+    setInline({ kind: "edit", id })
+  }
+
+  const startDelete = (id: string): void => {
+    setFailedId(null)
+    setInline({ kind: "confirm", id })
+  }
+
+  // Only clear the edit this row owns — a late blur must not end another's.
+  const stopEditing = (id: string): void =>
+    setInline((current) =>
+      current?.kind === "edit" && current.id === id ? null : current,
+    )
+
+  const select = (id: string): void => {
+    setFailedId(null)
+    onSelect(id)
+  }
+
+  // A failed save reopens the editor with what was typed, so the viewer can
+  // retry without retyping — unless they have moved on to another row.
+  const save = (id: string, title: string): void => {
+    stopEditing(id)
+    setFailedId(null)
+    setSavingTitles((titles) => ({ ...titles, [id]: title }))
+    onRename(id, title)
+      .catch(() => {
+        setFailedId(id)
+        setInline((current) => current ?? { kind: "edit", id, draft: title })
+      })
+      .finally(() => setSavingTitles((titles) => without(titles, id)))
+  }
+
+  const renameError = (id: string): React.ReactElement | null =>
+    failedId === id ? (
+      <p role="alert" className="px-2 pb-2 text-xs text-red-600">
+        Couldn’t rename — try again.
+      </p>
+    ) : null
 
   return (
     <nav
@@ -68,6 +195,7 @@ export default function ConversationList({
         )}
         {conversations.map((c) => {
           const active = c.id === activeId
+          const title = savingTitles[c.id] ?? c.title
           if (confirmingId === c.id) {
             return (
               <li
@@ -81,7 +209,7 @@ export default function ConversationList({
                   <button
                     type="button"
                     onClick={() => {
-                      setConfirmingId(null)
+                      setInline(null)
                       onDelete(c.id)
                     }}
                     className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
@@ -90,7 +218,7 @@ export default function ConversationList({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmingId(null)}
+                    onClick={() => setInline(null)}
                     className="px-2 py-1 text-xs text-gray-600 rounded hover:bg-gray-100 transition-colors"
                   >
                     Keep
@@ -99,39 +227,70 @@ export default function ConversationList({
               </li>
             )
           }
+          if (editing?.id === c.id) {
+            return (
+              <li
+                key={c.id}
+                className={`rounded-md ${active ? "bg-blue-50" : "bg-gray-50"}`}
+              >
+                <div className="flex items-center">
+                  <TitleInput
+                    title={c.title}
+                    draft={editing.draft}
+                    onSave={(next) => save(c.id, next)}
+                    onCancel={() => stopEditing(c.id)}
+                  />
+                </div>
+                {renameError(c.id)}
+              </li>
+            )
+          }
           return (
             <li
               key={c.id}
-              className={`group flex items-center rounded-md transition-colors ${
+              className={`group rounded-md transition-colors ${
                 active ? "bg-blue-50" : "hover:bg-gray-50"
               }`}
             >
-              <button
-                type="button"
-                onClick={() => onSelect(c.id)}
-                aria-current={active ? "true" : undefined}
-                className="flex-1 min-w-0 text-left px-2 py-2"
-              >
-                <span
-                  className={`block text-sm truncate ${
-                    active ? "font-semibold text-blue-700" : "text-gray-700"
-                  }`}
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => select(c.id)}
+                  onDoubleClick={() => startRename(c.id)}
+                  aria-current={active ? "true" : undefined}
+                  className="flex-1 min-w-0 text-left px-2 py-2"
                 >
-                  {c.title}
-                </span>
-                <span className="block text-xs text-gray-400">
-                  {formatRelativeTime(c.updatedAt)}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingId(c.id)}
-                aria-label={`Delete "${c.title}"`}
-                title="Delete conversation"
-                className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-600 transition-colors"
-              >
-                <i className="fas fa-trash-alt"></i>
-              </button>
+                  <span
+                    className={`block text-sm truncate ${
+                      active ? "font-semibold text-blue-700" : "text-gray-700"
+                    }`}
+                  >
+                    {title}
+                  </span>
+                  <span className="block text-xs text-gray-400">
+                    {formatRelativeTime(c.updatedAt)}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startRename(c.id)}
+                  aria-label={`Rename "${title}"`}
+                  title="Rename conversation"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-blue-600 transition-colors"
+                >
+                  <i className="fas fa-pen"></i>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startDelete(c.id)}
+                  aria-label={`Delete "${title}"`}
+                  title="Delete conversation"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-600 transition-colors"
+                >
+                  <i className="fas fa-trash-alt"></i>
+                </button>
+              </div>
+              {renameError(c.id)}
             </li>
           )
         })}

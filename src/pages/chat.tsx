@@ -75,12 +75,14 @@ function ChatPage(): React.ReactElement {
     return () => timers.forEach(clearTimeout)
   }, [isLoading, mutate])
 
+  // Picking the open conversation doesn't reload it: a reload would cancel
+  // an answer in flight, and a double-click (to rename) clicks twice.
   const select = useCallback(
     (id: string) => {
       dismissOverlay()
-      void loadConversation(id)
+      if (id !== conversationId) void loadConversation(id)
     },
-    [dismissOverlay, loadConversation],
+    [conversationId, dismissOverlay, loadConversation],
   )
 
   const startNewChat = useCallback(() => {
@@ -105,6 +107,23 @@ function ChatPage(): React.ReactElement {
     [conversationId, newChat, mutate],
   )
 
+  // Not an overlay-dismissing pick: the viewer stays in the list.
+  const rename = useCallback(
+    async (id: string, title: string) => {
+      const res = await fetch(
+        `/api/agent/conversations/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        },
+      )
+      if (!res.ok) throw new Error(`Rename failed: ${res.status}`)
+      await mutate()
+    },
+    [mutate],
+  )
+
   return (
     <>
       <Head>
@@ -126,6 +145,7 @@ function ChatPage(): React.ReactElement {
               isLoading={listLoading}
               onSelect={select}
               onDelete={(id) => void remove(id)}
+              onRename={rename}
               onNewChat={startNewChat}
               onCollapse={() => toggleSidebar(true)}
               className={`${

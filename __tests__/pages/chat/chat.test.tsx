@@ -94,13 +94,24 @@ function sseResponse(text: string): unknown {
 let mockFetch: jest.Mock
 /** What svc-agent answers when the open conversation (c-1) is deleted. */
 let deleteOpenStatus = 204
+/** Titles svc-agent has accepted through a rename, by conversation id. */
+let renamed: Record<string, string> = {}
+/** Settles the next rename; a test may hold it to look at the saving state. */
+let answerRename: (id: string, title: string) => Promise<unknown>
 
 function routeFetch(): void {
   mockFetch = jest.fn((url: string, init?: RequestInit) => {
     const key = `${init?.method ?? "GET"} ${url}`
     switch (key) {
       case `GET ${LIST}`:
-        return Promise.resolve(json({ data: conversations }))
+        return Promise.resolve(
+          json({
+            data: conversations.map((c) => ({
+              ...c,
+              title: renamed[c.id] ?? c.title,
+            })),
+          }),
+        )
       case "GET /api/agent/conversations/c-1":
         return Promise.resolve(json({ data: detail }))
       case "DELETE /api/agent/conversations/c-2":
@@ -110,6 +121,12 @@ function routeFetch(): void {
           ok: deleteOpenStatus < 400,
           status: deleteOpenStatus,
         })
+      case "PATCH /api/agent/conversations/c-1":
+      case "PATCH /api/agent/conversations/c-2": {
+        const id = url.split("/").pop()!
+        const { title } = JSON.parse(String(init?.body))
+        return answerRename(id, title)
+      }
       case "POST /api/agent/conversations":
         return Promise.resolve(json({ data: { id: "c-new" } }, 201))
       case `POST ${STREAM}`:
@@ -144,6 +161,11 @@ describe("/chat page", () => {
   beforeEach(() => {
     localStorage.clear()
     deleteOpenStatus = 204
+    renamed = {}
+    answerRename = (id, title) => {
+      renamed[id] = title
+      return Promise.resolve(json({ data: { ...detail, id, title } }))
+    }
     routeFetch()
   })
 
@@ -252,6 +274,217 @@ describe("/chat page", () => {
         name: 'Delete "Rebalance ideas"',
       }),
     ).toBeInTheDocument()
+  })
+
+  describe("renaming a conversation", () => {
+    const renameButton = (title: string): HTMLElement =>
+      within(sidebar()).getByRole("button", { name: `Rename "${title}"` })
+    const titleInput = (): HTMLInputElement =>
+      within(sidebar()).getByRole("textbox", {
+        name: /conversation title/i,
+      }) as HTMLInputElement
+    const patchesTo = (id: string): unknown[] =>
+      mockFetch.mock.calls
+        .filter(
+          ([u, init]) =>
+            u === `/api/agent/conversations/${id}` && init?.method === "PATCH",
+        )
+        .map(([, init]) => JSON.parse(String(init.body)))
+
+    async function startRenaming(title = "Rebalance ideas"): Promise<void> {
+      renderPage()
+      await within(sidebar()).findByText(title)
+      fireEvent.click(renameButton(title))
+    }
+
+    it("edits the title inline, pre-filled, focused and selected", async () => {
+      await startRenaming()
+
+      const input = titleInput()
+      expect(input).toHaveValue("Rebalance ideas")
+      expect(input).toHaveFocus()
+      expect(input.selectionStart).toBe(0)
+      expect(input.selectionEnd).toBe("Rebalance ideas".length)
+      expect(input).toHaveAttribute("maxLength", "60")
+    })
+
+    it("saves on Enter, trimmed, then refreshes the list", async () => {
+      await startRenaming()
+      const listCallsBefore = callsTo("GET", LIST)
+
+      fireEvent.change(titleInput(), { target: { value: "  Hedging plan  " } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      await waitFor(() =>
+        expect(patchesTo("c-2")).toEqual([{ title: "Hedging plan" }]),
+      )
+      await waitFor(() =>
+        expect(callsTo("GET", LIST)).toBeGreaterThan(listCallsBefore),
+      )
+      expect(await screen.findByText("Hedging plan")).toBeInTheDocument()
+      expect(renameButton("Hedging plan")).toBeInTheDocument()
+      expect(
+        within(sidebar()).queryByRole("textbox", {
+          name: /conversation title/i,
+        }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("saves when the input loses focus", async () => {
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.blur(titleInput())
+
+      await waitFor(() =>
+        expect(patchesTo("c-2")).toEqual([{ title: "Hedging plan" }]),
+      )
+      expect(await screen.findByText("Hedging plan")).toBeInTheDocument()
+    })
+
+    it("cancels on Escape without saving", async () => {
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Escape" })
+
+      expect(within(sidebar()).getByText("Rebalance ideas")).toBeInTheDocument()
+      expect(screen.queryByText("Hedging plan")).not.toBeInTheDocument()
+      expect(patchesTo("c-2")).toEqual([])
+    })
+
+    it("does not save a blank title", async () => {
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "   " } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      expect(within(sidebar()).getByText("Rebalance ideas")).toBeInTheDocument()
+      expect(patchesTo("c-2")).toEqual([])
+    })
+
+    it("shows the new title while saving and reverts with an inline error on failure", async () => {
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {})
+      let fail: () => void = () => {}
+      answerRename = () =>
+        new Promise((resolve) => {
+          fail = () => resolve(json({ message: "boom" }, 500))
+        })
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      expect(within(sidebar()).getByText("Hedging plan")).toBeInTheDocument()
+      fail()
+
+      expect(await within(sidebar()).findByRole("alert")).toHaveTextContent(
+        /couldn.t rename/i,
+      )
+      expect(screen.queryByText("Hedging plan")).not.toBeInTheDocument()
+      expect(alertSpy).not.toHaveBeenCalled()
+      alertSpy.mockRestore()
+    })
+
+    it("reopens a failed rename with the attempted title, ready to retry", async () => {
+      answerRename = () => Promise.resolve(json({ message: "boom" }, 500))
+      await startRenaming()
+
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      expect(await within(sidebar()).findByRole("alert")).toHaveTextContent(
+        /couldn.t rename/i,
+      )
+      expect(titleInput()).toHaveValue("Hedging plan")
+      expect(titleInput()).toHaveFocus()
+
+      answerRename = (id, title) => {
+        renamed[id] = title
+        return Promise.resolve(json({ data: { ...detail, id, title } }))
+      }
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+
+      await waitFor(() =>
+        expect(patchesTo("c-2")).toEqual([
+          { title: "Hedging plan" },
+          { title: "Hedging plan" },
+        ]),
+      )
+      expect(await screen.findByText("Hedging plan")).toBeInTheDocument()
+      expect(within(sidebar()).queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("clears a rename error once a conversation is selected", async () => {
+      answerRename = () => Promise.resolve(json({ message: "boom" }, 500))
+      await startRenaming()
+      fireEvent.change(titleInput(), { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(titleInput(), { key: "Enter" })
+      await within(sidebar()).findByRole("alert")
+      fireEvent.keyDown(titleInput(), { key: "Escape" })
+      expect(within(sidebar()).getByRole("alert")).toBeInTheDocument()
+
+      fireEvent.click(within(sidebar()).getByText("NZD exposure"))
+
+      expect(within(sidebar()).queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("edits one row at a time", async () => {
+      await startRenaming("NZD exposure")
+
+      fireEvent.click(renameButton("Rebalance ideas"))
+
+      expect(
+        within(sidebar()).getAllByRole("textbox", {
+          name: /conversation title/i,
+        }),
+      ).toHaveLength(1)
+      expect(titleInput()).toHaveValue("Rebalance ideas")
+      expect(within(sidebar()).getByText("NZD exposure")).toBeInTheDocument()
+    })
+
+    it("drops a pending delete confirmation when renaming starts", async () => {
+      renderPage()
+      await within(sidebar()).findByText("Rebalance ideas")
+      fireEvent.click(
+        within(sidebar()).getByRole("button", {
+          name: 'Delete "Rebalance ideas"',
+        }),
+      )
+
+      fireEvent.click(renameButton("NZD exposure"))
+
+      expect(
+        within(sidebar()).queryByRole("button", { name: "Delete" }),
+      ).not.toBeInTheDocument()
+      expect(titleInput()).toHaveValue("NZD exposure")
+    })
+
+    it("enters rename mode on a double-click of the title", async () => {
+      renderPage()
+      const title = await within(sidebar()).findByText("Rebalance ideas")
+
+      fireEvent.doubleClick(title)
+
+      expect(titleInput()).toHaveValue("Rebalance ideas")
+    })
+
+    it("renames the open conversation on a double-click without reloading it", async () => {
+      renderPage()
+      fireEvent.click(await within(sidebar()).findByText("NZD exposure"))
+      await screen.findByText("About 40% of your wealth.")
+      const loadsBefore = callsTo("GET", "/api/agent/conversations/c-1")
+
+      // A browser double-click is click, click, dblclick.
+      const title = within(sidebar()).getByText("NZD exposure")
+      fireEvent.click(title)
+      fireEvent.click(title)
+      fireEvent.doubleClick(title)
+
+      expect(titleInput()).toHaveValue("NZD exposure")
+      expect(callsTo("GET", "/api/agent/conversations/c-1")).toBe(loadsBefore)
+      expect(screen.getByText("About 40% of your wealth.")).toBeInTheDocument()
+    })
   })
 
   it("starts a new chat from the sidebar", async () => {
@@ -434,6 +667,31 @@ describe("/chat page", () => {
       expect(queryNav()).not.toBeInTheDocument()
       // Closing the overlay is not a preference change.
       expect(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)).toBe("false")
+    })
+
+    it("keeps the overlay open while renaming on a narrow screen", async () => {
+      viewport(false)
+      renderPage()
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Show conversations" }),
+      )
+      await within(sidebar()).findByText("Rebalance ideas")
+
+      fireEvent.click(
+        within(sidebar()).getByRole("button", {
+          name: 'Rename "Rebalance ideas"',
+        }),
+      )
+      const input = within(sidebar()).getByRole("textbox", {
+        name: /conversation title/i,
+      })
+      fireEvent.change(input, { target: { value: "Hedging plan" } })
+      fireEvent.keyDown(input, { key: "Enter" })
+
+      expect(
+        await within(sidebar()).findByText("Hedging plan"),
+      ).toBeInTheDocument()
+      expect(sidebar()).toBeInTheDocument()
     })
 
     it("keeps the sidebar open after picking a conversation on a wide screen", async () => {
