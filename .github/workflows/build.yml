@@ -40,6 +40,8 @@ jobs:
   test:
     name: Run Tests
     runs-on: ${{ (vars.CI_RUNNER && !startsWith(github.head_ref || github.ref_name, 'renovate/') && !github.event.pull_request.head.repo.fork) && vars.CI_RUNNER || 'ubuntu-latest' }}
+    # Kauri takes one job at a time: a hung job would hold it for the 6h default.
+    timeout-minutes: 15
     steps:
       # The self-hosted runner keeps its workspace between jobs. A job cancelled
       # mid-fetch leaves a .lock under .git, and every later checkout then fails
@@ -102,6 +104,8 @@ jobs:
   build:
     name: Build Application
     runs-on: ${{ (vars.CI_RUNNER && !startsWith(github.head_ref || github.ref_name, 'renovate/') && !github.event.pull_request.head.repo.fork) && vars.CI_RUNNER || 'ubuntu-latest' }}
+    # Kauri takes one job at a time: a hung job would hold it for the 6h default.
+    timeout-minutes: 15
     steps:
       # The self-hosted runner keeps its workspace between jobs. A job cancelled
       # mid-fetch leaves a .lock under .git, and every later checkout then fails
@@ -244,6 +248,7 @@ jobs:
     # The arm64 image builds on Kauri when CI_RUNNER is set. This job runs
     # only on a push to main or a manual dispatch, so it builds merged code.
     runs-on: ${{ matrix.platform == 'linux/arm64' && vars.CI_RUNNER || matrix.runner }}
+    timeout-minutes: 30
     needs: [test, build]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
