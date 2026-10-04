@@ -27,10 +27,30 @@ env:
   IMAGE_NAME: bc-view
 
 jobs:
+  # CI_RUNNER, a repository variable, moves `test`, `build` and the arm64 image
+  # onto the self-hosted runner with that label (../network/GH_RUNNER.md).
+  # Unset, every job runs on GitHub's runners. A runner that is down leaves
+  # jobs queued, not rerouted: delete the variable to fall back.
+  #
+  # Renovate's branches and PRs from forks stay on GitHub's runners: they run
+  # code nobody here has read, and a hosted runner is thrown away afterwards.
+  # This repository is public, and a fork PR can edit this file, so the guard
+  # below is not the boundary. The boundary is the repository setting that
+  # holds fork PR workflows for approval (Settings → Actions → General).
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.CI_RUNNER && !startsWith(github.head_ref || github.ref_name, 'renovate/') && !github.event.pull_request.head.repo.fork) && vars.CI_RUNNER || 'ubuntu-latest' }}
+    # Kauri takes one job at a time: a hung job would hold it for the 6h default.
+    timeout-minutes: 15
     steps:
+      # The self-hosted runner keeps its workspace between jobs. A job cancelled
+      # mid-fetch leaves a .lock under .git, and every later checkout then fails
+      # with "cannot lock ref". The runner takes one job at a time, so a lock
+      # found before checkout belongs to nobody. GitHub's runners start clean.
+      - name: Clear git locks a cancelled job left
+        if: runner.environment == 'self-hosted'
+        run: find "$GITHUB_WORKSPACE/.git" -name '*.lock' -type f -delete 2>/dev/null || true
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -38,7 +58,13 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
+          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
+
+      # GitHub's image ships yarn; the Kauri VM does not. Corepack reads the
+      # version from package.json's "packageManager".
+      - name: Enable yarn
+        if: runner.environment == 'self-hosted'
+        run: corepack enable
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
@@ -77,8 +103,18 @@ jobs:
 
   build:
     name: Build Application
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.CI_RUNNER && !startsWith(github.head_ref || github.ref_name, 'renovate/') && !github.event.pull_request.head.repo.fork) && vars.CI_RUNNER || 'ubuntu-latest' }}
+    # Kauri takes one job at a time: a hung job would hold it for the 6h default.
+    timeout-minutes: 15
     steps:
+      # The self-hosted runner keeps its workspace between jobs. A job cancelled
+      # mid-fetch leaves a .lock under .git, and every later checkout then fails
+      # with "cannot lock ref". The runner takes one job at a time, so a lock
+      # found before checkout belongs to nobody. GitHub's runners start clean.
+      - name: Clear git locks a cancelled job left
+        if: runner.environment == 'self-hosted'
+        run: find "$GITHUB_WORKSPACE/.git" -name '*.lock' -type f -delete 2>/dev/null || true
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -86,12 +122,20 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
+          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
+
+      # GitHub's image ships yarn; the Kauri VM does not. Corepack reads the
+      # version from package.json's "packageManager".
+      - name: Enable yarn
+        if: runner.environment == 'self-hosted'
+        run: corepack enable
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
-      # Key structure: nextjs-cache-<workflow-hash>-<deps-hash>
+      # Key structure: nextjs-cache-<arch>-<workflow-hash>-<deps-hash>
+      # Arch first: the Kauri runner is arm64, GitHub's default is x64, and a
+      # cache written by one must not restore onto the other.
       # Including hashFiles('src/**/*') in the key minted a fresh ~100 MB cache on every
       # source commit and blew past the repo cache budget. .next/cache is designed to
       # restore stale — Next handles incremental compilation from there.
@@ -108,9 +152,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .next/cache
-          key: nextjs-cache-${{ hashFiles('.github/workflows/build.yml') }}-${{ hashFiles('yarn.lock', 'next.config.js') }}
+          key: nextjs-cache-${{ runner.arch }}-${{ hashFiles('.github/workflows/build.yml') }}-${{ hashFiles('yarn.lock', 'next.config.js') }}
           restore-keys: |
-            nextjs-cache-${{ hashFiles('.github/workflows/build.yml') }}-
+            nextjs-cache-${{ runner.arch }}-${{ hashFiles('.github/workflows/build.yml') }}-
 
       - name: Verify Sentry DSN secret is present
         env:
@@ -201,7 +245,10 @@ jobs:
 
   docker:
     name: Build Docker (${{ matrix.platform }})
-    runs-on: ${{ matrix.runner }}
+    # The arm64 image builds on Kauri when CI_RUNNER is set. This job runs
+    # only on a push to main or a manual dispatch, so it builds merged code.
+    runs-on: ${{ matrix.platform == 'linux/arm64' && vars.CI_RUNNER || matrix.runner }}
+    timeout-minutes: 30
     needs: [test, build]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -217,6 +264,14 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     steps:
+      # The self-hosted runner keeps its workspace between jobs. A job cancelled
+      # mid-fetch leaves a .lock under .git, and every later checkout then fails
+      # with "cannot lock ref". The runner takes one job at a time, so a lock
+      # found before checkout belongs to nobody. GitHub's runners start clean.
+      - name: Clear git locks a cancelled job left
+        if: runner.environment == 'self-hosted'
+        run: find "$GITHUB_WORKSPACE/.git" -name '*.lock' -type f -delete 2>/dev/null || true
+
       - name: Checkout
         uses: actions/checkout@v7
 
