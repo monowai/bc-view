@@ -12,8 +12,13 @@ import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
 
 const mockPush = jest.fn()
 let mockPathname = "/wealth"
+let mockQuery: Record<string, string> = {}
 jest.mock("next/router", () => ({
-  useRouter: () => ({ pathname: mockPathname, query: {}, push: mockPush }),
+  useRouter: () => ({
+    pathname: mockPathname,
+    query: mockQuery,
+    push: mockPush,
+  }),
 }))
 
 // Mock fetch for useChat
@@ -46,6 +51,7 @@ describe("ChatFab", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockPathname = "/wealth"
+    mockQuery = {}
     window.localStorage.removeItem("bc-chat-corner")
     // pageContextBus retains its last-published value across renders (by
     // design — see its module doc) so a leftover from another test/page
@@ -138,6 +144,23 @@ describe("ChatFab", () => {
 
     const body = await lastStreamBody()
     expect(body.context).not.toHaveProperty("currentState")
+  })
+
+  it("sends the viewed phase as context.phaseId from a single-phase page", async () => {
+    mockPathname = "/independence/plans/[id]"
+    mockQuery = { id: "p1" }
+    renderFab()
+    fireEvent.click(screen.getByLabelText("Chat"))
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "what are this phase's expenses?" },
+    })
+    fireEvent.submit(screen.getByRole("textbox").closest("form")!)
+
+    const body = await lastStreamBody()
+    expect(body.context.page).toBe("Independence Phase")
+    expect(body.context.phaseId).toBe("p1")
+    expect(body.context).not.toHaveProperty("entityId")
   })
 
   it("picks up a context published AFTER mount (subscribe delivers the retained current value, and later updates arrive live)", async () => {

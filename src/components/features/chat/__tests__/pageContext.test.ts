@@ -22,4 +22,19 @@ describe("getPageContext", () => {
     const ctx = getPageContext("/holdings")
     expect(ctx.page).toBe("Holdings")
   })
+
+  it("treats the single-phase routes as Independence Phase", () => {
+    expect(getPageContext("/independence/plans/[id]").page).toBe(
+      "Independence Phase",
+    )
+    expect(getPageContext("/independence/wizard/[planId]").page).toBe(
+      "Independence Phase",
+    )
+  })
+
+  it("keeps /independence as the whole-plan view", () => {
+    const ctx = getPageContext("/independence")
+    expect(ctx.page).toBe("Independence Planning")
+    expect(ctx.description).toContain("all phases")
+  })
 })
