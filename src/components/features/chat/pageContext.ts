@@ -4,7 +4,7 @@
  * the user is viewing and can provide relevant suggestions.
  */
 
-interface PageContext {
+export interface PageContext {
   page: string
   description: string
   placeholder: string
@@ -97,12 +97,34 @@ const routeContextMap: Record<string, PageContext> = {
   "/independence": {
     page: "Independence Planning",
     description:
-      "The user is viewing their retirement/financial independence plans",
+      "The user is viewing their independence plan as a whole — all phases together",
     placeholder: "Ask about your independence plan...",
     suggestions: [
       "When can I retire?",
       "Run a Monte Carlo simulation",
       "What are my projected expenses?",
+    ],
+  },
+  "/independence/plans": {
+    page: "Independence Phase",
+    description:
+      "The user is viewing a single phase of their independence plan",
+    placeholder: "Ask about this phase...",
+    suggestions: [
+      "What are this phase's expenses?",
+      "What income does this phase have?",
+      "How does this phase fit into my plan?",
+    ],
+  },
+  "/independence/wizard": {
+    page: "Independence Phase",
+    description:
+      "The user is editing a single phase of their independence plan",
+    placeholder: "Ask about this phase...",
+    suggestions: [
+      "What are this phase's expenses?",
+      "What income does this phase have?",
+      "How does this phase fit into my plan?",
     ],
   },
   "/rebalance": {

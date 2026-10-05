@@ -4,6 +4,7 @@ import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
 import { useSharedChat } from "./ChatProvider"
 import { getPageContext } from "./pageContext"
+import { buildChatContext } from "./chatContext"
 import {
   CORNER_LAYOUT,
   ChatCorner,
@@ -61,28 +62,16 @@ export default function ChatFab(): React.ReactElement {
     unknown
   > | null>(null)
 
-  const routeContext = useMemo(() => {
-    const ctx: Record<string, unknown> = {
-      page: pageContext.page,
-      description: pageContext.description,
-    }
-    if (livePageContext) ctx.currentState = livePageContext
-    // Include dynamic route params for specificity. Managed (shared)
-    // portfolios are routed as /holdings/{portfolio.id}?byId=1 — in that
-    // case the dynamic [code] segment is actually the portfolio id, so
-    // expose it as portfolioId for the agent's by-id tools rather than
-    // the by-code ones (which 404 for shared portfolios).
-    if (routeParams.code) {
-      if (routeParams.byId === "1") {
-        ctx.portfolioId = routeParams.code
-      } else {
-        ctx.portfolioCode = routeParams.code
-      }
-    }
-    if (routeParams.id) ctx.entityId = routeParams.id
-    if (routeParams.modelId) ctx.modelId = routeParams.modelId
-    return ctx
-  }, [pageContext.page, pageContext.description, routeParams, livePageContext])
+  const routeContext = useMemo(
+    () =>
+      buildChatContext(
+        router.pathname,
+        routeParams,
+        pageContext,
+        livePageContext,
+      ),
+    [router.pathname, routeParams, pageContext, livePageContext],
+  )
   const context = threadContext ?? routeContext
   // The chat itself is app-wide (shared with /chat); the page context is
   // this FAB's, so it rides along on each send rather than living in the hook.
