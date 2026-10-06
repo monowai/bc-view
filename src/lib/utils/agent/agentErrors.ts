@@ -40,6 +40,9 @@ const CODES = [
   "answer-truncated",
   "empty-answer",
   "agent-error",
+  // Minted by the chat client, not svc-agent: the stream dropped and no
+  // answer was found stored afterwards (see `useChat`'s recovery).
+  "interrupted",
 ] as const
 
 const COPY: Record<
@@ -104,6 +107,13 @@ const COPY: Record<
     title: "The AI request failed",
     message:
       "The agent couldn't process this request. Try again, or simplify the question.",
+    retryable: true,
+  },
+  interrupted: {
+    tone: "error",
+    title: "The connection dropped",
+    message:
+      "The connection dropped before the answer was saved. Please ask again.",
     retryable: true,
   },
 }

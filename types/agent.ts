@@ -55,6 +55,13 @@ export interface ConversationTurn {
 
 export interface ConversationDetail extends ConversationSummary {
   messages: ConversationTurn[]
+  /**
+   * True while svc-agent is still generating the answer to the last user
+   * turn — the browser may have dropped the stream, the server carries on.
+   * False once the assistant turn (content, or `error`) has been saved. False
+   * with a trailing `user` turn means the answer was lost (server restart).
+   */
+  pending: boolean
 }
 
 export interface AgentResponse {
