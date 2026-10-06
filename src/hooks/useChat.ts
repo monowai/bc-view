@@ -12,6 +12,17 @@ const MAX_HISTORY_TURNS = 6
 
 const CONVERSATIONS_API = "/api/agent/conversations"
 
+/**
+ * Poll cadence while svc-agent finishes an answer whose stream the browser
+ * lost: 2s, backing off ×1.5 to a 10s cap, for at most ten minutes. The
+ * answer itself usually takes well under a minute; the budget covers a phone
+ * that stays asleep for a while before the user comes back to it.
+ */
+const RECOVERY_FIRST_WAIT_MS = 2_000
+const RECOVERY_MAX_WAIT_MS = 10_000
+const RECOVERY_BACKOFF = 1.5
+const RECOVERY_BUDGET_MS = 10 * 60_000
+
 /** localStorage key holding the persisted chat's current conversation id. */
 export const CONVERSATION_STORAGE_KEY = "bc.chat.conversationId"
 
@@ -68,6 +79,64 @@ async function createConversation(signal: AbortSignal): Promise<string | null> {
     return json.data?.id ?? null
   } catch {
     return null
+  }
+}
+
+/**
+ * Wait between recovery polls. Cut short when the page becomes visible
+ * again — the usual reason a stream dropped is a phone that slept, and
+ * waking it should fetch the answer at once rather than sit out the
+ * back-off — or when the recovery is cancelled.
+ */
+function recoveryWait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve()
+      return
+    }
+    const doc = typeof document === "undefined" ? undefined : document
+    const finish = (): void => {
+      clearTimeout(timer)
+      signal.removeEventListener("abort", finish)
+      doc?.removeEventListener("visibilitychange", onVisible)
+      resolve()
+    }
+    const onVisible = (): void => {
+      if (doc?.visibilityState === "visible") finish()
+    }
+    const timer = setTimeout(finish, ms)
+    signal.addEventListener("abort", finish)
+    doc?.addEventListener("visibilitychange", onVisible)
+  })
+}
+
+type RecoveryPoll =
+  | { kind: "pending" }
+  | { kind: "gone" }
+  | { kind: "settled"; detail: ConversationDetail }
+
+/**
+ * One look at a conversation whose answer may still be on its way. Anything
+ * short of a definite answer — a server error, no network yet — reads as
+ * "still pending": the device that dropped the stream is likely still
+ * flaky, and the answer may well be waiting once it isn't.
+ */
+async function pollConversation(
+  id: string,
+  signal: AbortSignal,
+): Promise<RecoveryPoll> {
+  try {
+    const res = await fetch(`${CONVERSATIONS_API}/${encodeURIComponent(id)}`, {
+      signal,
+    })
+    if (res.status === 404) return { kind: "gone" }
+    if (!res.ok) return { kind: "pending" }
+    const json = (await res.json()) as { data: ConversationDetail }
+    return json.data.pending
+      ? { kind: "pending" }
+      : { kind: "settled", detail: json.data }
+  } catch {
+    return { kind: "pending" }
   }
 }
 
@@ -199,6 +268,140 @@ export function useChat(
     [remember],
   )
 
+  /**
+   * Collect an answer the stream didn't deliver. svc-agent finishes and
+   * saves the answer whether or not the browser is still listening, so a
+   * dropped stream is a reason to poll the conversation, not to show an
+   * error. `assistantId` is the placeholder the stream was filling (none
+   * when resuming a conversation on open); `sent` is the question this send
+   * asked, which tells "the answer was lost" from "the request never
+   * arrived"; `knownPending` skips the first poll when the caller has just
+   * seen the conversation pending. Ends when the answer lands, the wait is
+   * cancelled, or the transcript was replaced underneath it (then it writes
+   * nothing).
+   */
+  const recoverTurn = useCallback(
+    async (
+      id: string,
+      seq: number,
+      controller: AbortController,
+      assistantId: string | null,
+      sent?: string,
+      knownPending = false,
+    ): Promise<void> => {
+      // Every write this recovery makes targets one id: the placeholder, or
+      // a fresh one minted here, outside the updaters — React may run an
+      // updater twice, so it must not mint ids or read the clock itself.
+      const fallbackId = assistantId ?? crypto.randomUUID()
+      const fallbackAt = new Date().toISOString()
+      // Update the placeholder, or add the assistant message when there is
+      // none to update.
+      const settle = (
+        update: (current: string) => Partial<ChatMessage>,
+      ): void => {
+        setMessages((prev) => {
+          const existing = prev.find((m) => m.id === fallbackId)
+          if (existing) {
+            return prev.map((m) =>
+              m === existing ? { ...m, ...update(m.content) } : m,
+            )
+          }
+          return [
+            ...prev,
+            {
+              id: fallbackId,
+              role: "assistant",
+              content: "",
+              timestamp: fallbackAt,
+              ...update(""),
+            },
+          ]
+        })
+      }
+      const interrupted = describeAgentError("interrupted")
+      // What streamed before the drop stays on screen, as after a cancel;
+      // the copy only fills an empty answer.
+      const giveUp = (): void =>
+        settle((current) => ({
+          content: current.length > 0 ? current : interrupted.message,
+          error: interrupted.code,
+        }))
+
+      const started = Date.now()
+      let wait = RECOVERY_FIRST_WAIT_MS
+      let pending = knownPending
+      for (;;) {
+        // New chat / another conversation picked: that path owns the screen.
+        // Checked before anything that writes, and again after the wait —
+        // the wait is where that pick happens.
+        if (seq !== loadSeqRef.current) return
+        if (pending) {
+          if (Date.now() - started >= RECOVERY_BUDGET_MS) {
+            giveUp()
+            return
+          }
+          await recoveryWait(wait, controller.signal)
+          wait = Math.min(wait * RECOVERY_BACKOFF, RECOVERY_MAX_WAIT_MS)
+          if (seq !== loadSeqRef.current) return
+        }
+        if (controller.signal.aborted) {
+          settle((current) => ({
+            content: current.length > 0 ? current : "Cancelled.",
+            error: "cancelled",
+          }))
+          return
+        }
+        const poll = await pollConversation(id, controller.signal)
+        if (seq !== loadSeqRef.current) return
+        if (controller.signal.aborted) {
+          pending = true
+          continue
+        }
+        if (poll.kind === "gone") {
+          // Same as a 404 from the stream: forget it, save the next send afresh.
+          setConversation(null)
+          conversationLostRef.current = true
+          giveUp()
+          return
+        }
+        if (poll.kind === "settled") {
+          const turns = poll.detail.messages
+          const lastAsked = turns.filter((t) => t.role === "user").at(-1)
+          conversationLostRef.current = false
+          setConversation(poll.detail.id)
+          if (sent !== undefined && lastAsked?.content !== sent) {
+            // The request never reached the server (offline before it left):
+            // the stored turns don't have this question, so keep it on screen
+            // rather than replace the transcript with them.
+            giveUp()
+            return
+          }
+          const recovered = turns.map(turnToMessage)
+          if (turns.at(-1)?.role === "user") {
+            // The question was saved but its answer never was — svc-agent
+            // restarted mid-generation. Nothing more will arrive.
+            setMessages([
+              ...recovered,
+              {
+                id: fallbackId,
+                role: "assistant",
+                content: interrupted.message,
+                timestamp: fallbackAt,
+                error: interrupted.code,
+              },
+            ])
+          } else {
+            setMessages(recovered)
+          }
+          return
+        }
+        // Still being answered: the next round waits before it asks again.
+        pending = true
+      }
+    },
+    [setConversation],
+  )
+
   const sendMessage = useCallback(
     async (
       query: string,
@@ -208,7 +411,7 @@ export function useChat(
       callContext?: Record<string, unknown>,
     ) => {
       // A send supersedes any conversation load still in flight.
-      loadSeqRef.current++
+      const seq = ++loadSeqRef.current
       // Only a chat started from empty becomes a stored conversation; a
       // handed-over transcript has no server-side twin, so it stays stateless.
       // A chat whose stored conversation vanished mid-thread is saved afresh
@@ -262,8 +465,15 @@ export function useChat(
       const controller = new AbortController()
       abortRef.current = controller
 
+      // The stream's own verdict: a `done` or `error` event arrived. A stream
+      // that ends or fails without one didn't finish — the device slept, the
+      // proxy cut the response — and a stored conversation can still be
+      // answered server-side, so that case is recovered rather than reported.
+      let settled = false
+      let activeId: string | null = null
+
       try {
-        let activeId = persist ? conversationIdRef.current : null
+        activeId = persist ? conversationIdRef.current : null
         if (persist && activeId === null && startConversation) {
           // Can't create one (agent down, etc.)? Still answer — statelessly.
           activeId = await createConversation(controller.signal)
@@ -356,6 +566,7 @@ export function useChat(
               ),
             )
           } else if (event === "error") {
+            settled = true
             const code = data || "stream-error"
             finalize((m) => ({
               content:
@@ -364,8 +575,11 @@ export function useChat(
                   : describeAgentError(code).message,
               error: code,
             }))
+          } else if (event === "done") {
+            // Carries metadata only; nothing to render, but it is the proof
+            // the answer finished.
+            settled = true
           }
-          // `done` carries metadata only; nothing to render right now.
         }
 
         for (;;) {
@@ -381,6 +595,11 @@ export function useChat(
           }
         }
         if (buffer.trim().length > 0) flush(buffer)
+        if (!settled && activeId !== null) {
+          // EOF with no verdict: the proxy ended the response early. The
+          // partial stays on screen while the stored answer is collected.
+          await recoverTurn(activeId, seq, controller, assistantId, query)
+        }
       } catch (error: unknown) {
         if (controller.signal.aborted) {
           // User cancelled — keep any partial content already streamed and
@@ -389,6 +608,15 @@ export function useChat(
             content: m.content.length > 0 ? m.content : "Cancelled.",
             error: "cancelled",
           }))
+          return
+        }
+        // A read failing after `done` / `error` changes nothing: the answer
+        // on screen is final, so there is nothing to recover or to report.
+        if (settled) return
+        if (activeId !== null) {
+          // Safari's "Load failed" after the phone slept, and the like. The
+          // server carries on without us, so this isn't an error yet.
+          await recoverTurn(activeId, seq, controller, assistantId, query)
           return
         }
         const failure = describeAgentError(error)
@@ -401,7 +629,7 @@ export function useChat(
         setIsLoading(false)
       }
     },
-    [context, persist, setConversation],
+    [context, persist, setConversation, recoverTurn],
   )
 
   const newChat = useCallback(() => {
@@ -446,11 +674,35 @@ export function useChat(
         conversationLostRef.current = false
         setMessages(json.data.messages.map(turnToMessage))
         setConversation(json.data.id)
+        if (json.data.pending) {
+          // Reopened while svc-agent is still answering — a PWA killed
+          // mid-answer, say. The question shows now; the answer is collected
+          // as it lands. Not awaited: the transcript is loaded, and this
+          // may take as long as the answer does.
+          const controller = new AbortController()
+          abortRef.current = controller
+          setIsLoading(true)
+          void recoverTurn(
+            json.data.id,
+            seq,
+            controller,
+            null,
+            undefined,
+            true,
+          ).finally(() => {
+            // Only while still the thing being waited on — a send started
+            // meanwhile owns `isLoading` now.
+            if (abortRef.current === controller) {
+              abortRef.current = null
+              setIsLoading(false)
+            }
+          })
+        }
       } catch {
         // Network failure — leave the current chat as it is.
       }
     },
-    [setConversation],
+    [setConversation, recoverTurn],
   )
 
   // Resume the stored conversation. Post-mount, because localStorage doesn't

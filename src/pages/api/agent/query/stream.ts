@@ -57,10 +57,26 @@ export default async function handler(
       headers["baggage"] = Array.isArray(baggage) ? baggage[0] : baggage
     }
 
+    // When the browser goes away mid-answer (phone slept, tab closed), drop
+    // the upstream stream too so svc-agent's async slot is freed. svc-agent
+    // finishes and saves the answer regardless of the disconnect, and the
+    // client recovers it from the conversation (see `useChat`), so nothing
+    // is lost by letting go here. Listen on the response, not the request:
+    // since Node 16 `IncomingMessage`'s `close` fires once the request body
+    // is consumed — which Next has already done — so it would abort every
+    // normal stream. `ServerResponse`'s `close` fires when the response
+    // completes or the connection drops early; `writableFinished` tells
+    // the two apart.
+    const upstreamAbort = new AbortController()
+    res.on("close", () => {
+      if (!res.writableFinished) upstreamAbort.abort()
+    })
+
     const upstream = await fetch(getAgentUrl("/agent/query/stream"), {
       method: "POST",
       headers,
       body: JSON.stringify(req.body),
+      signal: upstreamAbort.signal,
     })
 
     if (!upstream.ok || !upstream.body) {
@@ -85,8 +101,11 @@ export default async function handler(
     nodeStream.on("error", (err) => {
       // Upstream error mid-stream — best we can do is end the response; the
       // already-sent SSE bytes may be partial but downstream parser handles
-      // truncation gracefully.
-      console.error("[/api/agent/query/stream] upstream error", err)
+      // truncation gracefully. Our own abort after the client left is not
+      // worth a log line.
+      if (!upstreamAbort.signal.aborted) {
+        console.error("[/api/agent/query/stream] upstream error", err)
+      }
       res.end()
     })
     nodeStream.pipe(res)

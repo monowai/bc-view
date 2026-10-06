@@ -48,6 +48,7 @@ const conversations: ConversationSummary[] = [
 
 const detail: ConversationDetail = {
   ...conversations[0],
+  pending: false,
   messages: [
     {
       id: "t1",

@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react"
 import { useChat, CONVERSATION_STORAGE_KEY } from "../useChat"
 import { describeAgentError } from "@utils/agent/agentErrors"
-import { ConversationDetail } from "types/agent"
+import { ConversationDetail, ConversationTurn } from "types/agent"
 
 // Mock fetch globally
 const mockFetch = jest.fn()
@@ -559,11 +559,19 @@ describe("useChat with persisted conversations", () => {
     }
   }
 
+  /** A finished answer, as svc-agent streams one: tokens then `done`. */
+  const answer = (): unknown =>
+    sseResponse([
+      { event: "token", data: "ok" },
+      { event: "done", data: "{}" },
+    ])
+
   const detail: ConversationDetail = {
     id: "c-1",
     title: "NZD exposure",
     createdAt: "2026-10-01T00:00:00Z",
     updatedAt: "2026-10-01T00:01:00Z",
+    pending: false,
     messages: [
       {
         id: "t1",
@@ -610,7 +618,7 @@ describe("useChat with persisted conversations", () => {
   it("creates a conversation on the first send and streams it without history", async () => {
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -645,7 +653,7 @@ describe("useChat with persisted conversations", () => {
   it("sends the per-call context in place of the hook's", async () => {
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() =>
       useChat({ page: "Stale" }, { persist: true }),
@@ -663,7 +671,7 @@ describe("useChat with persisted conversations", () => {
   it("falls back to a stateless send when the conversation can't be created", async () => {
     route({
       [`POST ${CONVERSATIONS}`]: () => json(503, {}),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -709,7 +717,7 @@ describe("useChat with persisted conversations", () => {
   it("continues a loaded conversation by id, not by history", async () => {
     route({
       [`GET ${CONVERSATIONS}/c-1`]: () => json(200, { data: detail }),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -739,10 +747,7 @@ describe("useChat with persisted conversations", () => {
 
   it("starts a new conversation on the next send after the stream loses the current one", async () => {
     const ids = ["c-1", "c-2"]
-    const streams = [
-      () => json(404, {}),
-      () => sseResponse([{ event: "token", data: "ok" }]),
-    ]
+    const streams = [() => json(404, {}), () => answer()]
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: ids.shift() } }),
       [`POST ${STREAM}`]: () => streams.shift()!(),
@@ -799,7 +804,7 @@ describe("useChat with persisted conversations", () => {
 
   it("keeps a handed-over transcript stateless — threads history, creates nothing", async () => {
     route({
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -834,7 +839,7 @@ describe("useChat with persisted conversations", () => {
   it("sends the label with a persisted send so the stored turn reads as it did on screen", async () => {
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -889,7 +894,7 @@ describe("useChat with persisted conversations", () => {
     localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-current")
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-popup" } }),
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() =>
       useChat(undefined, { persist: true, remember: false }),
@@ -912,7 +917,7 @@ describe("useChat with persisted conversations", () => {
 
   it("continues from an initial conversation id instead of starting a new one", async () => {
     route({
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() =>
       useChat(undefined, {
@@ -950,7 +955,7 @@ describe("useChat with persisted conversations", () => {
 
   it("adopts a handed-over transcript's conversation and remembers it as current", async () => {
     route({
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
 
@@ -990,7 +995,7 @@ describe("useChat with persisted conversations", () => {
   it("never touches conversations when not persisting", async () => {
     localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
     route({
-      [`POST ${STREAM}`]: () => sseResponse([{ event: "token", data: "ok" }]),
+      [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat())
 
@@ -1001,5 +1006,396 @@ describe("useChat with persisted conversations", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(streamBodies()[0].conversationId).toBeUndefined()
     expect(result.current.conversationId).toBeNull()
+  })
+
+  /**
+   * A phone that sleeps mid-answer drops the stream, but svc-agent finishes
+   * the answer and saves it anyway. The chat must then collect the stored
+   * answer instead of showing an error.
+   */
+  describe("recovering a dropped answer", () => {
+    const asked: ConversationTurn = {
+      id: "t1",
+      role: "user",
+      content: "hello",
+      timestamp: "2026-10-05T00:00:00Z",
+      error: null,
+      deepThink: false,
+      label: null,
+    }
+    const answered: ConversationTurn = {
+      id: "t2",
+      role: "assistant",
+      content: "Hello there.",
+      timestamp: "2026-10-05T00:00:09Z",
+      error: null,
+      deepThink: false,
+      label: null,
+    }
+
+    function stored(
+      turns: ConversationTurn[],
+      pending: boolean,
+      id = "c-new",
+    ): unknown {
+      return json(200, {
+        data: { ...detail, id, pending, messages: turns } as ConversationDetail,
+      })
+    }
+
+    /**
+     * One token, then the failure Safari reports when the device slept. The
+     * token is delivered on the first read and the error on the next, as on
+     * the wire; erroring straight after enqueueing would discard the token.
+     */
+    function droppedStream(): unknown {
+      const encoder = new TextEncoder()
+      let reads = 0
+      const body = new ReadableStream<Uint8Array>({
+        pull(c) {
+          if (reads++ === 0)
+            c.enqueue(encoder.encode("event:token\ndata:Hel\n\n"))
+          else c.error(new TypeError("Load failed"))
+        },
+      })
+      return { ok: true, status: 200, body }
+    }
+
+    function polls(): number {
+      return mockFetch.mock.calls.filter(
+        ([url, init]) =>
+          (url as string).startsWith(`${CONVERSATIONS}/`) &&
+          (init?.method ?? "GET") === "GET",
+      ).length
+    }
+
+    // Promise chains (streams, fetch mocks) only need microtasks; a real
+    // macrotask hop drains them without touching the faked clock.
+    const realSetTimeout = globalThis.setTimeout
+    async function flush(): Promise<void> {
+      for (let i = 0; i < 8; i++) {
+        await act(async () => {
+          await new Promise((r) => realSetTimeout(r, 0))
+        })
+      }
+    }
+
+    async function advance(ms: number): Promise<void> {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(ms)
+      })
+      await flush()
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers({
+        doNotFake: ["nextTick", "queueMicrotask", "setImmediate"],
+      })
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it("recovers the stored answer when a persisted stream drops mid-answer", async () => {
+      const replies = [
+        () => stored([asked], true),
+        () => stored([asked, answered], false),
+      ]
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => replies.shift()!(),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      let send!: Promise<void>
+      act(() => {
+        send = result.current.sendMessage("hello")
+      })
+      await flush()
+
+      // Still answering: the partial stays, nothing reads as an error yet.
+      expect(polls()).toBe(1)
+      expect(result.current.isLoading).toBe(true)
+      expect(result.current.messages[1].content).toBe("Hel")
+      expect(result.current.messages[1].error).toBeUndefined()
+
+      await advance(2000)
+      await act(async () => {
+        await send
+      })
+
+      expect(polls()).toBe(2)
+      expect(result.current.messages).toEqual([
+        {
+          id: "t1",
+          role: "user",
+          content: "hello",
+          timestamp: asked.timestamp,
+          deepThink: undefined,
+          error: null,
+        },
+        {
+          id: "t2",
+          role: "assistant",
+          content: "Hello there.",
+          timestamp: answered.timestamp,
+          deepThink: undefined,
+          error: null,
+        },
+      ])
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.conversationId).toBe("c-new")
+    })
+
+    it("reports an interrupted answer when the server saved none", async () => {
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked], false),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(result.current.messages).toHaveLength(2)
+      expect(result.current.messages[0].id).toBe("t1")
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        error: "interrupted",
+        content: describeAgentError("interrupted").message,
+      })
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it("keeps the question on screen when the server never received it", async () => {
+      // Offline before the request left the device: nothing was stored, so
+      // replacing the transcript with the stored turns would lose the question.
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: () => Promise.reject(new TypeError("Load failed")),
+        [`GET ${CONVERSATIONS}/c-new`]: () => stored([], false),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(result.current.messages).toHaveLength(2)
+      expect(result.current.messages[0]).toMatchObject({
+        role: "user",
+        content: "hello",
+      })
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        error: "interrupted",
+      })
+      expect(result.current.conversationId).toBe("c-new")
+    })
+
+    it("recovers when the stream ends without a done event", async () => {
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        // The proxy ended the response early: a token, then EOF, no `done`.
+        [`POST ${STREAM}`]: () =>
+          sseResponse([{ event: "token", data: "Hel" }]),
+        [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked, answered], false),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(polls()).toBe(1)
+      expect(result.current.messages.map((m) => m.content)).toEqual([
+        "hello",
+        "Hello there.",
+      ])
+      expect(result.current.messages[1].error).toBeNull()
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it("cancel stops recovery", async () => {
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked], true),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      let send!: Promise<void>
+      act(() => {
+        send = result.current.sendMessage("hello")
+      })
+      await flush()
+      expect(polls()).toBe(1)
+
+      act(() => result.current.cancel())
+      await act(async () => {
+        await send
+      })
+
+      expect(result.current.messages[1]).toMatchObject({
+        content: "Hel",
+        error: "cancelled",
+      })
+      expect(result.current.isLoading).toBe(false)
+      await advance(30_000)
+      expect(polls()).toBe(1)
+    })
+
+    it("gives up after ten minutes of waiting", async () => {
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked], true),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      let send!: Promise<void>
+      act(() => {
+        send = result.current.sendMessage("hello")
+      })
+      await flush()
+      await advance(11 * 60_000)
+      await act(async () => {
+        await send
+      })
+
+      expect(result.current.messages[1].error).toBe("interrupted")
+      expect(result.current.isLoading).toBe(false)
+      // 2s, 3s, 4.5s, 6.75s, then capped at 10s — never a tight loop.
+      expect(polls()).toBeLessThan(70)
+    })
+
+    it("keeps the partial answer when recovery gives up", async () => {
+      // The stream dropped after a token and the conversation is gone: what
+      // streamed stays on screen, tagged interrupted, as the abort path does.
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => json(404, {}),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(polls()).toBe(1)
+      expect(result.current.messages).toHaveLength(2)
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        content: "Hel",
+        error: "interrupted",
+      })
+      expect(result.current.conversationId).toBeNull()
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it("ignores a read failure after the answer is done", async () => {
+      // `done` arrived, then the next read threw: the answer on screen is
+      // final, so there is nothing to recover and nothing to report.
+      const encoder = new TextEncoder()
+      let reads = 0
+      const body = new ReadableStream<Uint8Array>({
+        pull(c) {
+          if (reads++ === 0)
+            c.enqueue(
+              encoder.encode(
+                "event:token\ndata:Hel\n\nevent:done\ndata:{}\n\n",
+              ),
+            )
+          else c.error(new TypeError("Load failed"))
+        },
+      })
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: () => ({ ok: true, status: 200, body }),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(polls()).toBe(0)
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        content: "Hel",
+      })
+      expect(result.current.messages[1].error).toBeUndefined()
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it.each([
+      ["newChat", (r: ReturnType<typeof useChat>) => r.newChat(), []],
+      [
+        "loadTranscript",
+        (r: ReturnType<typeof useChat>) =>
+          r.loadTranscript([
+            { id: "x1", role: "user", content: "other", timestamp: "t" },
+          ]),
+        [{ id: "x1", role: "user", content: "other", timestamp: "t" }],
+      ],
+    ] as const)(
+      "a superseded recovery never writes to the new transcript (%s)",
+      async (_name, supersede, expected) => {
+        route({
+          [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+          [`POST ${STREAM}`]: droppedStream,
+          [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked], true),
+        })
+        const { result } = renderHook(() =>
+          useChat(undefined, { persist: true }),
+        )
+
+        let send!: Promise<void>
+        act(() => {
+          send = result.current.sendMessage("hello")
+        })
+        await flush()
+        expect(polls()).toBe(1)
+
+        act(() => supersede(result.current))
+        const pollsAtSupersession = polls()
+        await advance(11 * 60_000)
+        await act(async () => {
+          await send
+        })
+
+        expect(result.current.messages).toEqual(expected)
+        expect(polls()).toBe(pollsAtSupersession)
+      },
+    )
+
+    it("polls a conversation still being answered when it is resumed on mount", async () => {
+      localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
+      const replies = [
+        () => stored([asked], true, "c-1"),
+        () => stored([asked, answered], false, "c-1"),
+      ]
+      route({ [`GET ${CONVERSATIONS}/c-1`]: () => replies.shift()!() })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await flush()
+      // The question shows straight away, with the answer still on its way.
+      expect(result.current.messages.map((m) => m.content)).toEqual(["hello"])
+      expect(result.current.isLoading).toBe(true)
+
+      await advance(2000)
+
+      expect(result.current.messages.map((m) => m.content)).toEqual([
+        "hello",
+        "Hello there.",
+      ])
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.conversationId).toBe("c-1")
+    })
   })
 })
