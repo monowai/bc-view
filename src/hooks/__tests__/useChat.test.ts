@@ -1273,6 +1273,66 @@ describe("useChat with persisted conversations", () => {
       expect(polls()).toBeLessThan(70)
     })
 
+    it("keeps the partial answer when recovery gives up", async () => {
+      // The stream dropped after a token and the conversation is gone: what
+      // streamed stays on screen, tagged interrupted, as the abort path does.
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: droppedStream,
+        [`GET ${CONVERSATIONS}/c-new`]: () => json(404, {}),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(polls()).toBe(1)
+      expect(result.current.messages).toHaveLength(2)
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        content: "Hel",
+        error: "interrupted",
+      })
+      expect(result.current.conversationId).toBeNull()
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it("ignores a read failure after the answer is done", async () => {
+      // `done` arrived, then the next read threw: the answer on screen is
+      // final, so there is nothing to recover and nothing to report.
+      const encoder = new TextEncoder()
+      let reads = 0
+      const body = new ReadableStream<Uint8Array>({
+        pull(c) {
+          if (reads++ === 0)
+            c.enqueue(
+              encoder.encode(
+                "event:token\ndata:Hel\n\nevent:done\ndata:{}\n\n",
+              ),
+            )
+          else c.error(new TypeError("Load failed"))
+        },
+      })
+      route({
+        [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+        [`POST ${STREAM}`]: () => ({ ok: true, status: 200, body }),
+      })
+      const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+      await act(async () => {
+        await result.current.sendMessage("hello")
+      })
+
+      expect(polls()).toBe(0)
+      expect(result.current.messages[1]).toMatchObject({
+        role: "assistant",
+        content: "Hel",
+      })
+      expect(result.current.messages[1].error).toBeUndefined()
+      expect(result.current.isLoading).toBe(false)
+    })
+
     it.each([
       ["newChat", (r: ReturnType<typeof useChat>) => r.newChat(), []],
       [

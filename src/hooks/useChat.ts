@@ -319,9 +319,11 @@ export function useChat(
         })
       }
       const interrupted = describeAgentError("interrupted")
+      // What streamed before the drop stays on screen, as after a cancel;
+      // the copy only fills an empty answer.
       const giveUp = (): void =>
-        settle(() => ({
-          content: interrupted.message,
+        settle((current) => ({
+          content: current.length > 0 ? current : interrupted.message,
           error: interrupted.code,
         }))
 
@@ -350,9 +352,11 @@ export function useChat(
           return
         }
         const poll = await pollConversation(id, controller.signal)
-        pending = true
         if (seq !== loadSeqRef.current) return
-        if (controller.signal.aborted) continue
+        if (controller.signal.aborted) {
+          pending = true
+          continue
+        }
         if (poll.kind === "gone") {
           // Same as a 404 from the stream: forget it, save the next send afresh.
           setConversation(null)
@@ -391,6 +395,8 @@ export function useChat(
           }
           return
         }
+        // Still being answered: the next round waits before it asks again.
+        pending = true
       }
     },
     [setConversation],
@@ -604,6 +610,9 @@ export function useChat(
           }))
           return
         }
+        // A read failing after `done` / `error` changes nothing: the answer
+        // on screen is final, so there is nothing to recover or to report.
+        if (settled) return
         if (activeId !== null) {
           // Safari's "Load failed" after the phone slept, and the like. The
           // server carries on without us, so this isn't an error yet.
