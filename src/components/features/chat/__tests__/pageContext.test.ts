@@ -32,6 +32,15 @@ describe("getPageContext", () => {
     )
   })
 
+  it("tells viewing a phase apart from editing one", () => {
+    const viewing = getPageContext("/independence/plans/[id]")
+    const editing = getPageContext("/independence/wizard/[planId]")
+    expect(viewing.description).toContain("viewing a single phase")
+    expect(editing.description).toContain("editing a single phase")
+    expect(editing.placeholder).toBe(viewing.placeholder)
+    expect(editing.suggestions).toEqual(viewing.suggestions)
+  })
+
   it("keeps /independence as the whole-plan view", () => {
     const ctx = getPageContext("/independence")
     expect(ctx.page).toBe("Independence Planning")

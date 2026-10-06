@@ -20,6 +20,7 @@ export default [
   {
     ignores: [
       ".next/**",
+      ".claude/**",
       "build/**",
       "dist/**",
       "node_modules/**",

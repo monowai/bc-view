@@ -6,6 +6,11 @@ import type { PageContext } from "./pageContext"
  * phase id. A user-facing Plan is a journey of ordered phases; these pages
  * operate on one phase, so the agent is told which one via `phaseId` rather
  * than the generic `entityId`.
+ *
+ * The wizard's segment is spelled `[planId]` for historical reasons: it is a
+ * phase (RetirementPlan) id, and the page loads the same
+ * `/api/independence/plans/{id}/details` as `/independence/plans/[id]`. The
+ * journey (IndependencePlan) id only ever arrives via the `plan` query param.
  */
 const PHASE_ROUTE_PARAM: Record<string, string> = {
   "/independence/plans/[id]": "id",

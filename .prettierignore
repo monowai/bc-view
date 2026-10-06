@@ -5,3 +5,4 @@ coverage
 build
 tsconfig.tsbuildinfo
 *.snap
+.claude/
