@@ -1273,6 +1273,47 @@ describe("useChat with persisted conversations", () => {
       expect(polls()).toBeLessThan(70)
     })
 
+    it.each([
+      ["newChat", (r: ReturnType<typeof useChat>) => r.newChat(), []],
+      [
+        "loadTranscript",
+        (r: ReturnType<typeof useChat>) =>
+          r.loadTranscript([
+            { id: "x1", role: "user", content: "other", timestamp: "t" },
+          ]),
+        [{ id: "x1", role: "user", content: "other", timestamp: "t" }],
+      ],
+    ] as const)(
+      "a superseded recovery never writes to the new transcript (%s)",
+      async (_name, supersede, expected) => {
+        route({
+          [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+          [`POST ${STREAM}`]: droppedStream,
+          [`GET ${CONVERSATIONS}/c-new`]: () => stored([asked], true),
+        })
+        const { result } = renderHook(() =>
+          useChat(undefined, { persist: true }),
+        )
+
+        let send!: Promise<void>
+        act(() => {
+          send = result.current.sendMessage("hello")
+        })
+        await flush()
+        expect(polls()).toBe(1)
+
+        act(() => supersede(result.current))
+        const pollsAtSupersession = polls()
+        await advance(11 * 60_000)
+        await act(async () => {
+          await send
+        })
+
+        expect(result.current.messages).toEqual(expected)
+        expect(polls()).toBe(pollsAtSupersession)
+      },
+    )
+
     it("polls a conversation still being answered when it is resumed on mount", async () => {
       localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-1")
       const replies = [

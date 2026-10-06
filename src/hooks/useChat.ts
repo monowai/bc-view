@@ -289,13 +289,18 @@ export function useChat(
       sent?: string,
       knownPending = false,
     ): Promise<void> => {
+      // Every write this recovery makes targets one id: the placeholder, or
+      // a fresh one minted here, outside the updaters — React may run an
+      // updater twice, so it must not mint ids or read the clock itself.
+      const fallbackId = assistantId ?? crypto.randomUUID()
+      const fallbackAt = new Date().toISOString()
       // Update the placeholder, or add the assistant message when there is
       // none to update.
       const settle = (
         update: (current: string) => Partial<ChatMessage>,
       ): void => {
         setMessages((prev) => {
-          const existing = prev.find((m) => m.id === assistantId)
+          const existing = prev.find((m) => m.id === fallbackId)
           if (existing) {
             return prev.map((m) =>
               m === existing ? { ...m, ...update(m.content) } : m,
@@ -304,10 +309,10 @@ export function useChat(
           return [
             ...prev,
             {
-              id: crypto.randomUUID(),
+              id: fallbackId,
               role: "assistant",
               content: "",
-              timestamp: new Date().toISOString(),
+              timestamp: fallbackAt,
               ...update(""),
             },
           ]
@@ -324,6 +329,10 @@ export function useChat(
       let wait = RECOVERY_FIRST_WAIT_MS
       let pending = knownPending
       for (;;) {
+        // New chat / another conversation picked: that path owns the screen.
+        // Checked before anything that writes, and again after the wait —
+        // the wait is where that pick happens.
+        if (seq !== loadSeqRef.current) return
         if (pending) {
           if (Date.now() - started >= RECOVERY_BUDGET_MS) {
             giveUp()
@@ -331,9 +340,8 @@ export function useChat(
           }
           await recoveryWait(wait, controller.signal)
           wait = Math.min(wait * RECOVERY_BACKOFF, RECOVERY_MAX_WAIT_MS)
+          if (seq !== loadSeqRef.current) return
         }
-        // New chat / another conversation picked: that path owns the screen.
-        if (seq !== loadSeqRef.current) return
         if (controller.signal.aborted) {
           settle((current) => ({
             content: current.length > 0 ? current : "Cancelled.",
@@ -371,10 +379,10 @@ export function useChat(
             setMessages([
               ...recovered,
               {
-                id: crypto.randomUUID(),
+                id: fallbackId,
                 role: "assistant",
                 content: interrupted.message,
-                timestamp: new Date().toISOString(),
+                timestamp: fallbackAt,
                 error: interrupted.code,
               },
             ])
