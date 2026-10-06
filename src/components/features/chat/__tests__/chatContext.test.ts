@@ -52,6 +52,17 @@ describe("buildChatContext", () => {
     expect(ctx.phaseId).toBe("p2")
   })
 
+  it("never reads the wizard's [planId] segment as the journey id", () => {
+    // The wizard edits one phase; its segment is a phase id despite the name.
+    const ctx = build("/independence/wizard/[planId]", {
+      planId: "p2",
+      plan: "abc",
+    })
+    expect(ctx.phaseId).toBe("p2")
+    expect(ctx.independencePlanId).toBe("abc")
+    expect(ctx).not.toHaveProperty("entityId")
+  })
+
   it("does not read a plan param outside independence routes", () => {
     const ctx = build("/independencex", { plan: "abc" })
     expect(ctx).not.toHaveProperty("independencePlanId")

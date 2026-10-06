@@ -28,6 +28,8 @@ const customJestConfig = {
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: [
     "<rootDir>/e2e/",
+    // Agent worktrees live under .claude/; their tests belong to their own tree.
+    "<rootDir>/.claude/",
     "<rootDir>/src/.*/__tests__/testSetup.ts",
     "<rootDir>/src/.*/__tests__/testHelpers.tsx",
   ],

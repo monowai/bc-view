@@ -22,6 +22,17 @@ const defaultContext: PageContext = {
   ],
 }
 
+// Shared by the single-phase routes; only the description differs.
+const independencePhase: Omit<PageContext, "description"> = {
+  page: "Independence Phase",
+  placeholder: "Ask about this phase...",
+  suggestions: [
+    "What are this phase's expenses?",
+    "What income does this phase have?",
+    "How does this phase fit into my plan?",
+  ],
+}
+
 const routeContextMap: Record<string, PageContext> = {
   "/": {
     page: "Home",
@@ -106,26 +117,14 @@ const routeContextMap: Record<string, PageContext> = {
     ],
   },
   "/independence/plans": {
-    page: "Independence Phase",
+    ...independencePhase,
     description:
       "The user is viewing a single phase of their independence plan",
-    placeholder: "Ask about this phase...",
-    suggestions: [
-      "What are this phase's expenses?",
-      "What income does this phase have?",
-      "How does this phase fit into my plan?",
-    ],
   },
   "/independence/wizard": {
-    page: "Independence Phase",
+    ...independencePhase,
     description:
       "The user is editing a single phase of their independence plan",
-    placeholder: "Ask about this phase...",
-    suggestions: [
-      "What are this phase's expenses?",
-      "What income does this phase have?",
-      "How does this phase fit into my plan?",
-    ],
   },
   "/rebalance": {
     page: "Rebalancing",
