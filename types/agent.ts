@@ -27,6 +27,16 @@ export interface AgentQuery {
   label?: string
 }
 
+/** One turn of the seed a conversation is created with. */
+export interface ConversationSeedTurn {
+  role: "user" | "assistant"
+  content: string
+  /** User turns only: display label (see `ChatMessage.label`). */
+  label?: string
+  /** User turns only: whether the turn ran on the DEEP tier. */
+  deepThink?: boolean
+}
+
 /** A persisted svc-agent chat conversation, as listed. Timestamps are ISO-8601. */
 export interface ConversationSummary {
   id: string

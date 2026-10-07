@@ -4,11 +4,15 @@ import {
   ChatMessage,
   ChatTurn,
   ConversationDetail,
+  ConversationSeedTurn,
   ConversationTurn,
 } from "types/agent"
 
 /** Trailing turns sent as history — mirrors svc-agent's server-side cap. */
 const MAX_HISTORY_TURNS = 6
+
+/** Most turns svc-agent accepts when a conversation is created with a seed. */
+const MAX_SEED_TURNS = 50
 
 const CONVERSATIONS_API = "/api/agent/conversations"
 
@@ -65,13 +69,37 @@ export function turnToMessage(turn: ConversationTurn): ChatMessage {
   }
 }
 
-/** Starts an empty server-side conversation; null when that isn't possible. */
-async function createConversation(signal: AbortSignal): Promise<string | null> {
+/**
+ * The transcript as seed turns: non-empty, non-error messages, trailing
+ * `MAX_SEED_TURNS`. Undefined fields are omitted from the payload.
+ */
+function toSeed(messages: ChatMessage[]): ConversationSeedTurn[] {
+  return messages
+    .filter((m) => m.content.length > 0 && !m.error)
+    .slice(-MAX_SEED_TURNS)
+    .map((m) => {
+      const turn: ConversationSeedTurn = { role: m.role, content: m.content }
+      if (m.role === "user") {
+        if (m.label !== undefined) turn.label = m.label
+        if (m.deepThink !== undefined) turn.deepThink = m.deepThink
+      }
+      return turn
+    })
+}
+
+/**
+ * Starts a server-side conversation, seeded with `seed` when it has turns and
+ * empty otherwise; null when that isn't possible.
+ */
+async function createConversation(
+  signal: AbortSignal,
+  seed: ConversationSeedTurn[] = [],
+): Promise<string | null> {
   try {
     const res = await fetch(CONVERSATIONS_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: "{}",
+      body: seed.length > 0 ? JSON.stringify({ turns: seed }) : "{}",
       signal,
     })
     if (!res.ok) return null
@@ -170,6 +198,12 @@ interface UseChatOptions {
   remember?: boolean
   /** Persisted conversation the `initialMessages` belong to, continued by id. */
   initialConversationId?: string
+  /**
+   * With `persist`, the opening send of an empty chat stays stateless (no
+   * conversation is created, the label stays on screen only); the chat is
+   * saved on the first follow-up, seeded with the transcript so far.
+   */
+  saveOnFollowUp?: boolean
 }
 
 export interface UseChatReturn {
@@ -198,7 +232,8 @@ export interface UseChatReturn {
   /**
    * Replaces the transcript, e.g. with a thread handed over to the FAB. With
    * `conversationId` (a saved Quick Analysis) the chat adopts that stored
-   * conversation as its current one; without, it continues statelessly.
+   * conversation as its current one; without, the next send saves it as a new
+   * conversation, seeded with this transcript.
    */
   loadTranscript: (messages: ChatMessage[], conversationId?: string) => void
   /** Persisted conversation being continued; null for a fresh/stateless chat. */
@@ -232,6 +267,7 @@ export function useChat(
   )
   const [isLoading, setIsLoading] = useState(false)
   const persist = options.persist ?? false
+  const saveOnFollowUp = options.saveOnFollowUp ?? false
   const remember = persist && (options.remember ?? true)
   const [conversationId, setConversationIdState] = useState<string | null>(
     () => (persist ? (options.initialConversationId ?? null) : null),
@@ -242,10 +278,6 @@ export function useChat(
   // Bumped whenever the transcript is replaced, so a slow conversation load
   // can't overwrite a newer choice (New chat, another conversation).
   const loadSeqRef = useRef(0)
-  // Set when the stream reports the open conversation gone (404). The
-  // transcript stays on screen, so the next send would otherwise carry on
-  // statelessly and never be saved again — this flag starts a new one.
-  const conversationLostRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
   // sendMessage is memoized, so it can't read `messages`
   // directly without going stale after the first render — mirror it into a
@@ -360,14 +392,12 @@ export function useChat(
         if (poll.kind === "gone") {
           // Same as a 404 from the stream: forget it, save the next send afresh.
           setConversation(null)
-          conversationLostRef.current = true
           giveUp()
           return
         }
         if (poll.kind === "settled") {
           const turns = poll.detail.messages
           const lastAsked = turns.filter((t) => t.role === "user").at(-1)
-          conversationLostRef.current = false
           setConversation(poll.detail.id)
           if (sent !== undefined && lastAsked?.content !== sent) {
             // The request never reached the server (offline before it left):
@@ -412,19 +442,25 @@ export function useChat(
     ) => {
       // A send supersedes any conversation load still in flight.
       const seq = ++loadSeqRef.current
-      // Only a chat started from empty becomes a stored conversation; a
-      // handed-over transcript has no server-side twin, so it stays stateless.
-      // A chat whose stored conversation vanished mid-thread is saved afresh
-      // too; the model loses the earlier turns, the screen keeps them.
-      const startConversation =
-        messagesRef.current.length === 0 || conversationLostRef.current
+      // A persisted chat with no stored conversation — fresh, handed over
+      // without an id, or whose conversation vanished (404) — is saved by
+      // this send, seeded with the transcript so far so the model and the
+      // history keep the earlier turns. The exception is the opening send of
+      // an empty chat with `saveOnFollowUp`, which stays stateless.
+      const startConversation = !(
+        saveOnFollowUp && messagesRef.current.length === 0
+      )
       // Snapshot the transcript so far as history — before appending this
       // turn's placeholders — so the model sees its own prior question when
       // the user replies to it instead of retyping the whole context. Error
       // turns (failed / cancelled requests) are excluded: the model never
       // actually said that text, so replaying it back as an assistant turn
       // would be misleading context, not a real prior answer.
-      const history: ChatTurn[] = messagesRef.current
+      // Snapshotted now, before this turn's placeholders land in the ref: the
+      // seed a late-created conversation gets must not include the question
+      // the server is about to record itself.
+      const prior = messagesRef.current
+      const history: ChatTurn[] = prior
         .filter((m) => m.content.length > 0 && !m.error)
         .slice(-MAX_HISTORY_TURNS)
         .map((m) => ({ role: m.role, content: m.content }))
@@ -476,9 +512,8 @@ export function useChat(
         activeId = persist ? conversationIdRef.current : null
         if (persist && activeId === null && startConversation) {
           // Can't create one (agent down, etc.)? Still answer — statelessly.
-          activeId = await createConversation(controller.signal)
+          activeId = await createConversation(controller.signal, toSeed(prior))
           if (activeId !== null && !controller.signal.aborted) {
-            conversationLostRef.current = false
             setConversation(activeId)
           }
         }
@@ -505,9 +540,8 @@ export function useChat(
         })
         if (activeId !== null && res.status === 404) {
           // Expired (90-day retention) or deleted elsewhere — forget it, and
-          // start a new one on the next send so the chat keeps being saved.
+          // the next send re-creates it, seeded, so the chat keeps being saved.
           setConversation(null)
-          conversationLostRef.current = true
         }
         if (!res.ok || !res.body) {
           // One extraction feeds both fields: `content` is the copy, `error`
@@ -629,13 +663,12 @@ export function useChat(
         setIsLoading(false)
       }
     },
-    [context, persist, setConversation, recoverTurn],
+    [context, persist, saveOnFollowUp, setConversation, recoverTurn],
   )
 
   const newChat = useCallback(() => {
     loadSeqRef.current++
     abortRef.current?.abort()
-    conversationLostRef.current = false
     setConversation(null)
     setMessages([])
   }, [setConversation])
@@ -643,9 +676,8 @@ export function useChat(
   const loadTranscript = useCallback(
     (transcript: ChatMessage[], id?: string) => {
       loadSeqRef.current++
-      // A saved thread is continued by id; an unsaved one stays stateless,
-      // whatever came before it.
-      conversationLostRef.current = false
+      // A saved thread is continued by id; an unsaved one is saved, seeded,
+      // by the next send.
       setConversation(persist ? (id ?? null) : null)
       setMessages(transcript)
     },
@@ -671,7 +703,6 @@ export function useChat(
         if (!res.ok) return
         const json = (await res.json()) as { data: ConversationDetail }
         if (seq !== loadSeqRef.current) return
-        conversationLostRef.current = false
         setMessages(json.data.messages.map(turnToMessage))
         setConversation(json.data.id)
         if (json.data.pending) {

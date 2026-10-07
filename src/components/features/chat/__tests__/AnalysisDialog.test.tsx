@@ -58,6 +58,12 @@ function createCalls(): unknown[][] {
   )
 }
 
+/** Body of the nth conversation-create request. */
+function createBody(call: number): Record<string, unknown> {
+  const init = createCalls()[call][1] as RequestInit
+  return JSON.parse(init.body as string)
+}
+
 /** Body of the nth stream request. */
 function bodyOf(call: number): Record<string, unknown> {
   const init = streamCalls()[call][1] as RequestInit
@@ -130,7 +136,7 @@ describe("AnalysisDialog", () => {
     expect(streamCalls()).toHaveLength(2)
   })
 
-  it("answers a follow-up under the report, continuing the saved conversation", async () => {
+  it("answers a follow-up under the report, saving the conversation seeded with the analysis", async () => {
     answer(sseAnswer("AAPL looks Bullish"))
     answer(sseAnswer("About 20% of revenue."))
     const user = userEvent.setup()
@@ -145,6 +151,14 @@ describe("AnalysisDialog", () => {
     expect(await screen.findByText("About 20% of revenue.")).toBeInTheDocument()
     expect(screen.getByText("How exposed is it to China?")).toBeInTheDocument()
     expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
+    expect(createCalls()).toHaveLength(1)
+    expect(createBody(0)).toEqual({
+      turns: [
+        { role: "user", content: request.query, label: request.label },
+        { role: "assistant", content: "AAPL looks Bullish" },
+      ],
+    })
+    expect(bodyOf(0).conversationId).toBeUndefined()
     expect(bodyOf(1)).toMatchObject({
       query: "How exposed is it to China?",
       context: request.context,
@@ -153,29 +167,25 @@ describe("AnalysisDialog", () => {
     expect(bodyOf(1).history).toBeUndefined()
   })
 
-  it("saves the analysis to chat history under its label, leaving the current chat alone", async () => {
+  it("saves nothing when the analysis is only read, leaving the current chat alone", async () => {
     localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-current")
     answer(sseAnswer("AAPL looks Bullish"))
     renderDialog()
     await screen.findByText("AAPL looks Bullish")
 
-    expect(createCalls()).toHaveLength(1)
-    expect(bodyOf(0)).toMatchObject({
-      query: request.query,
-      label: request.label,
-      conversationId: "c-a",
-    })
+    expect(createCalls()).toHaveLength(0)
+    expect(bodyOf(0).conversationId).toBeUndefined()
+    expect(bodyOf(0).label).toBeUndefined()
     expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-current")
   })
 
-  it("keeps appending to the saved conversation when a cached thread is reopened", async () => {
+  it("saves a follow-up conversation without replacing the current chat", async () => {
+    localStorage.setItem(CONVERSATION_STORAGE_KEY, "c-current")
     answer(sseAnswer("AAPL looks Bullish"), sseAnswer("About 20% of revenue."))
     const user = userEvent.setup()
-    const first = renderDialog()
-    await screen.findByText("AAPL looks Bullish")
-    first.unmount()
-
     renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+
     await user.type(
       screen.getByPlaceholderText(/follow-up/i),
       "How exposed is it to China?{Enter}",
@@ -183,11 +193,38 @@ describe("AnalysisDialog", () => {
     await screen.findByText("About 20% of revenue.")
 
     expect(createCalls()).toHaveLength(1)
-    expect(bodyOf(1)).toMatchObject({
-      query: "How exposed is it to China?",
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-current")
+  })
+
+  it("keeps appending to the saved conversation when a cached thread is reopened", async () => {
+    answer(
+      sseAnswer("AAPL looks Bullish"),
+      sseAnswer("About 20% of revenue."),
+      sseAnswer("Mostly Asia."),
+    )
+    const user = userEvent.setup()
+    const first = renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+    await user.type(
+      screen.getByPlaceholderText(/follow-up/i),
+      "How exposed is it to China?{Enter}",
+    )
+    await screen.findByText("About 20% of revenue.")
+    first.unmount()
+
+    renderDialog()
+    await user.type(
+      screen.getByPlaceholderText(/follow-up/i),
+      "Which regions?{Enter}",
+    )
+    await screen.findByText("Mostly Asia.")
+
+    expect(createCalls()).toHaveLength(1)
+    expect(bodyOf(2)).toMatchObject({
+      query: "Which regions?",
       conversationId: "c-a",
     })
-    expect(bodyOf(1).history).toBeUndefined()
+    expect(bodyOf(2).history).toBeUndefined()
   })
 
   it("still runs the analysis, statelessly, when it can't be saved", async () => {
@@ -236,7 +273,7 @@ describe("AnalysisDialog", () => {
     expect(streamCalls()).toHaveLength(2)
   })
 
-  it("hands the thread, its context and its saved conversation to the chat FAB, then closes", async () => {
+  it("hands the unsaved thread and its context to the chat FAB, then closes", async () => {
     answer(sseAnswer("AAPL looks Bullish"))
     const opened: ChatOpenDetail[] = []
     const unsubscribe = onChatOpen((d) => opened.push(d))
@@ -250,7 +287,10 @@ describe("AnalysisDialog", () => {
 
     expect(opened).toHaveLength(1)
     expect(opened[0].context).toEqual(request.context)
-    expect(opened[0].conversationId).toBe("c-a")
+    // Nothing was asked beyond the analysis, so there is nothing saved yet;
+    // the FAB saves the thread, seeded, on its next send.
+    expect(opened[0].conversationId).toBeUndefined()
+    expect(createCalls()).toHaveLength(0)
     expect(opened[0].transcript?.map((m) => m.content)).toEqual([
       request.query,
       "AAPL looks Bullish",

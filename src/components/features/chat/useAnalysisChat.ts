@@ -53,9 +53,11 @@ export function analysisSucceeded(messages: ChatMessage[]): boolean {
  * the canned prompt once on mount. The TTL runs from when the analysis was
  * first requested, so follow-ups don't keep a stale report alive.
  *
- * Every run is saved to chat history as its own conversation, titled by its
- * label, without becoming the app's current chat; a reopened thread keeps
- * appending to it. If it can't be saved the analysis still runs, statelessly.
+ * An analysis nobody follows up on is not saved. The first follow-up saves
+ * the thread to chat history as its own conversation, seeded with the labelled
+ * opening prompt and the report, without becoming the app's current chat; a
+ * reopened thread keeps appending to it. If it can't be saved the follow-up
+ * still runs, statelessly.
  */
 export function useAnalysisChat(request: AnalysisRequest): UseChatReturn {
   const { cacheKey, query, label, context, ttlMs } = request
@@ -64,6 +66,7 @@ export function useAnalysisChat(request: AnalysisRequest): UseChatReturn {
     initialMessages: cached?.messages,
     persist: true,
     remember: false,
+    saveOnFollowUp: true,
     initialConversationId: cached?.conversationId ?? undefined,
   })
   const { messages, isLoading, sendMessage, conversationId } = chat
