@@ -745,6 +745,13 @@ describe("useChat with persisted conversations", () => {
     expect(result.current.messages).toEqual([])
   })
 
+  /** Parsed bodies of the conversation-create POSTs, in order. */
+  function createBodies(): { turns?: unknown[] }[] {
+    return mockFetch.mock.calls
+      .filter(([url, init]) => url === CONVERSATIONS && init?.method === "POST")
+      .map(([, init]) => JSON.parse(init?.body as string))
+  }
+
   it("starts a new conversation on the next send after the stream loses the current one", async () => {
     const ids = ["c-1", "c-2"]
     const streams = [() => json(404, {}), () => answer()]
@@ -773,7 +780,11 @@ describe("useChat with persisted conversations", () => {
     })
     expect(result.current.conversationId).toBe("c-2")
     expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-2")
-    // The transcript stays on screen; only the server-side thread is new.
+    // The re-created conversation carries the transcript, minus the failed answer.
+    expect(createBodies()[1].turns).toEqual([
+      { role: "user", content: "hello" },
+    ])
+    // The transcript stays on screen.
     expect(result.current.messages).toHaveLength(4)
     expect(result.current.messages[0].content).toBe("hello")
     expect(result.current.messages[3].content).toBe("ok")
@@ -802,8 +813,9 @@ describe("useChat with persisted conversations", () => {
     expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull()
   })
 
-  it("keeps a handed-over transcript stateless — threads history, creates nothing", async () => {
+  it("saves a handed-over transcript, seeded, on the next send", async () => {
     route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
       [`POST ${STREAM}`]: () => answer(),
     })
     const { result } = renderHook(() => useChat(undefined, { persist: true }))
@@ -813,13 +825,14 @@ describe("useChat with persisted conversations", () => {
         {
           id: "u1",
           role: "user",
-          content: "Asset Review for AAPL",
+          content: "Asset Review for ACME",
           timestamp: "2026-10-02T00:00:00Z",
+          label: "Asset Review: ACME",
         },
         {
           id: "a1",
           role: "assistant",
-          content: "## AAPL",
+          content: "## ACME",
           timestamp: "2026-10-02T00:00:01Z",
         },
       ]),
@@ -828,12 +841,135 @@ describe("useChat with persisted conversations", () => {
       await result.current.sendMessage("China exposure?")
     })
 
+    expect(createBodies()).toEqual([
+      {
+        turns: [
+          {
+            role: "user",
+            content: "Asset Review for ACME",
+            label: "Asset Review: ACME",
+          },
+          { role: "assistant", content: "## ACME" },
+        ],
+      },
+    ])
+    const body = streamBodies()[0]
+    expect(body.conversationId).toBe("c-new")
+    expect(body.history).toBeUndefined()
+    expect(result.current.conversationId).toBe("c-new")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBe("c-new")
+  })
+
+  it("excludes errored turns from the seed", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => answer(),
+    })
+    const { result } = renderHook(() => useChat(undefined, { persist: true }))
+
+    act(() =>
+      result.current.loadTranscript([
+        {
+          id: "u1",
+          role: "user",
+          content: "first question",
+          timestamp: "2026-10-02T00:00:00Z",
+        },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "The agent is busy.",
+          timestamp: "2026-10-02T00:00:01Z",
+          error: "provider-rate",
+        },
+        {
+          id: "u2",
+          role: "user",
+          content: "second question",
+          timestamp: "2026-10-02T00:00:02Z",
+          deepThink: true,
+        },
+        {
+          id: "a2",
+          role: "assistant",
+          content: "second answer",
+          timestamp: "2026-10-02T00:00:03Z",
+        },
+      ]),
+    )
+    await act(async () => {
+      await result.current.sendMessage("next")
+    })
+
+    expect(createBodies()[0].turns).toEqual([
+      { role: "user", content: "first question" },
+      { role: "user", content: "second question", deepThink: true },
+      { role: "assistant", content: "second answer" },
+    ])
+  })
+
+  it("with saveOnFollowUp, the opening send is stateless: no conversation is created and no label is sent", async () => {
+    route({ [`POST ${STREAM}`]: () => answer() })
+    const { result } = renderHook(() =>
+      useChat(undefined, { persist: true, saveOnFollowUp: true }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage(
+        "Canned prompt for ACME",
+        false,
+        false,
+        "Asset Review: ACME",
+      )
+    })
+
+    expect(createBodies()).toHaveLength(0)
     const body = streamBodies()[0]
     expect(body.conversationId).toBeUndefined()
-    expect(body.history).toEqual([
-      { role: "user", content: "Asset Review for AAPL" },
-      { role: "assistant", content: "## AAPL" },
+    expect(body.history).toBeUndefined()
+    expect(body.label).toBeUndefined()
+    expect(result.current.conversationId).toBeNull()
+    expect(result.current.messages[0].label).toBe("Asset Review: ACME")
+  })
+
+  it("with saveOnFollowUp, the first follow-up creates a conversation seeded with the opening exchange, then streams by id", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => answer(),
+    })
+    const { result } = renderHook(() =>
+      useChat(undefined, { persist: true, saveOnFollowUp: true }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage(
+        "Canned prompt for ACME",
+        false,
+        false,
+        "Asset Review: ACME",
+      )
+    })
+    await act(async () => {
+      await result.current.sendMessage("and the risks?")
+    })
+
+    expect(createBodies()).toEqual([
+      {
+        turns: [
+          {
+            role: "user",
+            content: "Canned prompt for ACME",
+            label: "Asset Review: ACME",
+          },
+          { role: "assistant", content: "ok" },
+        ],
+      },
     ])
+    const body = streamBodies()[1]
+    expect(body.query).toBe("and the risks?")
+    expect(body.conversationId).toBe("c-new")
+    expect(body.history).toBeUndefined()
+    expect(result.current.conversationId).toBe("c-new")
   })
 
   it("sends the label with a persisted send so the stored turn reads as it did on screen", async () => {
