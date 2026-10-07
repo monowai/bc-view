@@ -80,6 +80,10 @@ import { showPortfolioPicker } from "@lib/user/zenMode"
 /** Two decimals is the resolution money and weights are quoted at here. */
 const round2 = (value: number): number => Math.round(value * 100) / 100
 
+// Private and cash assets have no external market data to fetch.
+const hasMarketPrice = (market: string): boolean =>
+  market !== "PRIVATE" && market !== "CASH"
+
 const TradeInputForm: React.FC<{
   portfolio: Portfolio
   modalOpen: boolean
@@ -469,30 +473,68 @@ const TradeInputForm: React.FC<{
     if (positionQty > 0 && quantity === positionQty) setValue("quantity", 0)
   }
 
-  // Fetch price for selected asset
-  const fetchAssetPrice = async (
-    market: string,
-    assetCode: string,
-    asAt?: string,
-  ): Promise<number | null> => {
-    setIsFetchingPrice(true)
-    try {
-      const qs = asAt ? `?asAt=${encodeURIComponent(asAt)}` : ""
-      const response = await fetch(`/api/prices/${market}/${assetCode}${qs}`)
-      if (!response.ok) {
+  // Fetch price for selected asset. svc-data goes to the provider when it
+  // holds nothing for the asset, so a brand-new asset still gets a price.
+  const fetchAssetPrice = useCallback(
+    async (
+      market: string,
+      assetCode: string,
+      asAt?: string,
+    ): Promise<number | null> => {
+      setIsFetchingPrice(true)
+      try {
+        const qs = asAt ? `?asAt=${encodeURIComponent(asAt)}` : ""
+        const response = await fetch(`/api/prices/${market}/${assetCode}${qs}`)
+        if (!response.ok) {
+          return null
+        }
+        const data = await response.json()
+        if (data.data && data.data.length > 0) {
+          return data.data[0].close
+        }
         return null
+      } catch {
+        return null
+      } finally {
+        setIsFetchingPrice(false)
       }
-      const data = await response.json()
-      if (data.data && data.data.length > 0) {
-        return data.data[0].close
-      }
-      return null
-    } catch {
-      return null
-    } finally {
-      setIsFetchingPrice(false)
+    },
+    [],
+  )
+
+  // Opened for an asset BC has never priced (Asset Lookup → Trade), the form
+  // arrives with price 0 and nobody picks the asset from the dropdown, so the
+  // select handler's fetch never fires. Pull the provider price here instead.
+  const presetMarket = initialValues?.market
+  const presetAsset = initialValues?.asset
+  const presetPrice = initialValues?.price
+  useEffect(() => {
+    const unpriced =
+      modalOpen &&
+      !isEditMode &&
+      !!presetMarket &&
+      !!presetAsset &&
+      !presetPrice &&
+      hasMarketPrice(presetMarket)
+    if (!unpriced) return undefined
+    let cancelled = false
+    const tradeDate = getValues("tradeDate") || undefined
+    void fetchAssetPrice(presetMarket, presetAsset, tradeDate).then((p) => {
+      if (!cancelled && p !== null) setValue("price", p)
+    })
+    return () => {
+      cancelled = true
     }
-  }
+  }, [
+    modalOpen,
+    isEditMode,
+    presetMarket,
+    presetAsset,
+    presetPrice,
+    fetchAssetPrice,
+    getValues,
+    setValue,
+  ])
 
   // Handle asset selection
   const handleAssetSelect = async (
@@ -513,8 +555,7 @@ const TradeInputForm: React.FC<{
     // eslint-disable-next-line react-hooks/incompatible-library
     const market = option.market || watch("market")
     const assetCode = option.symbol || option.value
-    // Skip price fetching for private assets - they don't have external market data
-    if (market && assetCode && market !== "PRIVATE" && market !== "CASH") {
+    if (market && assetCode && hasMarketPrice(market)) {
       const tradeDate = watch("tradeDate") || undefined
       const fetchedPrice = await fetchAssetPrice(market, assetCode, tradeDate)
       if (fetchedPrice !== null) {

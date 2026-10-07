@@ -28,8 +28,8 @@ export default function TradeAssetAction({
   const { portfolios } = usePortfolios()
   const [phase, setPhase] = useState<Phase>({ kind: "idle" })
 
-  // Fresh trade: prime the asset + a BUY default. quantity/price are left at 0
-  // for the user to fill; the form fetches the live price when they pick a date.
+  // Fresh trade: prime the asset + a BUY default. quantity is left at 0 for
+  // the user to fill; price 0 tells the form to fetch the provider's latest.
   const initialValues: QuickSellData = {
     asset: asset.symbol,
     assetId: asset.assetId,
