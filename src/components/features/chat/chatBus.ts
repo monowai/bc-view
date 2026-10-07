@@ -29,9 +29,9 @@ interface ChatOpenPrompt extends ChatOpenBase {
  * thread was started with, used instead of the route's context until the
  * conversation is cleared. `conversationId` is the chat-history
  * conversation the thread is saved as; the FAB continues it as its current
- * chat, and without one the thread continues unsaved. Never combined with
- * `prompt`: a prompt sent in the same tick would read the pre-handover
- * history and context.
+ * chat, and without one the FAB saves the thread, seeded, on its next send.
+ * Never combined with `prompt`: a prompt sent in the same tick would read
+ * the pre-handover history and context.
  */
 interface ChatOpenThread extends ChatOpenBase {
   transcript: ChatMessage[]
