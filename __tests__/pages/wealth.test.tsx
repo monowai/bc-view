@@ -2,7 +2,10 @@ import React from "react"
 import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSwr from "swr"
+import type { NetWorth } from "types/beancounter"
 import type { IndependencePlan, RetirementPlan } from "types/independence"
+import type { WealthSummary } from "@lib/wealth/liquidityGroups"
+import { makeNetWorth } from "@test-fixtures/beancounter"
 
 // ── SWR: keyed by url so /api/independence/plans can be shaped per test ──────
 
@@ -38,18 +41,6 @@ jest.mock("@hooks/useFxRates", () => ({
   }),
 }))
 
-jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
-  usePrivateAssetConfigs: () => ({ configs: [], isLoading: false }),
-}))
-
-jest.mock("@components/features/wealth/useWealthSummary", () => ({
-  useWealthSummary: () => ({
-    totalValue: 0,
-    portfolios: [],
-    currencyTotals: {},
-  }),
-}))
-
 // `useFiProjectionSimple` receives the resolved plan — spied on so the
 // assertion doesn't depend on how IndependenceMetrics chooses to render it.
 const mockFiProjection = jest.fn()
@@ -71,7 +62,13 @@ jest.mock("@components/features/wealth/IndependenceMetrics", () => ({
 
 jest.mock("@components/features/wealth/WealthHeroSection", () => ({
   __esModule: true,
-  default: () => <div data-testid="hero" />,
+  default: ({ summary }: { summary: WealthSummary }) => (
+    <div data-testid="hero">
+      <span data-testid="total-value">{summary.totalValue}</span>
+      <span data-testid="gain-on-day">{summary.totalGainOnDay}</span>
+      <span data-testid="healthcare-reserve">{summary.healthcareReserve}</span>
+    </div>
+  ),
 }))
 jest.mock("@components/features/wealth/AssetAllocationCharts", () => ({
   __esModule: true,
@@ -151,11 +148,17 @@ const portfolio = {
   marketValue: 100_000,
 }
 
-/** Shape the SWR responses; only /api/independence/plans varies per test. */
-function mockSwr(phasePlans: RetirementPlan[]): void {
+/** Shape the SWR responses; /api/independence/plans and /api/net-worth vary per test. */
+function mockSwr(
+  phasePlans: RetirementPlan[],
+  netWorth: NetWorth = makeNetWorth(),
+): void {
   ;(useSwr as jest.Mock).mockImplementation((key: string | null) => {
     if (key === "/api/independence/plans") {
       return { data: { data: phasePlans }, error: null, isLoading: false }
+    }
+    if (typeof key === "string" && key.startsWith("/api/net-worth")) {
+      return { data: { data: netWorth }, error: null, isLoading: false }
     }
     if (typeof key === "string" && key.includes("/holdings/")) {
       return {
@@ -342,5 +345,56 @@ describe("/wealth — independence empty state", () => {
     expect(
       screen.queryByText("No independence plan yet"),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("/wealth — net worth headline", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockJourneys = []
+  })
+
+  it("renders the headline from the net-worth endpoint", () => {
+    // The persisted portfolio marketValue above is deliberately different
+    // from the endpoint's total: the page must show the server's number.
+    mockSwr(
+      [],
+      makeNetWorth({
+        totalValue: 123456,
+        gainOnDay: 789,
+        healthcareReserve: 4321,
+      }),
+    )
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("total-value")).toHaveTextContent("123456")
+    expect(screen.getByTestId("gain-on-day")).toHaveTextContent("789")
+    expect(screen.getByTestId("healthcare-reserve")).toHaveTextContent("4321")
+  })
+
+  it("asks svc-position for today's net worth in the display currency", () => {
+    mockSwr([])
+
+    render(<WealthPage />)
+
+    const keys = (useSwr as jest.Mock).mock.calls.map((call) => call[0])
+    expect(keys).toContain("/api/net-worth?asAt=today&currency=USD")
+  })
+
+  it("shows the loader until the net worth arrives", () => {
+    mockSwr([])
+    const base = (useSwr as jest.Mock).getMockImplementation() as (
+      key: string | null,
+    ) => unknown
+    ;(useSwr as jest.Mock).mockImplementation((key: string | null) =>
+      typeof key === "string" && key.startsWith("/api/net-worth")
+        ? { data: undefined, error: null, isLoading: true }
+        : base(key),
+    )
+
+    render(<WealthPage />)
+
+    expect(screen.queryByTestId("hero")).not.toBeInTheDocument()
   })
 })

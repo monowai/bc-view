@@ -21,10 +21,6 @@ jest.mock("@hooks/useFxRates", () => ({
   }),
 }))
 
-jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
-  usePrivateAssetConfigs: () => ({ configs: [] }),
-}))
-
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -58,7 +54,7 @@ function makePortfolio(id: string, code: string): StubPortfolio {
   return { id, code, base: usd, currency: usd, marketValue: 10000 }
 }
 
-// SWR call ordering inside useNetWorthData (with useFxRates + usePrivateAssetConfigs mocked):
+// SWR call ordering inside useNetWorthData (with useFxRates mocked):
 //   index 0 → portfoliosKey (portfolios)
 //   index 1 → holdingKeyUrl (aggregated holdings)
 //   index 2 → ccyKey (currencies)

@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Portfolio } from "types/beancounter"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { useNetWorthData } from "@components/features/wealth/useNetWorthData"
-import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
+import { useNetWorth } from "@components/features/wealth/useNetWorth"
+import {
+  EMPTY_WEALTH_SUMMARY,
+  toWealthSummary,
+} from "@lib/wealth/wealthSummary"
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
 import Alert from "@components/ui/Alert"
@@ -139,12 +143,12 @@ const TREATMENT_BUTTON_CLASS =
  * Every write lands on the active plan (`PATCH /independence-plans/{id}`), and
  * switching plan re-reads that plan's definition.
  *
- * Holdings scoping: only **excluded** ids leave the aggregated-holdings fetch.
- * A liquidated portfolio is still the user's money — svc-retire converts it to
- * cash — so it stays in `ids=`, otherwise the charts would disagree with the
- * headline. (svc-retire#250: the backend breakdown still reports a real-estate
- * slice for a liquidated portfolio though the totals are right. Known gap —
- * not patched over here.)
+ * Scoping: only **excluded** ids leave the net-worth and aggregated-holdings
+ * requests. A liquidated portfolio is still the user's money — svc-retire
+ * converts it to cash — so it stays in `ids=`, otherwise the charts would
+ * disagree with the headline. (svc-retire#250: the backend breakdown still
+ * reports a real-estate slice for a liquidated portfolio though the totals
+ * are right. Known gap — not patched over here.)
  */
 export default function NetWorthTab(): React.ReactElement {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -225,26 +229,25 @@ export default function NetWorthTab(): React.ReactElement {
     displayCurrency,
     setDisplayCurrency,
     fxRates,
-    customAssetTotals,
-    healthcareReserveTotals,
-    isLoading,
+    isLoading: dataLoading,
   } = useNetWorthData(excludedIds)
 
-  // Only exclusions leave the pot. A liquidated portfolio's value still
-  // belongs to the user, as cash.
-  const includedPortfolios: Portfolio[] = useMemo(
-    () => portfolios.filter((p) => !excludedSet.has(p.id)),
-    [portfolios, excludedSet],
+  // The headline is svc-position's, in the display currency, scoped to the
+  // portfolios this plan keeps. Only exclusions leave the pot: a liquidated
+  // portfolio's value still belongs to the user, as cash.
+  const { netWorth, isLoading: netWorthLoading } = useNetWorth(
+    displayCurrency,
+    excludedIds,
+    portfolios,
   )
-
-  const summary = useWealthSummary(
-    includedPortfolios,
-    fxRates,
-    sortConfig,
-    holdingsData,
-    customAssetTotals,
-    healthcareReserveTotals,
+  // No request goes out when every portfolio is excluded (or there are
+  // none), so an absent payload is an empty pot, not a pending one.
+  const summary = useMemo(
+    () =>
+      netWorth ? toWealthSummary(netWorth, sortConfig) : EMPTY_WEALTH_SUMMARY,
+    [netWorth, sortConfig],
   )
+  const isLoading = dataLoading || netWorthLoading
 
   // Gates the manual assets editor — only shown when no balances exist
   const portfoliosWithBalance: Portfolio[] = useMemo(
@@ -567,7 +570,7 @@ export default function NetWorthTab(): React.ReactElement {
       />
 
       {/* Per-portfolio breakdown */}
-      {includedPortfolios.length > 1 && (
+      {summary.portfolioBreakdown.length > 1 && (
         <PortfolioDetailsTable
           summary={summary}
           sortConfig={sortConfig}

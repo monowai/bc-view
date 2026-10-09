@@ -31,9 +31,12 @@ import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCh
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
 import QuickActionCards from "@components/features/wealth/QuickActionCards"
 import WealthPerformanceChart from "@components/features/wealth/WealthPerformanceChart"
-import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
+import { useNetWorth } from "@components/features/wealth/useNetWorth"
+import {
+  EMPTY_WEALTH_SUMMARY,
+  toWealthSummary,
+} from "@lib/wealth/wealthSummary"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
 
 type SortConfig = {
@@ -123,74 +126,14 @@ function WealthDashboard(): React.ReactElement {
   )
   const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
 
-  // Composite assets (CPF / pensions) have two cases:
-  //   1. Parent trn lives in a portfolio (CompositeValuation already rolls
-  //      sub-account balances into portfolio.marketValue) — adding them
-  //      again here would double-count, which is exactly the bug Mary's
-  //      account exposed (wealth 644k vs portfolio 363k).
-  //   2. Standalone — config exists but no parent trn → portfolios miss
-  //      the value, so we top it up via customAssetTotals.
-  // CPF MA (Medisave) is statutory healthcare reserve, NOT spendable
-  // wealth: it's always tracked separately under healthcareReserveTotals,
-  // surfaced as its own tile, and netted out of Net Worth.
-  const { configs: privateAssetConfigs } = usePrivateAssetConfigs()
-  const portfolioAssetIds = useMemo(() => {
-    const ids = new Set<string>()
-    if (holdingsData?.positions) {
-      Object.values(holdingsData.positions).forEach((position) => {
-        const id = position.asset?.id
-        if (id) ids.add(id)
-      })
-    }
-    return ids
-  }, [holdingsData])
-
-  const { customAssetTotals, healthcareReserveTotals } = useMemo(() => {
-    const customTotals: Record<string, number> = {}
-    const reserveTotals: Record<string, number> = {}
-    privateAssetConfigs.forEach((config) => {
-      const subAccounts = config.subAccounts ?? []
-      if (subAccounts.length === 0) return
-      const currency = config.rentalCurrency || "USD"
-      const parentInPortfolio = portfolioAssetIds.has(config.assetId)
-
-      let nonReserve = 0
-      let reserve = 0
-      subAccounts.forEach((sa) => {
-        const balance = sa.balance || 0
-        if (balance === 0) return
-        if (sa.code === "MA") {
-          reserve += balance
-        } else {
-          nonReserve += balance
-        }
-      })
-
-      if (reserve > 0) {
-        reserveTotals[currency] = (reserveTotals[currency] || 0) + reserve
-      }
-      // Only add non-reserve sub-account balances when the parent
-      // composite asset has NO trn in any portfolio — otherwise the
-      // parent BALANCE trn already includes them via composite valuation.
-      if (!parentInPortfolio && nonReserve > 0) {
-        customTotals[currency] = (customTotals[currency] || 0) + nonReserve
-      }
-    })
-    return {
-      customAssetTotals: customTotals,
-      healthcareReserveTotals: reserveTotals,
-    }
-  }, [privateAssetConfigs, portfolioAssetIds])
-
-  // FX rates for converting portfolio values to display currency
+  // FX rates for the allocation chart slices (the headline arrives already
+  // converted by svc-position)
   const sourceCurrencyCodes = useMemo(
     () => [
       ...portfolios.map((p) => p.base.code),
       ...portfolios.map((p) => p.currency.code),
-      ...Object.keys(customAssetTotals),
-      ...Object.keys(healthcareReserveTotals),
     ],
-    [portfolios, customAssetTotals, healthcareReserveTotals],
+    [portfolios],
   )
   const { displayCurrency, setDisplayCurrency, fxRates, fxReady } = useFxRates(
     currencies,
@@ -221,14 +164,14 @@ function WealthDashboard(): React.ReactElement {
     })
   }
 
-  // Calculate wealth summary
-  const summary = useWealthSummary(
-    portfolios,
-    fxRates,
-    sortConfig,
-    holdingsData,
-    customAssetTotals,
-    healthcareReserveTotals,
+  // The headline is svc-position's, in the display currency. Standalone
+  // composites (a config-only CPF) and the healthcare reserve are already
+  // folded in there; nothing is re-derived from holdings here.
+  const { netWorth, isLoading: netWorthLoading } = useNetWorth(displayCurrency)
+  const summary = useMemo(
+    () =>
+      netWorth ? toWealthSummary(netWorth, sortConfig) : EMPTY_WEALTH_SUMMARY,
+    [netWorth, sortConfig],
   )
 
   // Calculate asset breakdown from holdings
@@ -247,16 +190,15 @@ function WealthDashboard(): React.ReactElement {
     return errorOut("Error retrieving portfolios", portfolioError)
   }
 
-  // Wait for aggregated holdings too: customAssetTotals' double-count guard
-  // keys off portfolioAssetIds (derived from holdings). Rendering before
-  // holdings arrive counts a composite (e.g. CPF) that the portfolio already
-  // includes, so the headline value flickers high then corrects down once
-  // holdings load. Gating here renders the final value once.
-  if (portfolioLoading || !fxReady || holdingsLoading) {
+  // Render the headline once, when the server has it — never a client-side
+  // approximation that corrects itself a beat later.
+  if (portfolioLoading || !fxReady || netWorthLoading) {
     return rootLoader("Loading...")
   }
 
-  if (portfolios.length === 0 && Object.keys(customAssetTotals).length === 0) {
+  // A config-only composite (e.g. a CPF with no portfolio trn) still counts
+  // as wealth, so the empty state keys off the server total, not the list.
+  if (portfolios.length === 0 && summary.totalValue === 0) {
     return (
       <>
         <Head>
