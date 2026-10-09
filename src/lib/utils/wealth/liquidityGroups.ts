@@ -33,33 +33,6 @@ export function isLiquidPortfolio(portfolio: Portfolio): boolean {
   return true
 }
 
-export function mapToLiquidityGroup(categoryName: string): string {
-  switch (categoryName) {
-    case "Equity":
-    case "Exchange Traded Fund":
-    case "Mutual Fund":
-      return "Investment"
-    case "Cash":
-    case "Bank Account":
-    case "Trade":
-      return "Cash"
-    case "Real Estate":
-    case "RE":
-    case "Property":
-      return "Property"
-    case "Pension":
-    case "Insurance":
-    case "Defined Contribution":
-    case "Superannuation":
-    case "Annuity":
-    case "Policy":
-    case "Policies":
-      return "Retirement"
-    default:
-      return "Other"
-  }
-}
-
 export interface WealthSummary {
   totalValue: number
   totalGainOnDay: number
@@ -69,6 +42,8 @@ export interface WealthSummary {
   // sibling tile rather than rolling it into Net Worth. Already excluded
   // from `totalValue`.
   healthcareReserve: number
+  // Classification keys come from svc-position: Investment | Cash |
+  // Property | Retirement | Other (see LIQUIDITY_COLORS).
   classificationBreakdown: {
     classification: string
     value: number

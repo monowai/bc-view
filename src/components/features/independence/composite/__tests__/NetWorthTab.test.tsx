@@ -5,6 +5,7 @@ import type { Portfolio } from "types/beancounter"
 import type { IndependencePlan } from "types/independence"
 import type { WealthSummary } from "@lib/wealth/liquidityGroups"
 import type { UseNetWorthDataResult } from "@components/features/wealth/useNetWorthData"
+import { makeNetWorth } from "@test-fixtures/beancounter"
 
 // ── The active independence plan (journey) ───────────────────────────────────
 
@@ -66,8 +67,6 @@ const defaultNetWorthData: UseNetWorthDataResult = {
   setDisplayCurrency: jest.fn(),
   fxRates: { USD: 1 },
   fxReady: true,
-  customAssetTotals: {},
-  healthcareReserveTotals: {},
   isLoading: false,
 }
 
@@ -80,39 +79,25 @@ jest.mock("@components/features/wealth/useNetWorthData", () => ({
   useNetWorthData: (...args: unknown[]) => mockUseNetWorthData(...args),
 }))
 
-// ── useWealthSummary — spy to assert filtered inputs ─────────────────────────
+// ── useNetWorth — the server-computed headline ──────────────────────────────
 
-const mockWealthSummaryFn = jest.fn()
+const mockUseNetWorth = jest.fn()
 
-jest.mock("@components/features/wealth/useWealthSummary", () => ({
-  useWealthSummary: (...args: unknown[]) => mockWealthSummaryFn(...args),
+jest.mock("@components/features/wealth/useNetWorth", () => ({
+  useNetWorth: (...args: unknown[]) => mockUseNetWorth(...args),
 }))
-
-function makeSummary(totalValue: number): WealthSummary {
-  return {
-    totalValue,
-    totalGainOnDay: 0,
-    portfolioCount: 1,
-    healthcareReserve: 0,
-    classificationBreakdown: [],
-    portfolioBreakdown: [],
-  }
-}
 
 // ── Wealth display components — stub so tests don't need full dep tree ───────
 
-jest.mock("@components/features/wealth/WealthHeroSection", () => ({
-  __esModule: true,
-  default: ({ summary }: { summary: WealthSummary }) => (
-    <div data-testid="wealth-hero">
-      <span data-testid="total-value">{summary.totalValue}</span>
-    </div>
-  ),
-}))
-
 jest.mock("@components/features/wealth/AssetAllocationCharts", () => ({
   __esModule: true,
-  default: () => <div data-testid="asset-allocation-charts" />,
+  default: ({ summary }: { summary: WealthSummary }) => (
+    <div data-testid="asset-allocation-charts">
+      <span data-testid="total-value">{summary.totalValue}</span>
+      <span data-testid="gain-on-day">{summary.totalGainOnDay}</span>
+      <span data-testid="healthcare-reserve">{summary.healthcareReserve}</span>
+    </div>
+  ),
 }))
 
 jest.mock("@components/features/wealth/PortfolioDetailsTable", () => ({
@@ -162,7 +147,10 @@ describe("NetWorthTab", () => {
       portfolios: [mockPortfolio1, mockPortfolio2],
     }
     mockUseNetWorthData.mockImplementation(() => mockNetWorthData)
-    mockWealthSummaryFn.mockReturnValue(makeSummary(150000))
+    mockUseNetWorth.mockImplementation(() => ({
+      netWorth: makeNetWorth(),
+      isLoading: false,
+    }))
   })
 
   afterEach(() => {
@@ -532,23 +520,71 @@ describe("NetWorthTab", () => {
     })
   })
 
-  describe("wealth summary filtering", () => {
-    it("excluded portfolios leave the summary", () => {
+  describe("net worth headline", () => {
+    it("renders the headline from the net-worth endpoint", () => {
+      mockUseNetWorth.mockImplementation(() => ({
+        netWorth: makeNetWorth({
+          totalValue: 123456,
+          gainOnDay: 789,
+          healthcareReserve: 4321,
+        }),
+        isLoading: false,
+      }))
+      render(<NetWorthTab />)
+      expect(screen.getByTestId("total-value")).toHaveTextContent("123456")
+      expect(screen.getByTestId("gain-on-day")).toHaveTextContent("789")
+      expect(screen.getByTestId("healthcare-reserve")).toHaveTextContent("4321")
+    })
+
+    it("asks svc-position in the display currency, scoped by the plan's exclusions", () => {
       mockActivePlan = makePlan({
         excludedPortfolioIds: JSON.stringify(["pf-1"]),
       })
       render(<NetWorthTab />)
-      const portfoliosArg = mockWealthSummaryFn.mock.calls[0][0] as Portfolio[]
-      expect(portfoliosArg.map((p) => p.id)).toEqual(["pf-2"])
+      expect(mockUseNetWorth).toHaveBeenCalledWith(
+        defaultNetWorthData.displayCurrency,
+        ["pf-1"],
+        [mockPortfolio1, mockPortfolio2],
+      )
     })
 
-    it("liquidated portfolios stay in the summary", () => {
+    it("keeps liquidated portfolios in the net-worth request", () => {
       mockActivePlan = makePlan({
         liquidatedPortfolioIds: JSON.stringify(["pf-1"]),
       })
       render(<NetWorthTab />)
-      const portfoliosArg = mockWealthSummaryFn.mock.calls[0][0] as Portfolio[]
-      expect(portfoliosArg.map((p) => p.id)).toEqual(["pf-1", "pf-2"])
+      expect(mockUseNetWorth).toHaveBeenCalledWith(
+        defaultNetWorthData.displayCurrency,
+        [],
+        [mockPortfolio1, mockPortfolio2],
+      )
+    })
+
+    it("renders a spinner while the net worth is still loading", () => {
+      mockUseNetWorth.mockImplementation(() => ({
+        netWorth: undefined,
+        isLoading: true,
+      }))
+      render(<NetWorthTab />)
+      expect(screen.getByTestId("spinner")).toBeInTheDocument()
+      expect(
+        screen.queryByTestId("asset-allocation-charts"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("shows an error state when the net-worth request fails", () => {
+      // SWR leaves data undefined and isLoading false on failure — that must
+      // surface as an error, never as a silent zero headline.
+      mockUseNetWorth.mockImplementation(() => ({
+        netWorth: undefined,
+        isLoading: false,
+        error: new Error("svc-position unavailable"),
+      }))
+      render(<NetWorthTab />)
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "svc-position unavailable",
+      )
+      expect(screen.queryByTestId("total-value")).not.toBeInTheDocument()
     })
   })
 

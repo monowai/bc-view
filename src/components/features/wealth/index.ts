@@ -6,4 +6,4 @@ export { default as PortfolioDetailsTable } from "./PortfolioDetailsTable"
 export { default as QuickActionCards } from "./QuickActionCards"
 
 // Hooks
-export { useWealthSummary } from "./useWealthSummary"
+export { useNetWorth } from "./useNetWorth"

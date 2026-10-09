@@ -1308,3 +1308,40 @@ export interface ApiKeyCreatedResponse {
 export interface ApiKeyResponse {
   data: ApiKey
 }
+
+// ── Net worth (svc-position GET /net-worth) ─────────────────────────────────
+// The headline is computed server-side: every value is already in `currency`.
+// The browser renders it and must not re-derive it from holdings.
+
+export interface NetWorthClassification {
+  classification: string
+  value: number
+  percentage: number
+}
+
+export interface NetWorthPortfolio {
+  id: string
+  code: string
+  name: string
+  value: number
+  percentage: number
+  irr: number
+}
+
+export interface NetWorth {
+  asAt: string
+  currency: string
+  totalValue: number
+  holdingsValue: number
+  standaloneCompositeValue: number
+  healthcareReserve: number
+  gainOnDay: number
+  portfolioCount: number
+  /** Sorted by value, descending. */
+  classificationBreakdown: NetWorthClassification[]
+  portfolios: NetWorthPortfolio[]
+}
+
+export interface NetWorthResponse {
+  data: NetWorth
+}
