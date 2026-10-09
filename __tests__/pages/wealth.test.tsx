@@ -397,4 +397,45 @@ describe("/wealth — net worth headline", () => {
 
     expect(screen.queryByTestId("hero")).not.toBeInTheDocument()
   })
+
+  it("keeps the spinner until holdings have loaded", () => {
+    // The headline lands before the holdings call; the charts must not get
+    // a chance to render "No allocation data available" in between.
+    mockSwr([])
+    const base = (useSwr as jest.Mock).getMockImplementation() as (
+      key: string | null,
+    ) => unknown
+    ;(useSwr as jest.Mock).mockImplementation((key: string | null) =>
+      typeof key === "string" && key.includes("/holdings/")
+        ? { data: undefined, error: null, isLoading: true }
+        : base(key),
+    )
+
+    render(<WealthPage />)
+
+    expect(screen.queryByTestId("hero")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("charts")).not.toBeInTheDocument()
+  })
+
+  it("shows an error state when the net-worth request fails", () => {
+    mockSwr([])
+    const base = (useSwr as jest.Mock).getMockImplementation() as (
+      key: string | null,
+    ) => unknown
+    ;(useSwr as jest.Mock).mockImplementation((key: string | null) =>
+      typeof key === "string" && key.startsWith("/api/net-worth")
+        ? {
+            data: undefined,
+            error: new Error("svc-position unavailable"),
+            isLoading: false,
+          }
+        : base(key),
+    )
+
+    render(<WealthPage />)
+
+    expect(screen.getByText("Error retrieving net worth")).toBeInTheDocument()
+    expect(screen.queryByTestId("hero")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("total-value")).not.toBeInTheDocument()
+  })
 })

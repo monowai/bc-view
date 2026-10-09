@@ -167,7 +167,11 @@ function WealthDashboard(): React.ReactElement {
   // The headline is svc-position's, in the display currency. Standalone
   // composites (a config-only CPF) and the healthcare reserve are already
   // folded in there; nothing is re-derived from holdings here.
-  const { netWorth, isLoading: netWorthLoading } = useNetWorth(displayCurrency)
+  const {
+    netWorth,
+    isLoading: netWorthLoading,
+    error: netWorthError,
+  } = useNetWorth(displayCurrency)
   const summary = useMemo(
     () =>
       netWorth ? toWealthSummary(netWorth, sortConfig) : EMPTY_WEALTH_SUMMARY,
@@ -189,10 +193,14 @@ function WealthDashboard(): React.ReactElement {
   if (portfolioError) {
     return errorOut("Error retrieving portfolios", portfolioError)
   }
+  if (netWorthError) {
+    return errorOut("Error retrieving net worth", netWorthError)
+  }
 
   // Render the headline once, when the server has it — never a client-side
-  // approximation that corrects itself a beat later.
-  if (portfolioLoading || !fxReady || netWorthLoading) {
+  // approximation that corrects itself a beat later. Holdings stay in the
+  // gate so the allocation charts never read an in-flight pot as empty.
+  if (portfolioLoading || holdingsLoading || !fxReady || netWorthLoading) {
     return rootLoader("Loading...")
   }
 

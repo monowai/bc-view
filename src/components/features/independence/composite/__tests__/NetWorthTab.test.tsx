@@ -571,6 +571,21 @@ describe("NetWorthTab", () => {
         screen.queryByTestId("asset-allocation-charts"),
       ).not.toBeInTheDocument()
     })
+
+    it("shows an error state when the net-worth request fails", () => {
+      // SWR leaves data undefined and isLoading false on failure — that must
+      // surface as an error, never as a silent zero headline.
+      mockUseNetWorth.mockImplementation(() => ({
+        netWorth: undefined,
+        isLoading: false,
+        error: new Error("svc-position unavailable"),
+      }))
+      render(<NetWorthTab />)
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "svc-position unavailable",
+      )
+      expect(screen.queryByTestId("total-value")).not.toBeInTheDocument()
+    })
   })
 
   describe("switching plan", () => {

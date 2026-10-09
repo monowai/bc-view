@@ -77,7 +77,7 @@ export function useNetWorthData(
     return `/api/holdings/aggregated?${params.toString()}`
   }, [excludedPortfolioIds, portfolios])
 
-  const { data: holdingsResponse } = useSwr<{
+  const { data: holdingsResponse, isLoading: holdingsLoading } = useSwr<{
     data: HoldingContract
   }>(holdingKeyUrl, holdingKeyUrl ? simpleFetcher(holdingKeyUrl) : null, {
     revalidateOnFocus: false,
@@ -109,9 +109,10 @@ export function useNetWorthData(
     sourceCurrencyCodes,
   )
 
-  // Holdings only feed the allocation charts now, so they are not gated on:
-  // the headline is the server's and renders as soon as it arrives.
-  const isLoading = portfolioLoading || !fxReady
+  // Holdings only feed the allocation charts, but they stay in the gate: the
+  // charts read an absent payload as "no allocation data", which must never
+  // show for a pot that is merely still in flight.
+  const isLoading = portfolioLoading || holdingsLoading || !fxReady
 
   return {
     portfolios,

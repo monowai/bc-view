@@ -11,6 +11,8 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 export interface UseNetWorthResult {
   netWorth: NetWorth | undefined
   isLoading: boolean
+  /** Set when the request failed; `netWorth` is then undefined and not loading. */
+  error: Error | undefined
 }
 
 /**
@@ -51,7 +53,7 @@ export function useNetWorth(
     return `/api/net-worth?${params.toString()}`
   }, [displayCurrency, excludedPortfolioIds, portfolios])
 
-  const { data, isLoading } = useSwr<NetWorthResponse>(
+  const { data, isLoading, error } = useSwr<NetWorthResponse, Error>(
     key,
     key ? simpleFetcher(key) : null,
     {
@@ -61,5 +63,5 @@ export function useNetWorth(
     },
   )
 
-  return { netWorth: data?.data, isLoading }
+  return { netWorth: data?.data, isLoading, error }
 }

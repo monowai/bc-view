@@ -91,4 +91,14 @@ describe("useNetWorth", () => {
     expect(result.current.netWorth).toBeUndefined()
     expect(result.current.isLoading).toBe(true)
   })
+
+  it("exposes the fetch error", () => {
+    // A failed request must not read as an empty pot: callers need the
+    // error to show something other than a zero headline.
+    const error = new Error("svc-position unavailable")
+    stubSwr({ data: undefined, isLoading: false, error })
+    const { result } = renderHook(() => useNetWorth(SGD))
+    expect(result.current.error).toBe(error)
+    expect(result.current.netWorth).toBeUndefined()
+  })
 })

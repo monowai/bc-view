@@ -235,13 +235,16 @@ export default function NetWorthTab(): React.ReactElement {
   // The headline is svc-position's, in the display currency, scoped to the
   // portfolios this plan keeps. Only exclusions leave the pot: a liquidated
   // portfolio's value still belongs to the user, as cash.
-  const { netWorth, isLoading: netWorthLoading } = useNetWorth(
-    displayCurrency,
-    excludedIds,
-    portfolios,
-  )
-  // No request goes out when every portfolio is excluded (or there are
-  // none), so an absent payload is an empty pot, not a pending one.
+  const {
+    netWorth,
+    isLoading: netWorthLoading,
+    error: netWorthError,
+  } = useNetWorth(displayCurrency, excludedIds, portfolios)
+  // An absent payload is an empty pot only once loading has settled — SWR
+  // also leaves `data` undefined while a request is in flight. The spinner
+  // gate below (which includes netWorthLoading) renders first, and a failed
+  // request is surfaced as an error, so this fallback is only ever shown
+  // when no request went out: every portfolio excluded, or none at all.
   const summary = useMemo(
     () =>
       netWorth ? toWealthSummary(netWorth, sortConfig) : EMPTY_WEALTH_SUMMARY,
@@ -373,6 +376,20 @@ export default function NetWorthTab(): React.ReactElement {
     return (
       <div className="flex items-center justify-center py-12">
         <Spinner label="Loading wealth data..." size="lg" />
+      </div>
+    )
+  }
+
+  // A failed headline request is an error, not a zero pot.
+  if (netWorthError) {
+    return (
+      <div className="py-6">
+        <Alert>
+          {toErrorMessage(
+            netWorthError,
+            "Failed to load this plan's net worth",
+          )}
+        </Alert>
       </div>
     )
   }

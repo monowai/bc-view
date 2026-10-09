@@ -8,15 +8,26 @@ export type SortConfig = {
 
 type PortfolioRow = WealthSummary["portfolioBreakdown"][number]
 
-/** What a view renders before the endpoint answers, or when nothing is in scope. */
-export const EMPTY_WEALTH_SUMMARY: WealthSummary = {
+/** A frozen empty row set, typed as the mutable array its consumers expect. */
+function noRows<T>(): T[] {
+  return Object.freeze([]) as unknown as T[]
+}
+
+/**
+ * What a view renders once loading has settled with nothing in scope. Shared
+ * by every consumer, so frozen (arrays included) — an in-place sort or push
+ * would otherwise leak across renders and components.
+ */
+const emptyWealthSummary: WealthSummary = {
   totalValue: 0,
   totalGainOnDay: 0,
   portfolioCount: 0,
   healthcareReserve: 0,
-  classificationBreakdown: [],
-  portfolioBreakdown: [],
+  classificationBreakdown: noRows(),
+  portfolioBreakdown: noRows(),
 }
+export const EMPTY_WEALTH_SUMMARY: WealthSummary =
+  Object.freeze(emptyWealthSummary)
 
 /**
  * Orders the portfolio rows for the details table. Lifted unchanged from the

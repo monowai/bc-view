@@ -150,4 +150,17 @@ describe("useNetWorthData — holdings URL scoping", () => {
       expect(ids).toContain("pf-2")
     })
   })
+
+  describe("loading gate", () => {
+    it("keeps loading until holdings have loaded", () => {
+      // The allocation charts read holdings; releasing the gate early shows
+      // "No allocation data available" for a pot that is merely in flight.
+      buildSwrMock({
+        0: { data: { data: [makePortfolio("pf-1", "ALPHA")] } },
+        1: { data: undefined, isLoading: true },
+      })
+      const { result } = renderHook(() => useNetWorthData())
+      expect(result.current.isLoading).toBe(true)
+    })
+  })
 })

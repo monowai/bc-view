@@ -1,4 +1,4 @@
-import { toWealthSummary } from "../wealthSummary"
+import { EMPTY_WEALTH_SUMMARY, toWealthSummary } from "../wealthSummary"
 import { makeNetWorth } from "@test-fixtures/beancounter"
 
 const NO_SORT = { key: null as string | null, direction: "asc" as const }
@@ -138,5 +138,21 @@ describe("toWealthSummary", () => {
         "zed",
       ])
     })
+
+    it("does not mutate its input when sorting", () => {
+      const before = netWorth.portfolios.map((p) => p.code)
+      toWealthSummary(netWorth, { key: "code", direction: "desc" })
+      expect(netWorth.portfolios.map((p) => p.code)).toEqual(before)
+    })
+  })
+})
+
+describe("EMPTY_WEALTH_SUMMARY", () => {
+  it("is frozen, arrays included, so no consumer can mutate the shared empty pot", () => {
+    expect(Object.isFrozen(EMPTY_WEALTH_SUMMARY)).toBe(true)
+    expect(Object.isFrozen(EMPTY_WEALTH_SUMMARY.portfolioBreakdown)).toBe(true)
+    expect(Object.isFrozen(EMPTY_WEALTH_SUMMARY.classificationBreakdown)).toBe(
+      true,
+    )
   })
 })
