@@ -109,7 +109,11 @@ async function fetchWaharoaStatus(
 
   let body: LiteLlmReadiness = {}
   try {
-    body = (await response.json()) as LiteLlmReadiness
+    const parsed: unknown = await response.json()
+    body =
+      parsed !== null && typeof parsed === "object"
+        ? (parsed as LiteLlmReadiness)
+        : {}
   } catch {
     result.error = `HTTP ${response.status}: non-JSON readiness response`
   }

@@ -275,6 +275,22 @@ describe("GET /api/admin/services", () => {
     expect(waharoa?.error).toBe("HTTP 502: non-JSON readiness response")
   })
 
+  it.each([null, "ok", 42])(
+    "reports waharoa DOWN without throwing when the JSON body is %p",
+    async (payload) => {
+      mockGetWaharoaUrl.mockReturnValue("http://waharoa.test:4000")
+      mockActuatorFetches({
+        "http://waharoa.test:4000/health/readiness": { body: payload },
+      })
+
+      const services = await callAsAdmin()
+      const waharoa = services.find((s) => s.name === "waharoa")
+
+      expect(waharoa?.health?.status).toBe("DOWN")
+      expect(waharoa?.error).toBe("HTTP 200: status=? db=?")
+    },
+  )
+
   it("reports waharoa UNREACHABLE when the probe throws", async () => {
     mockGetWaharoaUrl.mockReturnValue("http://waharoa.test:4000")
     mockActuatorFetches()
