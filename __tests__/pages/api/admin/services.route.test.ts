@@ -33,6 +33,7 @@ jest.mock("@utils/api/bcConfig", () => ({
   getEventActuatorUrl: () => "http://event.test",
   getRetireActuatorUrl: () => "http://retire.test",
   getRebalanceActuatorUrl: () => "http://rebalance.test",
+  getAgentActuatorUrl: () => "http://agent.test",
   getWaharoaUrl: () => mockGetWaharoaUrl(),
   getWaharoaPublicUrl: () => mockGetWaharoaPublicUrl(),
 }))
@@ -76,7 +77,7 @@ interface Route {
 }
 
 function mockActuatorFetches(extra: Record<string, Route> = {}): void {
-  const services = ["data", "position", "event", "retire", "rebalance"]
+  const services = ["data", "position", "event", "retire", "rebalance", "agent"]
   const routes: Record<string, Route> = {}
   for (const svc of services) {
     routes[`http://${svc}.test/actuator/health`] = { body: { status: "UP" } }
@@ -177,8 +178,18 @@ describe("GET /api/admin/services", () => {
     )
 
     expect(res.status).toHaveBeenCalledWith(200)
-    const payload = res.json.mock.calls[0][0] as { services: unknown[] }
-    expect(payload.services).toHaveLength(5)
+    const payload = res.json.mock.calls[0][0] as { services: ServiceOut[] }
+    expect(payload.services.map((s) => s.name)).toEqual([
+      "bc-data",
+      "bc-position",
+      "bc-event",
+      "bc-retire",
+      "bc-rebalance",
+      "bc-agent",
+    ])
+    const agent = payload.services.find((s) => s.name === "bc-agent")
+    expect(agent?.health?.status).toBe("UP")
+    expect(agent?.url).toBe("http://agent.test")
   })
 
   it("omits waharoa when BC_WAHAROA is not configured", async () => {

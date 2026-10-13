@@ -5,6 +5,7 @@ import {
   getEventActuatorUrl,
   getRetireActuatorUrl,
   getRebalanceActuatorUrl,
+  getAgentActuatorUrl,
   getWaharoaUrl,
   getWaharoaPublicUrl,
 } from "@utils/api/bcConfig"
@@ -183,6 +184,7 @@ export default async function servicesHandler(
       { name: "bc-event", url: getEventActuatorUrl() },
       { name: "bc-retire", url: getRetireActuatorUrl() },
       { name: "bc-rebalance", url: getRebalanceActuatorUrl() },
+      { name: "bc-agent", url: getAgentActuatorUrl() },
     ]
 
     // Fetch all service statuses in parallel
