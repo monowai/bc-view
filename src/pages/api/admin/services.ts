@@ -5,44 +5,13 @@ import {
   getEventActuatorUrl,
   getRetireActuatorUrl,
   getRebalanceActuatorUrl,
+  getAgentActuatorUrl,
+  getWaharoaUrl,
+  getWaharoaPublicUrl,
 } from "@utils/api/bcConfig"
 import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
-
-interface ServiceHealth {
-  status: string
-  components?: Record<string, { status: string }>
-}
-
-interface ServiceInfo {
-  git?: {
-    branch?: string
-    commit?: {
-      id?: string
-      time?: string
-    }
-  }
-  build?: {
-    version?: string
-    artifact?: string
-    name?: string
-    time?: string
-  }
-}
-
-interface ServiceStatus {
-  name: string
-  url: string
-  health: ServiceHealth | null
-  info: ServiceInfo | null
-  error: string | null
-  responseTimeMs: number
-}
-
-interface ServicesResponse {
-  services: ServiceStatus[]
-  timestamp: string
-}
+import type { ServiceStatus, ServicesResponse } from "types/admin"
 
 async function fetchServiceStatus(
   name: string,
@@ -98,6 +67,74 @@ async function fetchServiceStatus(
   return result
 }
 
+interface LiteLlmReadiness {
+  status?: string
+  db?: string
+  litellm_version?: string
+}
+
+/**
+ * waharoa is LiteLLM, not Spring: no actuator. /health/readiness is
+ * unauthenticated and answers {"status":"healthy","db":"connected",
+ * "litellm_version":"x.y.z"}. Any other reachable answer (unhealthy JSON,
+ * non-JSON error page) is DOWN; only a failed request is UNREACHABLE.
+ */
+async function fetchWaharoaStatus(
+  baseUrl: string,
+  link: string | undefined,
+): Promise<ServiceStatus> {
+  const startTime = Date.now()
+  const result: ServiceStatus = {
+    name: "waharoa",
+    url: baseUrl,
+    link,
+    health: null,
+    info: null,
+    error: null,
+    responseTimeMs: 0,
+  }
+
+  let response: Response
+  try {
+    response = await fetch(`${baseUrl}/health/readiness`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch (e) {
+    result.health = { status: "UNREACHABLE" }
+    result.error = e instanceof Error ? e.message : "Unknown error"
+    result.responseTimeMs = Date.now() - startTime
+    return result
+  }
+
+  let body: LiteLlmReadiness = {}
+  try {
+    const parsed: unknown = await response.json()
+    body =
+      parsed !== null && typeof parsed === "object"
+        ? (parsed as LiteLlmReadiness)
+        : {}
+  } catch {
+    result.error = `HTTP ${response.status}: non-JSON readiness response`
+  }
+  const healthy = response.ok && body.status === "healthy"
+  result.health = {
+    status: healthy ? "UP" : "DOWN",
+    components: body.db
+      ? { db: { status: body.db === "connected" ? "UP" : "DOWN" } }
+      : undefined,
+  }
+  if (!healthy && !result.error) {
+    result.error = `HTTP ${response.status}: status=${body.status ?? "?"} db=${body.db ?? "?"}`
+  }
+  if (body.litellm_version) {
+    result.info = { build: { version: body.litellm_version, name: "litellm" } }
+  }
+
+  result.responseTimeMs = Date.now() - startTime
+  return result
+}
+
 /**
  * GET /api/admin/services
  * Returns health and version information for all backend services.
@@ -126,12 +163,18 @@ export default async function servicesHandler(
       { name: "bc-event", url: getEventActuatorUrl() },
       { name: "bc-retire", url: getRetireActuatorUrl() },
       { name: "bc-rebalance", url: getRebalanceActuatorUrl() },
+      { name: "bc-agent", url: getAgentActuatorUrl() },
     ]
 
     // Fetch all service statuses in parallel
-    const statuses = await Promise.all(
-      services.map((s) => fetchServiceStatus(s.name, s.url, accessToken)),
+    const probes = services.map((s) =>
+      fetchServiceStatus(s.name, s.url, accessToken),
     )
+    const waharoaUrl = getWaharoaUrl()
+    if (waharoaUrl) {
+      probes.push(fetchWaharoaStatus(waharoaUrl, getWaharoaPublicUrl()))
+    }
+    const statuses = await Promise.all(probes)
 
     res.status(200).json({
       services: statuses,
