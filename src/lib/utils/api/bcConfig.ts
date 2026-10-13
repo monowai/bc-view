@@ -61,12 +61,12 @@ export function getAgentActuatorUrl(path: string = ""): string {
 // waharoa LLM gateway (LiteLLM). Internal base URL the server probes; unset
 // means no gateway in this environment and the status page skips it.
 export function getWaharoaUrl(): string | undefined {
-  return process.env.BC_WAHAROA || undefined
+  return process.env.BC_WAHAROA?.trim() || undefined
 }
 
 // Browser-reachable URL for the gateway admin UI (LAN/VPN hostname on kauri).
 export function getWaharoaPublicUrl(): string | undefined {
-  return process.env.BC_WAHAROA_PUBLIC || undefined
+  return process.env.BC_WAHAROA_PUBLIC?.trim() || undefined
 }
 
 export function getTrnTopic(): string {

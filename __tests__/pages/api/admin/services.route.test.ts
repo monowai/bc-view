@@ -237,6 +237,28 @@ describe("GET /api/admin/services", () => {
     expect(waharoa?.link).toBeUndefined()
   })
 
+  it("reports waharoa DOWN, not UNREACHABLE, when the gateway answers non-JSON", async () => {
+    mockGetWaharoaUrl.mockReturnValue("http://waharoa.test:4000")
+    mockActuatorFetches()
+    const realFetch = global.fetch
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (String(input) === "http://waharoa.test:4000/health/readiness") {
+        return Promise.resolve({
+          ok: false,
+          status: 502,
+          json: () => Promise.reject(new SyntaxError("Unexpected token <")),
+        } as unknown as Response)
+      }
+      return realFetch(input, init)
+    }) as unknown as typeof fetch
+
+    const services = await callAsAdmin()
+    const waharoa = services.find((s) => s.name === "waharoa")
+
+    expect(waharoa?.health?.status).toBe("DOWN")
+    expect(waharoa?.error).toBe("HTTP 502: non-JSON readiness response")
+  })
+
   it("reports waharoa UNREACHABLE when the probe throws", async () => {
     mockGetWaharoaUrl.mockReturnValue("http://waharoa.test:4000")
     mockActuatorFetches()

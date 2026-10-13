@@ -112,7 +112,8 @@ interface LiteLlmReadiness {
 /**
  * waharoa is LiteLLM, not Spring: no actuator. /health/readiness is
  * unauthenticated and answers {"status":"healthy","db":"connected",
- * "litellm_version":"x.y.z"}; anything else is DOWN.
+ * "litellm_version":"x.y.z"}. Any other reachable answer (unhealthy JSON,
+ * non-JSON error page) is DOWN; only a failed request is UNREACHABLE.
  */
 async function fetchWaharoaStatus(
   baseUrl: string,
@@ -129,27 +130,34 @@ async function fetchWaharoaStatus(
     responseTimeMs: 0,
   }
 
+  let response: Response
   try {
-    const response = await fetch(`${baseUrl}/health/readiness`, {
+    response = await fetch(`${baseUrl}/health/readiness`, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(5000),
     })
-    const body = (await response.json()) as LiteLlmReadiness
-    const healthy = response.ok && body.status === "healthy"
-    result.health = {
-      status: healthy ? "UP" : "DOWN",
-      components: body.db
-        ? { db: { status: body.db === "connected" ? "UP" : "DOWN" } }
-        : undefined,
-    }
-    if (body.litellm_version) {
-      result.info = {
-        build: { version: body.litellm_version, name: "litellm" },
-      }
-    }
   } catch (e) {
     result.health = { status: "UNREACHABLE" }
     result.error = e instanceof Error ? e.message : "Unknown error"
+    result.responseTimeMs = Date.now() - startTime
+    return result
+  }
+
+  let body: LiteLlmReadiness = {}
+  try {
+    body = (await response.json()) as LiteLlmReadiness
+  } catch {
+    result.error = `HTTP ${response.status}: non-JSON readiness response`
+  }
+  const healthy = response.ok && body.status === "healthy"
+  result.health = {
+    status: healthy ? "UP" : "DOWN",
+    components: body.db
+      ? { db: { status: body.db === "connected" ? "UP" : "DOWN" } }
+      : undefined,
+  }
+  if (body.litellm_version) {
+    result.info = { build: { version: body.litellm_version, name: "litellm" } }
   }
 
   result.responseTimeMs = Date.now() - startTime
