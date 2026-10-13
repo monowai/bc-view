@@ -5,6 +5,8 @@ import {
   getEventActuatorUrl,
   getRetireActuatorUrl,
   getRebalanceActuatorUrl,
+  getWaharoaUrl,
+  getWaharoaPublicUrl,
 } from "@utils/api/bcConfig"
 import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
@@ -33,6 +35,8 @@ interface ServiceInfo {
 interface ServiceStatus {
   name: string
   url: string
+  /** Browser-reachable URL when it differs from the probed one. */
+  link?: string
   health: ServiceHealth | null
   info: ServiceInfo | null
   error: string | null
@@ -98,6 +102,59 @@ async function fetchServiceStatus(
   return result
 }
 
+interface LiteLlmReadiness {
+  status?: string
+  db?: string
+  litellm_version?: string
+}
+
+/**
+ * waharoa is LiteLLM, not Spring: no actuator. /health/readiness is
+ * unauthenticated and answers {"status":"healthy","db":"connected",
+ * "litellm_version":"x.y.z"}; anything else is DOWN.
+ */
+async function fetchWaharoaStatus(
+  baseUrl: string,
+  link: string | undefined,
+): Promise<ServiceStatus> {
+  const startTime = Date.now()
+  const result: ServiceStatus = {
+    name: "waharoa",
+    url: baseUrl,
+    link,
+    health: null,
+    info: null,
+    error: null,
+    responseTimeMs: 0,
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/health/readiness`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    })
+    const body = (await response.json()) as LiteLlmReadiness
+    const healthy = response.ok && body.status === "healthy"
+    result.health = {
+      status: healthy ? "UP" : "DOWN",
+      components: body.db
+        ? { db: { status: body.db === "connected" ? "UP" : "DOWN" } }
+        : undefined,
+    }
+    if (body.litellm_version) {
+      result.info = {
+        build: { version: body.litellm_version, name: "litellm" },
+      }
+    }
+  } catch (e) {
+    result.health = { status: "UNREACHABLE" }
+    result.error = e instanceof Error ? e.message : "Unknown error"
+  }
+
+  result.responseTimeMs = Date.now() - startTime
+  return result
+}
+
 /**
  * GET /api/admin/services
  * Returns health and version information for all backend services.
@@ -129,9 +186,14 @@ export default async function servicesHandler(
     ]
 
     // Fetch all service statuses in parallel
-    const statuses = await Promise.all(
-      services.map((s) => fetchServiceStatus(s.name, s.url, accessToken)),
+    const probes = services.map((s) =>
+      fetchServiceStatus(s.name, s.url, accessToken),
     )
+    const waharoaUrl = getWaharoaUrl()
+    if (waharoaUrl) {
+      probes.push(fetchWaharoaStatus(waharoaUrl, getWaharoaPublicUrl()))
+    }
+    const statuses = await Promise.all(probes)
 
     res.status(200).json({
       services: statuses,

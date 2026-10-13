@@ -46,6 +46,8 @@ interface ServiceInfo {
 interface ServiceStatus {
   name: string
   url: string
+  /** Browser-reachable URL when it differs from the probed one. */
+  link?: string
   health: ServiceHealth | null
   info: ServiceInfo | null
   error: string | null
@@ -114,7 +116,7 @@ function isDiskSpaceDetails(details: unknown): details is DiskSpaceDetails {
   )
 }
 
-function ServiceCard({
+export function ServiceCard({
   service,
 }: {
   service: ServiceStatus
@@ -185,12 +187,24 @@ function ServiceCard({
           <span className="ml-2 text-gray-900">{service.responseTimeMs}ms</span>
         </div>
 
-        {/* URL */}
+        {/* URL: the public link when there is one, else the probed address */}
         <div className="text-sm">
           <span className="text-gray-500">{"URL"}:</span>
-          <span className="ml-2 font-mono text-xs text-gray-600 break-all">
-            {service.url}
-          </span>
+          {service.link ? (
+            <a
+              href={service.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 font-mono text-xs text-blue-600 hover:underline break-all"
+            >
+              {service.link}
+              <i className="fas fa-external-link-alt ml-1 text-[10px]"></i>
+            </a>
+          ) : (
+            <span className="ml-2 font-mono text-xs text-gray-600 break-all">
+              {service.url}
+            </span>
+          )}
         </div>
 
         {/* Error message if any */}
