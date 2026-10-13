@@ -11,43 +11,7 @@ import {
 } from "@utils/api/bcConfig"
 import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
-
-interface ServiceHealth {
-  status: string
-  components?: Record<string, { status: string }>
-}
-
-interface ServiceInfo {
-  git?: {
-    branch?: string
-    commit?: {
-      id?: string
-      time?: string
-    }
-  }
-  build?: {
-    version?: string
-    artifact?: string
-    name?: string
-    time?: string
-  }
-}
-
-interface ServiceStatus {
-  name: string
-  url: string
-  /** Browser-reachable URL when it differs from the probed one. */
-  link?: string
-  health: ServiceHealth | null
-  info: ServiceInfo | null
-  error: string | null
-  responseTimeMs: number
-}
-
-interface ServicesResponse {
-  services: ServiceStatus[]
-  timestamp: string
-}
+import type { ServiceStatus, ServicesResponse } from "types/admin"
 
 async function fetchServiceStatus(
   name: string,
@@ -155,6 +119,9 @@ async function fetchWaharoaStatus(
     components: body.db
       ? { db: { status: body.db === "connected" ? "UP" : "DOWN" } }
       : undefined,
+  }
+  if (!healthy && !result.error) {
+    result.error = `HTTP ${response.status}: status=${body.status ?? "?"} db=${body.db ?? "?"}`
   }
   if (body.litellm_version) {
     result.info = { build: { version: body.litellm_version, name: "litellm" } }

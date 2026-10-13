@@ -234,7 +234,23 @@ describe("GET /api/admin/services", () => {
     const waharoa = services.find((s) => s.name === "waharoa")
 
     expect(waharoa?.health?.status).toBe("DOWN")
+    expect(waharoa?.error).toBe("HTTP 503: status=unhealthy db=disconnected")
     expect(waharoa?.link).toBeUndefined()
+  })
+
+  it("explains a DOWN verdict when the gateway answers 200 but not healthy", async () => {
+    mockGetWaharoaUrl.mockReturnValue("http://waharoa.test:4000")
+    mockActuatorFetches({
+      "http://waharoa.test:4000/health/readiness": {
+        body: { status: "degraded", db: "connected" },
+      },
+    })
+
+    const services = await callAsAdmin()
+    const waharoa = services.find((s) => s.name === "waharoa")
+
+    expect(waharoa?.health?.status).toBe("DOWN")
+    expect(waharoa?.error).toBe("HTTP 200: status=degraded db=connected")
   })
 
   it("reports waharoa DOWN, not UNREACHABLE, when the gateway answers non-JSON", async () => {
