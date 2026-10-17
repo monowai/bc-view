@@ -15,57 +15,75 @@ export class WatchlistApiError extends Error {
   }
 }
 
-async function send<T>(
+interface ErrorEnvelope {
+  message?: string
+  error?: string
+}
+
+async function request(
   url: string,
   method: "POST" | "PATCH" | "DELETE",
   body?: unknown,
-): Promise<T> {
+): Promise<Response> {
   const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
+    const data = (await res.json().catch(() => ({}))) as ErrorEnvelope
     throw new WatchlistApiError(
       res.status,
-      data?.message || data?.error || `Request failed (${res.status})`,
+      data.message || data.error || `Request failed (${res.status})`,
     )
   }
-  // DELETE may answer 204 or an empty 200; neither is JSON.
-  if (res.status === 204) return undefined as T
-  const text = await res.text()
-  return (text ? JSON.parse(text) : undefined) as T
+  return res
+}
+
+/** POST / PATCH: the backend always answers `{ data: WatchlistItem }`. */
+async function sendForItem(
+  url: string,
+  method: "POST" | "PATCH",
+  body: unknown,
+): Promise<WatchlistItem> {
+  const res = await request(url, method, body)
+  const text = res.status === 204 ? "" : await res.text()
+  const parsed = text ? (JSON.parse(text) as { data?: WatchlistItem }) : {}
+  if (!parsed.data) {
+    throw new WatchlistApiError(
+      res.status,
+      `Watchlist ${method} returned no response body`,
+    )
+  }
+  return parsed.data
 }
 
 const itemsUrl = `${watchlistKey}/items`
 
-export async function addWatchlistItem(
+export function addWatchlistItem(
   request: WatchlistItemRequest,
 ): Promise<WatchlistItem> {
-  const res = await send<{ data: WatchlistItem }>(itemsUrl, "POST", request)
-  return res.data
+  return sendForItem(itemsUrl, "POST", request)
 }
 
-export async function updateWatchlistItem(
+export function updateWatchlistItem(
   itemId: string,
   update: WatchlistItemUpdate,
 ): Promise<WatchlistItem> {
-  const res = await send<{ data: WatchlistItem }>(
-    `${itemsUrl}/${itemId}`,
-    "PATCH",
-    update,
-  )
-  return res.data
+  return sendForItem(`${itemsUrl}/${itemId}`, "PATCH", update)
 }
 
 export async function removeWatchlistItem(itemId: string): Promise<void> {
-  await send(`${itemsUrl}/${itemId}`, "DELETE")
+  // svc-data answers 200 `{ deleted }`; a 204 is equally fine. Either way
+  // there is nothing to return, so the body is not read.
+  await request(`${itemsUrl}/${itemId}`, "DELETE")
 }
 
 /**
- * Parse an optional price field. Blank → undefined (let the server decide);
- * anything else must be a positive number.
+ * Parse an optional price field. Three results, and callers must branch on all:
+ * - blank → `undefined`: omit the field and let the server decide
+ * - a positive number (commas allowed) → that number
+ * - anything else → `null`: invalid; show a validation error, never submit
  */
 export function parseOptionalPrice(text: string): number | undefined | null {
   const trimmed = text.replace(/,/g, "").trim()

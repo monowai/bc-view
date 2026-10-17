@@ -21,6 +21,7 @@ import {
   isAccount,
   isConstantPrice,
   isFundLike,
+  isWatchable,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
@@ -199,8 +200,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
   const [watching, setWatching] = useState(false)
-  // Private assets have no market price to track.
-  const canWatch = asset.market?.code !== "PRIVATE"
+  const canWatch = isWatchable(asset)
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,

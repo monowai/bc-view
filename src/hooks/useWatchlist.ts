@@ -17,7 +17,8 @@ export function useWatchlist(): UseWatchlistResult {
     simpleFetcher(watchlistKey),
   )
   return {
-    items: data?.data?.items,
+    // Loaded but without items is an empty watchlist, not "still loading".
+    items: data ? (data.data?.items ?? []) : undefined,
     error,
     isLoading: !data && !error,
     mutate,

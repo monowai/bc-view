@@ -16,6 +16,30 @@ import {
 } from "@test-fixtures/beancounter"
 import { Watchlist } from "types/beancounter"
 
+// The dialog has its own tests; here it only needs to report a successful add.
+jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
+  return function AddToWatchlistDialog(props: {
+    onAdded?: (item: unknown) => void
+    onClose: () => void
+  }) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          props.onAdded?.({})
+          props.onClose()
+        }}
+      >
+        {"stub add"}
+      </button>
+    )
+  }
+})
+
+async function addFromDialog(): Promise<void> {
+  fireEvent.click(await screen.findByRole("button", { name: "stub add" }))
+}
+
 // withPageAuthRequired HOC strips prop types in v4
 const WatchlistPage = WatchlistPageDefault as React.ComponentType<any>
 
@@ -298,6 +322,50 @@ describe("Watchlist page", () => {
           (c) => c.method === "PATCH" && c.url === "/api/watchlist/items/wi-1",
         )?.body,
       ).toEqual({ clearTarget: true, addedPrice: 85 }),
+    )
+  })
+
+  it("shows the empty state when the response carries no items", async () => {
+    watchlist = {} as Watchlist
+    renderPage()
+
+    expect(
+      await screen.findByText(/nothing on your watchlist yet/i),
+    ).toBeInTheDocument()
+  })
+
+  it("names the currency on an unpriced row", async () => {
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    expect(within(row("wi-2")).getByTestId("added")).toHaveTextContent("USD")
+  })
+
+  it("clears an earlier error once an add succeeds", async () => {
+    const base = global.fetch as jest.Mock
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return Promise.resolve(jsonResponse(500, { error: "Remove broke" }))
+      }
+      if (init?.method === "POST") {
+        return Promise.resolve(jsonResponse(200, { data: priced }))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+    expect(await screen.findByText("Remove broke")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /add asset/i }))
+    await addFromDialog()
+
+    await waitFor(() =>
+      expect(screen.queryByText("Remove broke")).not.toBeInTheDocument(),
     )
   })
 })

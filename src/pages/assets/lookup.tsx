@@ -21,7 +21,11 @@ import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
-import { isFundLike } from "@lib/assets/assetUtils"
+import {
+  isFundLike,
+  isWatchable,
+  toAssetCategoryId,
+} from "@lib/assets/assetUtils"
 import { createAsset } from "@lib/assets/createAsset"
 import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
@@ -113,9 +117,7 @@ const fillOnPhone = "flex-auto justify-center sm:flex-none"
 
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
-  // Search hits carry the provider's casing ("Mutual Fund"); BC category ids
-  // are upper case.
-  const categoryId = (option.type || "EQUITY").toUpperCase()
+  const categoryId = toAssetCategoryId(option.type)
   const category: AssetCategory = {
     id: categoryId,
     name: option.type || "EQUITY",
@@ -400,9 +402,7 @@ function AssetLookupPage(): React.ReactElement {
         .join(" · ")
     : ""
 
-  // Private assets have no market price to track — same rule as ActionsMenus.
-  const canWatch =
-    !!selectedAsset?.assetId && selectedAsset.market !== "PRIVATE"
+  const canWatch = !!selectedAsset?.assetId && isWatchable(selectedAsset)
   const watchlistActions: ActionMenuItem[] = canWatch
     ? [
         {

@@ -140,6 +140,27 @@ export function buildTradesHref(portfolioId: string, assetId: string): string {
 }
 
 /**
+ * Whether an asset can go on a watchlist. Private assets have no market price
+ * to track. Accepts an `Asset` (market object) or an `AssetOption` (market
+ * code string), so every entry point applies the same rule.
+ */
+export function isWatchable(asset: {
+  market?: { code?: string } | string
+}): boolean {
+  const code =
+    typeof asset.market === "string" ? asset.market : asset.market?.code
+  return code !== "PRIVATE"
+}
+
+/**
+ * BC category id for a search hit's type. Providers send their own casing
+ * ("Mutual Fund"); BC category ids are upper case. Defaults to EQUITY.
+ */
+export function toAssetCategoryId(type: string | undefined): string {
+  return (type || "EQUITY").toUpperCase()
+}
+
+/**
  * Href for the Asset Lookup page focused on one asset — the same query shape
  * the header search pushes, so the page hydrates without searching again.
  */

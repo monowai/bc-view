@@ -1,4 +1,5 @@
 import { Asset, AssetOption } from "types/beancounter"
+import { toAssetCategoryId } from "@lib/assets/assetUtils"
 
 /** Create (or fetch, if it already exists) the BC asset for a search hit. */
 export async function createAsset(option: AssetOption): Promise<Asset> {
@@ -16,9 +17,7 @@ export async function createAsset(option: AssetOption): Promise<Asset> {
           code,
           name: option.name || code,
           currency: option.currency,
-          // Search hits carry the provider's casing ("Mutual Fund"); BC
-          // category ids are upper case.
-          category: (option.type || "EQUITY").toUpperCase(),
+          category: toAssetCategoryId(option.type),
           owner: "",
         },
       },

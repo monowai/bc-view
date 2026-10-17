@@ -2,6 +2,7 @@ import {
   WatchlistApiError,
   addWatchlistItem,
   removeWatchlistItem,
+  updateWatchlistItem,
 } from "@lib/watchlists/watchlistApi"
 
 function response(status: number, text: string): Response {
@@ -38,10 +39,12 @@ describe("watchlistApi", () => {
     await expect(removeWatchlistItem("wi-1")).resolves.toBeUndefined()
   })
 
-  it("treats an empty 200 body as success", async () => {
+  it("accepts svc-data's 200 {deleted} answer to a delete", async () => {
     global.fetch = jest
       .fn()
-      .mockResolvedValue(response(200, "")) as unknown as typeof fetch
+      .mockResolvedValue(
+        response(200, JSON.stringify({ deleted: "wi-1" })),
+      ) as unknown as typeof fetch
 
     await expect(removeWatchlistItem("wi-1")).resolves.toBeUndefined()
   })
@@ -59,5 +62,25 @@ describe("watchlistApi", () => {
       status: 400,
       message: "supply addedPrice",
     })
+  })
+
+  it("throws a clear error when an add answers with no body", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(response(204, "")) as unknown as typeof fetch
+
+    await expect(addWatchlistItem({ assetId: "a" })).rejects.toThrow(
+      /no response body/i,
+    )
+  })
+
+  it("throws a clear error when an update answers with an empty 200", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(response(200, "")) as unknown as typeof fetch
+
+    await expect(
+      updateWatchlistItem("wi-1", { clearTarget: true }),
+    ).rejects.toThrow(/no response body/i)
   })
 })

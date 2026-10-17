@@ -166,4 +166,21 @@ describe("AddToWatchlistDialog", () => {
     expect(screen.getByLabelText(/^asset$/i)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled()
   })
+
+  it("drops the invalid mark once the user starts entering a price", async () => {
+    itemResponses = [{ status: 400, body: { error: NO_PRICE } }]
+    renderDialog()
+
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+    await screen.findByText(NO_PRICE)
+
+    fireEvent.change(screen.getByLabelText(/added price/i), {
+      target: { value: "1" },
+    })
+
+    expect(screen.getByLabelText(/added price/i)).not.toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+  })
 })

@@ -92,7 +92,12 @@ export default withPageAuthRequired(
           </div>
         )}
 
-        {adding && <AddToWatchlistDialog onClose={() => setAdding(false)} />}
+        {adding && (
+          <AddToWatchlistDialog
+            onAdded={() => setActionError(null)}
+            onClose={() => setAdding(false)}
+          />
+        )}
         {editing && (
           <EditWatchlistItemDialog
             item={editing}

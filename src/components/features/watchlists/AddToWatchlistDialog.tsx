@@ -164,7 +164,11 @@ export default function AddToWatchlistDialog({
             inputMode="decimal"
             placeholder={"Latest close"}
             value={addedText}
-            onChange={(e) => setAddedText(e.target.value)}
+            onChange={(e) => {
+              setAddedText(e.target.value)
+              // The user is supplying the missing price.
+              setNeedsPrice(false)
+            }}
           />
         </div>
       </div>
