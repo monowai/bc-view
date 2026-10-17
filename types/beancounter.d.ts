@@ -1346,15 +1346,9 @@ export interface NetWorthResponse {
   data: NetWorth
 }
 
-// svc-data /watchlists. Every change / percent field is computed server side
-// and is a FRACTION (0.25 = 25%). Render as given; null means unknown.
-export interface WatchlistSummary {
-  id: string
-  code: string
-  name: string
-  itemCount: number
-}
-
+// svc-data /watchlist — one per user. Every change / percent field is
+// computed server side and is a FRACTION (0.25 = 25%). Render as given; null
+// means unknown.
 export interface WatchlistItem {
   id: string
   asset: Asset
@@ -1374,16 +1368,7 @@ export interface WatchlistItem {
 }
 
 export interface Watchlist {
-  id: string
-  code: string
-  name: string
-  createdAt: string
   items: WatchlistItem[]
-}
-
-export interface WatchlistRequest {
-  code?: string
-  name?: string
 }
 
 /** Omit addedPrice to have the server stamp the latest close. */

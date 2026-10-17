@@ -1,7 +1,6 @@
-import watchlistsHandler from "@pages/api/watchlists"
-import watchlistHandler from "@pages/api/watchlists/[id]"
-import itemsHandler from "@pages/api/watchlists/[id]/items"
-import itemHandler from "@pages/api/watchlists/[id]/items/[itemId]"
+import watchlistHandler from "@pages/api/watchlist"
+import itemsHandler from "@pages/api/watchlist/items"
+import itemHandler from "@pages/api/watchlist/items/[itemId]"
 
 jest.mock("@lib/auth0", () => ({
   auth0: {
@@ -53,7 +52,7 @@ const mockFetch = jest
   .mockResolvedValue({ status: 200, ok: true, json: () => Promise.resolve({}) })
 global.fetch = mockFetch as unknown as typeof fetch
 
-type Handler = typeof watchlistsHandler
+type Handler = typeof watchlistHandler
 
 interface Req {
   method: string
@@ -76,11 +75,16 @@ function makeRes(): {
   }
 }
 
-async function call(handler: Handler, req: Req): Promise<void> {
+async function call(
+  handler: Handler,
+  req: Req,
+): Promise<ReturnType<typeof makeRes>> {
+  const res = makeRes()
   await handler(
     req as unknown as Parameters<Handler>[0],
-    makeRes() as unknown as Parameters<Handler>[1],
+    res as unknown as Parameters<Handler>[1],
   )
+  return res
 }
 
 function lastFetch(): { url: string; init: RequestInit } {
@@ -92,75 +96,46 @@ beforeEach(() => {
   jest.clearAllMocks()
 })
 
-describe("/api/watchlists routes", () => {
-  it("lists watchlists from the backend", async () => {
-    await call(watchlistsHandler, { method: "GET", query: {}, headers: {} })
+describe("/api/watchlist routes", () => {
+  it("reads the caller's watchlist from the backend", async () => {
+    await call(watchlistHandler, { method: "GET", query: {}, headers: {} })
 
-    expect(lastFetch().url).toBe("http://data.test/watchlists")
+    expect(lastFetch().url).toBe("http://data.test/watchlist")
     expect(lastFetch().init.method).toBe("GET")
   })
 
-  it("forwards the create body", async () => {
-    const body = { code: "tech", name: "Tech ideas" }
-    await call(watchlistsHandler, {
-      method: "POST",
+  it("allows only GET on the watchlist itself", async () => {
+    const res = await call(watchlistHandler, {
+      method: "DELETE",
       query: {},
       headers: {},
-      body,
     })
 
-    expect(lastFetch().url).toBe("http://data.test/watchlists")
-    expect(lastFetch().init.method).toBe("POST")
-    expect(JSON.parse(lastFetch().init.body as string)).toEqual(body)
+    expect(res.status).toHaveBeenCalledWith(405)
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it.each(["GET", "PATCH", "DELETE"])(
-    "forwards %s to /watchlists/{id}",
-    async (method) => {
-      const body = method === "PATCH" ? { name: "Renamed" } : undefined
-      await call(watchlistHandler, {
-        method,
-        query: { id: "wl-1" },
-        headers: {},
-        body,
-      })
-
-      expect(lastFetch().url).toBe("http://data.test/watchlists/wl-1")
-      expect(lastFetch().init.method).toBe(method)
-      if (body) {
-        expect(JSON.parse(lastFetch().init.body as string)).toEqual(body)
-      }
-    },
-  )
-
-  it("forwards an item add to /watchlists/{id}/items", async () => {
+  it("forwards an item add to /watchlist/items", async () => {
     const body = { assetId: "asset-1", targetPrice: 10 }
-    await call(itemsHandler, {
-      method: "POST",
-      query: { id: "wl-1" },
-      headers: {},
-      body,
-    })
+    await call(itemsHandler, { method: "POST", query: {}, headers: {}, body })
 
-    expect(lastFetch().url).toBe("http://data.test/watchlists/wl-1/items")
+    expect(lastFetch().url).toBe("http://data.test/watchlist/items")
     expect(lastFetch().init.method).toBe("POST")
     expect(JSON.parse(lastFetch().init.body as string)).toEqual(body)
   })
 
   it.each(["PATCH", "DELETE"])(
-    "forwards %s to /watchlists/{id}/items/{itemId}",
+    "forwards %s to /watchlist/items/{itemId}",
     async (method) => {
       const body = method === "PATCH" ? { clearTarget: true } : undefined
       await call(itemHandler, {
         method,
-        query: { id: "wl-1", itemId: "wi-9" },
+        query: { itemId: "wi-9" },
         headers: {},
         body,
       })
 
-      expect(lastFetch().url).toBe(
-        "http://data.test/watchlists/wl-1/items/wi-9",
-      )
+      expect(lastFetch().url).toBe("http://data.test/watchlist/items/wi-9")
       expect(lastFetch().init.method).toBe(method)
       if (body) {
         expect(JSON.parse(lastFetch().init.body as string)).toEqual(body)
@@ -168,34 +143,18 @@ describe("/api/watchlists routes", () => {
     },
   )
 
-  it.each([
-    ["watchlist id", watchlistHandler, { id: "../portfolios" }],
-    ["item watchlist id", itemHandler, { id: "a/b", itemId: "wi-1" }],
-    ["item id", itemHandler, { id: "wl-1", itemId: "../../me" }],
-  ])(
-    "rejects a traversal %s without calling the backend",
-    async (_label, handler, query) => {
-      await call(handler as Handler, {
+  it.each(["../../portfolios", "a/b", "a\\b"])(
+    "rejects item id %s without calling the backend",
+    async (itemId) => {
+      await call(itemHandler, {
         method: "DELETE",
-        query: query as Record<string, string>,
+        query: { itemId },
         headers: {},
       })
+
       expect(mockFetch).not.toHaveBeenCalled()
       const responseWriter = jest.requireMock("@utils/api/responseWriter")
       expect(responseWriter.fetchError).toHaveBeenCalled()
     },
   )
-
-  it("rejects a traversal watchlist id on POST to items", async () => {
-    await call(itemsHandler, {
-      method: "POST",
-      query: { id: "../x" },
-      headers: {},
-      body: { assetId: "a" },
-    })
-
-    expect(mockFetch).not.toHaveBeenCalled()
-    const responseWriter = jest.requireMock("@utils/api/responseWriter")
-    expect(responseWriter.fetchError).toHaveBeenCalled()
-  })
 })

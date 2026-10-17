@@ -1,7 +1,6 @@
 import {
   WatchlistApiError,
   addWatchlistItem,
-  deleteWatchlist,
   removeWatchlistItem,
 } from "@lib/watchlists/watchlistApi"
 
@@ -19,13 +18,24 @@ function response(status: number, text: string): Response {
 }
 
 describe("watchlistApi", () => {
+  it("removes an item at /api/watchlist/items/{itemId}", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(response(204, ""))
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    await removeWatchlistItem("wi-7")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/watchlist/items/wi-7",
+      expect.objectContaining({ method: "DELETE" }),
+    )
+  })
+
   it("treats a 204 delete as success", async () => {
     global.fetch = jest
       .fn()
       .mockResolvedValue(response(204, "")) as unknown as typeof fetch
 
-    await expect(deleteWatchlist("wl-1")).resolves.toBeUndefined()
-    await expect(removeWatchlistItem("wl-1", "wi-1")).resolves.toBeUndefined()
+    await expect(removeWatchlistItem("wi-1")).resolves.toBeUndefined()
   })
 
   it("treats an empty 200 body as success", async () => {
@@ -33,7 +43,7 @@ describe("watchlistApi", () => {
       .fn()
       .mockResolvedValue(response(200, "")) as unknown as typeof fetch
 
-    await expect(deleteWatchlist("wl-1")).resolves.toBeUndefined()
+    await expect(removeWatchlistItem("wi-1")).resolves.toBeUndefined()
   })
 
   it("carries the status and server message on failure", async () => {
@@ -43,7 +53,7 @@ describe("watchlistApi", () => {
         response(400, JSON.stringify({ message: "supply addedPrice" })),
       ) as unknown as typeof fetch
 
-    const failure = addWatchlistItem("wl-1", { assetId: "a" })
+    const failure = addWatchlistItem({ assetId: "a" })
     await expect(failure).rejects.toBeInstanceOf(WatchlistApiError)
     await expect(failure).rejects.toMatchObject({
       status: 400,

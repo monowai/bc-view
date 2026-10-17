@@ -2,6 +2,6 @@ import { createApiHandler } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
-  url: getDataUrl("/watchlists"),
-  methods: ["GET", "POST"],
+  url: getDataUrl("/watchlist/items"),
+  methods: ["POST"],
 })

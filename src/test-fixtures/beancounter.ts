@@ -396,10 +396,6 @@ export function makeWatchlistItem(
 
 export function makeWatchlist(overrides: Partial<Watchlist> = {}): Watchlist {
   return {
-    id: "wl-1",
-    code: "TECH",
-    name: "Tech ideas",
-    createdAt: "2026-01-01T00:00:00Z",
     items: [makeWatchlistItem()],
     ...overrides,
   }

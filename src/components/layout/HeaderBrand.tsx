@@ -43,7 +43,7 @@ const navSections: NavSection[] = [
         icon: "fa-chart-pie",
         zenHidden: true,
       },
-      { href: "/watchlists", label: "Watchlists", icon: "fa-eye" },
+      { href: "/watchlist", label: "Watchlist", icon: "fa-eye" },
       { href: "/accounts", label: "Assets", icon: "fa-gem" },
       { href: "/allocation", label: "Allocation", icon: "fa-chart-bar" },
     ],

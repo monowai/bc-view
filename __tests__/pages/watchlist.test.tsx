@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { SWRConfig } from "swr"
-import WatchlistDetail from "@pages/watchlists/[id]"
+import WatchlistPageDefault from "@pages/watchlist"
 import {
   makeAsset,
   makeWatchlist,
@@ -16,12 +16,8 @@ import {
 } from "@test-fixtures/beancounter"
 import { Watchlist } from "types/beancounter"
 
-const mockPush = jest.fn()
-jest.mock("next/router", () => ({
-  useRouter: () => ({ query: { id: "wl-1" }, isReady: true, push: mockPush }),
-}))
-
-const WatchlistPage = WatchlistDetail as React.ComponentType<any>
+// withPageAuthRequired HOC strips prop types in v4
+const WatchlistPage = WatchlistPageDefault as React.ComponentType<any>
 
 interface Call {
   url: string
@@ -80,13 +76,7 @@ const unpriced = makeWatchlistItem({
 
 beforeEach(() => {
   calls = []
-  mockPush.mockClear()
-  watchlist = makeWatchlist({
-    id: "wl-1",
-    code: "TECH",
-    name: "Tech ideas",
-    items: [priced, unpriced],
-  })
+  watchlist = makeWatchlist({ items: [priced, unpriced] })
   global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method || "GET"
@@ -95,16 +85,10 @@ beforeEach(() => {
       method,
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
     })
-    if (url === "/api/watchlists/wl-1" && method === "GET") {
+    if (url === "/api/watchlist" && method === "GET") {
       return Promise.resolve(jsonResponse(200, { data: watchlist }))
     }
-    if (url === "/api/watchlists/wl-1" && method === "DELETE") {
-      return Promise.resolve(jsonResponse(200, { deleted: "wl-1" }))
-    }
-    if (url === "/api/watchlists/wl-1" && method === "PATCH") {
-      return Promise.resolve(jsonResponse(200, { data: watchlist }))
-    }
-    if (url.startsWith("/api/watchlists/wl-1/items/")) {
+    if (url.startsWith("/api/watchlist/items/")) {
       return Promise.resolve(
         jsonResponse(200, method === "DELETE" ? { deleted: "x" } : priced),
       )
@@ -124,10 +108,10 @@ function renderPage(): void {
 const row = (itemId: string): HTMLElement =>
   screen.getByTestId(`watchlist-item-${itemId}`)
 
-describe("Watchlist detail page", () => {
+describe("Watchlist page", () => {
   it("renders the backend's figures verbatim", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     const r = within(row("wi-1"))
     expect(r.getByRole("link", { name: /AAA/ })).toHaveAttribute(
@@ -152,7 +136,7 @@ describe("Watchlist detail page", () => {
 
   it("shows a dash for every figure the backend left null", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     const r = within(row("wi-2"))
     expect(r.getByTestId("price")).toHaveTextContent(/^–$/)
@@ -164,7 +148,7 @@ describe("Watchlist detail page", () => {
 
   it("shows a private asset without its owner prefix", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     const r = within(row("wi-2"))
     expect(r.getByText("MYFUND")).toBeInTheDocument()
@@ -173,7 +157,7 @@ describe("Watchlist detail page", () => {
 
   it("clears a target with clearTarget:true", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
@@ -183,8 +167,7 @@ describe("Watchlist detail page", () => {
     await waitFor(() =>
       expect(
         calls.find(
-          (c) =>
-            c.method === "PATCH" && c.url === "/api/watchlists/wl-1/items/wi-1",
+          (c) => c.method === "PATCH" && c.url === "/api/watchlist/items/wi-1",
         )?.body,
       ).toEqual({ clearTarget: true }),
     )
@@ -192,7 +175,7 @@ describe("Watchlist detail page", () => {
 
   it("edits the target and added price, sending only what changed", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
@@ -205,8 +188,7 @@ describe("Watchlist detail page", () => {
     await waitFor(() =>
       expect(
         calls.find(
-          (c) =>
-            c.method === "PATCH" && c.url === "/api/watchlists/wl-1/items/wi-1",
+          (c) => c.method === "PATCH" && c.url === "/api/watchlist/items/wi-1",
         )?.body,
       ).toEqual({ targetPrice: 120 }),
     )
@@ -214,7 +196,7 @@ describe("Watchlist detail page", () => {
 
   it("removes an item", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
@@ -224,56 +206,26 @@ describe("Watchlist detail page", () => {
     await waitFor(() =>
       expect(
         calls.some(
-          (c) =>
-            c.method === "DELETE" &&
-            c.url === "/api/watchlists/wl-1/items/wi-1",
+          (c) => c.method === "DELETE" && c.url === "/api/watchlist/items/wi-1",
         ),
       ).toBe(true),
     )
   })
 
-  it("renames the watchlist", async () => {
-    renderPage()
-    await screen.findByText("Tech ideas")
-
-    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
-    fireEvent.click(screen.getByRole("menuitem", { name: /rename/i }))
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "Renamed" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Save" }))
-
-    await waitFor(() =>
-      expect(
-        calls.find(
-          (c) => c.method === "PATCH" && c.url === "/api/watchlists/wl-1",
-        )?.body,
-      ).toEqual({ code: "TECH", name: "Renamed" }),
-    )
-  })
-
-  it("deletes the watchlist and returns to the list", async () => {
-    renderPage()
-    await screen.findByText("Tech ideas")
-
-    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
-    fireEvent.click(screen.getByRole("menuitem", { name: /delete/i }))
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
-
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/watchlists"))
-    expect(
-      calls.some(
-        (c) => c.method === "DELETE" && c.url === "/api/watchlists/wl-1",
-      ),
-    ).toBe(true)
-  })
-
   it("explains an empty watchlist", async () => {
-    watchlist = makeWatchlist({ id: "wl-1", name: "Tech ideas", items: [] })
+    watchlist = makeWatchlist({ items: [] })
     renderPage()
 
     expect(
-      await screen.findByText(/nothing on this watchlist yet/i),
+      await screen.findByText(/nothing on your watchlist yet/i),
+    ).toBeInTheDocument()
+  })
+
+  it("is titled Watchlist", async () => {
+    renderPage()
+
+    expect(
+      await screen.findByRole("heading", { name: "Watchlist" }),
     ).toBeInTheDocument()
   })
 
@@ -288,7 +240,7 @@ describe("Watchlist detail page", () => {
       return base(input, init)
     }) as unknown as typeof fetch
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
@@ -309,7 +261,7 @@ describe("Watchlist detail page", () => {
       return base(input, init)
     }) as unknown as typeof fetch
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
@@ -328,31 +280,9 @@ describe("Watchlist detail page", () => {
     )
   })
 
-  it("closes the rename dialog when the save succeeds but the refresh fails", async () => {
-    const base = global.fetch as jest.Mock
-    let patched = false
-    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
-      if (init?.method === "PATCH") patched = true
-      if (patched && (init?.method || "GET") === "GET") {
-        return Promise.reject(new Error("network down"))
-      }
-      return base(input, init)
-    }) as unknown as typeof fetch
-    renderPage()
-    await screen.findByText("Tech ideas")
-
-    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
-    fireEvent.click(screen.getByRole("menuitem", { name: /rename/i }))
-    fireEvent.click(screen.getByRole("button", { name: "Save" }))
-
-    await waitFor(() =>
-      expect(screen.queryByText("Rename Watchlist")).not.toBeInTheDocument(),
-    )
-  })
-
   it("keeps an edited added price when clearing the target", async () => {
     renderPage()
-    await screen.findByText("Tech ideas")
+    await screen.findByTestId("watchlist-item-wi-1")
 
     fireEvent.click(
       within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
@@ -365,8 +295,7 @@ describe("Watchlist detail page", () => {
     await waitFor(() =>
       expect(
         calls.find(
-          (c) =>
-            c.method === "PATCH" && c.url === "/api/watchlists/wl-1/items/wi-1",
+          (c) => c.method === "PATCH" && c.url === "/api/watchlist/items/wi-1",
         )?.body,
       ).toEqual({ clearTarget: true, addedPrice: 85 }),
     )

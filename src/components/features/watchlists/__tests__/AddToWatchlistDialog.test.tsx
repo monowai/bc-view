@@ -33,30 +33,14 @@ beforeEach(() => {
     const method = init?.method || "GET"
     const body = init?.body ? JSON.parse(String(init.body)) : undefined
     calls.push({ url, method, body })
-    if (url === "/api/watchlists" && method === "GET") {
-      return Promise.resolve(
-        jsonResponse(200, {
-          data: [
-            { id: "wl-1", code: "TECH", name: "Tech ideas", itemCount: 0 },
-          ],
-        }),
-      )
-    }
-    if (url === "/api/watchlists" && method === "POST") {
-      return Promise.resolve(
-        jsonResponse(200, {
-          data: { id: "wl-new", code: "NEW", name: "New list", items: [] },
-        }),
-      )
-    }
-    if (url.endsWith("/items") && method === "POST") {
+    if (url === "/api/watchlist/items" && method === "POST") {
       const next = itemResponses.shift() || {
         status: 200,
         body: { data: makeWatchlistItem() },
       }
       return Promise.resolve(jsonResponse(next.status, next.body))
     }
-    return Promise.resolve(jsonResponse(200, { data: [] }))
+    return Promise.resolve(jsonResponse(200, { data: { items: [] } }))
   }) as unknown as typeof fetch
 })
 
@@ -79,26 +63,30 @@ function renderDialog(
 }
 
 const itemPosts = (): Call[] =>
-  calls.filter((c) => c.method === "POST" && c.url.endsWith("/items"))
+  calls.filter((c) => c.method === "POST" && c.url === "/api/watchlist/items")
 
 describe("AddToWatchlistDialog", () => {
   it("posts without addedPrice so the server stamps the latest close", async () => {
     const { onClose, onAdded } = renderDialog()
 
-    await screen.findByRole("option", { name: /TECH/ })
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled())
     expect(itemPosts()).toHaveLength(1)
-    expect(itemPosts()[0].url).toBe("/api/watchlists/wl-1/items")
     expect(itemPosts()[0].body).toEqual({ assetId: "asset-1" })
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it("offers no watchlist choice — there is one per user", () => {
+    renderDialog()
+
+    expect(screen.queryByLabelText(/^watchlist$/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^code$/i)).not.toBeInTheDocument()
   })
 
   it("sends an optional target price", async () => {
     const { onAdded } = renderDialog()
 
-    await screen.findByRole("option", { name: /TECH/ })
     fireEvent.change(screen.getByLabelText(/target price/i), {
       target: { value: "42.5" },
     })
@@ -115,10 +103,13 @@ describe("AddToWatchlistDialog", () => {
     itemResponses = [{ status: 400, body: { error: NO_PRICE } }]
     const { onAdded, onClose } = renderDialog()
 
-    await screen.findByRole("option", { name: /TECH/ })
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
     expect(await screen.findByText(NO_PRICE)).toBeInTheDocument()
+    expect(screen.getByLabelText(/added price/i)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
     expect(onClose).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByLabelText(/added price/i), {
@@ -134,66 +125,20 @@ describe("AddToWatchlistDialog", () => {
     })
   })
 
-  it("creates a watchlist inline, then adds the asset to it", async () => {
-    const { onAdded } = renderDialog()
+  it("says the asset is already on the watchlist on a 409", async () => {
+    itemResponses = [{ status: 409, body: { error: "duplicate" } }]
+    const { onClose } = renderDialog()
 
-    await screen.findByRole("option", { name: /TECH/ })
-    fireEvent.change(screen.getByLabelText(/^watchlist$/i), {
-      target: { value: "__new__" },
-    })
-    fireEvent.change(screen.getByLabelText(/^code$/i), {
-      target: { value: "new" },
-    })
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "New list" },
-    })
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
-    await waitFor(() => expect(onAdded).toHaveBeenCalled())
-    const create = calls.find(
-      (c) => c.url === "/api/watchlists" && c.method === "POST",
-    )
-    expect(create?.body).toEqual({ code: "new", name: "New list" })
-    expect(itemPosts()[0].url).toBe("/api/watchlists/wl-new/items")
-  })
-
-  it("does not create the watchlist twice when the item add is retried", async () => {
-    itemResponses = [{ status: 400, body: { error: NO_PRICE } }]
-    const { onAdded } = renderDialog()
-
-    await screen.findByRole("option", { name: /TECH/ })
-    fireEvent.change(screen.getByLabelText(/^watchlist$/i), {
-      target: { value: "__new__" },
-    })
-    fireEvent.change(screen.getByLabelText(/^code$/i), {
-      target: { value: "new" },
-    })
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "New list" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
-    await screen.findByText(NO_PRICE)
-
-    fireEvent.change(screen.getByLabelText(/added price/i), {
-      target: { value: "5" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
-
-    await waitFor(() => expect(onAdded).toHaveBeenCalled())
     expect(
-      calls.filter((c) => c.url === "/api/watchlists" && c.method === "POST"),
-    ).toHaveLength(1)
-    expect(itemPosts()[1].url).toBe("/api/watchlists/wl-new/items")
-  })
-
-  it("adds to a fixed watchlist without offering a choice", async () => {
-    const { onAdded } = renderDialog({ watchlistId: "wl-fixed" })
-
-    expect(screen.queryByLabelText(/^watchlist$/i)).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
-
-    await waitFor(() => expect(onAdded).toHaveBeenCalled())
-    expect(itemPosts()[0].url).toBe("/api/watchlists/wl-fixed/items")
+      await screen.findByText(/AAPL is already on your watchlist/i),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(/added price/i)).not.toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it("closes after a successful add even if the refresh fails", async () => {
@@ -201,7 +146,6 @@ describe("AddToWatchlistDialog", () => {
     let added = false
     global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
       if (init?.method === "POST") added = true
-      // Every GET after the add fails: revalidation must not be reported.
       if (added && (init?.method || "GET") === "GET") {
         return Promise.reject(new Error("network down"))
       }
@@ -209,7 +153,6 @@ describe("AddToWatchlistDialog", () => {
     }) as unknown as typeof fetch
     const { onClose, onAdded } = renderDialog()
 
-    await screen.findByRole("option", { name: /TECH/ })
     fireEvent.click(screen.getByRole("button", { name: "Add" }))
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -217,55 +160,10 @@ describe("AddToWatchlistDialog", () => {
     expect(screen.queryByText("network down")).not.toBeInTheDocument()
   })
 
-  it("says so when the watchlists cannot be loaded, rather than offering only a new one", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve(jsonResponse(500, { error: "boom" })),
-    ) as unknown as typeof fetch
-    renderDialog()
+  it("asks for an asset when none is given", () => {
+    renderDialog({ asset: undefined })
 
-    expect(
-      await screen.findByText(/could not load your watchlists/i),
-    ).toBeInTheDocument()
+    expect(screen.getByLabelText(/^asset$/i)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled()
-  })
-
-  it("does not blame the added price for a 400 from creating the watchlist", async () => {
-    const base = global.fetch as jest.Mock
-    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
-      if (String(input) === "/api/watchlists" && init?.method === "POST") {
-        return Promise.resolve(jsonResponse(400, { error: "Bad code" }))
-      }
-      return base(input, init)
-    }) as unknown as typeof fetch
-    renderDialog()
-
-    await screen.findByRole("option", { name: /TECH/ })
-    fireEvent.change(screen.getByLabelText(/^watchlist$/i), {
-      target: { value: "__new__" },
-    })
-    fireEvent.change(screen.getByLabelText(/^code$/i), {
-      target: { value: "x" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
-
-    expect(await screen.findByText("Bad code")).toBeInTheDocument()
-    expect(screen.getByLabelText(/added price/i)).not.toHaveAttribute(
-      "aria-invalid",
-      "true",
-    )
-  })
-
-  it("marks the added price when the item add needs one", async () => {
-    itemResponses = [{ status: 400, body: { error: NO_PRICE } }]
-    renderDialog()
-
-    await screen.findByRole("option", { name: /TECH/ })
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
-
-    await screen.findByText(NO_PRICE)
-    expect(screen.getByLabelText(/added price/i)).toHaveAttribute(
-      "aria-invalid",
-      "true",
-    )
   })
 })

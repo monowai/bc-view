@@ -3,17 +3,13 @@ import { mutate } from "swr"
 import { AssetOption, WatchlistItem } from "types/beancounter"
 import Dialog from "@components/ui/Dialog"
 import AssetSearch from "@components/features/assets/AssetSearch"
-import { useWatchlists } from "@hooks/useWatchlists"
 import { createAsset } from "@lib/assets/createAsset"
 import {
   WatchlistApiError,
   addWatchlistItem,
-  createWatchlist,
   parseOptionalPrice,
 } from "@lib/watchlists/watchlistApi"
-import { watchlistKey, watchlistsKey } from "@utils/api/fetchHelper"
-
-const NEW_WATCHLIST = "__new__"
+import { watchlistKey } from "@utils/api/fetchHelper"
 
 export interface WatchlistAssetRef {
   id: string
@@ -24,10 +20,8 @@ export interface WatchlistAssetRef {
 interface AddToWatchlistDialogProps {
   /** The asset to add. Absent → the dialog shows an asset picker. */
   asset?: WatchlistAssetRef
-  /** Add straight to this watchlist; hides the watchlist chooser. */
-  watchlistId?: string
   onClose: () => void
-  onAdded?: (watchlistId: string, item: WatchlistItem) => void
+  onAdded?: (item: WatchlistItem) => void
 }
 
 const inputClass =
@@ -35,53 +29,26 @@ const inputClass =
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 
 /**
- * Add one asset to a watchlist. The added price is optional: left blank, the
- * server stamps the latest close. When it has none it answers 400 with a
- * message asking for one — that message is shown and the user can enter a
- * price and try again.
+ * Add one asset to the caller's watchlist (one per user). The added price is
+ * optional: left blank, the server stamps the latest close. When it has none
+ * it answers 400 with a message asking for one — that message is shown and the
+ * user can enter a price and try again.
  */
 export default function AddToWatchlistDialog({
   asset,
-  watchlistId,
   onClose,
   onAdded,
 }: AddToWatchlistDialogProps): React.ReactElement {
   const fieldId = useId()
-  const { watchlists, error: loadError, isLoading } = useWatchlists()
-  const [chosen, setChosen] = useState<string>("")
-  const [newCode, setNewCode] = useState("")
-  const [newName, setNewName] = useState("")
   const [picked, setPicked] = useState<AssetOption | null>(null)
   const [targetText, setTargetText] = useState("")
   const [addedText, setAddedText] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [needsPrice, setNeedsPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  // A watchlist created by an earlier attempt that then failed on the item —
-  // a retry adds to it rather than creating a second one.
-  const createdIdRef = useRef<string | null>(null)
   const addedPriceRef = useRef<HTMLInputElement>(null)
 
-  // The chooser needs the user's lists; when they failed to load, don't fall
-  // back to "new" — that would push someone who has lists into a duplicate.
-  const listUnavailable = !watchlistId && !!loadError
-  // Default: the first existing watchlist, or a new one when there are none.
-  const selection =
-    chosen ||
-    (isLoading || listUnavailable ? "" : watchlists[0]?.id || NEW_WATCHLIST)
-  const creatingNew = !watchlistId && selection === NEW_WATCHLIST
-
-  const resolveWatchlistId = async (): Promise<string> => {
-    if (watchlistId) return watchlistId
-    if (!creatingNew) return selection
-    if (createdIdRef.current) return createdIdRef.current
-    const created = await createWatchlist({
-      code: newCode.trim(),
-      name: newName.trim() || newCode.trim(),
-    })
-    createdIdRef.current = created.id
-    return created.id
-  }
+  const assetLabel = asset?.label || picked?.symbol || "This asset"
 
   const resolveAssetId = async (): Promise<string> => {
     if (asset) return asset.id
@@ -105,34 +72,32 @@ export default function AddToWatchlistDialog({
       setError("Added price must be a positive number")
       return
     }
-    if (creatingNew && !newCode.trim()) {
-      setError("Enter a code for the new watchlist")
-      return
-    }
     setSubmitting(true)
-    // Only a 400 from the item add means "no price known"; a 400 while
-    // creating the watchlist is about its code or name.
+    // Only a 400 from the item add means "no price known"; resolving the
+    // asset can fail for its own reasons.
     let addingItem = false
     try {
       const assetId = await resolveAssetId()
-      const id = await resolveWatchlistId()
       addingItem = true
-      const item = await addWatchlistItem(id, {
+      const item = await addWatchlistItem({
         assetId,
         ...(addedPrice === undefined ? {} : { addedPrice }),
         ...(targetPrice === undefined ? {} : { targetPrice }),
       })
-      onAdded?.(id, item)
+      onAdded?.(item)
       onClose()
       // Best-effort refresh: the item exists now, so a failed refresh must
-      // not read as a failed add (a retry would insert a duplicate).
-      void Promise.allSettled([mutate(watchlistsKey), mutate(watchlistKey(id))])
+      // not read as a failed add (a retry would only meet a 409).
+      void mutate(watchlistKey)
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to add"
-      setError(message)
-      if (addingItem && e instanceof WatchlistApiError && e.status === 400) {
-        setNeedsPrice(true)
-        addedPriceRef.current?.focus()
+      if (addingItem && e instanceof WatchlistApiError && e.status === 409) {
+        setError(`${assetLabel} is already on your watchlist`)
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to add")
+        if (addingItem && e instanceof WatchlistApiError && e.status === 400) {
+          setNeedsPrice(true)
+          addedPriceRef.current?.focus()
+        }
       }
     } finally {
       setSubmitting(false)
@@ -153,11 +118,7 @@ export default function AddToWatchlistDialog({
             label="Add"
             loadingLabel="Adding..."
             isSubmitting={submitting}
-            disabled={
-              listUnavailable ||
-              (!asset && !picked) ||
-              (!watchlistId && !selection)
-            }
+            disabled={!asset && !picked}
             variant="blue"
           />
         </>
@@ -175,54 +136,6 @@ export default function AddToWatchlistDialog({
             usePortal
             placeholder={"Type asset symbol or name..."}
           />
-        </div>
-      )}
-      {!watchlistId && (
-        <div>
-          <label htmlFor={`${fieldId}-watchlist`} className={labelClass}>
-            {"Watchlist"}
-          </label>
-          <select
-            id={`${fieldId}-watchlist`}
-            className={inputClass}
-            value={selection}
-            onChange={(e) => setChosen(e.target.value)}
-          >
-            {isLoading && <option value="">{"Loading..."}</option>}
-            {watchlists.map((w) => (
-              <option key={w.id} value={w.id}>
-                {`${w.code} — ${w.name}`}
-              </option>
-            ))}
-            <option value={NEW_WATCHLIST}>{"+ New watchlist"}</option>
-          </select>
-        </div>
-      )}
-      {creatingNew && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`${fieldId}-code`} className={labelClass}>
-              {"Code"}
-            </label>
-            <input
-              id={`${fieldId}-code`}
-              className={`${inputClass} uppercase`}
-              value={newCode}
-              onChange={(e) => setNewCode(e.target.value)}
-              maxLength={20}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${fieldId}-name`} className={labelClass}>
-              {"Name"}
-            </label>
-            <input
-              id={`${fieldId}-name`}
-              className={inputClass}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-          </div>
         </div>
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -255,13 +168,6 @@ export default function AddToWatchlistDialog({
           />
         </div>
       </div>
-      <Dialog.ErrorAlert
-        message={
-          listUnavailable
-            ? "Could not load your watchlists. Close this and try again."
-            : null
-        }
-      />
       <Dialog.ErrorAlert message={error} />
     </Dialog>
   )

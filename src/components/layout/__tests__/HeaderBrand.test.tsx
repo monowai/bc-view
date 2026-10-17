@@ -64,12 +64,12 @@ describe("HeaderBrand", () => {
     ).toBeInTheDocument()
   })
 
-  it("Wealth dropdown links to Watchlists", () => {
+  it("Wealth dropdown links to the Watchlist", () => {
     render(<HeaderBrand />)
     fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
-    expect(screen.getByRole("link", { name: /Watchlists/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^Watchlist$/i })).toHaveAttribute(
       "href",
-      "/watchlists",
+      "/watchlist",
     )
   })
 
