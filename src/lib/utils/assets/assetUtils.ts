@@ -140,6 +140,20 @@ export function buildTradesHref(portfolioId: string, assetId: string): string {
 }
 
 /**
+ * Href for the Asset Lookup page focused on one asset — the same query shape
+ * the header search pushes, so the page hydrates without searching again.
+ */
+export function buildAssetLookupHref(asset: Asset): string {
+  const params = new URLSearchParams({
+    symbol: getDisplayCode(asset),
+    assetId: asset.id,
+  })
+  if (asset.market?.code) params.set("market", asset.market.code)
+  if (asset.name) params.set("name", asset.name)
+  return `/assets/lookup?${params.toString()}`
+}
+
+/**
  * Href for an asset's trade history across multiple portfolios — used by the
  * aggregated holdings drill-down. The trades page switches to portfolio-grouped
  * mode when the `portfolios` query param is present.

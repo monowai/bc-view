@@ -4,6 +4,14 @@ import "@testing-library/jest-dom"
 import { ActionsMenu, CashActionsMenu } from "../ActionsMenus"
 import { makeAsset } from "@test-fixtures/beancounter"
 
+let capturedWatchlistProps: Record<string, unknown> | null = null
+jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
+  return function AddToWatchlistDialog(props: Record<string, unknown>) {
+    capturedWatchlistProps = props
+    return <input aria-label="watchlist dialog field" />
+  }
+})
+
 const asset = makeAsset({ id: "asset-aapl", code: "AAPL" })
 
 const baseProps = {
@@ -91,6 +99,66 @@ describe("ActionsMenu", () => {
     openMenu()
     expect(
       screen.queryByRole("button", { name: "View Sectors" }),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("ActionsMenu — watchlist", () => {
+  beforeEach(() => {
+    capturedWatchlistProps = null
+  })
+
+  it("opens the add-to-watchlist dialog for the holding's asset", () => {
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+    fireEvent.click(screen.getByRole("button", { name: "Add to Watchlist" }))
+
+    expect(capturedWatchlistProps?.asset).toEqual({
+      id: "asset-aapl",
+      label: "AAPL",
+    })
+  })
+
+  it("keeps clicks inside the dialog from reaching the holding row", () => {
+    const onRowDoubleClick = jest.fn()
+    const onRowClick = jest.fn()
+    render(
+      <div onDoubleClick={onRowDoubleClick} onClick={onRowClick}>
+        <ActionsMenu {...baseProps} onTrade={jest.fn()} />
+      </div>,
+    )
+    openMenu()
+    fireEvent.click(screen.getByRole("button", { name: "Add to Watchlist" }))
+    onRowClick.mockClear()
+
+    const field = screen.getByLabelText("watchlist dialog field")
+    fireEvent.click(field)
+    fireEvent.doubleClick(field)
+
+    expect(onRowClick).not.toHaveBeenCalled()
+    expect(onRowDoubleClick).not.toHaveBeenCalled()
+  })
+
+  it("does not offer a private asset for watching", () => {
+    render(
+      <ActionsMenu
+        {...baseProps}
+        asset={makeAsset({
+          id: "pa-1",
+          code: "AAPL",
+          market: {
+            code: "PRIVATE",
+            name: "Private",
+            currency: baseProps.tradeCurrency,
+          },
+        })}
+        onTrade={jest.fn()}
+      />,
+    )
+    openMenu()
+
+    expect(
+      screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
   })
 })

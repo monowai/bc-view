@@ -64,6 +64,15 @@ describe("HeaderBrand", () => {
     ).toBeInTheDocument()
   })
 
+  it("Wealth dropdown links to Watchlists", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
+    expect(screen.getByRole("link", { name: /Watchlists/i })).toHaveAttribute(
+      "href",
+      "/watchlists",
+    )
+  })
+
   it("hides the Portfolios link in zen mode (single portfolio)", () => {
     mockPortfolios = [{ id: "pf-1" }]
     render(<HeaderBrand />)
