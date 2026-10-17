@@ -55,6 +55,14 @@ jest.mock("@components/features/assets/AssetNewsPopup", () => {
   }
 })
 
+let capturedWatchlistProps: Record<string, unknown> | null = null
+jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
+  return function AddToWatchlistDialog(props: Record<string, unknown>) {
+    capturedWatchlistProps = props
+    return <div data-testid="watchlist-dialog" />
+  }
+})
+
 let capturedTradeProps: Record<string, unknown> | null = null
 jest.mock("@components/features/transactions/TradeInputForm", () => {
   return function TradeInputForm(props: Record<string, unknown>) {
@@ -539,12 +547,36 @@ describe("Asset Lookup Page — quiet by default", () => {
     expect(requestedKeys()).toContain(modelsKeyUrl)
   })
 
-  it("offers no overflow menu to a non-admin", () => {
+  it("offers a non-admin only Add to Watchlist behind the overflow menu", () => {
+    render(<AssetLookupPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
+
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual([
+      "Add to Watchlist",
+    ])
+  })
+
+  it("does not offer a private asset for watching", () => {
+    mockQuery = { ...defaultQuery, market: "PRIVATE" }
     render(<AssetLookupPage />)
 
     expect(
       screen.queryByRole("button", { name: /more actions/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it("opens the add-to-watchlist dialog for the selected asset", () => {
+    render(<AssetLookupPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
+    fireEvent.click(screen.getByRole("menuitem", { name: /add to watchlist/i }))
+
+    expect(screen.getByTestId("watchlist-dialog")).toBeInTheDocument()
+    expect(capturedWatchlistProps?.asset).toEqual({
+      id: "asset-1",
+      label: "AAPL",
+    })
   })
 
   it("keeps admin Edit and Delete behind the overflow menu", () => {

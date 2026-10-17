@@ -140,6 +140,45 @@ export function buildTradesHref(portfolioId: string, assetId: string): string {
 }
 
 /**
+ * Whether an asset can go on a watchlist. Private assets have no market price
+ * to track. Accepts an `Asset` (market object) or an `AssetOption` (market
+ * code string), so every entry point applies the same rule.
+ */
+export function isWatchable(asset: {
+  market?: { code?: string } | string
+}): boolean {
+  const code =
+    typeof asset.market === "string" ? asset.market : asset.market?.code
+  return code !== "PRIVATE"
+}
+
+/**
+ * BC category id for a search hit's type. Providers send their own casing
+ * ("Mutual Fund"); BC category ids are upper case. Defaults to EQUITY.
+ */
+export function toAssetCategoryId(type: string | undefined): string {
+  return (type || "EQUITY").toUpperCase()
+}
+
+/**
+ * Href for the Asset Lookup page focused on one asset — the same query shape
+ * the header search pushes, so the page hydrates without searching again.
+ */
+export function buildAssetLookupHref(asset: Asset): string {
+  const params = new URLSearchParams({
+    symbol: getDisplayCode(asset),
+    assetId: asset.id,
+  })
+  if (asset.market?.code) params.set("market", asset.market.code)
+  if (asset.name) params.set("name", asset.name)
+  const currency = getAssetCurrency(asset)
+  if (currency) params.set("currency", currency)
+  // The lookup page maps `type` to the category, which gates e.g. Sectors.
+  if (asset.assetCategory?.id) params.set("type", asset.assetCategory.id)
+  return `/assets/lookup?${params.toString()}`
+}
+
+/**
  * Href for an asset's trade history across multiple portfolios — used by the
  * aggregated holdings drill-down. The trades page switches to portfolio-grouped
  * mode when the `portfolios` query param is present.
