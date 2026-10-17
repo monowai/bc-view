@@ -58,8 +58,7 @@ const MobileLabel = ({
   <span className="md:hidden text-xs text-gray-500 mr-2">{children}</span>
 )
 
-const th =
-  "px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500 text-right"
+const th = "px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500"
 const td = "flex justify-between md:table-cell px-3 py-1 md:py-2 md:text-right"
 
 export default function WatchlistItemsTable({
@@ -72,12 +71,12 @@ export default function WatchlistItemsTable({
       <thead className="hidden md:table-header-group border-b border-gray-200">
         <tr>
           <th className={`${th} text-left`}>{"Asset"}</th>
-          <th className={th}>{"Price"}</th>
-          <th className={th}>{"Day"}</th>
-          <th className={th}>{"Added"}</th>
-          <th className={th}>{"Since Added"}</th>
-          <th className={th}>{"Target"}</th>
-          <th className={th}>
+          <th className={`${th} text-right`}>{"Price"}</th>
+          <th className={`${th} text-right`}>{"Day"}</th>
+          <th className={`${th} text-right`}>{"Added"}</th>
+          <th className={`${th} text-right`}>{"Since Added"}</th>
+          <th className={`${th} text-right`}>{"Target"}</th>
+          <th className={`${th} text-right`}>
             <span className="sr-only">{"Actions"}</span>
           </th>
         </tr>

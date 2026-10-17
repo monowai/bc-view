@@ -24,6 +24,7 @@ function jsonResponse(status: number, body: unknown): Response {
     ok: status < 400,
     status,
     json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response
 }
 
@@ -126,5 +127,29 @@ describe("Watchlists page", () => {
       await screen.findByText("Watchlist code TECH already exists"),
     ).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it("opens the new watchlist even if refreshing the list fails", async () => {
+    const base = global.fetch as jest.Mock
+    let created = false
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "POST") created = true
+      if (created && (init?.method || "GET") === "GET") {
+        return Promise.reject(new Error("network down"))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderPage()
+    await screen.findByRole("link", { name: "TECH" })
+
+    fireEvent.click(screen.getByRole("button", { name: /new watchlist/i }))
+    fireEvent.change(screen.getByLabelText(/^code$/i), {
+      target: { value: "new" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create" }))
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith("/watchlists/wl-9"),
+    )
   })
 })

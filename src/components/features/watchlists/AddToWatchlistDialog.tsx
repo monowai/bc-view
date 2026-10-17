@@ -47,7 +47,7 @@ export default function AddToWatchlistDialog({
   onAdded,
 }: AddToWatchlistDialogProps): React.ReactElement {
   const fieldId = useId()
-  const { watchlists, isLoading } = useWatchlists()
+  const { watchlists, error: loadError, isLoading } = useWatchlists()
   const [chosen, setChosen] = useState<string>("")
   const [newCode, setNewCode] = useState("")
   const [newName, setNewName] = useState("")
@@ -62,9 +62,13 @@ export default function AddToWatchlistDialog({
   const createdIdRef = useRef<string | null>(null)
   const addedPriceRef = useRef<HTMLInputElement>(null)
 
+  // The chooser needs the user's lists; when they failed to load, don't fall
+  // back to "new" — that would push someone who has lists into a duplicate.
+  const listUnavailable = !watchlistId && !!loadError
   // Default: the first existing watchlist, or a new one when there are none.
   const selection =
-    chosen || (isLoading ? "" : watchlists[0]?.id || NEW_WATCHLIST)
+    chosen ||
+    (isLoading || listUnavailable ? "" : watchlists[0]?.id || NEW_WATCHLIST)
   const creatingNew = !watchlistId && selection === NEW_WATCHLIST
 
   const resolveWatchlistId = async (): Promise<string> => {
@@ -90,6 +94,7 @@ export default function AddToWatchlistDialog({
 
   const handleSubmit = async (): Promise<void> => {
     setError(null)
+    setNeedsPrice(false)
     const targetPrice = parseOptionalPrice(targetText)
     const addedPrice = parseOptionalPrice(addedText)
     if (targetPrice === null) {
@@ -105,21 +110,27 @@ export default function AddToWatchlistDialog({
       return
     }
     setSubmitting(true)
+    // Only a 400 from the item add means "no price known"; a 400 while
+    // creating the watchlist is about its code or name.
+    let addingItem = false
     try {
       const assetId = await resolveAssetId()
       const id = await resolveWatchlistId()
+      addingItem = true
       const item = await addWatchlistItem(id, {
         assetId,
         ...(addedPrice === undefined ? {} : { addedPrice }),
         ...(targetPrice === undefined ? {} : { targetPrice }),
       })
-      await Promise.all([mutate(watchlistsKey), mutate(watchlistKey(id))])
       onAdded?.(id, item)
       onClose()
+      // Best-effort refresh: the item exists now, so a failed refresh must
+      // not read as a failed add (a retry would insert a duplicate).
+      void Promise.allSettled([mutate(watchlistsKey), mutate(watchlistKey(id))])
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to add"
       setError(message)
-      if (e instanceof WatchlistApiError && e.status === 400) {
+      if (addingItem && e instanceof WatchlistApiError && e.status === 400) {
         setNeedsPrice(true)
         addedPriceRef.current?.focus()
       }
@@ -142,7 +153,11 @@ export default function AddToWatchlistDialog({
             label="Add"
             loadingLabel="Adding..."
             isSubmitting={submitting}
-            disabled={(!asset && !picked) || (!watchlistId && !selection)}
+            disabled={
+              listUnavailable ||
+              (!asset && !picked) ||
+              (!watchlistId && !selection)
+            }
             variant="blue"
           />
         </>
@@ -231,6 +246,7 @@ export default function AddToWatchlistDialog({
           <input
             id={`${fieldId}-added`}
             ref={addedPriceRef}
+            aria-invalid={needsPrice}
             className={`${inputClass} ${needsPrice ? "border-red-400" : ""}`}
             inputMode="decimal"
             placeholder={"Latest close"}
@@ -239,6 +255,13 @@ export default function AddToWatchlistDialog({
           />
         </div>
       </div>
+      <Dialog.ErrorAlert
+        message={
+          listUnavailable
+            ? "Could not load your watchlists. Close this and try again."
+            : null
+        }
+      />
       <Dialog.ErrorAlert message={error} />
     </Dialog>
   )

@@ -37,7 +37,7 @@ export function useWatchlist(id: string | undefined): UseWatchlistResult {
   const key = id ? watchlistKey(id) : null
   const { data, error, mutate } = useSwr<{ data: Watchlist }>(
     key,
-    simpleFetcher(key || ""),
+    key ? simpleFetcher(key) : null,
   )
   return {
     watchlist: data?.data,

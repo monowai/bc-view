@@ -400,7 +400,10 @@ function AssetLookupPage(): React.ReactElement {
         .join(" · ")
     : ""
 
-  const watchlistActions: ActionMenuItem[] = selectedAsset?.assetId
+  // Private assets have no market price to track — same rule as ActionsMenus.
+  const canWatch =
+    !!selectedAsset?.assetId && selectedAsset.market !== "PRIVATE"
+  const watchlistActions: ActionMenuItem[] = canWatch
     ? [
         {
           label: "Add to Watchlist",

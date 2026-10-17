@@ -150,6 +150,10 @@ export function buildAssetLookupHref(asset: Asset): string {
   })
   if (asset.market?.code) params.set("market", asset.market.code)
   if (asset.name) params.set("name", asset.name)
+  const currency = getAssetCurrency(asset)
+  if (currency) params.set("currency", currency)
+  // The lookup page maps `type` to the category, which gates e.g. Sectors.
+  if (asset.assetCategory?.id) params.set("type", asset.assetCategory.id)
   return `/assets/lookup?${params.toString()}`
 }
 

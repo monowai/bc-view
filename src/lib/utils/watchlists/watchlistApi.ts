@@ -34,7 +34,10 @@ async function send<T>(
       data?.message || data?.error || `Request failed (${res.status})`,
     )
   }
-  return (await res.json()) as T
+  // DELETE may answer 204 or an empty 200; neither is JSON.
+  if (res.status === 204) return undefined as T
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 const itemsUrl = (id: string): string => `${watchlistKey(id)}/items`

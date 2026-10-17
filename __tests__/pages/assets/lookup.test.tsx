@@ -557,6 +557,15 @@ describe("Asset Lookup Page — quiet by default", () => {
     ])
   })
 
+  it("does not offer a private asset for watching", () => {
+    mockQuery = { ...defaultQuery, market: "PRIVATE" }
+    render(<AssetLookupPage />)
+
+    expect(
+      screen.queryByRole("button", { name: /more actions/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it("opens the add-to-watchlist dialog for the selected asset", () => {
     render(<AssetLookupPage />)
 

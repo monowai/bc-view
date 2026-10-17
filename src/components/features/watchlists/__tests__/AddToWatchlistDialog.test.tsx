@@ -21,6 +21,7 @@ function jsonResponse(status: number, body: unknown): Response {
     ok: status < 400,
     status,
     json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response
 }
 
@@ -193,5 +194,78 @@ describe("AddToWatchlistDialog", () => {
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled())
     expect(itemPosts()[0].url).toBe("/api/watchlists/wl-fixed/items")
+  })
+
+  it("closes after a successful add even if the refresh fails", async () => {
+    const base = global.fetch as jest.Mock
+    let added = false
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "POST") added = true
+      // Every GET after the add fails: revalidation must not be reported.
+      if (added && (init?.method || "GET") === "GET") {
+        return Promise.reject(new Error("network down"))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const { onClose, onAdded } = renderDialog()
+
+    await screen.findByRole("option", { name: /TECH/ })
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(onAdded).toHaveBeenCalled()
+    expect(screen.queryByText("network down")).not.toBeInTheDocument()
+  })
+
+  it("says so when the watchlists cannot be loaded, rather than offering only a new one", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve(jsonResponse(500, { error: "boom" })),
+    ) as unknown as typeof fetch
+    renderDialog()
+
+    expect(
+      await screen.findByText(/could not load your watchlists/i),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled()
+  })
+
+  it("does not blame the added price for a 400 from creating the watchlist", async () => {
+    const base = global.fetch as jest.Mock
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (String(input) === "/api/watchlists" && init?.method === "POST") {
+        return Promise.resolve(jsonResponse(400, { error: "Bad code" }))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderDialog()
+
+    await screen.findByRole("option", { name: /TECH/ })
+    fireEvent.change(screen.getByLabelText(/^watchlist$/i), {
+      target: { value: "__new__" },
+    })
+    fireEvent.change(screen.getByLabelText(/^code$/i), {
+      target: { value: "x" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+
+    expect(await screen.findByText("Bad code")).toBeInTheDocument()
+    expect(screen.getByLabelText(/added price/i)).not.toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+  })
+
+  it("marks the added price when the item add needs one", async () => {
+    itemResponses = [{ status: 400, body: { error: NO_PRICE } }]
+    renderDialog()
+
+    await screen.findByRole("option", { name: /TECH/ })
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+
+    await screen.findByText(NO_PRICE)
+    expect(screen.getByLabelText(/added price/i)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
   })
 })

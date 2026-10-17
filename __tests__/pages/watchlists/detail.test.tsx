@@ -36,6 +36,7 @@ function jsonResponse(status: number, body: unknown): Response {
     ok: status < 400,
     status,
     json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response
 }
 
@@ -274,5 +275,100 @@ describe("Watchlist detail page", () => {
     expect(
       await screen.findByText(/nothing on this watchlist yet/i),
     ).toBeInTheDocument()
+  })
+
+  it("does not report a failed remove when only the refresh fails", async () => {
+    const base = global.fetch as jest.Mock
+    let removed = false
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "DELETE") removed = true
+      if (removed && (init?.method || "GET") === "GET") {
+        return Promise.reject(new Error("network down"))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderPage()
+    await screen.findByText("Tech ideas")
+
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+
+    await waitFor(() => expect(removed).toBe(true))
+    expect(screen.queryByText(/network down|remove failed/i)).toBeNull()
+  })
+
+  it("clears an earlier error once a later action succeeds", async () => {
+    const base = global.fetch as jest.Mock
+    let deletes = 0
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "DELETE" && ++deletes === 1) {
+        return Promise.resolve(jsonResponse(500, { error: "Remove broke" }))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderPage()
+    await screen.findByText("Tech ideas")
+
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+    expect(await screen.findByText("Remove broke")).toBeInTheDocument()
+
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: /remove AAA/i }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+
+    await waitFor(() => expect(deletes).toBe(2))
+    await waitFor(() =>
+      expect(screen.queryByText("Remove broke")).not.toBeInTheDocument(),
+    )
+  })
+
+  it("closes the rename dialog when the save succeeds but the refresh fails", async () => {
+    const base = global.fetch as jest.Mock
+    let patched = false
+    global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
+      if (init?.method === "PATCH") patched = true
+      if (patched && (init?.method || "GET") === "GET") {
+        return Promise.reject(new Error("network down"))
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    renderPage()
+    await screen.findByText("Tech ideas")
+
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
+    fireEvent.click(screen.getByRole("menuitem", { name: /rename/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(screen.queryByText("Rename Watchlist")).not.toBeInTheDocument(),
+    )
+  })
+
+  it("keeps an edited added price when clearing the target", async () => {
+    renderPage()
+    await screen.findByText("Tech ideas")
+
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
+    )
+    fireEvent.change(screen.getByLabelText(/added price/i), {
+      target: { value: "85" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /clear target/i }))
+
+    await waitFor(() =>
+      expect(
+        calls.find(
+          (c) =>
+            c.method === "PATCH" && c.url === "/api/watchlists/wl-1/items/wi-1",
+        )?.body,
+      ).toEqual({ clearTarget: true, addedPrice: 85 }),
+    )
   })
 })

@@ -16,14 +16,24 @@ export async function createAsset(option: AssetOption): Promise<Asset> {
           code,
           name: option.name || code,
           currency: option.currency,
-          category: option.type || "EQUITY",
+          // Search hits carry the provider's casing ("Mutual Fund"); BC
+          // category ids are upper case.
+          category: (option.type || "EQUITY").toUpperCase(),
           owner: "",
         },
       },
     }),
   })
   if (!response.ok) {
-    throw new Error(`Could not resolve asset (${response.status})`)
+    const data = (await response.json().catch(() => ({}))) as {
+      message?: string
+      error?: string
+    }
+    throw new Error(
+      data.message ||
+        data.error ||
+        `Could not resolve asset (${response.status})`,
+    )
   }
   const body = (await response.json()) as { data: Record<string, Asset> }
   const created = body.data?.[code]

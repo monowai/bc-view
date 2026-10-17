@@ -45,8 +45,10 @@ export default function EditWatchlistItemDialog({
     }
   }
 
-  const handleSave = async (): Promise<void> => {
-    const target = parseOptionalPrice(targetText)
+  // `clearing` routes "Clear target" through the same change detection, so an
+  // edited added price goes with it. clearTarget and targetPrice never pair.
+  const handleSave = async (clearing = false): Promise<void> => {
+    const target = clearing ? undefined : parseOptionalPrice(targetText)
     const added = parseOptionalPrice(addedText)
     if (target === null || added === null) {
       setError("Prices must be positive numbers")
@@ -57,12 +59,12 @@ export default function EditWatchlistItemDialog({
       return
     }
     const update: WatchlistItemUpdate = {}
-    if (added !== item.addedPrice) update.addedPrice = added
     if (target === undefined) {
       if (item.targetPrice != null) update.clearTarget = true
     } else if (target !== item.targetPrice) {
       update.targetPrice = target
     }
+    if (added !== item.addedPrice) update.addedPrice = added
     if (Object.keys(update).length === 0) {
       onClose()
       return
@@ -80,7 +82,7 @@ export default function EditWatchlistItemDialog({
             <button
               type="button"
               className="mr-auto px-4 py-2 rounded text-red-600 hover:bg-red-50 transition-colors"
-              onClick={() => run({ clearTarget: true })}
+              onClick={() => handleSave(true)}
               disabled={submitting}
             >
               {"Clear target"}
@@ -88,7 +90,7 @@ export default function EditWatchlistItemDialog({
           )}
           <Dialog.CancelButton onClick={onClose} />
           <Dialog.SubmitButton
-            onClick={handleSave}
+            onClick={() => handleSave()}
             label="Save"
             loadingLabel="Saving..."
             isSubmitting={submitting}

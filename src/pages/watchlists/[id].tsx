@@ -38,17 +38,23 @@ export default withPageAuthRequired(
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
     const [actionError, setActionError] = useState<string | null>(null)
 
-    if (error) return errorOut("Error retrieving watchlist", error)
+    // A failed background refresh keeps the last good copy on screen.
+    if (error && !watchlist) {
+      return errorOut("Error retrieving watchlist", error)
+    }
     if (!id || isLoading || !watchlist) return rootLoader("Loading...")
 
     const handleRename = async (request: WatchlistRequest): Promise<void> => {
       await updateWatchlist(watchlist.id, request)
-      await mutate()
+      setActionError(null)
       setRenaming(false)
+      // Revalidate in the background: the write already succeeded.
+      void mutate()
     }
 
     const handleDelete = async (): Promise<void> => {
       setConfirmDelete(false)
+      setActionError(null)
       try {
         await deleteWatchlist(watchlist.id)
         router.push("/watchlists")
@@ -60,20 +66,23 @@ export default withPageAuthRequired(
     const handleEdit = async (update: WatchlistItemUpdate): Promise<void> => {
       if (!editing) return
       await updateWatchlistItem(watchlist.id, editing.id, update)
-      await mutate()
+      setActionError(null)
       setEditing(null)
+      void mutate()
     }
 
     const handleRemove = async (): Promise<void> => {
       if (!removing) return
       const item = removing
       setRemoving(null)
+      setActionError(null)
       try {
         await removeWatchlistItem(watchlist.id, item.id)
-        await mutate()
       } catch (e) {
         setActionError(e instanceof Error ? e.message : "Remove failed")
+        return
       }
+      void mutate()
     }
 
     const menu: ActionMenuItem[] = [
@@ -130,7 +139,7 @@ export default withPageAuthRequired(
           <EmptyState
             icon="fas fa-eye"
             title="Nothing on this watchlist yet"
-            description="Add an asset to track its price against when you added it and your target."
+            description="Add an asset to track its price against your target and the price when you added it."
           />
         ) : (
           <div className="md:overflow-x-auto md:rounded-lg md:border md:border-gray-200 md:bg-white">

@@ -17,9 +17,10 @@ export default withPageAuthRequired(function Watchlists(): React.ReactElement {
 
   const handleCreate = async (request: WatchlistRequest): Promise<void> => {
     const created = await createWatchlist(request)
-    await mutate()
     setCreating(false)
     router.push(`/watchlists/${created.id}`)
+    // Background refresh: a failed GET must not read as a failed create.
+    void mutate()
   }
 
   if (error) return errorOut("Error retrieving watchlists", error)
