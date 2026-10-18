@@ -40,6 +40,23 @@ async function addFromDialog(): Promise<void> {
   fireEvent.click(await screen.findByRole("button", { name: "stub add" }))
 }
 
+let mockCanRunAi = false
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    ai: mockCanRunAi,
+    preview: false,
+    admin: false,
+    isLoading: false,
+  }),
+}))
+
+// The popup has its own tests; here it only needs to show it opened for the watched assets.
+jest.mock("@components/features/watchlists/WatchlistReviewPopup", () => {
+  return function WatchlistReviewPopup(props: { assetIds: string[] }) {
+    return <div>{`review of ${props.assetIds.join(",")}`}</div>
+  }
+})
+
 // withPageAuthRequired HOC strips prop types in v4
 const WatchlistPage = WatchlistPageDefault as React.ComponentType<any>
 
@@ -99,6 +116,7 @@ const unpriced = makeWatchlistItem({
 })
 
 beforeEach(() => {
+  mockCanRunAi = false
   calls = []
   watchlist = makeWatchlist({ items: [priced, unpriced] })
   global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
@@ -367,5 +385,35 @@ describe("Watchlist page", () => {
     await waitFor(() =>
       expect(screen.queryByText("Remove broke")).not.toBeInTheDocument(),
     )
+  })
+
+  it("opens an AI summary of the watched assets", async () => {
+    mockCanRunAi = true
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    fireEvent.click(screen.getByRole("button", { name: "AI Summary" }))
+
+    expect(screen.getByText("review of asset-1,asset-2")).toBeInTheDocument()
+  })
+
+  it("offers no AI summary without AI access", async () => {
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    expect(
+      screen.queryByRole("button", { name: "AI Summary" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers no AI summary of an empty watchlist", async () => {
+    mockCanRunAi = true
+    watchlist = makeWatchlist({ items: [] })
+    renderPage()
+    await screen.findByText("Nothing on your watchlist yet")
+
+    expect(
+      screen.queryByRole("button", { name: "AI Summary" }),
+    ).not.toBeInTheDocument()
   })
 })
