@@ -22,7 +22,8 @@ export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
     const { items, error, mutate } = useWatchlist()
     const { ai: canRunAi } = usePermissions()
-    const [reviewing, setReviewing] = useState(false)
+    // The ids captured at click time, so a background refresh cannot re-key an open brief.
+    const [reviewing, setReviewing] = useState<string[] | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
@@ -68,7 +69,7 @@ export default withPageAuthRequired(
             {canRunAi && items.length > 0 && (
               <button
                 type="button"
-                onClick={() => setReviewing(true)}
+                onClick={() => setReviewing(items.map((item) => item.asset.id))}
                 className="inline-flex items-center gap-2 rounded-md border border-purple-300 px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50"
               >
                 <i aria-hidden="true" className="fas fa-robot"></i>
@@ -110,8 +111,8 @@ export default withPageAuthRequired(
 
         {reviewing && (
           <WatchlistReviewPopup
-            assetIds={items.map((item) => item.asset.id)}
-            onClose={() => setReviewing(false)}
+            assetIds={reviewing}
+            onClose={() => setReviewing(null)}
           />
         )}
         {adding && (

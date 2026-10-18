@@ -14,6 +14,7 @@ const WATCHLIST_BRIEF_PROMPT =
   "Review my watchlist for momentum and fundamentals. Which names are trending, which are fading, and which deserve a closer look?"
 
 const CACHE_TTL_MS = 30 * 60 * 1000
+const TITLE = "AI Summary — Watchlist"
 
 export function watchlistReviewKey(assetIds: string[]): string {
   return `watchlist-review|${[...assetIds].sort().join(",")}`
@@ -28,7 +29,7 @@ export default function WatchlistReviewPopup({
     () => ({
       cacheKey,
       query: WATCHLIST_BRIEF_PROMPT,
-      label: "AI Summary — Watchlist",
+      label: TITLE,
       ttlMs: CACHE_TTL_MS,
       context: {
         page: "Watchlist",
@@ -43,7 +44,7 @@ export default function WatchlistReviewPopup({
       title={
         <span className="flex items-center">
           <i className="fas fa-robot text-blue-500 mr-2"></i>
-          {"AI Summary — Watchlist"}
+          {TITLE}
         </span>
       }
       request={request}
