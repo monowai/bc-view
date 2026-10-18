@@ -21,8 +21,10 @@ import {
   isAccount,
   isConstantPrice,
   isFundLike,
+  isWatchable,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
+import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 
 export interface CorporateActionsData {
   asset: Asset
@@ -197,6 +199,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
+  const [watching, setWatching] = useState(false)
+  const canWatch = isWatchable(asset)
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
@@ -348,6 +352,13 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   )}
                 />
               )}
+              {canWatch && (
+                <MenuItem
+                  iconClass="fas fa-eye text-sky-500 w-4"
+                  label="Add to Watchlist"
+                  onClick={handle(() => setWatching(true))}
+                />
+              )}
               {onGoToPortfolio && (
                 <MenuItem
                   iconClass="fas fa-folder-open text-slate-500 w-4"
@@ -363,6 +374,21 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 />
               )}
             </div>
+          </div>,
+          document.body,
+        )}
+      {watching &&
+        createPortal(
+          // React events bubble through portals to the holding row, whose
+          // double-click opens trades; stop them at the dialog boundary.
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
+            <AddToWatchlistDialog
+              asset={{ id: asset.id, label: assetCode }}
+              onClose={() => setWatching(false)}
+            />
           </div>,
           document.body,
         )}

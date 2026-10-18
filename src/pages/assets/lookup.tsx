@@ -21,7 +21,12 @@ import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
-import { isFundLike } from "@lib/assets/assetUtils"
+import {
+  isFundLike,
+  isWatchable,
+  toAssetCategoryId,
+} from "@lib/assets/assetUtils"
+import { createAsset } from "@lib/assets/createAsset"
 import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import EmptyState from "@components/ui/EmptyState"
@@ -33,6 +38,7 @@ import AssetLookupTabNav, {
   AssetLookupTabId,
 } from "@components/features/assets/AssetLookupTabNav"
 import AssetBrokersTab from "@components/features/assets/AssetBrokersTab"
+import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
@@ -72,41 +78,10 @@ function assetOptionFromQuery(
   }
 }
 
-/** Create (or fetch, if it already exists) the BC asset for a search hit. */
 function changeClass(change: number): string {
   if (change < 0) return "text-red-600"
   if (change > 0) return "text-emerald-600"
   return "text-gray-600"
-}
-
-async function createAsset(option: AssetOption): Promise<Asset> {
-  if (!option.market || !option.symbol) {
-    throw new Error("Cannot resolve this asset — missing market or symbol")
-  }
-  const code = option.symbol.toUpperCase()
-  const response = await fetch("/api/assets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      data: {
-        [code]: {
-          market: option.market,
-          code,
-          name: option.name || code,
-          currency: option.currency,
-          category: option.type || "EQUITY",
-          owner: "",
-        },
-      },
-    }),
-  })
-  if (!response.ok) {
-    throw new Error(`Could not resolve asset (${response.status})`)
-  }
-  const body = (await response.json()) as { data: Record<string, Asset> }
-  const created = body.data?.[code]
-  if (!created?.id) throw new Error("Asset response missing id")
-  return created
 }
 
 function deleteTitle(checking: boolean, held: boolean): string {
@@ -142,9 +117,7 @@ const fillOnPhone = "flex-auto justify-center sm:flex-none"
 
 function assetOptionToAsset(option: AssetOption): Asset {
   const marketCode = option.market || ""
-  // Search hits carry the provider's casing ("Mutual Fund"); BC category ids
-  // are upper case.
-  const categoryId = (option.type || "EQUITY").toUpperCase()
+  const categoryId = toAssetCategoryId(option.type)
   const category: AssetCategory = {
     id: categoryId,
     name: option.type || "EQUITY",
@@ -182,6 +155,7 @@ function AssetLookupPage(): React.ReactElement {
     message: string
   } | null>(null)
   const [showAdminEdit, setShowAdminEdit] = useState(false)
+  const [showWatchlist, setShowWatchlist] = useState(false)
   const [activeTab, setActiveTab] = useState<AssetLookupTabId>("portfolios")
   const [sellRow, setSellRow] = useState<AssetPosition | null>(null)
   const [sellModalOpen, setSellModalOpen] = useState(false)
@@ -428,6 +402,17 @@ function AssetLookupPage(): React.ReactElement {
         .join(" · ")
     : ""
 
+  const canWatch = !!selectedAsset?.assetId && isWatchable(selectedAsset)
+  const watchlistActions: ActionMenuItem[] = canWatch
+    ? [
+        {
+          label: "Add to Watchlist",
+          icon: "fa-eye",
+          onSelect: () => setShowWatchlist(true),
+        },
+      ]
+    : []
+
   const adminActions: ActionMenuItem[] =
     isAdmin && selectedAsset?.assetId
       ? [
@@ -636,9 +621,9 @@ function AssetLookupPage(): React.ReactElement {
                 <TradeAssetAction asset={selectedAsset} />
               </div>
             )}
-            {adminActions.length > 0 && (
+            {watchlistActions.length + adminActions.length > 0 && (
               <ActionMenu
-                items={adminActions}
+                items={[...watchlistActions, ...adminActions]}
                 label={`More actions for ${selectedAsset.symbol}`}
                 triggerClassName={`${toolButton} w-8 justify-center px-0`}
               />
@@ -653,6 +638,12 @@ function AssetLookupPage(): React.ReactElement {
             {deleteError.message}
           </Alert>
         )}
+      {showWatchlist && selectedAsset?.assetId && (
+        <AddToWatchlistDialog
+          asset={{ id: selectedAsset.assetId, label: selectedAsset.symbol }}
+          onClose={() => setShowWatchlist(false)}
+        />
+      )}
       {/* Admin: edit (name/category) + classify popup, replaces the
           separate Admin → Asset Classifications screen. */}
       {isAdmin && selectedAsset?.assetId && showAdminEdit && (

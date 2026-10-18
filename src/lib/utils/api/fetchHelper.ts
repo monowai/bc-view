@@ -132,6 +132,9 @@ export const executionsKey = `${apiRoot}/rebalance/executions`
 export const modelKey = (id: string): string => `${modelsKey}/${id}`
 export const executionKey = (id: string): string => `${executionsKey}/${id}`
 
+// Watchlist (svc-data) — one per user
+export const watchlistKey = `${apiRoot}/watchlist`
+
 // API keys (BC-issued, for external agent/MCP access)
 export const apiKeysKey = `${apiRoot}/me/api-keys`
 
