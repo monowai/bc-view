@@ -8,7 +8,9 @@ import Alert from "@components/ui/Alert"
 import WatchlistItemsTable from "@components/features/watchlists/WatchlistItemsTable"
 import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchlistItemDialog"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
+import WatchlistReviewPopup from "@components/features/watchlists/WatchlistReviewPopup"
 import { useWatchlist } from "@hooks/useWatchlist"
+import { usePermissions } from "@hooks/usePermissions"
 import {
   removeWatchlistItem,
   updateWatchlistItem,
@@ -19,6 +21,9 @@ import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
 export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
     const { items, error, mutate } = useWatchlist()
+    const { ai: canRunAi } = usePermissions()
+    // The ids captured at click time, so a background refresh cannot re-key an open brief.
+    const [reviewing, setReviewing] = useState<string[] | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
@@ -60,14 +65,26 @@ export default withPageAuthRequired(
               {"Assets you are tracking but don't necessarily hold"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-          >
-            <i aria-hidden="true" className="fas fa-plus"></i>
-            {"Add Asset"}
-          </button>
+          <div className="flex items-center gap-2">
+            {canRunAi && items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setReviewing(items.map((item) => item.asset.id))}
+                className="inline-flex items-center gap-2 rounded-md border border-purple-300 px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50"
+              >
+                <i aria-hidden="true" className="fas fa-robot"></i>
+                {"AI Summary"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
+            >
+              <i aria-hidden="true" className="fas fa-plus"></i>
+              {"Add Asset"}
+            </button>
+          </div>
         </div>
 
         {actionError && (
@@ -92,6 +109,12 @@ export default withPageAuthRequired(
           </div>
         )}
 
+        {reviewing && (
+          <WatchlistReviewPopup
+            assetIds={reviewing}
+            onClose={() => setReviewing(null)}
+          />
+        )}
         {adding && (
           <AddToWatchlistDialog
             onAdded={() => setActionError(null)}
