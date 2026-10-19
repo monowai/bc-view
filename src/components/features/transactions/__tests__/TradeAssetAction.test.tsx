@@ -51,6 +51,15 @@ describe("TradeAssetAction", () => {
     ).toBeInTheDocument()
   })
 
+  it("renders an icon-only Trade button when compact", () => {
+    setPortfolios([makePortfolio({ id: "p1", code: "MAIN" })])
+    render(<TradeAssetAction asset={asset} compact />)
+    const button = screen.getByRole("button", { name: /Trade AAPL/i })
+    expect(button).not.toHaveTextContent("Trade")
+    fireEvent.click(button)
+    expect(screen.getByTestId("trade-form")).toHaveTextContent("form:MAIN:AAPL")
+  })
+
   it("disables the button when the user has no portfolios", () => {
     setPortfolios([])
     render(<TradeAssetAction asset={asset} />)

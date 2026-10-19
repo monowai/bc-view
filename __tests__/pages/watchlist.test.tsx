@@ -11,6 +11,7 @@ import { SWRConfig } from "swr"
 import WatchlistPageDefault from "@pages/watchlist"
 import {
   makeAsset,
+  makePortfolio,
   makeWatchlist,
   makeWatchlistItem,
 } from "@test-fixtures/beancounter"
@@ -72,6 +73,32 @@ jest.mock("@components/features/fx/RateChartModal", () => {
 jest.mock("@components/features/holdings/PriceChartPopup", () => {
   return function PriceChartPopup(props: { asset: { code: string } }) {
     return <div>{`price chart ${props.asset.code}`}</div>
+  }
+})
+
+// One portfolio, so Trade goes straight to the form without a picker.
+jest.mock("@hooks/usePortfolios", () => ({
+  usePortfolios: () => ({
+    portfolios: [makePortfolio({ id: "pf-1", code: "MAIN" })],
+  }),
+}))
+jest.mock("@components/features/transactions/TradeInputForm", () => {
+  return function TradeInputForm(props: {
+    portfolio: { code: string }
+    initialValues?: { asset: string; market: string; type: string }
+  }) {
+    const v = props.initialValues
+    return (
+      <div>{`trade ${v?.type} ${v?.asset} on ${v?.market} into ${props.portfolio.code}`}</div>
+    )
+  }
+})
+jest.mock("@components/features/holdings/NewsSentimentPopup", () => {
+  return function NewsSentimentPopup(props: {
+    ticker: string
+    market?: string
+  }) {
+    return <div>{`news of ${props.ticker} on ${props.market}`}</div>
   }
 })
 
@@ -523,6 +550,68 @@ describe("Watchlist page", () => {
 
       expect(
         within(row("wi-4")).queryByRole("button", { name: /price chart/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe("actions", () => {
+    const cashItem = makeWatchlistItem({
+      id: "wi-4",
+      asset: makeAsset({
+        id: "asset-4",
+        code: "USD",
+        assetCategory: { id: "CASH", name: "Cash" },
+        market: { code: "CASH", name: "Cash", currency: undefined as never },
+      }),
+    })
+
+    beforeEach(() => {
+      watchlist = makeWatchlist({ items: [priced, fxPair, cashItem] })
+    })
+
+    it("opens the holdings news popup for the row's asset", async () => {
+      mockCanRunAi = true
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: "News AAA" }),
+      )
+
+      expect(screen.getByText("news of AAA on NASDAQ")).toBeInTheDocument()
+    })
+
+    it("offers no news without AI or preview access", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      expect(
+        within(row("wi-1")).queryByRole("button", { name: /^News/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("opens the trade form prefilled as a BUY of the row's asset", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: "Trade AAA" }),
+      )
+
+      expect(
+        screen.getByText("trade BUY AAA on NASDAQ into MAIN"),
+      ).toBeInTheDocument()
+    })
+
+    it("offers no trade for a currency pair or cash", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      expect(
+        within(row("wi-3")).queryByRole("button", { name: /^Trade/ }),
+      ).not.toBeInTheDocument()
+      expect(
+        within(row("wi-4")).queryByRole("button", { name: /^Trade/ }),
       ).not.toBeInTheDocument()
     })
   })

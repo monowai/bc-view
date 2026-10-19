@@ -10,6 +10,7 @@ import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchli
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
 import AssetChart from "@components/features/assets/AssetChart"
+import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
 import { useWatchlist } from "@hooks/useWatchlist"
 import {
   removeWatchlistItem,
@@ -27,6 +28,7 @@ export default withPageAuthRequired(
     const { items, error, mutate } = useWatchlist()
     // Captured at click time, so a background refresh cannot re-key an open review.
     const [reviewing, setReviewing] = useState<NewsAssetRef | null>(null)
+    const { popup: newsPopup, showNews } = useNewsAsset()
     const [charting, setCharting] = useState<Asset | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
@@ -101,6 +103,7 @@ export default withPageAuthRequired(
               onRemove={setRemoving}
               onReview={(item) => setReviewing(buildNewsAsset(item.asset))}
               onChart={(item) => setCharting(item.asset)}
+              onNews={(item) => showNews(item.asset)}
             />
           </div>
         )}
@@ -114,6 +117,7 @@ export default withPageAuthRequired(
             onClose={() => setReviewing(null)}
           />
         )}
+        {newsPopup}
         {charting && (
           <AssetChart
             asset={charting}

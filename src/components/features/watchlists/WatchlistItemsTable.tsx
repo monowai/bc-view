@@ -1,9 +1,12 @@
 import React from "react"
 import Link from "next/link"
-import { WatchlistItem } from "types/beancounter"
+import { AssetOption, WatchlistItem } from "types/beancounter"
 import {
   buildAssetLookupHref,
+  fxPairLegs,
   getPositionDisplayName,
+  isNonTradeable,
+  stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import {
   formatCurrency,
@@ -13,6 +16,8 @@ import {
   gainLossClass,
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
+import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
+import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 import { isChartableCategory } from "@lib/categoryMapping"
 
 const DASH = "–"
@@ -25,6 +30,27 @@ interface WatchlistItemsTableProps {
   onReview: (item: WatchlistItem) => void
   /** Open the chart of this item's asset. */
   onChart: (item: WatchlistItem) => void
+  /** Open the news and sentiment popup for this item's asset. */
+  onNews: (item: WatchlistItem) => void
+}
+
+// Holdings' trade rule (no cash, account or real estate), plus currency
+// pairs: a pair is a rate to watch, not something a BUY can hold.
+const canTrade = (item: WatchlistItem): boolean =>
+  !isNonTradeable(item.asset) && !fxPairLegs(item.asset)
+
+// The trade dialog takes the lookup page's AssetOption shape.
+const toTradeOption = (item: WatchlistItem): AssetOption => {
+  const symbol = stripOwnerPrefix(item.asset.code)
+  return {
+    value: item.asset.id,
+    label: symbol,
+    symbol,
+    name: item.asset.name,
+    market: item.asset.market?.code,
+    assetId: item.asset.id,
+    currency: item.currency.code,
+  }
 }
 
 // Every figure is the backend's; this component only formats. Percent fields
@@ -73,6 +99,7 @@ export default function WatchlistItemsTable({
   onRemove,
   onReview,
   onChart,
+  onNews,
 }: WatchlistItemsTableProps): React.ReactElement {
   return (
     <table className="w-full text-sm">
@@ -106,6 +133,10 @@ export default function WatchlistItemsTable({
                   >
                     {code}
                   </Link>
+                  <AssetNewsButton
+                    asset={item.asset}
+                    onShow={() => onNews(item)}
+                  />
                   <AssetReviewButton
                     asset={item.asset}
                     onShow={() => onReview(item)}
@@ -198,6 +229,9 @@ export default function WatchlistItemsTable({
                 )}
               </td>
               <td className="flex justify-end gap-1 md:table-cell px-3 py-1 md:py-2 md:text-right whitespace-nowrap">
+                {canTrade(item) && (
+                  <TradeAssetAction asset={toTradeOption(item)} compact />
+                )}
                 <button
                   type="button"
                   aria-label={`Edit ${code}`}
