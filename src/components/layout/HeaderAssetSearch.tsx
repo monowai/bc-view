@@ -3,6 +3,7 @@ import { useRouter } from "next/router"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { AssetOption } from "types/beancounter"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import WatchlistStar from "@components/features/watchlists/WatchlistStar"
 import { getRecentAssets, pushRecentAsset } from "@lib/assets/recentAssets"
 
 const buildQuery = (option: AssetOption): Record<string, string> => {
@@ -64,6 +65,7 @@ function HeaderAssetSearchInner({
         placeholder="Search assets..."
         isClearable={false}
         inputId="header-asset-search-input"
+        optionAction={(option) => <WatchlistStar option={option} />}
       />
     </div>
   )

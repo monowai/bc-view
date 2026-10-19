@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import HeaderAssetSearch from "../HeaderAssetSearch"
 import { pushRecentAsset } from "@lib/assets/recentAssets"
 import { useUser } from "@auth0/nextjs-auth0/client"
+import { SWRConfig } from "swr"
 
 const mockPush = jest.fn()
 const mockUseUser = useUser as jest.MockedFunction<typeof useUser>
@@ -128,5 +129,166 @@ describe("HeaderAssetSearch", () => {
     expect(window.localStorage.getItem("bc:asset-recent-searches")).toContain(
       "asset-msft",
     )
+  })
+
+  describe("watchlist star on each result", () => {
+    const aapl = {
+      symbol: "AAPL",
+      name: "Apple Inc",
+      market: "NASDAQ",
+      assetId: "asset-aapl",
+      currency: "USD",
+      type: "Equity",
+    }
+    const json = (body: unknown, status = 200): unknown => ({
+      ok: status < 400,
+      status,
+      json: () => Promise.resolve(body),
+      text: () => Promise.resolve(JSON.stringify(body)),
+    })
+
+    // Answers each call by URL and method, so the order SWR and the search fire in does not matter.
+    const serve = (
+      results: unknown[],
+      watched: unknown[] = [],
+      added: { status: number; body: unknown } = {
+        status: 200,
+        body: { data: { id: "w-new", asset: { id: "asset-aapl" } } },
+      },
+    ): void => {
+      mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+        const method = init?.method ?? "GET"
+        if (url.startsWith("/api/assets/search")) {
+          return Promise.resolve(json({ data: results }))
+        }
+        if (url === "/api/watchlist" && method === "GET") {
+          return Promise.resolve(json({ data: { items: watched } }))
+        }
+        if (url === "/api/watchlist/items" && method === "POST") {
+          return Promise.resolve(json(added.body, added.status))
+        }
+        if (url.startsWith("/api/watchlist/items/") && method === "DELETE") {
+          return Promise.resolve(json({ deleted: true }))
+        }
+        if (url === "/api/assets" && method === "POST") {
+          return Promise.resolve(
+            json({ data: { NEWCO: { id: "asset-newco", code: "NEWCO" } } }),
+          )
+        }
+        return Promise.resolve(json({}, 404))
+      })
+    }
+
+    const search = async (text: string): Promise<void> => {
+      const user = userEvent.setup({
+        advanceTimers: jest.advanceTimersByTime,
+      })
+      render(
+        <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+          <HeaderAssetSearch />
+        </SWRConfig>,
+      )
+      await user.type(screen.getAllByRole("combobox")[0], text)
+      await flushAsync()
+    }
+
+    const calls = (
+      method: string,
+      url: string,
+    ): [string, RequestInit | undefined][] =>
+      (mockFetch.mock.calls as [string, RequestInit | undefined][]).filter(
+        ([u, init]) =>
+          String(u).startsWith(url) && (init?.method ?? "GET") === method,
+      )
+
+    it("stars a result onto the watchlist without opening it", async () => {
+      serve([aapl])
+      await search("AAPL")
+
+      const star = await screen.findByRole("button", {
+        name: "Add AAPL to watchlist",
+      })
+      await userEvent
+        .setup({ advanceTimers: jest.advanceTimersByTime })
+        .click(star)
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(calls("POST", "/api/watchlist/items")).toHaveLength(1)
+      })
+      expect(
+        JSON.parse(calls("POST", "/api/watchlist/items")[0][1]?.body as string),
+      ).toEqual({ assetId: "asset-aapl" })
+      expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it("shows a watched result as starred and takes it off", async () => {
+      serve([aapl], [{ id: "w-1", asset: { id: "asset-aapl" } }])
+      await search("AAPL")
+
+      const star = await screen.findByRole("button", {
+        name: "Remove AAPL from watchlist",
+      })
+      await userEvent
+        .setup({ advanceTimers: jest.advanceTimersByTime })
+        .click(star)
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(calls("DELETE", "/api/watchlist/items/w-1")).toHaveLength(1)
+      })
+      expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it("creates the asset first when the result is not yet known", async () => {
+      serve([{ ...aapl, symbol: "NEWCO", name: "New Co", assetId: undefined }])
+      await search("NEWCO")
+
+      const star = await screen.findByRole("button", {
+        name: "Add NEWCO to watchlist",
+      })
+      await userEvent
+        .setup({ advanceTimers: jest.advanceTimersByTime })
+        .click(star)
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(calls("POST", "/api/watchlist/items")).toHaveLength(1)
+      })
+      expect(calls("POST", "/api/assets")).toHaveLength(1)
+      expect(
+        JSON.parse(calls("POST", "/api/watchlist/items")[0][1]?.body as string),
+      ).toEqual({ assetId: "asset-newco" })
+    })
+
+    it("says why when the result has no price to watch yet", async () => {
+      serve([aapl], [], {
+        status: 400,
+        body: { message: "No price for AAPL; enter an added price" },
+      })
+      await search("AAPL")
+
+      const star = await screen.findByRole("button", {
+        name: "Add AAPL to watchlist",
+      })
+      await userEvent
+        .setup({ advanceTimers: jest.advanceTimersByTime })
+        .click(star)
+      await flushAsync()
+
+      expect(
+        await screen.findByText("No price for AAPL; enter an added price"),
+      ).toBeInTheDocument()
+    })
+
+    it("offers no star on a private asset", async () => {
+      serve([{ ...aapl, symbol: "HOUSE", name: "Home", market: "PRIVATE" }])
+      await search("HOUSE")
+
+      await screen.findByText(/HOUSE - Home/)
+      expect(
+        screen.queryByRole("button", { name: /HOUSE.*watchlist/ }),
+      ).not.toBeInTheDocument()
+    })
   })
 })
