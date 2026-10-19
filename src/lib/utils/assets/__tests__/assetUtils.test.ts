@@ -8,6 +8,7 @@ import {
   buildTradesHref,
   buildAggregatedTradesHref,
   buildNewsAsset,
+  hasPublicNews,
 } from "../assetUtils"
 import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
 
@@ -210,5 +211,46 @@ describe("buildNewsAsset", () => {
       market: "NASDAQ",
       assetName: "Berkshire Hathaway B",
     })
+  })
+})
+
+describe("hasPublicNews", () => {
+  it("is true for a listed equity", () => {
+    expect(hasPublicNews(makeAsset())).toBe(true)
+  })
+
+  it("is true for a currency pair on the FX market", () => {
+    expect(
+      hasPublicNews(
+        makeAsset({
+          code: "NZDSGD",
+          assetCategory: { id: "CURRENCY", name: "Currency" },
+          market: { code: "FX", name: "FX", currency: undefined as never },
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it("is false for cash and accounts", () => {
+    expect(hasPublicNews(makeCashAsset())).toBe(false)
+    expect(
+      hasPublicNews(
+        makeAsset({ assetCategory: { id: "ACCOUNT", name: "Account" } }),
+      ),
+    ).toBe(false)
+  })
+
+  it("is false on the PRIVATE market", () => {
+    expect(
+      hasPublicNews(
+        makeAsset({
+          market: {
+            code: "PRIVATE",
+            name: "Private",
+            currency: undefined as never,
+          },
+        }),
+      ),
+    ).toBe(false)
   })
 })

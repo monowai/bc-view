@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react"
 import { Asset } from "types/beancounter"
-import { isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { hasPublicNews, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetNewsButtonProps {
@@ -22,7 +22,7 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
 }): ReactElement | null => {
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   if (!canRunAi && !canPreview) return null
-  if (isCashRelated(asset) || asset.market?.code === "PRIVATE") return null
+  if (!hasPublicNews(asset)) return null
   const ticker = stripOwnerPrefix(asset.code)
   return (
     <button

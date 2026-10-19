@@ -12,6 +12,7 @@ import {
   formatSignedNumber,
   gainLossClass,
 } from "@lib/formatters"
+import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 
 const DASH = "–"
 
@@ -19,6 +20,8 @@ interface WatchlistItemsTableProps {
   items: WatchlistItem[]
   onEdit: (item: WatchlistItem) => void
   onRemove: (item: WatchlistItem) => void
+  /** Open the AI review of this item's asset. */
+  onReview: (item: WatchlistItem) => void
 }
 
 // Every figure is the backend's; this component only formats. Percent fields
@@ -65,6 +68,7 @@ export default function WatchlistItemsTable({
   items,
   onEdit,
   onRemove,
+  onReview,
 }: WatchlistItemsTableProps): React.ReactElement {
   return (
     <table className="w-full text-sm">
@@ -91,12 +95,18 @@ export default function WatchlistItemsTable({
               className="block md:table-row border border-gray-200 md:border-0 md:border-b rounded-lg md:rounded-none mb-3 md:mb-0 py-2 md:py-0 bg-white"
             >
               <td className="block md:table-cell px-3 py-1 md:py-2">
-                <Link
-                  href={buildAssetLookupHref(item.asset)}
-                  className="font-semibold text-gray-900 hover:text-blue-600"
-                >
-                  {code}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={buildAssetLookupHref(item.asset)}
+                    className="font-semibold text-gray-900 hover:text-blue-600"
+                  >
+                    {code}
+                  </Link>
+                  <AssetReviewButton
+                    asset={item.asset}
+                    onShow={() => onReview(item)}
+                  />
+                </div>
                 {item.asset.name && item.asset.name !== code && (
                   <div className="text-xs text-gray-500 truncate max-w-[16rem]">
                     {item.asset.name}

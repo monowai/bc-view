@@ -190,6 +190,15 @@ export function buildAggregatedTradesHref(
   return `/trns/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
 }
 
+/**
+ * Whether an asset has public coverage an AI review can draw on: not cash or
+ * an account, and not on the PRIVATE market. A currency pair (CURRENCY on the
+ * FX market) qualifies; svc-agent reviews it as a rate.
+ */
+export function hasPublicNews(asset: Asset): boolean {
+  return !isCashRelated(asset) && asset.market?.code !== "PRIVATE"
+}
+
 export interface NewsAssetRef {
   ticker: string
   market: string
@@ -197,8 +206,8 @@ export interface NewsAssetRef {
 }
 
 /**
- * Shape consumed by NewsSentimentPopup. Centralized so card / row build it
- * the same way.
+ * Shape consumed by NewsSentimentPopup and AssetReviewPopup. Centralized so
+ * every view builds it the same way.
  */
 export function buildNewsAsset(asset: Asset): NewsAssetRef {
   return {
