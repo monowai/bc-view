@@ -13,6 +13,7 @@ import {
   gainLossClass,
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
+import { isChartableCategory } from "@lib/categoryMapping"
 
 const DASH = "–"
 
@@ -22,6 +23,8 @@ interface WatchlistItemsTableProps {
   onRemove: (item: WatchlistItem) => void
   /** Open the AI review of this item's asset. */
   onReview: (item: WatchlistItem) => void
+  /** Open the chart of this item's asset. */
+  onChart: (item: WatchlistItem) => void
 }
 
 // Every figure is the backend's; this component only formats. Percent fields
@@ -69,6 +72,7 @@ export default function WatchlistItemsTable({
   onEdit,
   onRemove,
   onReview,
+  onChart,
 }: WatchlistItemsTableProps): React.ReactElement {
   return (
     <table className="w-full text-sm">
@@ -106,6 +110,17 @@ export default function WatchlistItemsTable({
                     asset={item.asset}
                     onShow={() => onReview(item)}
                   />
+                  {isChartableCategory(item.asset.assetCategory?.id) && (
+                    <button
+                      type="button"
+                      aria-label={`Show price chart for ${code}`}
+                      title="Price Chart"
+                      onClick={() => onChart(item)}
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      <i aria-hidden="true" className="fas fa-chart-line"></i>
+                    </button>
+                  )}
                 </div>
                 {item.asset.name && item.asset.name !== code && (
                   <div className="text-xs text-gray-500 truncate max-w-[16rem]">

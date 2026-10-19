@@ -9,6 +9,7 @@ import WatchlistItemsTable from "@components/features/watchlists/WatchlistItemsT
 import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchlistItemDialog"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
+import AssetChart from "@components/features/assets/AssetChart"
 import { useWatchlist } from "@hooks/useWatchlist"
 import {
   removeWatchlistItem,
@@ -19,13 +20,14 @@ import {
   getPositionDisplayName,
   NewsAssetRef,
 } from "@lib/assets/assetUtils"
-import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
+import { Asset, WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
 
 export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
     const { items, error, mutate } = useWatchlist()
     // Captured at click time, so a background refresh cannot re-key an open review.
     const [reviewing, setReviewing] = useState<NewsAssetRef | null>(null)
+    const [charting, setCharting] = useState<Asset | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
@@ -98,6 +100,7 @@ export default withPageAuthRequired(
               onEdit={setEditing}
               onRemove={setRemoving}
               onReview={(item) => setReviewing(buildNewsAsset(item.asset))}
+              onChart={(item) => setCharting(item.asset)}
             />
           </div>
         )}
@@ -109,6 +112,13 @@ export default withPageAuthRequired(
             market={reviewing.market}
             assetName={reviewing.assetName}
             onClose={() => setReviewing(null)}
+          />
+        )}
+        {charting && (
+          <AssetChart
+            asset={charting}
+            currencySymbol=""
+            onClose={() => setCharting(null)}
           />
         )}
         {adding && (

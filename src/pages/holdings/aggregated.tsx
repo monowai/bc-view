@@ -41,7 +41,7 @@ import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import Rows, { SectorWeightingsData } from "@components/features/holdings/Rows"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import AssetChart from "@components/features/assets/AssetChart"
 import PortfolioBreakdownPopup from "@components/features/holdings/PortfolioBreakdownPopup"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
@@ -779,7 +779,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
           onClose={() => setCopyModalOpen(false)}
         />
         {priceChartData && (
-          <PriceChartPopup
+          <AssetChart
             asset={priceChartData.asset}
             currencySymbol={priceChartData.currencySymbol}
             portfolios={(

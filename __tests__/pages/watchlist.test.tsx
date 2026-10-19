@@ -63,6 +63,18 @@ jest.mock("@components/features/assets/AssetReviewPopup", () => {
   }
 })
 
+// The chart modals have their own tests; here they only show what they opened for.
+jest.mock("@components/features/fx/RateChartModal", () => {
+  return function RateChartModal(props: { from: string; to: string }) {
+    return <div>{`rate chart ${props.from}/${props.to}`}</div>
+  }
+})
+jest.mock("@components/features/holdings/PriceChartPopup", () => {
+  return function PriceChartPopup(props: { asset: { code: string } }) {
+    return <div>{`price chart ${props.asset.code}`}</div>
+  }
+})
+
 // withPageAuthRequired HOC strips prop types in v4
 const WatchlistPage = WatchlistPageDefault as React.ComponentType<any>
 
@@ -461,5 +473,57 @@ describe("Watchlist page", () => {
     expect(
       screen.queryByRole("button", { name: "AI Summary" }),
     ).not.toBeInTheDocument()
+  })
+
+  describe("chart", () => {
+    const cashItem = makeWatchlistItem({
+      id: "wi-4",
+      asset: makeAsset({
+        id: "asset-4",
+        code: "USD",
+        assetCategory: { id: "CASH", name: "Cash" },
+      }),
+    })
+
+    beforeEach(() => {
+      watchlist = makeWatchlist({ items: [priced, fxPair, cashItem] })
+    })
+
+    it("opens the FX rate chart, base to quote, for a currency pair", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-3")
+
+      fireEvent.click(
+        within(row("wi-3")).getByRole("button", {
+          name: /price chart for NZDSGD/i,
+        }),
+      )
+
+      expect(screen.getByText("rate chart NZD/SGD")).toBeInTheDocument()
+      expect(screen.queryByText(/^price chart/)).not.toBeInTheDocument()
+    })
+
+    it("opens the price chart for an equity", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", {
+          name: /price chart for AAA/i,
+        }),
+      )
+
+      expect(screen.getByText("price chart AAA")).toBeInTheDocument()
+      expect(screen.queryByText(/rate chart/)).not.toBeInTheDocument()
+    })
+
+    it("offers no chart for a category that cannot be charted", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-4")
+
+      expect(
+        within(row("wi-4")).queryByRole("button", { name: /price chart/i }),
+      ).not.toBeInTheDocument()
+    })
   })
 })

@@ -96,6 +96,27 @@ export function stripOwnerPrefix(code: string): string {
   return dropOwnerPrefix(code)
 }
 
+export interface FxPairLegs {
+  from: string
+  to: string
+}
+
+const FX_PAIR_CODE = /^[A-Z]{6}$/
+
+/**
+ * The base and quote currencies of a currency-pair asset — `NZDSGD` on the
+ * FX market is SGD per NZD, so `{ from: "NZD", to: "SGD" }`. Null for any
+ * asset that is not a six-letter pair on the FX market.
+ */
+export function fxPairLegs(
+  asset: Pick<Asset, "code" | "market"> | null | undefined,
+): FxPairLegs | null {
+  if (asset?.market?.code?.toUpperCase() !== "FX") return null
+  const code = dropOwnerPrefix(asset.code || "").toUpperCase()
+  if (!FX_PAIR_CODE.test(code)) return null
+  return { from: code.slice(0, 3), to: code.slice(3) }
+}
+
 /**
  * Resolve an asset ID that may be a synthetic "cash:CURRENCY" reference
  * to a real asset UUID via the backend. Real UUIDs pass through unchanged.

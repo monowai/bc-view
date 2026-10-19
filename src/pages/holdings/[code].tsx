@@ -54,7 +54,7 @@ import Rows, {
 } from "@components/features/holdings/Rows"
 import { PriceChartData } from "types/beancounter"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import AssetChart from "@components/features/assets/AssetChart"
 import SubTotal from "@components/features/holdings/SubTotal"
 import ColumnHeader from "@components/features/holdings/Header"
 import GroupBar from "@components/features/holdings/GroupBar"
@@ -886,7 +886,7 @@ function HoldingsPage(): React.ReactElement {
         />
       )}
       {priceChartData && (
-        <PriceChartPopup
+        <AssetChart
           asset={priceChartData.asset}
           currencySymbol={priceChartData.currencySymbol}
           portfolioId={priceChartData.portfolioId}

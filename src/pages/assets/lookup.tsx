@@ -18,7 +18,7 @@ import {
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import AssetChart from "@components/features/assets/AssetChart"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import {
@@ -659,7 +659,7 @@ function AssetLookupPage(): React.ReactElement {
         </Alert>
       )}
       {chartAsset && (
-        <PriceChartPopup
+        <AssetChart
           asset={chartAsset}
           currencySymbol=""
           onClose={() => setChartAsset(null)}
