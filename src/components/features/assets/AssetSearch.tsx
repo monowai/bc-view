@@ -43,6 +43,12 @@ interface AssetSearchProps {
    * never feels empty.
    */
   fallbackOptions?: AssetOption[]
+  /**
+   * A control shown at the end of each option in the open menu, such as the
+   * header search's watchlist star. It must stop its own clicks, so using it
+   * does not also pick the option.
+   */
+  optionAction?: (option: AssetOption) => React.ReactNode
 }
 
 /**
@@ -110,6 +116,7 @@ export default function AssetSearch({
   defaultOptions,
   cacheOptions = true,
   fallbackOptions,
+  optionAction,
 }: AssetSearchProps): React.ReactElement {
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [inputText, setInputText] = useState("")
@@ -245,6 +252,20 @@ export default function AssetSearch({
     placeholder: placeholder || "Search for asset...",
     noOptionsMessage,
     loadingMessage: () => "Searching...",
+    ...(optionAction && {
+      formatOptionLabel: (
+        option: AssetOption,
+        { context }: { context: "menu" | "value" },
+      ) =>
+        context === "menu" ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate">{option.label}</span>
+            {optionAction(option)}
+          </div>
+        ) : (
+          option.label
+        ),
+    }),
     formatGroupLabel: (group: GroupBase<AssetOption>) => (
       <div className="px-4 pb-1 pt-4 text-xs font-semibold tracking-wide text-gray-500">
         {group.label}
