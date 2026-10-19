@@ -4,6 +4,9 @@ import { useUser } from "@auth0/nextjs-auth0/client"
 import { AssetOption } from "types/beancounter"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import WatchlistStar from "@components/features/watchlists/WatchlistStar"
+import AddToWatchlistDialog, {
+  WatchlistAssetRef,
+} from "@components/features/watchlists/AddToWatchlistDialog"
 import { getRecentAssets, pushRecentAsset } from "@lib/assets/recentAssets"
 
 const buildQuery = (option: AssetOption): Record<string, string> => {
@@ -29,6 +32,8 @@ function HeaderAssetSearchInner({
 }: HeaderAssetSearchProps): React.ReactElement {
   const router = useRouter()
   const [recents, setRecents] = useState<AssetOption[]>([])
+  // A starred result with no price to stamp: ask for one. Held here, since the menu closes.
+  const [pricing, setPricing] = useState<WatchlistAssetRef | null>(null)
   // Read recents post-mount to avoid SSR/CSR hydration mismatch
   // (localStorage is undefined on the server). Same pattern as ChatFab.
   useEffect(
@@ -65,8 +70,16 @@ function HeaderAssetSearchInner({
         placeholder="Search assets..."
         isClearable={false}
         inputId="header-asset-search-input"
-        optionAction={(option) => <WatchlistStar option={option} />}
+        optionAction={(option) => (
+          <WatchlistStar option={option} onNeedsPrice={setPricing} />
+        )}
       />
+      {pricing && (
+        <AddToWatchlistDialog
+          asset={pricing}
+          onClose={() => setPricing(null)}
+        />
+      )}
     </div>
   )
 }

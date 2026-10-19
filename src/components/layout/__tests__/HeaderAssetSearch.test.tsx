@@ -261,7 +261,7 @@ describe("HeaderAssetSearch", () => {
       ).toEqual({ assetId: "asset-newco" })
     })
 
-    it("says why when the result has no price to watch yet", async () => {
+    it("asks for an added price when the result has none yet", async () => {
       serve([aapl], [], {
         status: 400,
         body: { message: "No price for AAPL; enter an added price" },
@@ -277,8 +277,10 @@ describe("HeaderAssetSearch", () => {
       await flushAsync()
 
       expect(
-        await screen.findByText("No price for AAPL; enter an added price"),
+        await screen.findByText("Add AAPL to Watchlist"),
       ).toBeInTheDocument()
+      expect(screen.getByLabelText("Added price")).toBeInTheDocument()
+      expect(mockPush).not.toHaveBeenCalled()
     })
 
     it("offers no star on a private asset", async () => {

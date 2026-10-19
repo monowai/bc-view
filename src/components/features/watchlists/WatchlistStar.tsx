@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { AssetOption } from "types/beancounter"
 import { useWatchlist } from "@hooks/useWatchlist"
+import { WatchlistAssetRef } from "@components/features/watchlists/AddToWatchlistDialog"
 import { createAsset } from "@lib/assets/createAsset"
 import { isWatchable, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import {
@@ -12,13 +13,16 @@ import {
 /**
  * The watchlist star on a search result: on or off the watchlist in one tap,
  * without opening the asset. A hit not yet known to BC is created first. The
- * added price is the latest close the server stamps; when it has none, the
- * server's reason is shown beside the star.
+ * added price is the latest close the server stamps; when it has none (400),
+ * [onNeedsPrice] asks the user for one, else the server's reason is shown.
  */
 export default function WatchlistStar({
   option,
+  onNeedsPrice,
 }: {
   option: AssetOption
+  /** The asset has no price to stamp: ask for an added price instead. */
+  onNeedsPrice?: (asset: WatchlistAssetRef) => void
 }): React.ReactElement | null {
   const { items, mutate } = useWatchlist()
   const [busy, setBusy] = useState(false)
@@ -36,16 +40,21 @@ export default function WatchlistStar({
   const toggle = async (): Promise<void> => {
     setBusy(true)
     setMessage(null)
+    // Only the item add's statuses mean "already watched" or "no price"; creating the asset fails for its own reasons.
+    let assetId: string | undefined
     try {
       if (watched) {
         await removeWatchlistItem(watched.id)
       } else {
-        const assetId = option.assetId ?? (await createAsset(option)).id
+        assetId = option.assetId ?? (await createAsset(option)).id
         await addWatchlistItem({ assetId })
       }
     } catch (err) {
-      // 409: already watched elsewhere; the refresh below shows it starred.
-      if (!(err instanceof WatchlistApiError && err.status === 409)) {
+      const status = err instanceof WatchlistApiError ? err.status : undefined
+      if (assetId && status === 400 && onNeedsPrice) {
+        onNeedsPrice({ id: assetId, label: code })
+      } else if (!(assetId && status === 409)) {
+        // 409: already watched elsewhere; the refresh below shows it starred.
         setMessage(
           err instanceof Error ? err.message : "Watchlist update failed",
         )
