@@ -31,7 +31,7 @@ export default function WatchlistStar({
   const watched = option.assetId
     ? items?.find((item) => item.asset.id === option.assetId)
     : undefined
-  const code = option.displayCode ?? option.symbol
+  const code = option.displayCode || option.symbol
   const label = watched
     ? `Remove ${code} from watchlist`
     : `Add ${code} to watchlist`

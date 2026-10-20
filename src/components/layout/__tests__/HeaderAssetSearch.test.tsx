@@ -314,6 +314,15 @@ describe("HeaderAssetSearch", () => {
       ).not.toBeInTheDocument()
     })
 
+    it("names the star by symbol when the display code is blank", async () => {
+      serve([{ ...aapl, displayCode: "" }])
+      await search("AAPL")
+
+      expect(
+        await screen.findByRole("button", { name: "Add AAPL to watchlist" }),
+      ).toBeInTheDocument()
+    })
+
     it("offers no star on a result the server marks unwatchable", async () => {
       serve([{ ...aapl, watchable: false }])
       await search("AAPL")
