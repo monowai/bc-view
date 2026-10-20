@@ -5,7 +5,6 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { mutate } from "swr"
 import { Transaction, FxResponse } from "types/beancounter"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { convert } from "@lib/trns/tradeUtils"
 import { copyToClipboard } from "@lib/trns/formUtils"
 import { postData } from "@components/ui/DropZone"
@@ -95,7 +94,7 @@ export default function FxEditModal({
   // For generic cash balances (CASH market), show "Currency Balance"
   const buyDisplayName =
     buyAsset.market.code !== "CASH"
-      ? buyAsset.name || stripOwnerPrefix(buyAsset.code)
+      ? buyAsset.name || buyAsset.displayCode
       : `${buyCurrency} Balance`
 
   // Determine sell display name - check if it's a specific account or generic balance
@@ -105,11 +104,11 @@ export default function FxEditModal({
     }
     // If market is NOT "CASH", it's a specific account (PRIVATE, TRADE, etc.)
     if (sellAsset.market?.code && sellAsset.market.code !== "CASH") {
-      return sellAsset.name || stripOwnerPrefix(sellAsset.code)
+      return sellAsset.name || sellAsset.displayCode
     }
     // If the asset code differs from the currency, it might be a named account
     if (sellAsset.code && sellAsset.code !== sellCurrency) {
-      return sellAsset.name || stripOwnerPrefix(sellAsset.code)
+      return sellAsset.name || sellAsset.displayCode
     }
     return `${sellCurrency} Balance`
   })()
@@ -188,7 +187,7 @@ export default function FxEditModal({
     // Build data structure matching what getCashRow expects for FX
     const data = {
       type: { value: "FX", label: "FX" },
-      asset: sellAsset ? stripOwnerPrefix(sellAsset.code) : sellCurrency,
+      asset: sellAsset ? sellAsset.displayCode : sellCurrency,
       market: sellAsset?.market?.code || "CASH",
       tradeDate: formData.tradeDate,
       quantity: formData.sellAmount,
@@ -201,9 +200,7 @@ export default function FxEditModal({
       },
       cashCurrency: {
         value:
-          buyAsset.market.code === "CASH"
-            ? buyCurrency
-            : stripOwnerPrefix(buyAsset.code),
+          buyAsset.market.code === "CASH" ? buyCurrency : buyAsset.displayCode,
         label: buyDisplayName,
         currency: buyCurrency,
         market: buyAsset.market.code,
@@ -239,7 +236,7 @@ export default function FxEditModal({
       // Build data structure matching what getCashRow expects for FX
       const formData = {
         type: { value: "FX", label: "FX" },
-        asset: sellAsset ? stripOwnerPrefix(sellAsset.code) : sellCurrency,
+        asset: sellAsset ? sellAsset.displayCode : sellCurrency,
         market: sellAsset?.market?.code || "CASH",
         tradeDate: data.tradeDate,
         quantity: data.sellAmount,
@@ -254,7 +251,7 @@ export default function FxEditModal({
           value:
             buyAsset.market.code === "CASH"
               ? buyCurrency
-              : stripOwnerPrefix(buyAsset.code),
+              : buyAsset.displayCode,
           label: buyDisplayName,
           currency: buyCurrency,
           market: buyAsset.market.code,

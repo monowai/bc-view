@@ -45,10 +45,8 @@ describe("AssetReviewPopup", () => {
       market: "NASDAQ",
       assetName: "Apple Inc.",
     })
-    expect(body.query).toContain("Asset Review for AAPL (Apple Inc.)")
-    expect(body.query).toContain("listed on NASDAQ")
-    expect(body.query).toMatch(/corporate-action history/i)
-    expect(body.query).toMatch(/do not assume the user holds it/i)
+    // svc-agent owns the question: a blank query on this page gets it.
+    expect(body.query).toBe("")
   })
 
   it("sends empty market and name when neither is known", async () => {
@@ -58,7 +56,7 @@ describe("AssetReviewPopup", () => {
     const body = bodyOf(0)
     expect(body.context.market).toBe("")
     expect(body.context.assetName).toBe("")
-    expect(body.query).not.toContain("listed on")
+    expect(body.query).toBe("")
   })
 
   it("titles the dialog with the ticker and market", async () => {

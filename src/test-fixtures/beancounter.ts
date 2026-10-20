@@ -51,6 +51,11 @@ export function makeCurrency(overrides: Partial<Currency> = {}): Currency {
   return { ...USD, ...overrides }
 }
 
+/**
+ * A listed equity. The read-only traits svc-data sends default to a public,
+ * priced asset; `displayCode` follows an overridden `code` unless given, so a
+ * private (owner-prefixed) code must pass its own `displayCode` and flags.
+ */
 export function makeAsset(overrides: Partial<Asset> = {}): Asset {
   return {
     id: "asset-aapl",
@@ -58,6 +63,10 @@ export function makeAsset(overrides: Partial<Asset> = {}): Asset {
     name: "Apple Inc.",
     assetCategory: { id: "equity", name: "Equity" },
     market: { code: "NASDAQ", name: "NASDAQ", currency: USD },
+    chartable: true,
+    watchable: true,
+    hasNews: true,
+    displayCode: overrides.code ?? "AAPL",
     ...overrides,
   } as Asset
 }
@@ -69,6 +78,9 @@ export function makeCashAsset(currency: Currency = USD): Asset {
     name: `${currency.name} Cash`,
     assetCategory: { id: "CASH", name: "Cash" },
     market: { code: "CASH", name: "Cash", currency },
+    chartable: false,
+    watchable: false,
+    hasNews: false,
   })
 }
 

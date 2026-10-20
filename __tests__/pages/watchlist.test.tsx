@@ -150,8 +150,11 @@ const unpriced = makeWatchlistItem({
     id: "asset-2",
     // Private assets carry an owner prefix that must never be shown.
     code: "abcdefghijklmnopqrstuv.MYFUND",
+    displayCode: "MYFUND",
     name: "My Fund",
     market: { code: "PRIVATE", name: "Private", currency: undefined as never },
+    watchable: false,
+    hasNews: false,
   }),
   addedPrice: 10,
   addedOn: "2026-02-05",
@@ -543,6 +546,7 @@ describe("Watchlist page", () => {
         id: "asset-4",
         code: "USD",
         assetCategory: { id: "CASH", name: "Cash" },
+        chartable: false,
       }),
     })
 

@@ -33,6 +33,11 @@ const makeAsset = (
     currency: { code: priceSymbol, name: priceSymbol, symbol: priceSymbol },
   },
   assetCategory: { id: "ACCOUNT", name: "Account" },
+  // As svc-data sends a private account: owner prefix dropped.
+  displayCode: code.substring(code.indexOf(".") + 1),
+  chartable: false,
+  watchable: false,
+  hasNews: false,
   market: {
     code: marketCode,
     name: marketCode,

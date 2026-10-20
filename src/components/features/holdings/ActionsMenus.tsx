@@ -21,8 +21,6 @@ import {
   isAccount,
   isConstantPrice,
   isFundLike,
-  isWatchable,
-  stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 
@@ -198,9 +196,9 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
-  const assetCode = stripOwnerPrefix(asset.code)
+  const assetCode = asset.displayCode
   const [watching, setWatching] = useState(false)
-  const canWatch = isWatchable(asset)
+  const canWatch = asset.watchable
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
@@ -431,7 +429,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
-  const assetCode = stripOwnerPrefix(asset.code)
+  const assetCode = asset.displayCode
 
   const handle =
     (fn: () => void): ((e: React.MouseEvent) => void) =>

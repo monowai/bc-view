@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import useSWR from "swr"
 import { Asset, CurrencyOption } from "types/beancounter"
 import { PolicyType, SubAccountRequest, TaxTreatment } from "types/beancounter"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { CategoryOption, SectorOption } from "./accountTypes"
@@ -122,7 +122,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   onSave,
 }) => {
   const [activeTab, setActiveTab] = useState<EditTab>("details")
-  const [code, setCode] = useState(stripOwnerPrefix(asset.code))
+  const [code, setCode] = useState(asset.displayCode)
   const [name, setName] = useState(asset.name || "")
   const [currency, setCurrency] = useState(getAssetCurrency(asset) || "USD")
   const [category, setCategory] = useState(asset.assetCategory?.id || "ACCOUNT")

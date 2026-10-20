@@ -6,7 +6,7 @@ import DateInput from "@components/ui/DateInput"
 import SubAccountBalanceInputs, {
   SubAccountRow,
 } from "@components/features/holdings/SubAccountBalanceInputs"
-import { getAssetCurrency, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { updateTrn } from "@utils/trns/apiHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
@@ -146,7 +146,7 @@ export default function SubAccountTrnEditModal({
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{trn.asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(trn.asset.code)} — {trn.trnType}
+          {trn.asset.displayCode} — {trn.trnType}
         </div>
       </div>
 

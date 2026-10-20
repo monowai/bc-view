@@ -49,7 +49,8 @@ describe("PortfolioReviewPopup", () => {
     expect(body.context.portfolioId).toBe("p-123")
     expect(body.context.portfolioCode).toBe("TEST")
     expect(body.context.portfolioName).toBe("Test Portfolio")
-    expect(body.query).toMatch(/financial columnist/i)
+    // svc-agent owns the daily-briefing question.
+    expect(body.query).toBe("")
   })
 
   it("titles the dialog with the portfolio name", async () => {
@@ -67,36 +68,6 @@ describe("PortfolioReviewPopup", () => {
     )
     expect(screen.getByText("AI Summary — Test Portfolio")).toBeInTheDocument()
     await screen.findByText("Hi")
-  })
-
-  it("briefing prompt classifies the book and gates XIRR on holding age", async () => {
-    mockFetch.mockResolvedValueOnce(sseAnswer("Bond brief"))
-    render(
-      <PortfolioReviewPopup
-        target={{
-          kind: "portfolio",
-          id: "p-bond",
-          code: "BOND",
-          name: "Bond Fund",
-        }}
-        onClose={jest.fn()}
-      />,
-    )
-    await screen.findByText("Bond brief")
-    const body = bodyOf(0)
-    // Same prompt for every portfolio — the model must work out whether it
-    // is looking at an equity, fixed-income, mixed, or cash book and pick the
-    // matching vocabulary and yardstick, rather than assuming stocks.
-    expect(body.query).toMatch(/classify the book/i)
-    expect(body.query).toMatch(/fixed-income book/i)
-    expect(body.query).toMatch(/within the mandate/i)
-    // XIRR is annualised; young holdings must not be read as a long arc.
-    expect(body.query).toMatch(/6 months/i)
-    expect(body.query).toMatch(/annualisation noise/i)
-    // Multi-week macro moves are backdrop, never a same-day cause.
-    expect(body.query).toMatch(/match windows/i)
-    // No duration/credit data exists — inferences must be labelled.
-    expect(body.query).toMatch(/NO duration/)
   })
 
   it("posts portfolioCodes for an aggregated target and titles it by count", async () => {

@@ -27,15 +27,8 @@ describe("AssetNewsButton", () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it("returns null for PRIVATE market", () => {
-    const asset = makeAsset({
-      code: "MYHOUSE",
-      market: {
-        code: "PRIVATE",
-        name: "Private",
-        currency: { code: "USD", name: "US Dollar", symbol: "$" },
-      },
-    })
+  it("returns null when the server finds no news for the asset", () => {
+    const asset = makeAsset({ code: "MYHOUSE", hasNews: false })
     const { container } = render(
       <AssetNewsButton asset={asset} onShow={jest.fn()} />,
     )
@@ -55,10 +48,13 @@ describe("AssetNewsButton", () => {
     expect(onParent).not.toHaveBeenCalled()
   })
 
-  it("strips owner prefix in aria-label", () => {
+  it("labels with the server's display code", () => {
     render(
       <AssetNewsButton
-        asset={makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.MSFT" })}
+        asset={makeAsset({
+          code: "148_OBRVTziEJUdnLKsSlA.MSFT",
+          displayCode: "MSFT",
+        })}
         onShow={jest.fn()}
       />,
     )

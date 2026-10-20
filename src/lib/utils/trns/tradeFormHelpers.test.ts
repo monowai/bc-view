@@ -394,6 +394,10 @@ describe("tradeFormHelpers", () => {
         code: "AAPL",
         name: "Apple Inc",
         assetCategory: { id: "1", name: "Equity" },
+        chartable: true,
+        watchable: true,
+        hasNews: true,
+        displayCode: "AAPL",
         market: {
           code: "NASDAQ",
           name: "NASDAQ",
@@ -572,6 +576,7 @@ describe("tradeFormHelpers", () => {
         cashAsset: {
           id: "ca2",
           code: "USD",
+          displayCode: "USD",
           name: "",
           market: { code: "CASH" },
           priceSymbol: "USD",

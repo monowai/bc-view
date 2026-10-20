@@ -3,7 +3,7 @@ import { Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { todayIso } from "@lib/formatters"
 
@@ -65,7 +65,7 @@ export default function SetPriceDialog({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(asset.code)} -{" "}
+          {asset.displayCode} -{" "}
           {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name}
         </div>

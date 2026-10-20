@@ -3,7 +3,6 @@ import { AssetOption } from "types/beancounter"
 import { useWatchlist } from "@hooks/useWatchlist"
 import { WatchlistAssetRef } from "@components/features/watchlists/AddToWatchlistDialog"
 import { createAsset } from "@lib/assets/createAsset"
-import { isWatchable, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import {
   WatchlistApiError,
   addWatchlistItem,
@@ -27,12 +26,12 @@ export default function WatchlistStar({
   const { items, mutate } = useWatchlist()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  if (!option.market || !isWatchable({ market: option.market })) return null
+  if (!option.market || !option.watchable) return null
 
   const watched = option.assetId
     ? items?.find((item) => item.asset.id === option.assetId)
     : undefined
-  const code = stripOwnerPrefix(option.symbol)
+  const code = option.displayCode ?? option.symbol
   const label = watched
     ? `Remove ${code} from watchlist`
     : `Add ${code} to watchlist`

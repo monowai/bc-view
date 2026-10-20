@@ -1,6 +1,5 @@
 import React, { ReactElement } from "react"
 import { Asset } from "types/beancounter"
-import { hasPublicNews, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetReviewButtonProps {
@@ -12,8 +11,8 @@ interface AssetReviewButtonProps {
 
 /**
  * AI review sparkle beside an asset's label. Same gate as AssetNewsButton on
- * holdings: AI or preview access, and an asset with public coverage
- * (hasPublicNews). Click stops propagation so it doesn't trigger the
+ * holdings: AI or preview access, and an asset the server says has news
+ * (`asset.hasNews`). Click stops propagation so it doesn't trigger the
  * surrounding row or link.
  */
 const AssetReviewButton: React.FC<AssetReviewButtonProps> = ({
@@ -23,8 +22,8 @@ const AssetReviewButton: React.FC<AssetReviewButtonProps> = ({
 }): ReactElement | null => {
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   if (!canRunAi && !canPreview) return null
-  if (!hasPublicNews(asset)) return null
-  const ticker = stripOwnerPrefix(asset.code)
+  if (!asset.hasNews) return null
+  const ticker = asset.displayCode
   return (
     <button
       type="button"

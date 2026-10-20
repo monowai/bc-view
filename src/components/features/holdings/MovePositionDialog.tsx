@@ -3,7 +3,6 @@ import Dialog from "@components/ui/Dialog"
 import { Portfolio, MovePositionData } from "types/beancounter"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface MovePositionDialogProps {
@@ -82,7 +81,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
     return null
   }
 
-  const assetCode = stripOwnerPrefix(sourceData.asset.code)
+  const assetCode = sourceData.asset.displayCode
   const selectedTarget = portfolios.find((p) => p.id === selectedPortfolioId)
 
   const footer = (

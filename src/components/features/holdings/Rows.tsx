@@ -28,7 +28,6 @@ import {
   isConstantPrice,
   priceDecimals,
   supportsBalanceSetting,
-  stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
@@ -37,7 +36,6 @@ import { useNewsAsset } from "./useNewsAsset"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
-import { isChartableCategory } from "@lib/categoryMapping"
 import {
   ActionsMenu,
   CashActionsMenu,
@@ -171,7 +169,7 @@ export default function Rows({
                 <div className="flex-1 min-w-0">
                   <div
                     className="font-semibold text-sm sm:text-base text-slate-900 flex items-center gap-1"
-                    title={stripOwnerPrefix(asset.code)}
+                    title={asset.displayCode}
                   >
                     {getPositionDisplayName(asset)}
                     <AssetNewsButton
@@ -284,9 +282,7 @@ export default function Rows({
               !moneyValues[valueIn].priceData?.close
                 ? " "
                 : (() => {
-                    const isChartable =
-                      !!onPriceChart &&
-                      isChartableCategory(asset.assetCategory?.id)
+                    const isChartable = !!onPriceChart && asset.chartable
                     const priceContent = (
                       <>
                         <span className="text-xs text-slate-500">
@@ -305,7 +301,7 @@ export default function Rows({
                     return isChartable ? (
                       <button
                         type="button"
-                        aria-label={`Show price chart for ${stripOwnerPrefix(asset.code)}`}
+                        aria-label={`Show price chart for ${asset.displayCode}`}
                         className="relative group text-left cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -390,7 +386,7 @@ export default function Rows({
                   return (
                     <button
                       type="button"
-                      aria-label={`Show portfolios holding ${stripOwnerPrefix(asset.code)}`}
+                      aria-label={`Show portfolios holding ${asset.displayCode}`}
                       className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
                       onClick={(e) => {
                         e.stopPropagation()

@@ -7,11 +7,7 @@ import { Asset, Portfolio, Transaction } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
-import {
-  getAssetCurrency,
-  stripOwnerPrefix,
-  isCash,
-} from "@lib/assets/assetUtils"
+import { getAssetCurrency, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -28,7 +24,7 @@ function formatTransaction(trn: Transaction): string {
 
   const type = trn.trnType
   const assetName =
-    trn.asset?.name || (trn.asset?.code ? stripOwnerPrefix(trn.asset.code) : "")
+    trn.asset?.name || (trn.asset?.code ? trn.asset.displayCode : "")
   const qty = trn.quantity
 
   if (type === "DEPOSIT") return "Deposit"

@@ -2,7 +2,6 @@ import React from "react"
 import { Broker, TrnStatus } from "types/beancounter"
 import { ProposedTransaction } from "types/proposed"
 import { acceptsBroker, calculateTradeAmount } from "@utils/trns/tradeUtils"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DecimalInput from "@components/ui/DecimalInput"
 import { theadBase, tbodyBase } from "@utils/tableStyles"
 
@@ -154,7 +153,7 @@ export default function DetailedTransactionsTable({
               <td className="px-2 py-1.5 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium text-gray-900">
-                    {stripOwnerPrefix(trn.asset.code)}
+                    {trn.asset.displayCode}
                   </span>
                   {onShowChart && (
                     <button
@@ -162,9 +161,7 @@ export default function DetailedTransactionsTable({
                       onClick={() => onShowChart(trn)}
                       className="text-gray-400 hover:text-blue-600"
                       title="Price chart vs limit"
-                      aria-label={`Price chart for ${stripOwnerPrefix(
-                        trn.asset.code,
-                      )}`}
+                      aria-label={`Price chart for ${trn.asset.displayCode}`}
                     >
                       <i className="fas fa-chart-line text-xs"></i>
                     </button>
@@ -172,7 +169,7 @@ export default function DetailedTransactionsTable({
                 </div>
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">
-                {trn.cashAsset ? stripOwnerPrefix(trn.cashAsset.code) : "--"}
+                {trn.cashAsset ? trn.cashAsset.displayCode : "--"}
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono">
                 {trn.quantity.toFixed(0)}

@@ -179,10 +179,12 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
     const renderWithChart = (
       onPriceChart?: jest.Mock,
       categoryId = "EQUITY",
+      chartable = true,
     ): { portfolio: ReturnType<typeof makePortfolio> } => {
       const portfolio = makePortfolio()
       const asset = makeAsset({
         assetCategory: { id: categoryId, name: categoryId },
+        chartable,
       })
       const position = makePosition({
         asset,
@@ -224,9 +226,9 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       ).not.toBeInTheDocument()
     })
 
-    it("does not render a price button for non-chartable categories", () => {
+    it("does not render a price button when the server marks the asset not chartable", () => {
       const onPriceChart = jest.fn()
-      renderWithChart(onPriceChart, "CASH")
+      renderWithChart(onPriceChart, "EQUITY", false)
       expect(
         screen.queryByRole("button", { name: /Show price chart/i }),
       ).not.toBeInTheDocument()

@@ -1,6 +1,5 @@
 import React, { ReactElement } from "react"
 import { Asset } from "types/beancounter"
-import { hasPublicNews, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetNewsButtonProps {
@@ -11,8 +10,8 @@ interface AssetNewsButtonProps {
 }
 
 /**
- * News icon button next to a holding's title. Hidden for cash and PRIVATE-market
- * assets (no public news to fetch). Click stops propagation so it doesn't
+ * News icon button next to a holding's title. Hidden when the server says the
+ * asset has no news to fetch (`asset.hasNews`). Click stops propagation so it doesn't
  * trigger the surrounding row/card click handler.
  */
 const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
@@ -22,8 +21,8 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
 }): ReactElement | null => {
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   if (!canRunAi && !canPreview) return null
-  if (!hasPublicNews(asset)) return null
-  const ticker = stripOwnerPrefix(asset.code)
+  if (!asset.hasNews) return null
+  const ticker = asset.displayCode
   return (
     <button
       type="button"

@@ -1,6 +1,6 @@
 import React from "react"
 import { Asset } from "types/beancounter"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 
 const CATEGORY_LABELS: Record<string, string> = {
   PENSION: "Policies",
@@ -94,7 +94,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
           >
             <div className="flex items-baseline gap-2 mb-2">
               <span className="font-semibold text-gray-900">
-                {stripOwnerPrefix(account.code)}
+                {account.displayCode}
               </span>
               <span className="text-sm text-gray-500 truncate">
                 {account.name}
@@ -144,7 +144,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
               {accounts.map((account) => (
                 <tr key={account.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {stripOwnerPrefix(account.code)}
+                    {account.displayCode}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {account.name}

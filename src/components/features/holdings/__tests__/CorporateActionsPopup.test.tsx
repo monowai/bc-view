@@ -39,6 +39,10 @@ const mockAsset: Asset = {
   code: "NASDAQ.AAPL",
   name: "Apple Inc",
   assetCategory: { id: "equity", name: "Equity" },
+  chartable: true,
+  watchable: true,
+  hasNews: true,
+  displayCode: "NASDAQ.AAPL",
   market: {
     code: "NASDAQ",
     name: "NASDAQ Stock Exchange",

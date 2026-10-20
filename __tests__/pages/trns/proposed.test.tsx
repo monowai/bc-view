@@ -54,6 +54,7 @@ const makeTrn = (
   asset: {
     id: `asset-${assetCode}`,
     code: assetCode,
+    displayCode: assetCode,
     name: `${assetCode} Inc`,
     market: { code: "NYSE" },
   },

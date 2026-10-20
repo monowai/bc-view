@@ -70,15 +70,26 @@ export function turnToMessage(turn: ConversationTurn): ChatMessage {
 }
 
 /**
+ * What a turn said, for history and seeds. A canned opening turn is sent
+ * blank (svc-agent asks the question), so its label stands in for it.
+ */
+function spokenText(m: ChatMessage): string {
+  return m.content || m.label || ""
+}
+
+/**
  * The transcript as seed turns: non-empty, non-error messages, trailing
  * `MAX_SEED_TURNS`. Undefined fields are omitted from the payload.
  */
 function toSeed(messages: ChatMessage[]): ConversationSeedTurn[] {
   return messages
-    .filter((m) => m.content.length > 0 && !m.error)
+    .filter((m) => spokenText(m).length > 0 && !m.error)
     .slice(-MAX_SEED_TURNS)
     .map((m) => {
-      const turn: ConversationSeedTurn = { role: m.role, content: m.content }
+      const turn: ConversationSeedTurn = {
+        role: m.role,
+        content: spokenText(m),
+      }
       if (m.role === "user") {
         if (m.label !== undefined) turn.label = m.label
         if (m.deepThink !== undefined) turn.deepThink = m.deepThink
@@ -461,9 +472,9 @@ export function useChat(
       // the server is about to record itself.
       const prior = messagesRef.current
       const history: ChatTurn[] = prior
-        .filter((m) => m.content.length > 0 && !m.error)
+        .filter((m) => spokenText(m).length > 0 && !m.error)
         .slice(-MAX_HISTORY_TURNS)
-        .map((m) => ({ role: m.role, content: m.content }))
+        .map((m) => ({ role: m.role, content: spokenText(m) }))
 
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),

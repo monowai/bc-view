@@ -16,16 +16,11 @@ function buildRequest(
   market: string | undefined,
   assetName: string | undefined,
 ): AnalysisRequest {
-  const nameLabel = assetName ? ` (${assetName})` : ""
-  const marketLabel = market ? ` listed on ${market}` : ""
   return {
     cacheKey: `asset-review|${ticker}|${market || ""}`,
-    query:
-      `Produce an Asset Review for ${ticker}${nameLabel}${marketLabel}. ` +
-      `Cover company and sector context, current sentiment from recent news, ` +
-      `corporate-action history (dividends and splits in the last 12 months), ` +
-      `and qualitative risk callouts. Stay at the ticker level — do not assume ` +
-      `the user holds it.`,
+    // Blank: svc-agent asks its canned Asset Review question, built from
+    // the context's tickers, assetName and market.
+    query: "",
     label: `Asset Review — ${ticker}`,
     context: {
       page: "Asset Review",

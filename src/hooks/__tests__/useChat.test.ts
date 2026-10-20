@@ -972,6 +972,54 @@ describe("useChat with persisted conversations", () => {
     expect(result.current.conversationId).toBe("c-new")
   })
 
+  it("seeds a server-asked opening turn (blank query) with its label as the content", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
+      [`POST ${STREAM}`]: () => answer(),
+    })
+    const { result } = renderHook(() =>
+      useChat(undefined, { persist: true, saveOnFollowUp: true }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage("", false, false, "Asset Review: ACME")
+    })
+    await act(async () => {
+      await result.current.sendMessage("and the risks?")
+    })
+
+    expect(streamBodies()[0].query).toBe("")
+    expect(createBodies()).toEqual([
+      {
+        turns: [
+          {
+            role: "user",
+            content: "Asset Review: ACME",
+            label: "Asset Review: ACME",
+          },
+          { role: "assistant", content: "ok" },
+        ],
+      },
+    ])
+  })
+
+  it("threads a server-asked opening turn's label as history on a stateless follow-up", async () => {
+    route({ [`POST ${STREAM}`]: () => answer() })
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("", false, false, "Asset Review: ACME")
+    })
+    await act(async () => {
+      await result.current.sendMessage("and the risks?")
+    })
+
+    expect(streamBodies()[1].history).toEqual([
+      { role: "user", content: "Asset Review: ACME" },
+      { role: "assistant", content: "ok" },
+    ])
+  })
+
   it("sends the label with a persisted send so the stored turn reads as it did on screen", async () => {
     route({
       [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-new" } }),
