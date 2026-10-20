@@ -518,6 +518,26 @@ describe("Asset Lookup Page — last close", () => {
     expect(screen.queryByText(/^price chart/)).not.toBeInTheDocument()
   })
 
+  it("offers no trade for a currency pair", () => {
+    mockQuery = {
+      assetId: "asset-fx",
+      symbol: "NZDSGD",
+      market: "FX",
+      name: "NZD/SGD",
+      currency: "SGD",
+      type: "CURRENCY",
+    }
+    render(<AssetLookupPage />)
+
+    expect(screen.queryByTestId("trade-asset-action")).not.toBeInTheDocument()
+  })
+
+  it("offers trade for an equity", () => {
+    render(<AssetLookupPage />)
+
+    expect(screen.getByTestId("trade-asset-action")).toBeInTheDocument()
+  })
+
   it("quotes a currency pair's last close to 4 places", () => {
     mockQuery = {
       assetId: "asset-fx",

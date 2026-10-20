@@ -118,6 +118,15 @@ export function fxPairLegs(
 }
 
 /**
+ * Whether a BUY/SELL trade of the asset makes sense: holdings' rule (no cash,
+ * account or real estate), plus currency pairs — a pair is a rate to watch;
+ * exchanging currency is an FX_BUY in the cash form, not a BUY of the pair.
+ */
+export function isTradeable(asset: Asset): boolean {
+  return !isNonTradeable(asset) && !fxPairLegs(asset)
+}
+
+/**
  * Decimal places for an asset's price and price-derived figures: 4 for a
  * currency (category CURRENCY or a pair on the FX market), where 2 would
  * round a 0.7254 rate to 0.73; 2 for everything else.

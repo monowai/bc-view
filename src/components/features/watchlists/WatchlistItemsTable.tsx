@@ -3,9 +3,8 @@ import Link from "next/link"
 import { AssetOption, WatchlistItem } from "types/beancounter"
 import {
   buildAssetLookupHref,
-  fxPairLegs,
   getPositionDisplayName,
-  isNonTradeable,
+  isTradeable,
   priceDecimals,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
@@ -34,11 +33,6 @@ interface WatchlistItemsTableProps {
   /** Open the news and sentiment popup for this item's asset. */
   onNews: (item: WatchlistItem) => void
 }
-
-// Holdings' trade rule (no cash, account or real estate), plus currency
-// pairs: a pair is a rate to watch, not something a BUY can hold.
-const canTrade = (item: WatchlistItem): boolean =>
-  !isNonTradeable(item.asset) && !fxPairLegs(item.asset)
 
 // The trade dialog takes the lookup page's AssetOption shape.
 const toTradeOption = (item: WatchlistItem): AssetOption => {
@@ -235,7 +229,7 @@ export default function WatchlistItemsTable({
                 )}
               </td>
               <td className="flex justify-end gap-1 md:table-cell px-3 py-1 md:py-2 md:text-right whitespace-nowrap">
-                {canTrade(item) && (
+                {isTradeable(item.asset) && (
                   <TradeAssetAction asset={toTradeOption(item)} compact />
                 )}
                 <button

@@ -1,4 +1,4 @@
-import { fxPairLegs, priceDecimals } from "@lib/assets/assetUtils"
+import { fxPairLegs, isTradeable, priceDecimals } from "@lib/assets/assetUtils"
 import { makeAsset } from "@test-fixtures/beancounter"
 
 const fx = (code: string): ReturnType<typeof makeAsset> =>
@@ -52,5 +52,23 @@ describe("priceDecimals", () => {
   it("quotes anything else to 2 places", () => {
     expect(priceDecimals(makeAsset())).toBe(2)
     expect(priceDecimals(null)).toBe(2)
+  })
+})
+
+describe("isTradeable", () => {
+  it("allows an equity", () => {
+    expect(isTradeable(makeAsset())).toBe(true)
+  })
+
+  it("refuses a currency pair", () => {
+    expect(isTradeable(fx("NZDSGD"))).toBe(false)
+  })
+
+  it("refuses cash, account and real estate", () => {
+    for (const id of ["CASH", "ACCOUNT", "RE"]) {
+      expect(isTradeable(makeAsset({ assetCategory: { id, name: id } }))).toBe(
+        false,
+      )
+    }
   })
 })

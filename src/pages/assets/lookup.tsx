@@ -23,6 +23,7 @@ import SectorWeightingsPopup from "@components/features/holdings/SectorWeighting
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import {
   isFundLike,
+  isTradeable,
   isWatchable,
   priceDecimals,
   toAssetCategoryId,
@@ -620,11 +621,12 @@ function AssetLookupPage(): React.ReactElement {
                 <span>{"AI Review"}</span>
               </button>
             )}
-            {selectedAsset.symbol && (
-              <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
-                <TradeAssetAction asset={selectedAsset} />
-              </div>
-            )}
+            {selectedAsset.symbol &&
+              isTradeable(assetOptionToAsset(selectedAsset)) && (
+                <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
+                  <TradeAssetAction asset={selectedAsset} />
+                </div>
+              )}
             {watchlistActions.length + adminActions.length > 0 && (
               <ActionMenu
                 items={[...watchlistActions, ...adminActions]}
