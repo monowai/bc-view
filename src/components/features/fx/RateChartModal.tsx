@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { useFxHistory } from "@hooks/useFxHistory"
 import FxConverter from "@components/features/fx/FxConverter"
 import {
@@ -42,6 +42,15 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
     setIsInverted,
   } = useFxHistory(initialFrom, initialTo)
 
+  // Escape closes, as it does on every other modal.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [onClose])
+
   const from = isInverted ? initialTo : initialFrom
   const to = isInverted ? initialFrom : initialTo
 
@@ -56,6 +65,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
             <h2 className="text-xl font-bold flex items-center gap-2 shrink-0">
               <span>{from}</span>
               <button
+                type="button"
                 onClick={() => setIsInverted(!isInverted)}
                 className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110"
                 title="Swap currencies"
@@ -85,6 +95,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
 
             {/* Close button */}
             <button
+              type="button"
               onClick={onClose}
               className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0"
             >
@@ -111,6 +122,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           <div className="flex gap-2">
             {TIME_RANGES.map((range) => (
               <button
+                type="button"
                 key={range.label}
                 onClick={() => setMonths(range.months)}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
@@ -146,6 +158,12 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           {error && (
             <div className="h-64 flex items-center justify-center text-red-500">
               Failed to load rate history
+            </div>
+          )}
+
+          {!isLoading && !error && chartData.length === 0 && (
+            <div className="h-64 flex items-center justify-center text-slate-500">
+              {"No rate history for this range"}
             </div>
           )}
 

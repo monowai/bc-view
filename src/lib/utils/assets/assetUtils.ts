@@ -135,8 +135,7 @@ export function priceDecimals(
   asset: Pick<Asset, "code" | "market" | "assetCategory"> | null | undefined,
 ): number {
   if (!asset) return 2
-  const currency =
-    asset.assetCategory?.id?.toUpperCase() === "CURRENCY" || !!fxPairLegs(asset)
+  const currency = asset.assetCategory?.id === "CURRENCY" || !!fxPairLegs(asset)
   return currency ? 4 : 2
 }
 

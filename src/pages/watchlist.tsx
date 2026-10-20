@@ -21,7 +21,8 @@ import {
   getPositionDisplayName,
   NewsAssetRef,
 } from "@lib/assets/assetUtils"
-import { Asset, WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
+import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
+import { currencySymbolFor } from "@lib/formatters"
 
 export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
@@ -29,7 +30,7 @@ export default withPageAuthRequired(
     // Captured at click time, so a background refresh cannot re-key an open review.
     const [reviewing, setReviewing] = useState<NewsAssetRef | null>(null)
     const { popup: newsPopup, showNews } = useNewsAsset()
-    const [charting, setCharting] = useState<Asset | null>(null)
+    const [charting, setCharting] = useState<WatchlistItem | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
@@ -102,7 +103,7 @@ export default withPageAuthRequired(
               onEdit={setEditing}
               onRemove={setRemoving}
               onReview={(item) => setReviewing(buildNewsAsset(item.asset))}
-              onChart={(item) => setCharting(item.asset)}
+              onChart={setCharting}
               onNews={(item) => showNews(item.asset)}
             />
           </div>
@@ -120,8 +121,11 @@ export default withPageAuthRequired(
         {newsPopup}
         {charting && (
           <AssetChart
-            asset={charting}
-            currencySymbol=""
+            asset={charting.asset}
+            currencySymbol={currencySymbolFor(
+              charting.currency.code,
+              charting.currency.symbol,
+            )}
             onClose={() => setCharting(null)}
           />
         )}

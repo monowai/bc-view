@@ -206,9 +206,11 @@ function AssetLookupPage(): React.ReactElement {
     data: PriceData[]
   }>(priceKey, priceKey ? simpleFetcher(priceKey) : null)
   const lastClose = priceResponse?.data?.[0]
-  const closeDecimals = selectedAsset
-    ? priceDecimals(assetOptionToAsset(selectedAsset))
-    : 2
+  // One Asset view of the selection, shared by the decimals and the gates.
+  const selectedAsAsset = selectedAsset
+    ? assetOptionToAsset(selectedAsset)
+    : null
+  const closeDecimals = selectedAsAsset ? priceDecimals(selectedAsAsset) : 2
 
   const positions = positionsData?.data || []
   // Zero-balance rows (fully sold out / roundtripped) add no value to "who
@@ -575,7 +577,8 @@ function AssetLookupPage(): React.ReactElement {
               </button>
             )}
             {selectedAsset.symbol &&
-              isFundLike(assetOptionToAsset(selectedAsset)) && (
+              selectedAsAsset &&
+              isFundLike(selectedAsAsset) && (
                 <button
                   type="button"
                   onClick={() => openSectorsFor(selectedAsset)}
@@ -622,7 +625,8 @@ function AssetLookupPage(): React.ReactElement {
               </button>
             )}
             {selectedAsset.symbol &&
-              isTradeable(assetOptionToAsset(selectedAsset)) && (
+              selectedAsAsset &&
+              isTradeable(selectedAsAsset) && (
                 <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
                   <TradeAssetAction asset={selectedAsset} />
                 </div>

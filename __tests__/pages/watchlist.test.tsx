@@ -71,8 +71,13 @@ jest.mock("@components/features/fx/RateChartModal", () => {
   }
 })
 jest.mock("@components/features/holdings/PriceChartPopup", () => {
-  return function PriceChartPopup(props: { asset: { code: string } }) {
-    return <div>{`price chart ${props.asset.code}`}</div>
+  return function PriceChartPopup(props: {
+    asset: { code: string }
+    currencySymbol?: string
+  }) {
+    return (
+      <div>{`price chart ${props.asset.code} in ${props.currencySymbol}`}</div>
+    )
   }
 })
 
@@ -569,7 +574,7 @@ describe("Watchlist page", () => {
         }),
       )
 
-      expect(screen.getByText("price chart AAA")).toBeInTheDocument()
+      expect(screen.getByText("price chart AAA in $")).toBeInTheDocument()
       expect(screen.queryByText(/rate chart/)).not.toBeInTheDocument()
     })
 
