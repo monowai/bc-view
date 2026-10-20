@@ -10,7 +10,7 @@ import {
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
 import MathInput from "@components/ui/MathInput"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
@@ -156,7 +156,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
     await handleSubmit(async () => {
       const target = parseFloat(targetBalance)
       const adjustment = calculateCashAdjustment(0, target)
-      const displayName = asset.name || stripOwnerPrefix(asset.code)
+      const displayName = asset.name || asset.displayCode
       const row = buildCashRow({
         type: adjustment.type,
         currency,
@@ -179,7 +179,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       for (const entry of balanceEntries) {
         if (entry.adjustment.amount === 0) continue
 
-        const displayName = asset.name || stripOwnerPrefix(asset.code)
+        const displayName = asset.name || asset.displayCode
         const row = buildCashRow({
           type: entry.adjustment.type,
           currency,
@@ -239,7 +239,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(asset.code)} - {currency}
+          {asset.displayCode} - {currency}
         </div>
       </div>
 

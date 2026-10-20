@@ -78,13 +78,11 @@ function dropOwnerPrefix(code: string): string {
 }
 
 /**
- * Get the display code for an asset. Strips the owner prefix from PRIVATE-style
- * codes (e.g. `${userId}.SCB-SGD` → `SCB-SGD`) while preserving public dotted
- * tickers (`BRK.B` stays `BRK.B`).
+ * The code a user reads, as svc-data sends it (`asset.displayCode`: a private
+ * owner prefix dropped, a public dotted ticker left whole). Null-safe.
  */
 export function getDisplayCode(asset: Asset | null | undefined): string {
-  if (!asset) return ""
-  return dropOwnerPrefix(asset.code || "")
+  return asset?.displayCode ?? ""
 }
 
 /**
@@ -172,7 +170,7 @@ export function displayName(asset: Asset): string {
  * both views can't drift.
  */
 export function getPositionDisplayName(asset: Asset): string {
-  return isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
+  return isCash(asset) ? asset.name : asset.displayCode
 }
 
 /**
@@ -183,9 +181,10 @@ export function buildTradesHref(portfolioId: string, assetId: string): string {
 }
 
 /**
- * Whether an asset can go on a watchlist. Private assets have no market price
- * to track. Accepts an `Asset` (market object) or an `AssetOption` (market
- * code string), so every entry point applies the same rule.
+ * Whether an asset can go on a watchlist, for an option built from a bare
+ * code and market (no server traits). An `Asset` or search hit carries
+ * `watchable` from svc-data; read that instead. Private assets have no market
+ * price to track.
  */
 export function isWatchable(asset: {
   market?: { code?: string } | string
@@ -233,15 +232,6 @@ export function buildAggregatedTradesHref(
   return `/trns/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
 }
 
-/**
- * Whether an asset has public coverage an AI review can draw on: not cash or
- * an account, and not on the PRIVATE market. A currency pair (CURRENCY on the
- * FX market) qualifies; svc-agent reviews it as a rate.
- */
-export function hasPublicNews(asset: Asset): boolean {
-  return !isCashRelated(asset) && asset.market?.code !== "PRIVATE"
-}
-
 export interface NewsAssetRef {
   ticker: string
   market: string
@@ -254,7 +244,7 @@ export interface NewsAssetRef {
  */
 export function buildNewsAsset(asset: Asset): NewsAssetRef {
   return {
-    ticker: stripOwnerPrefix(asset.code),
+    ticker: asset.displayCode,
     market: asset.market.code,
     assetName: asset.name || "",
   }

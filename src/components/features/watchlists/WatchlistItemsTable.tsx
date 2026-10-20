@@ -6,7 +6,6 @@ import {
   getPositionDisplayName,
   isTradeable,
   priceDecimals,
-  stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import {
   formatCurrency,
@@ -18,7 +17,6 @@ import {
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
-import { isChartableCategory } from "@lib/categoryMapping"
 
 const DASH = "–"
 
@@ -36,7 +34,7 @@ interface WatchlistItemsTableProps {
 
 // The trade dialog takes the lookup page's AssetOption shape.
 const toTradeOption = (item: WatchlistItem): AssetOption => {
-  const symbol = stripOwnerPrefix(item.asset.code)
+  const symbol = item.asset.displayCode
   return {
     value: item.asset.id,
     label: symbol,
@@ -139,7 +137,7 @@ export default function WatchlistItemsTable({
                     asset={item.asset}
                     onShow={() => onReview(item)}
                   />
-                  {isChartableCategory(item.asset.assetCategory?.id) && (
+                  {item.asset.chartable && (
                     <button
                       type="button"
                       aria-label={`Show price chart for ${code}`}

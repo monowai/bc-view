@@ -133,6 +133,11 @@ function toChartAsset(item: DisplayItem): Asset {
       name: "",
       currency: { code: item.priceCurrency || "", name: "", symbol: "" },
     },
+    // Unknown here too; PriceChartPopup reads none of them.
+    chartable: false,
+    watchable: false,
+    hasNews: false,
+    displayCode: item.assetCode || item.assetId,
   }
 }
 

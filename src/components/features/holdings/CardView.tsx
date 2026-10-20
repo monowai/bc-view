@@ -29,11 +29,10 @@ import {
   isFundLike,
   isNonTradeable,
   priceDecimals,
-  stripOwnerPrefix,
   supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
-import { getGroupComparator, isChartableCategory } from "@lib/categoryMapping"
+import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { QuickTooltip } from "@components/ui/Tooltip"
@@ -483,9 +482,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       {!isCashRelated(asset) &&
         (() => {
           const isChartable =
-            !!onPriceChart &&
-            !!values.priceData?.close &&
-            isChartableCategory(asset.assetCategory?.id)
+            !!onPriceChart && !!values.priceData?.close && asset.chartable
           const handlePriceClick = isChartable
             ? (e: React.MouseEvent) => {
                 e.preventDefault()
@@ -524,13 +521,13 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                 onPriceClick={handlePriceClick}
                 priceAriaLabel={
                   isChartable
-                    ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
+                    ? `Show price chart for ${asset.displayCode}`
                     : undefined
                 }
                 onQuantityClick={handleQuantityClick}
                 quantityAriaLabel={
                   isBreakdownable
-                    ? `Show portfolios holding ${stripOwnerPrefix(asset.code)}`
+                    ? `Show portfolios holding ${asset.displayCode}`
                     : undefined
                 }
               />

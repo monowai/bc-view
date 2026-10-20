@@ -2,11 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Currency, HoldingGroup, Portfolio, Position } from "types/beancounter"
 import { GROUP_BY_OPTIONS } from "types/constants"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import {
-  isCash,
-  isNonTradeable,
-  stripOwnerPrefix,
-} from "@lib/assets/assetUtils"
+import { isCash, isNonTradeable } from "@lib/assets/assetUtils"
 import { getGroupComparator } from "@lib/categoryMapping"
 import { ProgressBar } from "@components/ui/ProgressBar"
 import Dialog from "@components/ui/Dialog"
@@ -320,7 +316,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
             : 0
 
         cells.push({
-          code: stripOwnerPrefix(position.asset.code),
+          code: position.asset.displayCode,
           name: position.asset.name,
           marketValue: moneyValues.marketValue,
           totalGain: moneyValues.totalGain,
@@ -673,7 +669,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         <Dialog
           title={
             <div>
-              <div>{stripOwnerPrefix(selectedPosition.asset.code)}</div>
+              <div>{selectedPosition.asset.displayCode}</div>
               <p className="text-sm text-gray-500 font-normal">
                 {selectedPosition.asset.name}
               </p>

@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react"
 import { Asset, Portfolio, RebalanceData } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { calculateQuantityFromTargetWeight } from "@lib/trns/tradeFormHelpers"
 
 export type { RebalanceData }
@@ -76,7 +75,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
   ])
 
   const handleProceed = (): void => {
-    const assetCode = stripOwnerPrefix(asset.code)
+    const assetCode = asset.displayCode
     onConfirm({
       asset: assetCode,
       market: asset.market.code,
@@ -92,7 +91,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
     return null
   }
 
-  const assetCode = stripOwnerPrefix(asset.code)
+  const assetCode = asset.displayCode
 
   return (
     <Dialog

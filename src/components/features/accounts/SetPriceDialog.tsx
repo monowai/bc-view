@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { Asset } from "types/beancounter"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -64,7 +64,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
       <Alert variant="info">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(asset.code)} -{" "}
+          {asset.displayCode} -{" "}
           {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name ||
             "-"}

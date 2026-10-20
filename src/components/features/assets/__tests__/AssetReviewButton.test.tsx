@@ -64,16 +64,10 @@ describe("AssetReviewButton", () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it("is hidden for a PRIVATE market asset", () => {
+  it("is hidden when the server finds no news for the asset", () => {
     const { container } = render(
       <AssetReviewButton
-        asset={makeAsset({
-          market: {
-            code: "PRIVATE",
-            name: "Private",
-            currency: undefined as never,
-          },
-        })}
+        asset={makeAsset({ hasNews: false })}
         onShow={jest.fn()}
       />,
     )

@@ -1,6 +1,6 @@
 import React from "react"
 import { Asset } from "types/beancounter"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
@@ -51,7 +51,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(asset.code)} ({getAssetCurrency(asset)})
+          {asset.displayCode} ({getAssetCurrency(asset)})
         </div>
       </div>
 

@@ -21,7 +21,7 @@ import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import SubAccountBalanceInputs from "@components/features/holdings/SubAccountBalanceInputs"
-import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
 
 interface PortfoliosResponse {
@@ -178,7 +178,7 @@ export default function SetBalanceDialog({
         tradeCurrency: assetCurrency,
         cashCurrency: assetCurrency,
         status: "SETTLED",
-        comments: `Set ${asset.name || stripOwnerPrefix(asset.code)} balance to ${assetCurrency} ${targetBalance.toLocaleString()}`,
+        comments: `Set ${asset.name || asset.displayCode} balance to ${assetCurrency} ${targetBalance.toLocaleString()}`,
       }
 
       if (subAccountsMap) {
@@ -228,7 +228,7 @@ export default function SetBalanceDialog({
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
-          {stripOwnerPrefix(asset.code)} -{" "}
+          {asset.displayCode} -{" "}
           {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name}
         </div>

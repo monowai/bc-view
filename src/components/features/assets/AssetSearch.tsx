@@ -88,6 +88,10 @@ function toOption(result: AssetSearchResult): AssetOption {
     currency: result.currency,
     type: result.type,
     region: result.region,
+    chartable: result.chartable,
+    watchable: result.watchable,
+    hasNews: result.hasNews,
+    displayCode: result.displayCode,
   }
 }
 

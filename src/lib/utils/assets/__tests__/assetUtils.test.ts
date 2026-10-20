@@ -8,7 +8,6 @@ import {
   buildTradesHref,
   buildAggregatedTradesHref,
   buildNewsAsset,
-  hasPublicNews,
 } from "../assetUtils"
 import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
 
@@ -119,21 +118,12 @@ describe("isNonTradeable", () => {
 })
 
 describe("getDisplayCode", () => {
-  const USER_ID = "148_OBRVTziEJUdnLKsSlA"
-
-  it("returns stripped code for asset with owner prefix", () => {
-    const asset = { code: `${USER_ID}.SCB-SGD` } as any
+  it("reads the display code the server sends", () => {
+    const asset = makeAsset({
+      code: "148_OBRVTziEJUdnLKsSlA.SCB-SGD",
+      displayCode: "SCB-SGD",
+    })
     expect(getDisplayCode(asset)).toBe("SCB-SGD")
-  })
-
-  it("returns code as-is for asset without dot", () => {
-    const asset = { code: "AAPL" } as any
-    expect(getDisplayCode(asset)).toBe("AAPL")
-  })
-
-  it("preserves dotted public tickers (BRK.B regression)", () => {
-    const asset = { code: "BRK.B" } as any
-    expect(getDisplayCode(asset)).toBe("BRK.B")
   })
 
   it("returns empty string for null asset", () => {
@@ -152,20 +142,12 @@ describe("getPositionDisplayName", () => {
     expect(getPositionDisplayName(cash)).toBe("USD Cash")
   })
 
-  it("returns stripped code for non-cash assets", () => {
+  it("returns the server's display code for non-cash assets", () => {
     expect(
       getPositionDisplayName(
-        makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.AAPL" }),
+        makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.AAPL", displayCode: "AAPL" }),
       ),
     ).toBe("AAPL")
-  })
-
-  it("returns code unchanged when no owner prefix", () => {
-    expect(getPositionDisplayName(makeAsset({ code: "MSFT" }))).toBe("MSFT")
-  })
-
-  it("preserves dotted public tickers", () => {
-    expect(getPositionDisplayName(makeAsset({ code: "BRK.B" }))).toBe("BRK.B")
   })
 })
 
@@ -186,8 +168,12 @@ describe("buildAggregatedTradesHref", () => {
 })
 
 describe("buildNewsAsset", () => {
-  it("strips owner prefix from ticker, takes market.code, defaults assetName to empty", () => {
-    const asset = makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.AAPL", name: "" })
+  it("takes the server's display code as ticker, market.code, defaults assetName to empty", () => {
+    const asset = makeAsset({
+      code: "148_OBRVTziEJUdnLKsSlA.AAPL",
+      displayCode: "AAPL",
+      name: "",
+    })
     expect(buildNewsAsset(asset)).toEqual({
       ticker: "AAPL",
       market: "NASDAQ",
@@ -211,46 +197,5 @@ describe("buildNewsAsset", () => {
       market: "NASDAQ",
       assetName: "Berkshire Hathaway B",
     })
-  })
-})
-
-describe("hasPublicNews", () => {
-  it("is true for a listed equity", () => {
-    expect(hasPublicNews(makeAsset())).toBe(true)
-  })
-
-  it("is true for a currency pair on the FX market", () => {
-    expect(
-      hasPublicNews(
-        makeAsset({
-          code: "NZDSGD",
-          assetCategory: { id: "CURRENCY", name: "Currency" },
-          market: { code: "FX", name: "FX", currency: undefined as never },
-        }),
-      ),
-    ).toBe(true)
-  })
-
-  it("is false for cash and accounts", () => {
-    expect(hasPublicNews(makeCashAsset())).toBe(false)
-    expect(
-      hasPublicNews(
-        makeAsset({ assetCategory: { id: "ACCOUNT", name: "Account" } }),
-      ),
-    ).toBe(false)
-  })
-
-  it("is false on the PRIVATE market", () => {
-    expect(
-      hasPublicNews(
-        makeAsset({
-          market: {
-            code: "PRIVATE",
-            name: "Private",
-            currency: undefined as never,
-          },
-        }),
-      ),
-    ).toBe(false)
   })
 })

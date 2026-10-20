@@ -130,6 +130,12 @@ function assetOptionToAsset(option: AssetOption): Asset {
     name: option.name || option.symbol,
     assetCategory: category,
     market: { code: marketCode } as Market,
+    // A search hit carries the server's traits; an option rebuilt from the
+    // URL does not, and reads as none. This view's gates don't read them.
+    chartable: option.chartable ?? false,
+    watchable: option.watchable ?? false,
+    hasNews: option.hasNews ?? false,
+    displayCode: option.displayCode ?? option.symbol,
   }
 }
 

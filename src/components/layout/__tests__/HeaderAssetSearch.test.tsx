@@ -139,6 +139,10 @@ describe("HeaderAssetSearch", () => {
       assetId: "asset-aapl",
       currency: "USD",
       type: "Equity",
+      chartable: true,
+      watchable: true,
+      hasNews: true,
+      displayCode: "AAPL",
     }
     const json = (body: unknown, status = 200): unknown => ({
       ok: status < 400,
@@ -241,7 +245,15 @@ describe("HeaderAssetSearch", () => {
     })
 
     it("creates the asset first when the result is not yet known", async () => {
-      serve([{ ...aapl, symbol: "NEWCO", name: "New Co", assetId: undefined }])
+      serve([
+        {
+          ...aapl,
+          symbol: "NEWCO",
+          displayCode: "NEWCO",
+          name: "New Co",
+          assetId: undefined,
+        },
+      ])
       await search("NEWCO")
 
       const star = await screen.findByRole("button", {
@@ -284,12 +296,40 @@ describe("HeaderAssetSearch", () => {
     })
 
     it("offers no star on a private asset", async () => {
-      serve([{ ...aapl, symbol: "HOUSE", name: "Home", market: "PRIVATE" }])
+      serve([
+        {
+          ...aapl,
+          symbol: "HOUSE",
+          displayCode: "HOUSE",
+          name: "Home",
+          market: "PRIVATE",
+          watchable: false,
+        },
+      ])
       await search("HOUSE")
 
       await screen.findByText(/HOUSE - Home/)
       expect(
         screen.queryByRole("button", { name: /HOUSE.*watchlist/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("names the star by symbol when the display code is blank", async () => {
+      serve([{ ...aapl, displayCode: "" }])
+      await search("AAPL")
+
+      expect(
+        await screen.findByRole("button", { name: "Add AAPL to watchlist" }),
+      ).toBeInTheDocument()
+    })
+
+    it("offers no star on a result the server marks unwatchable", async () => {
+      serve([{ ...aapl, watchable: false }])
+      await search("AAPL")
+
+      await screen.findByText(/AAPL - Apple Inc/)
+      expect(
+        screen.queryByRole("button", { name: /AAPL.*watchlist/ }),
       ).not.toBeInTheDocument()
     })
   })

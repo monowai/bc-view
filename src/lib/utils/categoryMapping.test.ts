@@ -1,7 +1,6 @@
 import {
   mapToReportCategory,
   getReportCategory,
-  isChartableCategory,
   REPORT_CATEGORIES,
   compareByReportCategory,
   compareByMarket,
@@ -77,42 +76,16 @@ describe("categoryMapping", () => {
     })
   })
 
-  describe("isChartableCategory", () => {
-    it.each(["EQUITY", "ETF", "EXCHANGE TRADED FUND", "MUTUAL FUND"])(
-      "returns true for %s",
-      (cat) => {
-        expect(isChartableCategory(cat)).toBe(true)
-      },
-    )
-
-    it.each([
-      "CASH",
-      "RE",
-      "ACCOUNT",
-      "TRADE",
-      "POLICY",
-      "REAL ESTATE",
-      "BANK ACCOUNT",
-    ])("returns false for non-chartable %s", (cat) => {
-      expect(isChartableCategory(cat)).toBe(false)
-    })
-
-    it("returns false for undefined", () => {
-      expect(isChartableCategory(undefined)).toBe(false)
-    })
-
-    it("is case-insensitive", () => {
-      expect(isChartableCategory("equity")).toBe(true)
-      expect(isChartableCategory("cash")).toBe(false)
-    })
-  })
-
   describe("getReportCategory", () => {
     const createAsset = (overrides: Partial<Asset> = {}): Asset => ({
       id: "test",
       code: "TEST",
       name: "Test Asset",
       assetCategory: { id: "Equity", name: "Equity" },
+      chartable: true,
+      watchable: true,
+      hasNews: true,
+      displayCode: "TEST",
       market: {
         code: "NASDAQ",
         name: "NASDAQ",

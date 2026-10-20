@@ -3,7 +3,6 @@ import { useRouter } from "next/router"
 import { Asset, PortfolioBreakdown } from "types/beancounter"
 import Dialog from "@components/ui/Dialog"
 import { PrivateQuantity } from "@components/ui/MoneyUtils"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface PortfolioBreakdownPopupProps {
   /** Used for the default "Held by — CODE" title; omit when `title` is set. */
@@ -42,7 +41,7 @@ const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
 
   return (
     <Dialog
-      title={title ?? `Held by — ${asset ? stripOwnerPrefix(asset.code) : ""}`}
+      title={title ?? `Held by — ${asset ? asset.displayCode : ""}`}
       onClose={onClose}
       maxWidth="md"
       scrollable

@@ -622,6 +622,11 @@ export interface Asset {
   industry?: string // Industry classification (more granular than sector)
   expectedReturnRate?: number // Expected annual return rate (decimal, e.g., 0.03 for 3%)
   classificationCheckedAt?: string // ISO date: last time a classification provider was checked for this asset, even when it returned nothing
+  // Read-only traits svc-data derives (AssetTraits); read them, never re-derive.
+  chartable: boolean // Has a market price worth charting
+  watchable: boolean // Can go on a watchlist
+  hasNews: boolean // News, and an AI review built on it, can be found
+  displayCode: string // The code a user reads: private owner prefix dropped
 }
 
 export interface AssetCategory {
@@ -676,6 +681,11 @@ export interface AssetOption {
   currency?: string
   type?: string
   region?: string
+  // A search hit's read-only traits; absent on an option built from a bare code.
+  chartable?: boolean
+  watchable?: boolean
+  hasNews?: boolean
+  displayCode?: string
 }
 
 // svc-data GET /news article. `source` is the article URL (EODHD) or the
@@ -704,6 +714,11 @@ export interface AssetSearchResult {
   currency?: string
   market?: string
   assetId?: string
+  // Read-only traits, as on Asset.
+  chartable: boolean
+  watchable: boolean
+  hasNews: boolean
+  displayCode: string
 }
 
 // Response from asset search

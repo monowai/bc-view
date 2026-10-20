@@ -16,7 +16,6 @@ import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { downloadCsv } from "@lib/csvExport"
 import { buildIbkrBasketCsv, ibkrBasketFilename } from "@lib/ibkrBasket"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { solePortfolio as soleActivePortfolio } from "@lib/user/zenMode"
 import DateInput from "@components/ui/DateInput"
 import Alert from "@components/ui/Alert"
@@ -57,11 +56,6 @@ const defaultFrom = (): string => getDateOffset(-1)
 const defaultTo = (): string => getDateOffset(1)
 
 type ProposedScope = "OWNED" | "MANAGED" | "ALL"
-
-// Get display code for an asset, stripping owner ID prefix for private assets
-const getAssetDisplayCode = (asset: { code: string }): string => {
-  return stripOwnerPrefix(asset.code)
-}
 
 function ProposedTransactions(): React.JSX.Element {
   const { user, isLoading: userLoading } = useUser()
@@ -278,9 +272,7 @@ function ProposedTransactions(): React.JSX.Element {
       const portfolioCompare = a.portfolio.code.localeCompare(b.portfolio.code)
       if (portfolioCompare !== 0) return portfolioCompare
       // Then by asset code (using display code to sort by visible name)
-      return getAssetDisplayCode(a.asset).localeCompare(
-        getAssetDisplayCode(b.asset),
-      )
+      return a.asset.displayCode.localeCompare(b.asset.displayCode)
     })
     return sorted.map((trn) => ({
       ...trn,
@@ -399,7 +391,7 @@ function ProposedTransactions(): React.JSX.Element {
         brokerId: first.editedBrokerId || first.broker?.id,
         brokerName: broker?.name || first.broker?.name || "",
         assetId: first.asset.id,
-        assetCode: getAssetDisplayCode(first.asset),
+        assetCode: first.asset.displayCode,
         assetName: first.asset.name,
         assetMarket: first.asset.market,
         trnType: first.trnType,

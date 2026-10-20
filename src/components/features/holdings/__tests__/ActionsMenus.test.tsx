@@ -139,19 +139,11 @@ describe("ActionsMenu — watchlist", () => {
     expect(onRowDoubleClick).not.toHaveBeenCalled()
   })
 
-  it("does not offer a private asset for watching", () => {
+  it("does not offer an asset the server marks unwatchable", () => {
     render(
       <ActionsMenu
         {...baseProps}
-        asset={makeAsset({
-          id: "pa-1",
-          code: "AAPL",
-          market: {
-            code: "PRIVATE",
-            name: "Private",
-            currency: baseProps.tradeCurrency,
-          },
-        })}
+        asset={makeAsset({ id: "pa-1", code: "AAPL", watchable: false })}
         onTrade={jest.fn()}
       />,
     )
