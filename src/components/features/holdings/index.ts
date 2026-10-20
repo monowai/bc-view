@@ -11,15 +11,10 @@ export { default as SummaryView } from "./SummaryView"
 export { default as CardView } from "./CardView"
 export { default as IncomeView } from "./IncomeView"
 export { default as GroupByOptions } from "./GroupByOptions"
-export { default as SectorWeightingsPopup } from "./SectorWeightingsPopup"
 export { default as CorporateActionsPopup } from "./CorporateActionsPopup"
-export { default as TargetWeightDialog } from "./TargetWeightDialog"
 export { default as SetCashBalanceDialog } from "./SetCashBalanceDialog"
 export { default as SetPriceDialog } from "./SetPriceDialog"
 export { default as SetBalanceDialog } from "./SetBalanceDialog"
-export { default as CashTransferDialog } from "./CashTransferDialog"
-export { default as MovePositionDialog } from "./MovePositionDialog"
-export { default as CostAdjustDialog } from "./CostAdjustDialog"
 
 // Types and utilities
 export {

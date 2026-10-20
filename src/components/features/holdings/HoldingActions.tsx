@@ -9,7 +9,7 @@ import { createPortal } from "react-dom"
 import { useRouter } from "next/router"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import CashInputForm from "@components/features/transactions/CashInputForm"
-import CopyPopup from "@components/ui/CopyPopup"
+import CopyPopup from "@components/features/holdings/CopyPopup"
 import { HoldingContract, QuickSellData } from "types/beancounter"
 import { ViewMode, VIEW_MODES } from "./ViewToggle"
 import {
@@ -18,7 +18,7 @@ import {
 } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { usePermissions } from "@hooks/usePermissions"
-import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
+import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {

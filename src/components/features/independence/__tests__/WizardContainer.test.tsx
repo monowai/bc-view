@@ -41,7 +41,7 @@ const mockSettings: {
   current: { yearOfBirth?: number; targetIndependenceAge?: number } | undefined
 } = { current: { yearOfBirth: 1980, targetIndependenceAge: 60 } }
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
+jest.mock("@components/features/independence/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
     settings: mockSettings.current,
     settingsError: undefined,

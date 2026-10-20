@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import PortfolioReviewPopup from "@components/features/holdings/PortfolioReviewPopup"
+import PortfolioReviewPopup from "@components/features/portfolios/PortfolioReviewPopup"
 import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
 import { sseAnswer, sseResponse, withUnsavedAnalyses } from "@test-fixtures/sse"
 

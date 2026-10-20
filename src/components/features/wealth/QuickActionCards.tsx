@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import Link from "next/link"
-import PayslipModal from "@components/features/transactions/PayslipModal"
+import PayslipModal from "@components/features/independence/PayslipModal"
 
 interface QuickActionCardsProps {
   // In zen mode the Aggregated Holdings card is redundant (a single

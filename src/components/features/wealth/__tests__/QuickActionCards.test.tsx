@@ -5,7 +5,7 @@ import QuickActionCards from "../QuickActionCards"
 
 // PayslipModal pulls in SWR/auth/context; stub it to a marker that echoes
 // whether it was opened.
-jest.mock("@components/features/transactions/PayslipModal", () => ({
+jest.mock("@components/features/independence/PayslipModal", () => ({
   __esModule: true,
   default: ({ modalOpen }: { modalOpen: boolean }) =>
     modalOpen ? <div data-testid="payslip-modal">payslip open</div> : null,

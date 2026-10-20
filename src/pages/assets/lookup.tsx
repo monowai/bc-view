@@ -19,7 +19,7 @@ import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import AssetChart from "@components/features/assets/AssetChart"
-import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
+import SectorWeightingsPopup from "@components/features/portfolios/SectorWeightingsPopup"
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import {
   isFundLike,

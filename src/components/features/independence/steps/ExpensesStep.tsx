@@ -20,7 +20,7 @@ import {
 import { Currency } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import { currencySymbolFor } from "@lib/formatters"
-import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
+import { useIndependencePlanCurrency } from "@components/features/independence/useIndependencePlanCurrency"
 import MathInput from "@components/ui/MathInput"
 import Spinner from "@components/ui/Spinner"
 import LifestyleMoodBoard from "./LifestyleMoodBoard"

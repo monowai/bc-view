@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useChat, UseChatReturn } from "@hooks/useChat"
+import { useChat, UseChatReturn } from "@components/features/chat/useChat"
 import { ChatMessage } from "types/agent"
 
 /**

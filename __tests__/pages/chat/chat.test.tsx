@@ -10,7 +10,7 @@ import { SWRConfig } from "swr"
 import ChatPage from "@pages/chat"
 import ChatFab from "@components/features/chat/ChatFab"
 import { ChatProvider } from "@components/features/chat/ChatProvider"
-import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
+import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
 import { SIDEBAR_COLLAPSED_KEY } from "@components/features/chat/chatSidebar"
 import { ConversationDetail, ConversationSummary } from "types/agent"
 

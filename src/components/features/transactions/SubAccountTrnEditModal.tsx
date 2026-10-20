@@ -5,7 +5,7 @@ import Dialog from "@components/ui/Dialog"
 import DateInput from "@components/ui/DateInput"
 import SubAccountBalanceInputs, {
   SubAccountRow,
-} from "@components/features/holdings/SubAccountBalanceInputs"
+} from "@components/features/transactions/SubAccountBalanceInputs"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { updateTrn } from "@utils/trns/apiHelper"

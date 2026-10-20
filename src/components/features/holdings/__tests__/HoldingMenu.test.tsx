@@ -25,13 +25,13 @@ jest.mock("@components/features/holdings/GroupByOptions", () => {
   }
 })
 
-jest.mock("@components/ui/ValueIn", () => {
+jest.mock("@components/features/holdings/ValueIn", () => {
   return function ValueInOption() {
     return <div data-testid="value-in-option">ValueInOption</div>
   }
 })
 
-jest.mock("@components/ui/DisplayCurrencyOption", () => {
+jest.mock("@components/features/holdings/DisplayCurrencyOption", () => {
   return function DisplayCurrencyOption() {
     return (
       <div data-testid="display-currency-option">DisplayCurrencyOption</div>

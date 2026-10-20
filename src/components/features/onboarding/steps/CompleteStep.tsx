@@ -1,7 +1,7 @@
 import React from "react"
 import Link from "next/link"
 import LifestyleSummary from "@components/features/independence/LifestyleSummary"
-import { useLifestyleOutlook } from "../useLifestyleOutlook"
+import { useLifestyleOutlook } from "@components/features/independence/useLifestyleOutlook"
 import { currencySymbolFor } from "@lib/formatters"
 
 interface CompleteStepProps {

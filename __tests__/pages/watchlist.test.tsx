@@ -70,7 +70,7 @@ jest.mock("@components/features/fx/RateChartModal", () => {
     return <div>{`rate chart ${props.from}/${props.to}`}</div>
   }
 })
-jest.mock("@components/features/holdings/PriceChartPopup", () => {
+jest.mock("@components/features/assets/PriceChartPopup", () => {
   return function PriceChartPopup(props: {
     asset: { code: string }
     currencySymbol?: string
@@ -98,7 +98,7 @@ jest.mock("@components/features/transactions/TradeInputForm", () => {
     )
   }
 })
-jest.mock("@components/features/holdings/NewsSentimentPopup", () => {
+jest.mock("@components/features/assets/NewsSentimentPopup", () => {
   return function NewsSentimentPopup(props: {
     ticker: string
     market?: string

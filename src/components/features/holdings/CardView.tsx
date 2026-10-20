@@ -36,8 +36,8 @@ import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { QuickTooltip } from "@components/ui/Tooltip"
-import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
-import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
+import AssetNewsButton from "@components/features/assets/AssetNewsButton"
+import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import {
   ActionsMenu,
   CashActionsMenu,

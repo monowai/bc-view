@@ -2,8 +2,8 @@ import React, { ReactElement, useState, useCallback, useEffect } from "react"
 import { HideEmpty } from "@components/ui/HideEmpty"
 import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
-import ValueInOption from "@components/ui/ValueIn"
-import DisplayCurrencyOption from "@components/ui/DisplayCurrencyOption"
+import ValueInOption from "@components/features/holdings/ValueIn"
+import DisplayCurrencyOption from "@components/features/holdings/DisplayCurrencyOption"
 
 interface HoldingMenuOptions {
   portfolio: Portfolio

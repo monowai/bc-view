@@ -23,7 +23,7 @@ jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => ({ ai: false, preview: false, admin: false }),
 }))
 
-jest.mock("@components/features/holdings/usePortfolioReview", () => ({
+jest.mock("@components/features/portfolios/usePortfolioReview", () => ({
   usePortfolioReview: () => ({ popup: null, showReview: jest.fn() }),
 }))
 

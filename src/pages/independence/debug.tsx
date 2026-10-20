@@ -12,7 +12,7 @@ import {
 } from "types/independence"
 import { HoldingContract } from "types/beancounter"
 import { useAssetBreakdown } from "@components/features/independence"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 

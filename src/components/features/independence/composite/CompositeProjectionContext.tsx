@@ -12,7 +12,7 @@ import type {
   MonteCarloResult,
   RetirementPlan,
 } from "types/independence"
-import type { CompositeMonteCarloRunArgs } from "@hooks/useCompositeMonteCarloSimulation"
+import type { CompositeMonteCarloRunArgs } from "@components/features/independence/useCompositeMonteCarloSimulation"
 
 /**
  * The single stress run for this plan.

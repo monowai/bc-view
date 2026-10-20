@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import IndependenceSettingsModal from "./IndependenceSettingsModal"
 
 const currentYear = new Date().getFullYear()

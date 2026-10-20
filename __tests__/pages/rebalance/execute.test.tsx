@@ -42,7 +42,7 @@ const executionState = {
   },
   createdExecutionId: null as string | null,
 }
-jest.mock("@hooks/useRebalanceExecution", () => ({
+jest.mock("@components/features/rebalance/hooks/useRebalanceExecution", () => ({
   useRebalanceExecution: () => executionState,
 }))
 
