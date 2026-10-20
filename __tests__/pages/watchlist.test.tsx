@@ -233,6 +233,35 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("target")).toHaveTextContent("+44.44%")
   })
 
+  it("quotes a currency pair's figures to 4 places", async () => {
+    watchlist = makeWatchlist({
+      items: [
+        priced,
+        {
+          ...fxPair,
+          price: 0.7254,
+          addedPrice: 0.7123,
+          targetPrice: 0.75,
+          changeOnDay: 0.0012,
+          changeSinceAdded: 0.0131,
+        },
+      ],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-3")
+
+    const r = within(row("wi-3"))
+    expect(r.getByTestId("price")).toHaveTextContent("0.7254")
+    expect(r.getByTestId("added")).toHaveTextContent("0.7123")
+    expect(r.getByTestId("target")).toHaveTextContent("0.7500")
+    expect(r.getByTestId("day-change")).toHaveTextContent("+0.0012")
+    expect(r.getByTestId("since-added")).toHaveTextContent("+0.0131")
+    // An equity stays at 2 places.
+    expect(within(row("wi-1")).getByTestId("price")).toHaveTextContent(
+      /^90\.00/,
+    )
+  })
+
   it("shows a dash for every figure the backend left null", async () => {
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")

@@ -118,6 +118,20 @@ export function fxPairLegs(
 }
 
 /**
+ * Decimal places for an asset's price and price-derived figures: 4 for a
+ * currency (category CURRENCY or a pair on the FX market), where 2 would
+ * round a 0.7254 rate to 0.73; 2 for everything else.
+ */
+export function priceDecimals(
+  asset: Pick<Asset, "code" | "market" | "assetCategory"> | null | undefined,
+): number {
+  if (!asset) return 2
+  const currency =
+    asset.assetCategory?.id?.toUpperCase() === "CURRENCY" || !!fxPairLegs(asset)
+  return currency ? 4 : 2
+}
+
+/**
  * Resolve an asset ID that may be a synthetic "cash:CURRENCY" reference
  * to a real asset UUID via the backend. Real UUIDs pass through unchanged.
  */

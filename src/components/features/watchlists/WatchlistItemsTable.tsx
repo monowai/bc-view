@@ -6,6 +6,7 @@ import {
   fxPairLegs,
   getPositionDisplayName,
   isNonTradeable,
+  priceDecimals,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import {
@@ -62,10 +63,12 @@ function Change({
   amount,
   percent,
   testId,
+  decimals,
 }: {
   amount: number | null
   percent: number | null
   testId: string
+  decimals: number
 }): React.ReactElement {
   if (amount == null && percent == null) {
     return <span data-testid={testId}>{DASH}</span>
@@ -73,7 +76,7 @@ function Change({
   const tone = gainLossClass(amount ?? percent ?? 0)
   return (
     <span data-testid={testId} className={`tabular-nums ${tone}`}>
-      {amount == null ? DASH : formatSignedNumber(amount)}
+      {amount == null ? DASH : formatSignedNumber(amount, decimals)}
       <span className="ml-1 text-xs">
         {percent == null ? `(${DASH})` : `(${signedPercent(percent)})`}
       </span>
@@ -119,6 +122,7 @@ export default function WatchlistItemsTable({
       <tbody className="block md:table-row-group">
         {items.map((item) => {
           const code = getPositionDisplayName(item.asset)
+          const dp = priceDecimals(item.asset)
           return (
             <tr
               key={item.id}
@@ -173,7 +177,7 @@ export default function WatchlistItemsTable({
                         : undefined
                     }
                   >
-                    {formatCurrency(item.price)}
+                    {formatCurrency(item.price, dp)}
                     <span className="ml-1 text-xs text-gray-500">
                       {item.currency.code}
                     </span>
@@ -186,12 +190,13 @@ export default function WatchlistItemsTable({
                   testId="day-change"
                   amount={item.changeOnDay}
                   percent={item.changeOnDayPercent}
+                  decimals={dp}
                 />
               </td>
               <td className={td}>
                 <MobileLabel>{"Added"}</MobileLabel>
                 <span data-testid="added" className="tabular-nums">
-                  {formatCurrency(item.addedPrice)}
+                  {formatCurrency(item.addedPrice, dp)}
                   {/* The Price cell names the currency; with no price, say it here. */}
                   {item.price == null && (
                     <span className="ml-1 text-xs text-gray-500">
@@ -209,6 +214,7 @@ export default function WatchlistItemsTable({
                   testId="since-added"
                   amount={item.changeSinceAdded}
                   percent={item.changeSinceAddedPercent}
+                  decimals={dp}
                 />
               </td>
               <td className={td}>
@@ -217,7 +223,7 @@ export default function WatchlistItemsTable({
                   <span data-testid="target">{DASH}</span>
                 ) : (
                   <span data-testid="target" className="tabular-nums">
-                    {formatCurrency(item.targetPrice)}
+                    {formatCurrency(item.targetPrice, dp)}
                     <span
                       className={`ml-1 text-xs ${item.toTarget == null ? "text-gray-500" : gainLossClass(item.toTarget)}`}
                     >

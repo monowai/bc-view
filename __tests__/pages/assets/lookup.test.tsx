@@ -518,6 +518,39 @@ describe("Asset Lookup Page — last close", () => {
     expect(screen.queryByText(/^price chart/)).not.toBeInTheDocument()
   })
 
+  it("quotes a currency pair's last close to 4 places", () => {
+    mockQuery = {
+      assetId: "asset-fx",
+      symbol: "NZDSGD",
+      market: "FX",
+      name: "NZD/SGD",
+      currency: "SGD",
+      type: "CURRENCY",
+    }
+    ;(useSWR as unknown as jest.Mock).mockImplementation((key: unknown) =>
+      key === "/api/prices/asset-fx/quote"
+        ? {
+            data: {
+              data: [
+                {
+                  close: 0.7254,
+                  change: 0.0012,
+                  changePercent: 0.0017,
+                  previousClose: 0.7242,
+                  priceDate: "2026-09-29",
+                },
+              ],
+            },
+            isLoading: false,
+          }
+        : { data: undefined, isLoading: false },
+    )
+    render(<AssetLookupPage />)
+
+    expect(screen.getByTestId("last-close")).toHaveTextContent("0.7254")
+    expect(screen.getByTestId("last-close")).toHaveTextContent("+0.0012")
+  })
+
   it("opens the price chart for an equity", async () => {
     render(<AssetLookupPage />)
 

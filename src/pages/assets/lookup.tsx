@@ -24,6 +24,7 @@ import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import {
   isFundLike,
   isWatchable,
+  priceDecimals,
   toAssetCategoryId,
 } from "@lib/assets/assetUtils"
 import { createAsset } from "@lib/assets/createAsset"
@@ -204,6 +205,9 @@ function AssetLookupPage(): React.ReactElement {
     data: PriceData[]
   }>(priceKey, priceKey ? simpleFetcher(priceKey) : null)
   const lastClose = priceResponse?.data?.[0]
+  const closeDecimals = selectedAsset
+    ? priceDecimals(assetOptionToAsset(selectedAsset))
+    : 2
 
   const positions = positionsData?.data || []
   // Zero-balance rows (fully sold out / roundtripped) add no value to "who
@@ -519,7 +523,7 @@ function AssetLookupPage(): React.ReactElement {
               <div data-testid="last-close" className="shrink-0">
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-mono text-xl font-semibold text-gray-900 tabular-nums">
-                    {formatCurrency(lastClose.close)}
+                    {formatCurrency(lastClose.close, closeDecimals)}
                   </span>
                   {/* No previous close = no real change; don't show 0.00%. */}
                   {lastClose.previousClose > 0 && (
@@ -532,7 +536,7 @@ function AssetLookupPage(): React.ReactElement {
                           className={`fas ${lastClose.change > 0 ? "fa-caret-up" : "fa-caret-down"}`}
                         ></i>
                       )}
-                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
+                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change, closeDecimals)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
                     </span>
                   )}
                 </div>
