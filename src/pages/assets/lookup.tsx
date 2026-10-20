@@ -18,12 +18,14 @@ import {
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import AssetChart from "@components/features/assets/AssetChart"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import AssetNewsPopup from "@components/features/assets/AssetNewsPopup"
 import {
   isFundLike,
+  isTradeable,
   isWatchable,
+  priceDecimals,
   toAssetCategoryId,
 } from "@lib/assets/assetUtils"
 import { createAsset } from "@lib/assets/createAsset"
@@ -204,6 +206,11 @@ function AssetLookupPage(): React.ReactElement {
     data: PriceData[]
   }>(priceKey, priceKey ? simpleFetcher(priceKey) : null)
   const lastClose = priceResponse?.data?.[0]
+  // One Asset view of the selection, shared by the decimals and the gates.
+  const selectedAsAsset = selectedAsset
+    ? assetOptionToAsset(selectedAsset)
+    : null
+  const closeDecimals = selectedAsAsset ? priceDecimals(selectedAsAsset) : 2
 
   const positions = positionsData?.data || []
   // Zero-balance rows (fully sold out / roundtripped) add no value to "who
@@ -519,7 +526,7 @@ function AssetLookupPage(): React.ReactElement {
               <div data-testid="last-close" className="shrink-0">
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-mono text-xl font-semibold text-gray-900 tabular-nums">
-                    {formatCurrency(lastClose.close)}
+                    {formatCurrency(lastClose.close, closeDecimals)}
                   </span>
                   {/* No previous close = no real change; don't show 0.00%. */}
                   {lastClose.previousClose > 0 && (
@@ -532,7 +539,7 @@ function AssetLookupPage(): React.ReactElement {
                           className={`fas ${lastClose.change > 0 ? "fa-caret-up" : "fa-caret-down"}`}
                         ></i>
                       )}
-                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
+                      {`${lastClose.change > 0 ? "+" : ""}${formatCurrency(lastClose.change, closeDecimals)} (${lastClose.changePercent > 0 ? "+" : ""}${formatPercent(lastClose.changePercent)})`}
                     </span>
                   )}
                 </div>
@@ -570,7 +577,8 @@ function AssetLookupPage(): React.ReactElement {
               </button>
             )}
             {selectedAsset.symbol &&
-              isFundLike(assetOptionToAsset(selectedAsset)) && (
+              selectedAsAsset &&
+              isFundLike(selectedAsAsset) && (
                 <button
                   type="button"
                   onClick={() => openSectorsFor(selectedAsset)}
@@ -616,11 +624,13 @@ function AssetLookupPage(): React.ReactElement {
                 <span>{"AI Review"}</span>
               </button>
             )}
-            {selectedAsset.symbol && (
-              <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
-                <TradeAssetAction asset={selectedAsset} />
-              </div>
-            )}
+            {selectedAsset.symbol &&
+              selectedAsAsset &&
+              isTradeable(selectedAsAsset) && (
+                <div className="w-full sm:w-auto [&>button]:w-full [&>button]:justify-center">
+                  <TradeAssetAction asset={selectedAsset} />
+                </div>
+              )}
             {watchlistActions.length + adminActions.length > 0 && (
               <ActionMenu
                 items={[...watchlistActions, ...adminActions]}
@@ -659,7 +669,7 @@ function AssetLookupPage(): React.ReactElement {
         </Alert>
       )}
       {chartAsset && (
-        <PriceChartPopup
+        <AssetChart
           asset={chartAsset}
           currencySymbol=""
           onClose={() => setChartAsset(null)}

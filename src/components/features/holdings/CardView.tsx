@@ -28,6 +28,7 @@ import {
   isConstantPrice,
   isFundLike,
   isNonTradeable,
+  priceDecimals,
   stripOwnerPrefix,
   supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
@@ -108,6 +109,8 @@ interface PositionFooterProps {
   quantity: number
   precision: number
   price: number | undefined
+  /** Decimal places for the price; 4 for a currency, see priceDecimals. */
+  priceScale?: number
   priceDate?: string
   weight: number
   currencySymbol: string
@@ -121,6 +124,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   quantity,
   precision,
   price,
+  priceScale = 2,
   priceDate,
   weight,
   currencySymbol,
@@ -132,7 +136,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   const priceText = (
     <>
       {currencySymbol}
-      {price?.toFixed(2) || "-"}
+      {price?.toFixed(priceScale) || "-"}
     </>
   )
   const priceButton = onPriceClick ? (
@@ -513,6 +517,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                 quantity={quantityValues.total}
                 precision={quantityValues.precision}
                 price={values.priceData?.close}
+                priceScale={priceDecimals(asset)}
                 priceDate={values.priceData?.priceDate}
                 weight={values.weight}
                 currencySymbol={currencySymbol}

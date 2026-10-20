@@ -8,22 +8,29 @@ import Alert from "@components/ui/Alert"
 import WatchlistItemsTable from "@components/features/watchlists/WatchlistItemsTable"
 import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchlistItemDialog"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
-import WatchlistReviewPopup from "@components/features/watchlists/WatchlistReviewPopup"
+import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
+import AssetChart from "@components/features/assets/AssetChart"
+import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
 import { useWatchlist } from "@hooks/useWatchlist"
-import { usePermissions } from "@hooks/usePermissions"
 import {
   removeWatchlistItem,
   updateWatchlistItem,
 } from "@lib/watchlists/watchlistApi"
-import { getPositionDisplayName } from "@lib/assets/assetUtils"
+import {
+  buildNewsAsset,
+  getPositionDisplayName,
+  NewsAssetRef,
+} from "@lib/assets/assetUtils"
 import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
+import { currencySymbolFor } from "@lib/formatters"
 
 export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
     const { items, error, mutate } = useWatchlist()
-    const { ai: canRunAi } = usePermissions()
-    // The ids captured at click time, so a background refresh cannot re-key an open brief.
-    const [reviewing, setReviewing] = useState<string[] | null>(null)
+    // Captured at click time, so a background refresh cannot re-key an open review.
+    const [reviewing, setReviewing] = useState<NewsAssetRef | null>(null)
+    const { popup: newsPopup, showNews } = useNewsAsset()
+    const [charting, setCharting] = useState<WatchlistItem | null>(null)
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
@@ -66,16 +73,6 @@ export default withPageAuthRequired(
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {canRunAi && items.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setReviewing(items.map((item) => item.asset.id))}
-                className="inline-flex items-center gap-2 rounded-md border border-purple-300 px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50"
-              >
-                <i aria-hidden="true" className="fas fa-robot"></i>
-                {"AI Summary"}
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setAdding(true)}
@@ -105,14 +102,31 @@ export default withPageAuthRequired(
               items={items}
               onEdit={setEditing}
               onRemove={setRemoving}
+              onReview={(item) => setReviewing(buildNewsAsset(item.asset))}
+              onChart={setCharting}
+              onNews={(item) => showNews(item.asset)}
             />
           </div>
         )}
 
         {reviewing && (
-          <WatchlistReviewPopup
-            assetIds={reviewing}
+          <AssetReviewPopup
+            key={`${reviewing.ticker}|${reviewing.market}`}
+            ticker={reviewing.ticker}
+            market={reviewing.market}
+            assetName={reviewing.assetName}
             onClose={() => setReviewing(null)}
+          />
+        )}
+        {newsPopup}
+        {charting && (
+          <AssetChart
+            asset={charting.asset}
+            currencySymbol={currencySymbolFor(
+              charting.currency.code,
+              charting.currency.symbol,
+            )}
+            onClose={() => setCharting(null)}
           />
         )}
         {adding && (

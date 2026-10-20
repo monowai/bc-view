@@ -8,6 +8,8 @@ interface TradeAssetActionProps {
   // The looked-up asset to trade. Carries code (symbol) + market, which is all
   // the trade form needs — it resolves/creates the backend asset on submit.
   asset: AssetOption
+  /** Icon-only trigger, for a row of icon actions (watchlist). */
+  compact?: boolean
 }
 
 // "idle" → nothing open. "picking" → portfolio prompt. "trading" → the normal
@@ -24,6 +26,7 @@ type Phase =
  */
 export default function TradeAssetAction({
   asset,
+  compact = false,
 }: TradeAssetActionProps): React.ReactElement {
   const { portfolios } = usePortfolios()
   const [phase, setPhase] = useState<Phase>({ kind: "idle" })
@@ -58,12 +61,16 @@ export default function TradeAssetAction({
         type="button"
         onClick={start}
         disabled={noPortfolios}
-        className="btn-primary btn-primary--sm gap-2 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
+        className={
+          compact
+            ? "inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+            : "btn-primary btn-primary--sm gap-2 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
+        }
         aria-label={`Trade ${asset.symbol}`}
         title={noPortfolios ? "Create a portfolio first" : "Trade this asset"}
       >
-        <i className="fas fa-right-left"></i>
-        <span>{"Trade"}</span>
+        <i aria-hidden="true" className="fas fa-right-left"></i>
+        {!compact && <span>{"Trade"}</span>}
       </button>
 
       {phase.kind === "picking" && (

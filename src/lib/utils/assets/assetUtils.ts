@@ -96,6 +96,49 @@ export function stripOwnerPrefix(code: string): string {
   return dropOwnerPrefix(code)
 }
 
+export interface FxPairLegs {
+  from: string
+  to: string
+}
+
+const FX_PAIR_CODE = /^[A-Z]{6}$/
+
+/**
+ * The base and quote currencies of a currency-pair asset — `NZDSGD` on the
+ * FX market is SGD per NZD, so `{ from: "NZD", to: "SGD" }`. Null for any
+ * asset that is not a six-letter pair on the FX market.
+ */
+export function fxPairLegs(
+  asset: Pick<Asset, "code" | "market"> | null | undefined,
+): FxPairLegs | null {
+  if (asset?.market?.code?.toUpperCase() !== "FX") return null
+  const code = dropOwnerPrefix(asset.code || "").toUpperCase()
+  if (!FX_PAIR_CODE.test(code)) return null
+  return { from: code.slice(0, 3), to: code.slice(3) }
+}
+
+/**
+ * Whether a BUY/SELL trade of the asset makes sense: holdings' rule (no cash,
+ * account or real estate), plus currency pairs — a pair is a rate to watch;
+ * exchanging currency is an FX_BUY in the cash form, not a BUY of the pair.
+ */
+export function isTradeable(asset: Asset): boolean {
+  return !isNonTradeable(asset) && !fxPairLegs(asset)
+}
+
+/**
+ * Decimal places for an asset's price and price-derived figures: 4 for a
+ * currency (category CURRENCY or a pair on the FX market), where 2 would
+ * round a 0.7254 rate to 0.73; 2 for everything else.
+ */
+export function priceDecimals(
+  asset: Pick<Asset, "code" | "market" | "assetCategory"> | null | undefined,
+): number {
+  if (!asset) return 2
+  const currency = asset.assetCategory?.id === "CURRENCY" || !!fxPairLegs(asset)
+  return currency ? 4 : 2
+}
+
 /**
  * Resolve an asset ID that may be a synthetic "cash:CURRENCY" reference
  * to a real asset UUID via the backend. Real UUIDs pass through unchanged.
@@ -190,6 +233,15 @@ export function buildAggregatedTradesHref(
   return `/trns/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
 }
 
+/**
+ * Whether an asset has public coverage an AI review can draw on: not cash or
+ * an account, and not on the PRIVATE market. A currency pair (CURRENCY on the
+ * FX market) qualifies; svc-agent reviews it as a rate.
+ */
+export function hasPublicNews(asset: Asset): boolean {
+  return !isCashRelated(asset) && asset.market?.code !== "PRIVATE"
+}
+
 export interface NewsAssetRef {
   ticker: string
   market: string
@@ -197,8 +249,8 @@ export interface NewsAssetRef {
 }
 
 /**
- * Shape consumed by NewsSentimentPopup. Centralized so card / row build it
- * the same way.
+ * Shape consumed by NewsSentimentPopup and AssetReviewPopup. Centralized so
+ * every view builds it the same way.
  */
 export function buildNewsAsset(asset: Asset): NewsAssetRef {
   return {

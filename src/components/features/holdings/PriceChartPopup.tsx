@@ -36,7 +36,7 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
 
-interface PriceChartPopupProps {
+export interface PriceChartPopupProps {
   asset: Asset
   currencySymbol?: string
   portfolioId?: string

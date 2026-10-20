@@ -26,6 +26,7 @@ import {
   isCash,
   isCashRelated,
   isConstantPrice,
+  priceDecimals,
   supportsBalanceSetting,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
@@ -293,6 +294,7 @@ export default function Rows({
                         </span>
                         <FormatValue
                           value={moneyValues[valueIn].priceData.close}
+                          scale={priceDecimals(asset)}
                           isPublic
                         />
                         <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">

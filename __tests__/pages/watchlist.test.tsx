@@ -11,6 +11,7 @@ import { SWRConfig } from "swr"
 import WatchlistPageDefault from "@pages/watchlist"
 import {
   makeAsset,
+  makePortfolio,
   makeWatchlist,
   makeWatchlistItem,
 } from "@test-fixtures/beancounter"
@@ -50,10 +51,59 @@ jest.mock("@hooks/usePermissions", () => ({
   }),
 }))
 
-// The popup has its own tests; here it only needs to show it opened for the watched assets.
-jest.mock("@components/features/watchlists/WatchlistReviewPopup", () => {
-  return function WatchlistReviewPopup(props: { assetIds: string[] }) {
-    return <div>{`review of ${props.assetIds.join(",")}`}</div>
+// The popup has its own tests; here it only needs to show which asset it opened for.
+jest.mock("@components/features/assets/AssetReviewPopup", () => {
+  return function AssetReviewPopup(props: {
+    ticker: string
+    market?: string
+    assetName?: string
+  }) {
+    return (
+      <div>{`review of ${props.ticker} on ${props.market} (${props.assetName})`}</div>
+    )
+  }
+})
+
+// The chart modals have their own tests; here they only show what they opened for.
+jest.mock("@components/features/fx/RateChartModal", () => {
+  return function RateChartModal(props: { from: string; to: string }) {
+    return <div>{`rate chart ${props.from}/${props.to}`}</div>
+  }
+})
+jest.mock("@components/features/holdings/PriceChartPopup", () => {
+  return function PriceChartPopup(props: {
+    asset: { code: string }
+    currencySymbol?: string
+  }) {
+    return (
+      <div>{`price chart ${props.asset.code} in ${props.currencySymbol}`}</div>
+    )
+  }
+})
+
+// One portfolio, so Trade goes straight to the form without a picker.
+jest.mock("@hooks/usePortfolios", () => ({
+  usePortfolios: () => ({
+    portfolios: [makePortfolio({ id: "pf-1", code: "MAIN" })],
+  }),
+}))
+jest.mock("@components/features/transactions/TradeInputForm", () => {
+  return function TradeInputForm(props: {
+    portfolio: { code: string }
+    initialValues?: { asset: string; market: string; type: string }
+  }) {
+    const v = props.initialValues
+    return (
+      <div>{`trade ${v?.type} ${v?.asset} on ${v?.market} into ${props.portfolio.code}`}</div>
+    )
+  }
+})
+jest.mock("@components/features/holdings/NewsSentimentPopup", () => {
+  return function NewsSentimentPopup(props: {
+    ticker: string
+    market?: string
+  }) {
+    return <div>{`news of ${props.ticker} on ${props.market}`}</div>
   }
 })
 
@@ -115,6 +165,18 @@ const unpriced = makeWatchlistItem({
   toTarget: null,
 })
 
+// A currency pair is an ordinary asset: CURRENCY category on the FX market.
+const fxPair = makeWatchlistItem({
+  id: "wi-3",
+  asset: makeAsset({
+    id: "asset-3",
+    code: "NZDSGD",
+    name: "NZD/SGD",
+    assetCategory: { id: "CURRENCY", name: "Currency" },
+    market: { code: "FX", name: "FX", currency: undefined as never },
+  }),
+})
+
 beforeEach(() => {
   mockCanRunAi = false
   calls = []
@@ -174,6 +236,35 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("since-added")).toHaveTextContent("+33.33%")
     expect(r.getByTestId("target")).toHaveTextContent("99.00")
     expect(r.getByTestId("target")).toHaveTextContent("+44.44%")
+  })
+
+  it("quotes a currency pair's figures to 4 places", async () => {
+    watchlist = makeWatchlist({
+      items: [
+        priced,
+        {
+          ...fxPair,
+          price: 0.7254,
+          addedPrice: 0.7123,
+          targetPrice: 0.75,
+          changeOnDay: 0.0012,
+          changeSinceAdded: 0.0131,
+        },
+      ],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-3")
+
+    const r = within(row("wi-3"))
+    expect(r.getByTestId("price")).toHaveTextContent("0.7254")
+    expect(r.getByTestId("added")).toHaveTextContent("0.7123")
+    expect(r.getByTestId("target")).toHaveTextContent("0.7500")
+    expect(r.getByTestId("day-change")).toHaveTextContent("+0.0012")
+    expect(r.getByTestId("since-added")).toHaveTextContent("+0.0131")
+    // An equity stays at 2 places.
+    expect(within(row("wi-1")).getByTestId("price")).toHaveTextContent(
+      /^90\.00/,
+    )
   })
 
   it("shows a dash for every figure the backend left null", async () => {
@@ -387,17 +478,56 @@ describe("Watchlist page", () => {
     )
   })
 
-  it("opens an AI summary of the watched assets", async () => {
+  it("offers an AI review beside each eligible asset, for that asset", async () => {
     mockCanRunAi = true
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")
 
-    fireEvent.click(screen.getByRole("button", { name: "AI Summary" }))
+    fireEvent.click(
+      within(row("wi-1")).getByRole("button", { name: "AI review AAA" }),
+    )
 
-    expect(screen.getByText("review of asset-1,asset-2")).toBeInTheDocument()
+    expect(
+      screen.getByText("review of AAA on NASDAQ (Alpha Corp)"),
+    ).toBeInTheDocument()
   })
 
-  it("offers no AI summary without AI access", async () => {
+  it("offers an AI review of a currency pair on the FX market", async () => {
+    mockCanRunAi = true
+    watchlist = makeWatchlist({ items: [priced, fxPair] })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-3")
+
+    fireEvent.click(
+      within(row("wi-3")).getByRole("button", { name: "AI review NZDSGD" }),
+    )
+
+    expect(
+      screen.getByText("review of NZDSGD on FX (NZD/SGD)"),
+    ).toBeInTheDocument()
+  })
+
+  it("offers no AI review of a private asset", async () => {
+    mockCanRunAi = true
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    expect(
+      within(row("wi-2")).queryByRole("button", { name: /AI review/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers no AI review without AI access", async () => {
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    expect(
+      screen.queryByRole("button", { name: /AI review/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("no longer offers an AI summary of the whole watchlist", async () => {
+    mockCanRunAi = true
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")
 
@@ -406,14 +536,117 @@ describe("Watchlist page", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("offers no AI summary of an empty watchlist", async () => {
-    mockCanRunAi = true
-    watchlist = makeWatchlist({ items: [] })
-    renderPage()
-    await screen.findByText("Nothing on your watchlist yet")
+  describe("chart", () => {
+    const cashItem = makeWatchlistItem({
+      id: "wi-4",
+      asset: makeAsset({
+        id: "asset-4",
+        code: "USD",
+        assetCategory: { id: "CASH", name: "Cash" },
+      }),
+    })
 
-    expect(
-      screen.queryByRole("button", { name: "AI Summary" }),
-    ).not.toBeInTheDocument()
+    beforeEach(() => {
+      watchlist = makeWatchlist({ items: [priced, fxPair, cashItem] })
+    })
+
+    it("opens the FX rate chart, base to quote, for a currency pair", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-3")
+
+      fireEvent.click(
+        within(row("wi-3")).getByRole("button", {
+          name: /price chart for NZDSGD/i,
+        }),
+      )
+
+      expect(screen.getByText("rate chart NZD/SGD")).toBeInTheDocument()
+      expect(screen.queryByText(/^price chart/)).not.toBeInTheDocument()
+    })
+
+    it("opens the price chart for an equity", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", {
+          name: /price chart for AAA/i,
+        }),
+      )
+
+      expect(screen.getByText("price chart AAA in $")).toBeInTheDocument()
+      expect(screen.queryByText(/rate chart/)).not.toBeInTheDocument()
+    })
+
+    it("offers no chart for a category that cannot be charted", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-4")
+
+      expect(
+        within(row("wi-4")).queryByRole("button", { name: /price chart/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe("actions", () => {
+    const cashItem = makeWatchlistItem({
+      id: "wi-4",
+      asset: makeAsset({
+        id: "asset-4",
+        code: "USD",
+        assetCategory: { id: "CASH", name: "Cash" },
+        market: { code: "CASH", name: "Cash", currency: undefined as never },
+      }),
+    })
+
+    beforeEach(() => {
+      watchlist = makeWatchlist({ items: [priced, fxPair, cashItem] })
+    })
+
+    it("opens the holdings news popup for the row's asset", async () => {
+      mockCanRunAi = true
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: "News AAA" }),
+      )
+
+      expect(screen.getByText("news of AAA on NASDAQ")).toBeInTheDocument()
+    })
+
+    it("offers no news without AI or preview access", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      expect(
+        within(row("wi-1")).queryByRole("button", { name: /^News/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("opens the trade form prefilled as a BUY of the row's asset", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: "Trade AAA" }),
+      )
+
+      expect(
+        screen.getByText("trade BUY AAA on NASDAQ into MAIN"),
+      ).toBeInTheDocument()
+    })
+
+    it("offers no trade for a currency pair or cash", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      expect(
+        within(row("wi-3")).queryByRole("button", { name: /^Trade/ }),
+      ).not.toBeInTheDocument()
+      expect(
+        within(row("wi-4")).queryByRole("button", { name: /^Trade/ }),
+      ).not.toBeInTheDocument()
+    })
   })
 })

@@ -97,6 +97,18 @@ jest.mock("@components/features/assets/AssetSearch", () => {
   }
 })
 
+// The chart modals have their own tests; here they only show what they opened for.
+jest.mock("@components/features/fx/RateChartModal", () => {
+  return function RateChartModal(props: { from: string; to: string }) {
+    return <div>{`rate chart ${props.from}/${props.to}`}</div>
+  }
+})
+jest.mock("@components/features/holdings/PriceChartPopup", () => {
+  return function PriceChartPopup(props: { asset: { code: string } }) {
+    return <div>{`price chart ${props.asset.code}`}</div>
+  }
+})
+
 jest.mock("swr", () => ({
   __esModule: true,
   default: jest.fn(),
@@ -485,6 +497,88 @@ describe("Asset Lookup Page — last close", () => {
     } finally {
       global.fetch = originalFetch
     }
+  })
+
+  it("opens the FX rate chart for a currency pair hit", async () => {
+    mockQuery = {
+      assetId: "asset-fx",
+      symbol: "NZDSGD",
+      market: "FX",
+      name: "NZD/SGD",
+      currency: "SGD",
+      type: "CURRENCY",
+    }
+    render(<AssetLookupPage />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /price chart for NZDSGD/i }),
+    )
+
+    expect(await screen.findByText("rate chart NZD/SGD")).toBeInTheDocument()
+    expect(screen.queryByText(/^price chart/)).not.toBeInTheDocument()
+  })
+
+  it("offers no trade for a currency pair", () => {
+    mockQuery = {
+      assetId: "asset-fx",
+      symbol: "NZDSGD",
+      market: "FX",
+      name: "NZD/SGD",
+      currency: "SGD",
+      type: "CURRENCY",
+    }
+    render(<AssetLookupPage />)
+
+    expect(screen.queryByTestId("trade-asset-action")).not.toBeInTheDocument()
+  })
+
+  it("offers trade for an equity", () => {
+    render(<AssetLookupPage />)
+
+    expect(screen.getByTestId("trade-asset-action")).toBeInTheDocument()
+  })
+
+  it("quotes a currency pair's last close to 4 places", () => {
+    mockQuery = {
+      assetId: "asset-fx",
+      symbol: "NZDSGD",
+      market: "FX",
+      name: "NZD/SGD",
+      currency: "SGD",
+      type: "CURRENCY",
+    }
+    ;(useSWR as unknown as jest.Mock).mockImplementation((key: unknown) =>
+      key === "/api/prices/asset-fx/quote"
+        ? {
+            data: {
+              data: [
+                {
+                  close: 0.7254,
+                  change: 0.0012,
+                  changePercent: 0.0017,
+                  previousClose: 0.7242,
+                  priceDate: "2026-09-29",
+                },
+              ],
+            },
+            isLoading: false,
+          }
+        : { data: undefined, isLoading: false },
+    )
+    render(<AssetLookupPage />)
+
+    expect(screen.getByTestId("last-close")).toHaveTextContent("0.7254")
+    expect(screen.getByTestId("last-close")).toHaveTextContent("+0.0012")
+  })
+
+  it("opens the price chart for an equity", async () => {
+    render(<AssetLookupPage />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /price chart for AAPL/i }),
+    )
+
+    expect(await screen.findByText("price chart AAPL")).toBeInTheDocument()
   })
 
   it("hides last close when the provider returns no price", () => {
