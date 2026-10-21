@@ -40,6 +40,8 @@ const CODES = [
   "answer-truncated",
   "empty-answer",
   "agent-error",
+  // Holding Analysis: the caller holds none of the asset in that portfolio.
+  "not-held",
   // Minted by the chat client, not svc-agent: the stream dropped and no
   // answer was found stored afterwards (see `useChat`'s recovery).
   "interrupted",
@@ -108,6 +110,14 @@ const COPY: Record<
     message:
       "The agent couldn't process this request. Try again, or simplify the question.",
     retryable: true,
+  },
+  "not-held": {
+    tone: "error",
+    title: "Nothing held here",
+    message:
+      "You don't hold any of this asset in this portfolio, so there is no " +
+      "holding to analyse. The Asset Review covers the asset itself.",
+    retryable: false,
   },
   interrupted: {
     tone: "error",

@@ -37,12 +37,17 @@ export interface ConversationSeedTurn {
   deepThink?: boolean
 }
 
+/** What started a conversation: free chat, or one of the Quick Analyses. */
+export type ConversationKind = "CHAT" | "ASSET_REVIEW" | "HOLDING_ANALYSIS"
+
 /** A persisted svc-agent chat conversation, as listed. Timestamps are ISO-8601. */
 export interface ConversationSummary {
   id: string
   title: string
   createdAt: string
   updatedAt: string
+  /** Absent from servers that predate it; treat as `CHAT`. */
+  kind?: ConversationKind
 }
 
 /**

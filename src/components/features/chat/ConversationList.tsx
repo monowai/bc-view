@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { ConversationSummary } from "types/agent"
+import { ConversationKind, ConversationSummary } from "types/agent"
 import { formatRelativeTime } from "./relativeTime"
 
 interface ConversationListProps {
@@ -14,6 +14,31 @@ interface ConversationListProps {
   /** When given, a toggle in the header hides the sidebar. */
   onCollapse?: () => void
   className?: string
+}
+
+/** Short badge for the analysis kinds; a plain chat carries none. */
+const KIND_BADGES: Partial<
+  Record<ConversationKind, { label: string; title: string }>
+> = {
+  ASSET_REVIEW: { label: "Review", title: "Asset Review" },
+  HOLDING_ANALYSIS: { label: "Holding", title: "Holding Analysis" },
+}
+
+function KindBadge({
+  kind,
+}: {
+  kind?: ConversationKind
+}): React.ReactElement | null {
+  const badge = kind ? KIND_BADGES[kind] : undefined
+  if (!badge) return null
+  return (
+    <span
+      title={badge.title}
+      className="ml-1 px-1.5 rounded bg-purple-50 text-purple-700 text-[10px] font-medium"
+    >
+      {badge.label}
+    </span>
+  )
 }
 
 /** svc-agent clips titles to this length; stop the input there too. */
@@ -269,6 +294,7 @@ export default function ConversationList({
                   </span>
                   <span className="block text-xs text-gray-400">
                     {formatRelativeTime(c.updatedAt)}
+                    <KindBadge kind={c.kind} />
                   </span>
                 </button>
                 <button

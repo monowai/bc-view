@@ -1,6 +1,16 @@
 import { describeAgentError } from "@utils/agent/agentErrors"
 
 describe("describeAgentError", () => {
+  it("tells the reader they hold none of the asset in that portfolio", () => {
+    const copy = describeAgentError("not-held")
+
+    expect(copy.code).toBe("not-held")
+    expect(copy.tone).toBe("error")
+    // Retrying the same holding cannot change the answer.
+    expect(copy.retryable).toBe(false)
+    expect(copy.message).toMatch(/don't hold any of this asset/i)
+  })
+
   it("names an exhausted credit balance as an administration issue", () => {
     const copy = describeAgentError("provider-quota")
 
