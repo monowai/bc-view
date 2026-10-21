@@ -32,6 +32,7 @@ import { useRouter } from "next/router"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import { AlphaProgress } from "@components/ui/ProgressBar"
+import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
 import {
@@ -292,25 +293,34 @@ export default function Rows({
                         </span>
                       </>
                     )
-                    return isChartable ? (
-                      <button
-                        type="button"
-                        aria-label={`Show price chart for ${asset.displayCode}`}
-                        className="relative group text-left cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onPriceChart({
-                            asset,
-                            currencySymbol:
-                              moneyValues[valueIn].currency.symbol,
-                            portfolioId: portfolio.id,
-                          })
-                        }}
-                      >
-                        {priceContent}
-                      </button>
-                    ) : (
-                      <span className="relative group">{priceContent}</span>
+                    if (!isChartable) {
+                      return (
+                        <span className="relative group">{priceContent}</span>
+                      )
+                    }
+                    const openChart = (e: React.MouseEvent): void => {
+                      e.stopPropagation()
+                      onPriceChart({
+                        asset,
+                        currencySymbol: moneyValues[valueIn].currency.symbol,
+                        portfolioId: portfolio.id,
+                      })
+                    }
+                    return (
+                      <span className="inline-flex items-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          aria-label={`Show price chart for ${asset.displayCode}`}
+                          className="relative group text-left cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+                          onClick={openChart}
+                        >
+                          {priceContent}
+                        </button>
+                        <ChartIconButton
+                          ariaLabel={`Open price chart for ${asset.displayCode}`}
+                          onClick={openChart}
+                        />
+                      </span>
                     )
                   })()}
             </td>

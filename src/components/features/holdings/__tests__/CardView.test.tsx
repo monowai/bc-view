@@ -6,6 +6,7 @@ import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import {
   makeAsset,
+  makeCashAsset,
   makeHoldingGroup,
   makeHoldings,
   makePortfolio,
@@ -231,6 +232,52 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       renderWithChart(onPriceChart, "EQUITY", false)
       expect(
         screen.queryByRole("button", { name: /Show price chart/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("shows a chart icon beside the price that opens the chart", () => {
+      const onPriceChart = jest.fn()
+      const { portfolio } = renderWithChart(onPriceChart, "EQUITY")
+      const icon = screen.getByRole("button", {
+        name: "Open price chart for AAPL",
+      })
+      expect(icon).toHaveAttribute("title", "Open price chart")
+      fireEvent.click(icon)
+      expect(onPriceChart).toHaveBeenCalledWith(
+        expect.objectContaining({ portfolioId: portfolio.id }),
+      )
+    })
+
+    it("shows no chart icon for an unchartable asset", () => {
+      renderWithChart(jest.fn(), "EQUITY", false)
+      expect(
+        screen.queryByRole("button", { name: /Open price chart/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("shows no chart icon for cash", () => {
+      const portfolio = makePortfolio()
+      const position = makePosition({
+        asset: makeCashAsset(),
+        moneyValues: { weight: 0.25 },
+        price: 1,
+        quantityValues: { total: 100 },
+      })
+      render(
+        <CardView
+          holdings={makeHoldings({
+            portfolio,
+            holdingGroups: {
+              Cash: makeHoldingGroup({ positions: [position] }),
+            },
+          })}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onPriceChart={jest.fn()}
+        />,
+      )
+      expect(
+        screen.queryByRole("button", { name: /Open price chart/i }),
       ).not.toBeInTheDocument()
     })
   })

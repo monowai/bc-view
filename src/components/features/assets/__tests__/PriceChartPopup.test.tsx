@@ -4,6 +4,7 @@ import "@testing-library/jest-dom"
 import PriceChartPopup from "../PriceChartPopup"
 import useSwr from "swr"
 import { makeAsset } from "@test-fixtures/beancounter"
+import { localIsoDate } from "@lib/formatters"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -130,6 +131,9 @@ function makeRouter(options: {
   pricesResult?: ReturnType<typeof useSwr>
   tradesResult?: ReturnType<typeof useSwr>
   overlayLegs?: Record<string, { priceDate: string; close: number }[]>
+  // History before the displayed range, fetched only while an SMA is on so
+  // its first points have a full window behind them. Unset means none loaded.
+  warmup?: { priceDate: string; close: number }[]
 }): SwrMock {
   const prices = options.pricesResult ?? {
     data: history,
@@ -169,6 +173,15 @@ function makeRouter(options: {
         const leg = options.overlayLegs?.[assetId]
         return {
           data: leg ? { asset, prices: leg } : undefined,
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>
+      }
+      // The displayed range always ends today; a request ending earlier is the
+      // SMA warm-up.
+      if (!key.includes(`to=${localIsoDate(new Date())}`)) {
+        return {
+          data: options.warmup ? { asset, prices: options.warmup } : undefined,
           isLoading: false,
           error: undefined,
         } as unknown as ReturnType<typeof useSwr>
@@ -218,6 +231,55 @@ function resolveKeys(): string[] {
         typeof k === "string" && k.startsWith("/api/assets/resolve"),
     )
     .filter((k, i, all) => all.indexOf(k) === i)
+}
+
+function assetHistoryKeys(): string[] {
+  return mockUseSwr.mock.calls
+    .map((call) => call[0])
+    .filter(
+      (k): k is string =>
+        typeof k === "string" &&
+        k.startsWith(`/api/prices/history/${asset.id}?`),
+    )
+}
+
+function param(key: string, name: string): string {
+  return new URLSearchParams(key.split("?")[1]).get(name) ?? ""
+}
+
+// The displayed range is the history request that ends latest; anything
+// ending earlier is the SMA warm-up.
+function mainHistoryKey(): string {
+  return assetHistoryKeys().reduce((a, b) =>
+    param(b, "to") > param(a, "to") ? b : a,
+  )
+}
+
+// Consecutive calendar days ending the day before `end`, so a warm-up fixture
+// always sits wholly before the displayed range.
+function daysBefore(
+  end: string,
+  closes: number[],
+): {
+  priceDate: string
+  close: number
+}[] {
+  const endDate = new Date(`${end}T00:00:00Z`)
+  return closes.map((close, i) => {
+    const d = new Date(endDate)
+    d.setUTCDate(d.getUTCDate() - (closes.length - i))
+    return { priceDate: d.toISOString().slice(0, 10), close }
+  })
+}
+
+function chartRows(): Array<Record<string, number | undefined | null>> {
+  return JSON.parse(
+    screen.getByTestId("chart").getAttribute("data-series") as string,
+  )
+}
+
+function mean(values: number[]): number {
+  return values.reduce((a, b) => a + b, 0) / values.length
 }
 
 describe("PriceChartPopup", () => {
@@ -337,13 +399,7 @@ describe("PriceChartPopup", () => {
 
         renderPopup()
 
-        const priceKeys = mockUseSwr.mock.calls
-          .map((call) => call[0])
-          .filter(
-            (k): k is string =>
-              typeof k === "string" && k.startsWith("/api/prices/history/"),
-          )
-        expect(priceKeys[priceKeys.length - 1]).toContain("to=2026-04-25")
+        expect(mainHistoryKey()).toContain("to=2026-04-25")
       } finally {
         jest.setSystemTime(new Date("2026-04-25T00:00:00Z"))
       }
@@ -357,6 +413,110 @@ describe("PriceChartPopup", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
     expect(screen.getByTestId("line-sma")).toBeInTheDocument()
+  })
+
+  describe("simple moving average", () => {
+    it("offers a 200-day SMA", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+
+      expect(
+        screen.getByRole("button", { name: "SMA 200" }),
+      ).toBeInTheDocument()
+    })
+
+    it("requests warm-up history ending the day before the displayed range", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      const main = mainHistoryKey()
+      // The latest warm-up request is SMA 200's; the default SMA 20 made one
+      // on first render.
+      const warm = assetHistoryKeys()
+        .filter((k) => param(k, "to") < param(main, "to"))
+        .pop() as string
+      expect(warm).toBeDefined()
+      const rangeStart = new Date(`${param(main, "from")}T00:00:00Z`)
+      const warmTo = new Date(`${param(warm, "to")}T00:00:00Z`)
+      const warmFrom = new Date(`${param(warm, "from")}T00:00:00Z`)
+      const day = 24 * 60 * 60 * 1000
+      expect((rangeStart.getTime() - warmTo.getTime()) / day).toBe(1)
+      // 200 trading days need ~290 calendar days; the request covers more.
+      expect((warmTo.getTime() - warmFrom.getTime()) / day).toBeGreaterThan(290)
+    })
+
+    it("builds SMA 200 from the warm-up history, not a partial window", () => {
+      const warmCloses = Array.from({ length: 250 }, (_, i) => i + 1)
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          warmup: daysBefore("2026-03-21", warmCloses),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      const rows = chartRows()
+      const closes = history.prices.map((p) => p.close)
+      const combined = [...warmCloses, ...closes]
+      const firstShown = warmCloses.length
+      expect(rows).toHaveLength(closes.length)
+      expect(rows[0].sma).toBeCloseTo(
+        mean(combined.slice(firstShown - 199, firstShown + 1)),
+        6,
+      )
+      expect(rows[2].sma).toBeCloseTo(
+        mean(combined.slice(firstShown - 197, firstShown + 3)),
+        6,
+      )
+    })
+
+    it("draws no SMA where the history is shorter than the window", () => {
+      // 18 warm-up closes: the first displayed point has 19 behind it, the
+      // second the full 20.
+      const warmCloses = Array.from({ length: 18 }, (_, i) => 300 + i)
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          warmup: daysBefore("2026-03-21", warmCloses),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+
+      const rows = chartRows()
+      expect(rows[0].sma).toBeUndefined()
+      expect(rows[1].sma).toBeCloseTo(
+        mean([...warmCloses, 400, 410].slice(-20)),
+        6,
+      )
+    })
+
+    it("draws no SMA at all for an asset newer than the window", () => {
+      mockUseSwr.mockImplementation(makeRouter({ warmup: [] }) as typeof useSwr)
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      expect(chartRows().every((r) => r.sma === undefined)).toBe(true)
+    })
+
+    it("fetches no warm-up history when the SMA is off", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "Off" }))
+      mockUseSwr.mockClear()
+      fireEvent.click(screen.getByRole("button", { name: "12m" }))
+
+      const keys = assetHistoryKeys()
+      expect(keys.length).toBeGreaterThan(0)
+      const main = mainHistoryKey()
+      expect(keys.every((k) => k === main)).toBe(true)
+      expect(screen.queryByTestId("line-sma")).not.toBeInTheDocument()
+    })
   })
 
   it("draws no ratio overlay and resolves no extra assets by default", () => {
@@ -442,6 +602,9 @@ describe("PriceChartPopup", () => {
   it("indexes the limit line, the SMA and the trade markers with the price", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
+        // 19 closes at the base level, so the default SMA 20 at the first
+        // displayed point (also 400) sits exactly on the base.
+        warmup: daysBefore("2026-03-21", new Array(19).fill(400)),
         overlayLegs: {
           "spy-id": [
             { priceDate: "2026-03-21", close: 500 },

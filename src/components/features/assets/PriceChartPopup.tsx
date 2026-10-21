@@ -118,6 +118,7 @@ const SMA_OPTIONS: { label: string; window: number }[] = [
   { label: "Off", window: 0 },
   { label: "SMA 20", window: 20 },
   { label: "SMA 50", window: 50 },
+  { label: "SMA 200", window: 200 },
 ]
 
 // A ratio overlay divides one price series by another and plots the result,
@@ -205,6 +206,26 @@ function formatAxisDate(dateStr: string, months: number): string {
   return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
 }
 
+/**
+ * Calendar days of history to fetch before the displayed range so its first
+ * point has `window` trading days behind it: ~252 trading days a year, with
+ * headroom for holidays.
+ */
+function smaWarmupDays(window: number): number {
+  return Math.ceil(window * 1.5) + 10
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+/**
+ * Trailing mean over `window` points. A point with fewer than `window` points
+ * behind it gets no value: an average of a partial window is a different line
+ * that happens to share the name, and reads as a real signal.
+ */
 function computeSma(values: number[], window: number): (number | undefined)[] {
   if (window <= 1 || values.length === 0) return values.map(() => undefined)
   const out: (number | undefined)[] = new Array(values.length)
@@ -212,8 +233,7 @@ function computeSma(values: number[], window: number): (number | undefined)[] {
   for (let i = 0; i < values.length; i++) {
     sum += values[i]
     if (i >= window) sum -= values[i - window]
-    const denom = Math.min(i + 1, window)
-    out[i] = sum / denom
+    out[i] = i >= window - 1 ? sum / window : undefined
   }
   return out
 }
@@ -385,11 +405,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     error: boolean
   }>({ busy: false, message: null, error: false })
 
-  const { from, to } = useMemo(() => {
+  const { from, to, rangeStart } = useMemo(() => {
     const today = new Date()
+    const start = subtractMonths(today, months)
     return {
-      from: localIsoDate(subtractMonths(today, months)),
+      from: localIsoDate(start),
       to: localIsoDate(today),
+      rangeStart: start,
     }
   }, [months])
 
@@ -399,6 +421,20 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     error: priceError,
     isLoading: pricesLoading,
   } = useSwr<PriceHistoryResponse>(priceUrl, simpleFetcher(priceUrl))
+
+  // History before the range, so the SMA's first displayed points average a
+  // full window rather than whatever the range happens to hold. A separate
+  // request, so the price area, overlay and trades read the range alone.
+  const warmupUrl =
+    smaWindow > 0
+      ? `/api/prices/history/${asset.id}?from=${localIsoDate(
+          addDays(rangeStart, -smaWarmupDays(smaWindow)),
+        )}&to=${localIsoDate(addDays(rangeStart, -1))}`
+      : null
+  const { data: warmupData } = useSwr<PriceHistoryResponse>(
+    warmupUrl,
+    warmupUrl ? simpleFetcher(warmupUrl) : null,
+  )
 
   const overlay = OVERLAYS.find((o) => o.label === overlayLabel) ?? OVERLAYS[0]
   const numeratorLeg = useOverlayLeg(
@@ -537,7 +573,16 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     // `split` column so only the canonical ex-date row carries a non-1 value.
     // The chart renders the response as-is.
     const closes = raw.map((p) => Number(p.close))
-    const smaSeries = computeSma(closes, smaWindow)
+    // Until the warm-up arrives (or when the asset has no earlier history) the
+    // SMA starts where the range's own closes first fill a window.
+    // Cut at the first displayed date so no close is counted twice.
+    const firstShown = raw[0]?.priceDate
+    const warmupCloses = (warmupData?.prices ?? [])
+      .filter((p) => !firstShown || p.priceDate < firstShown)
+      .map((p) => Number(p.close))
+    const smaSeries = computeSma([...warmupCloses, ...closes], smaWindow).slice(
+      warmupCloses.length,
+    )
     // The ribbon describes the ratio on screen, so it reads the same series the
     // overlay line plots. No overlay, no ribbon.
     const trendStates = ratioTrendStates(ratioSeries)
@@ -576,7 +621,15 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         sellIndex: sell ? (index(sell.price) ?? null) : null,
       }
     })
-  }, [priceData, tradesByDate, smaWindow, ratioSeries, indexed, priceBase])
+  }, [
+    priceData,
+    warmupData,
+    tradesByDate,
+    smaWindow,
+    ratioSeries,
+    indexed,
+    priceBase,
+  ])
 
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
