@@ -19,7 +19,7 @@
     "demo": "npx playwright test e2e/tests/demo/demo-setup.spec.ts --project=chromium",
     "lint": "eslint . && markdownlint '**/*.md' --ignore node_modules --ignore playwright-report --ignore test-results --ignore REFACTORING_PLAN.md --ignore CLAUDE.md",
     "lint:md": "markdownlint '**/*.md' --ignore node_modules --ignore playwright-report --ignore test-results",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/typecheck.js",
     "clean": "rm -rf .next",
     "deps:check": "yarn outdated",
     "deps:update": "yarn upgrade-interactive",

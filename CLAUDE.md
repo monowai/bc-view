@@ -38,7 +38,7 @@ yarn test          # Run tests with coverage
 yarn test:watch    # Watch mode
 yarn lint          # ESLint + markdownlint
 yarn prettier      # Format code
-yarn typecheck     # TypeScript checks only
+yarn typecheck     # TypeScript checks, including our own .d.ts files (lib check on)
 yarn check-imports # Validate import paths
 ```
 

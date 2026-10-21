@@ -77,6 +77,9 @@ jobs:
           restore-keys: |
             jest-cache-
 
+      - name: Type check
+        run: yarn typecheck
+
       - name: Run tests
         run: yarn test
 
