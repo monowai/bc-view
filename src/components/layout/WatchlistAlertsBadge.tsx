@@ -2,6 +2,7 @@ import React from "react"
 import Link from "next/link"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useWatchlistAlerts } from "@hooks/useWatchlistAlerts"
+import { WATCHLIST_ALERTS_ANCHOR } from "@components/features/watchlists/WatchlistAlertsPanel"
 
 /**
  * Header notification badge counting watchlist target alerts awaiting
@@ -21,7 +22,7 @@ export default function WatchlistAlertsBadge(): React.ReactElement | null {
   const label = `${count} watchlist target alert${count === 1 ? "" : "s"}`
   return (
     <Link
-      href="/watchlist#alerts"
+      href={`/watchlist#${WATCHLIST_ALERTS_ANCHOR}`}
       aria-label={label}
       title={label}
       className="relative p-2 text-gray-300 hover:text-white transition-colors"

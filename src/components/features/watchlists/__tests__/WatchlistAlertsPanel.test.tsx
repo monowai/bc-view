@@ -1,7 +1,9 @@
 import React from "react"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import WatchlistAlertsPanel from "@components/features/watchlists/WatchlistAlertsPanel"
+import WatchlistAlertsPanel, {
+  WATCHLIST_ALERTS_ANCHOR,
+} from "@components/features/watchlists/WatchlistAlertsPanel"
 import { makeAsset, makeWatchlistAlert } from "@test-fixtures/beancounter"
 import { formatDate } from "@lib/formatters"
 
@@ -97,5 +99,42 @@ describe("WatchlistAlertsPanel", () => {
       "alert not found",
     )
     expect(onDismissed).not.toHaveBeenCalled()
+  })
+
+  it("re-enables Dismiss once a dismiss settles and the row is still shown", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(200, { data: [rose] }),
+      ) as unknown as typeof fetch
+    const onDismissed = jest.fn()
+    render(<WatchlistAlertsPanel alerts={[rose]} onDismissed={onDismissed} />)
+
+    const button = screen.getByRole("button", { name: "Dismiss AAA alert" })
+    fireEvent.click(button)
+
+    await waitFor(() => expect(onDismissed).toHaveBeenCalledWith([rose]))
+    await waitFor(() => expect(button).toBeEnabled())
+  })
+
+  it("falls back to a generic reason when the failure is not an Error", async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue("network down") as unknown as typeof fetch
+    render(<WatchlistAlertsPanel alerts={[rose]} onDismissed={jest.fn()} />)
+
+    const button = screen.getByRole("button", { name: "Dismiss AAA alert" })
+    fireEvent.click(button)
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dismiss failed")
+    expect(button).toBeEnabled()
+  })
+
+  it("anchors the panel on the shared alerts id", () => {
+    render(<WatchlistAlertsPanel alerts={[rose]} onDismissed={jest.fn()} />)
+
+    expect(
+      screen.getByRole("region", { name: "Target alerts" }),
+    ).toHaveAttribute("id", WATCHLIST_ALERTS_ANCHOR)
   })
 })

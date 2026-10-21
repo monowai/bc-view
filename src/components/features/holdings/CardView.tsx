@@ -38,6 +38,8 @@ import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
+import AssetReviewButton from "@components/features/assets/AssetReviewButton"
+import { useAssetReview } from "@components/features/assets/useAssetReview"
 import { useHoldingAnalysis } from "@components/features/assets/useHoldingAnalysis"
 import {
   canAnalyseHolding,
@@ -217,6 +219,7 @@ interface PositionHeaderProps {
   truncatedName: string
   changePercent: number | undefined
   onShowNews: () => void
+  onShowReview: () => void
   actionsMenu?: React.ReactNode
 }
 
@@ -227,6 +230,7 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
   truncatedName,
   changePercent,
   onShowNews,
+  onShowReview,
   actionsMenu,
 }) => (
   <div className="flex justify-between items-center gap-2 mb-3">
@@ -234,6 +238,7 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
       <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
         {displayName}
         <AssetNewsButton asset={asset} onShow={onShowNews} />
+        <AssetReviewButton asset={asset} onShow={onShowReview} />
       </h3>
       {hasDistinctName && (
         <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
@@ -325,6 +330,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
+  const { popup: reviewPopup, showAsset: openReview } = useAssetReview()
   const {
     popup: analysisPopup,
     enabled: analysisEnabled,
@@ -469,6 +475,10 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       title="Double-click to open"
     >
       {popup}
+      {reviewPopup && (
+        // Same portal bubbling as the analysis popup below.
+        <div onDoubleClick={(e) => e.stopPropagation()}>{reviewPopup}</div>
+      )}
       {analysisPopup && (
         // React events bubble through the dialog's portal to this card, whose
         // double-click opens trades; stop them at the dialog boundary.
@@ -481,6 +491,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         truncatedName={truncatedName}
         changePercent={values.priceData?.changePercent}
         onShowNews={() => showNews(asset)}
+        onShowReview={() => openReview(asset)}
         actionsMenu={actionsNode}
       />
 

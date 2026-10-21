@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { SWRConfig } from "swr"
 import WatchlistAlertsBadge from "@components/layout/WatchlistAlertsBadge"
+import { WATCHLIST_ALERTS_ANCHOR } from "@components/features/watchlists/WatchlistAlertsPanel"
 import { makeWatchlistAlert } from "@test-fixtures/beancounter"
 import { WatchlistAlert } from "types/beancounter"
 
@@ -47,7 +48,10 @@ describe("WatchlistAlertsBadge", () => {
     const link = await screen.findByRole("link", {
       name: /2 watchlist target alerts/i,
     })
-    expect(link).toHaveAttribute("href", "/watchlist#alerts")
+    expect(link).toHaveAttribute(
+      "href",
+      `/watchlist#${WATCHLIST_ALERTS_ANCHOR}`,
+    )
     expect(link).toHaveTextContent("2")
     expect(fetchMock).toHaveBeenCalledWith("/api/watchlist/alerts")
   })

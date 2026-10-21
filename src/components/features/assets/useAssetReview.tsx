@@ -1,5 +1,6 @@
 import React, { ReactElement, useCallback, useState } from "react"
-import { AssetOption } from "types/beancounter"
+import { Asset, AssetOption } from "types/beancounter"
+import { buildNewsAsset } from "@lib/assets/assetUtils"
 import AssetReviewPopup from "./AssetReviewPopup"
 
 interface ReviewTarget {
@@ -13,14 +14,16 @@ export interface UseAssetReviewReturn {
   popup: ReactElement | null
   /** Open the review popup for a selected lookup result. */
   showReview: (option: AssetOption) => void
+  /** Open the review popup for a held or watched asset. */
+  showAsset: (asset: Asset) => void
   /** Close the popup. */
   close: () => void
 }
 
 /**
- * Manages Asset Review popup state for the assets/lookup screen. Mirrors
- * useNewsAsset on the holdings side, but takes an AssetOption (the shape
- * the lookup screen carries) rather than a full Asset.
+ * Manages Asset Review popup state. The lookup screen opens it from an
+ * AssetOption; holding rows and cards open it from a full Asset, built the
+ * same way as their News popup.
  */
 export function useAssetReview(): UseAssetReviewReturn {
   const [target, setTarget] = useState<ReviewTarget | null>(null)
@@ -32,6 +35,10 @@ export function useAssetReview(): UseAssetReviewReturn {
       assetName: option.name || option.label,
     })
   }, [])
+  const showAsset = useCallback(
+    (asset: Asset) => setTarget(buildNewsAsset(asset)),
+    [],
+  )
   const popup = target ? (
     <AssetReviewPopup
       key={`${target.ticker}|${target.market || ""}`}
@@ -41,5 +48,5 @@ export function useAssetReview(): UseAssetReviewReturn {
       onClose={close}
     />
   ) : null
-  return { popup, showReview, close }
+  return { popup, showReview, showAsset, close }
 }
