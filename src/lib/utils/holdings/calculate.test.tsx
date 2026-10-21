@@ -92,6 +92,33 @@ describe("Weighted IRR calculation", () => {
   const groupBy = GroupBy.ASSET_CLASS
   const hideEmpty = false
 
+  it("should weigh the view total IRR across every group's priced positions", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy,
+    )
+    const priced = Object.values(holdings.holdingGroups)
+      .flatMap((group) => group.positions)
+      .filter(
+        (p) => !p.asset.cashLike && p.moneyValues[valueIn].marketValue > 0,
+      )
+    const value = priced.reduce(
+      (sum, p) => sum + p.moneyValues[valueIn].marketValue,
+      0,
+    )
+    const expected =
+      priced.reduce(
+        (sum, p) =>
+          sum + p.moneyValues[valueIn].irr * p.moneyValues[valueIn].marketValue,
+        0,
+      ) / value
+
+    expect(holdings.viewTotals.weightedIrr).not.toEqual(0)
+    expect(holdings.viewTotals.weightedIrr).toBeCloseTo(expected, 10)
+  })
+
   it("should calculate weighted IRR for Equity group based on market value", () => {
     const holdings = calculateHoldings(
       mockContract,
