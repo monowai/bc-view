@@ -34,6 +34,7 @@ import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConve
 import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
+import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
@@ -114,6 +115,8 @@ interface PositionFooterProps {
   currencySymbol: string
   onPriceClick?: (e: React.MouseEvent) => void
   priceAriaLabel?: string
+  /** Accessible name of the chart icon shown beside a clickable price. */
+  chartIconAriaLabel?: string
   onQuantityClick?: (e: React.MouseEvent) => void
   quantityAriaLabel?: string
 }
@@ -128,6 +131,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   currencySymbol,
   onPriceClick,
   priceAriaLabel,
+  chartIconAriaLabel,
   onQuantityClick,
   quantityAriaLabel,
 }) => {
@@ -151,10 +155,23 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   )
   // Surface the price's as-at date on hover (mirrors the table view, which
   // shows priceDate inline beneath the price).
-  const priceValue = priceDate ? (
+  const priceWithDate = priceDate ? (
     <QuickTooltip text={`Price as at ${priceDate}`}>{priceButton}</QuickTooltip>
   ) : (
     priceButton
+  )
+  // Clicking the price opens the chart, which nothing on screen says; the icon
+  // makes it discoverable.
+  const priceValue = onPriceClick ? (
+    <span className="inline-flex items-center whitespace-nowrap">
+      {priceWithDate}
+      <ChartIconButton
+        ariaLabel={chartIconAriaLabel ?? "Open price chart"}
+        onClick={onPriceClick}
+      />
+    </span>
+  ) : (
+    priceWithDate
   )
   const quantityText = (
     <PrivateQuantity value={quantity} precision={precision} />
@@ -519,6 +536,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                 priceAriaLabel={
                   isChartable
                     ? `Show price chart for ${asset.displayCode}`
+                    : undefined
+                }
+                chartIconAriaLabel={
+                  isChartable
+                    ? `Open price chart for ${asset.displayCode}`
                     : undefined
                 }
                 onQuantityClick={handleQuantityClick}
