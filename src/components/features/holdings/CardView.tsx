@@ -537,7 +537,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                     ? `Show price chart for ${asset.displayCode}`
                     : undefined
                 }
-                chartIconAriaLabel={`Open price chart for ${asset.displayCode}`}
+                chartIconAriaLabel={
+                  isChartable
+                    ? `Open price chart for ${asset.displayCode}`
+                    : undefined
+                }
                 onQuantityClick={handleQuantityClick}
                 quantityAriaLabel={
                   isBreakdownable
