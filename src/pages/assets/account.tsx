@@ -27,6 +27,9 @@ import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
 import { buildCompositeBalanceTrn } from "@utils/trns/compositeBalanceTrn"
 import PortfolioPickerDialog from "@components/features/portfolios/PortfolioPickerDialog"
 import { todayIso } from "@lib/formatters"
+import { createAssets, saveAssetConfig } from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
+import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 
 interface SectorInfo {
   code: string
@@ -119,8 +122,8 @@ export default withPageAuthRequired(
       simpleFetcher(categoriesKey),
     )
     const sectorsResponse = useSwr<{ data: SectorInfo[] }>(
-      "/api/classifications/sectors",
-      simpleFetcher("/api/classifications/sectors"),
+      sectorsKey,
+      simpleFetcher(sectorsKey),
     )
 
     // Convert backend categories to select options, filtering to user asset types
@@ -177,11 +180,7 @@ export default withPageAuthRequired(
       trnRow: NonNullable<ReturnType<typeof buildCompositeBalanceTrn>>,
     ): Promise<void> => {
       try {
-        await fetch("/api/trns", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ portfolioId, data: [trnRow] }),
-        })
+        await createTrns({ portfolioId, data: [trnRow] })
       } catch (err) {
         console.error("Failed to link asset to portfolio:", err)
       }
@@ -235,11 +234,7 @@ export default withPageAuthRequired(
             },
           }
 
-          fetch("/api/assets", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(assetRequest),
-          })
+          createAssets(assetRequest)
             .then((response) => {
               if (!response.ok) {
                 console.error(`HTTP error! status: ${response.status}`)
@@ -254,11 +249,7 @@ export default withPageAuthRequired(
                 // Set sector classification if provided
                 if (formData.sector?.value) {
                   try {
-                    await fetch(`/api/classifications/${createdAsset.id}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ sector: formData.sector.value }),
-                    })
+                    await setAssetSector(createdAsset.id, formData.sector.value)
                   } catch (err) {
                     console.error("Failed to set sector classification:", err)
                   }
@@ -301,11 +292,7 @@ export default withPageAuthRequired(
                       }
                     }
 
-                    await fetch(`/api/assets/config/${createdAsset.id}`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(configPayload),
-                    })
+                    await saveAssetConfig(createdAsset.id, configPayload)
                   } catch (err) {
                     console.error("Failed to save asset config:", err)
                   }

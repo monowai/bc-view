@@ -14,6 +14,11 @@ import {
 import { Portfolio, HoldingContract, PortfolioShare } from "types/beancounter"
 import type { KeyedMutator } from "swr"
 import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
+import {
+  independenceScenariosKey,
+  planKey as independencePlanKey,
+} from "@utils/api/client/independence"
+import { aggregatedHoldingsQueryUrl } from "@utils/api/client/holdings"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -46,9 +51,7 @@ export function useIndependencePlanData(
   ownerSystemUserId?: string,
 ): UseIndependencePlanDataResult {
   const normalizedId = Array.isArray(id) ? id[0] : id
-  const planKey = normalizedId
-    ? `/api/independence/plans/${normalizedId}`
-    : null
+  const planKey = normalizedId ? independencePlanKey(normalizedId) : null
 
   const {
     data: planData,
@@ -67,7 +70,7 @@ export function useIndependencePlanData(
   // Wait for plan to resolve before choosing endpoint
   const portfoliosEndpoint = hasResolvedPlan
     ? isClientPlan
-      ? "/api/shares/managed"
+      ? sharesManagedKey
       : portfoliosKey
     : null
   const { data: portfoliosData } = useSwr<PortfoliosResponse>(
@@ -158,7 +161,7 @@ export function useIndependencePlanData(
       params.set("codes", ownedPlanFilter)
     }
     if (planCurrency) params.set("currency", planCurrency)
-    return `/api/holdings/aggregated?${params.toString()}`
+    return aggregatedHoldingsQueryUrl(params.toString())
   }, [
     hasResolvedPlan,
     isClientPlan,
@@ -186,8 +189,8 @@ export function useIndependencePlanData(
 
   // Fetch quick scenarios for What-If analysis
   const { data: scenariosData } = useSwr<QuickScenariosResponse>(
-    "/api/independence/scenarios",
-    simpleFetcher("/api/independence/scenarios"),
+    independenceScenariosKey,
+    simpleFetcher(independenceScenariosKey),
   )
   const quickScenarios = useMemo(
     () => scenariosData?.data || [],

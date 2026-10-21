@@ -23,6 +23,8 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { todayIso } from "@lib/formatters"
+import { eventKey } from "@utils/api/client/trns"
+import { processCorporateEvent } from "@utils/api/client/corporateEvents"
 
 interface PortfolioCorporateActionsPopupProps {
   portfolio: Portfolio
@@ -103,7 +105,7 @@ const PortfolioCorporateActionsPopup: React.FC<
 
         // Fetch existing transactions for this asset in the portfolio
         const trnsResponse = await fetch(
-          `/api/trns/events/${portfolio.id}/${position.asset.id}`,
+          eventKey(portfolio.id, position.asset.id),
         )
         const trnsData = trnsResponse.ok
           ? await trnsResponse.json()
@@ -152,10 +154,7 @@ const PortfolioCorporateActionsPopup: React.FC<
       if (newProcessed.has(event.id)) continue
 
       try {
-        const response = await fetch(
-          `/api/corporate-events/process/${event.id}`,
-          { method: "POST" },
-        )
+        const response = await processCorporateEvent(event.id)
 
         if (response.ok) {
           newProcessed.add(event.id)
@@ -172,9 +171,7 @@ const PortfolioCorporateActionsPopup: React.FC<
 
   const handleProcessEvent = async (eventId: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/corporate-events/process/${eventId}`, {
-        method: "POST",
-      })
+      const response = await processCorporateEvent(eventId)
 
       if (response.ok) {
         setProcessedEvents((prev) => new Set(prev).add(eventId))

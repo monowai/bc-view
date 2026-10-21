@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { requestShareAccess } from "@utils/api/client/shares"
 
 interface RequestAccessDialogProps {
   onClose: () => void
@@ -32,13 +33,9 @@ export default function RequestAccessDialog({
     }
 
     await handleSubmit(async () => {
-      const response = await fetch("/api/shares/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientEmail: email.trim(),
-          message: message.trim() || undefined,
-        }),
+      const response = await requestShareAccess({
+        clientEmail: email.trim(),
+        message: message.trim() || undefined,
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))

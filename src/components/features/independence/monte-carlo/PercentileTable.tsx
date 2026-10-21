@@ -1,5 +1,6 @@
 import React from "react"
 import { MonteCarloResult } from "types/independence"
+import { formatCurrencySymbol } from "@lib/formatters"
 
 const HIDDEN_VALUE = "****"
 
@@ -16,7 +17,7 @@ export function PercentileTable({
 }: PercentileTableProps): React.ReactElement {
   const formatFullCurrency = (value: number): string => {
     if (hideValues) return HIDDEN_VALUE
-    return `${currency}${Math.round(value).toLocaleString()}`
+    return formatCurrencySymbol(Math.round(value), currency)
   }
 
   // Read as: "X% of scenarios ended with at least this balance". p95 (top 5%)

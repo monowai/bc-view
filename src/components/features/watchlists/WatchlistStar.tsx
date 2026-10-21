@@ -7,7 +7,7 @@ import {
   WatchlistApiError,
   addWatchlistItem,
   removeWatchlistItem,
-} from "@lib/watchlists/watchlistApi"
+} from "@utils/api/client/watchlist"
 
 /**
  * The watchlist star on a search result: on or off the watchlist in one tap,

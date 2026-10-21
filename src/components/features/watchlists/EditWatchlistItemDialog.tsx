@@ -2,7 +2,7 @@ import React, { useId, useState } from "react"
 import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
 import Dialog from "@components/ui/Dialog"
 import { getPositionDisplayName } from "@lib/assets/assetUtils"
-import { parseOptionalPrice } from "@lib/watchlists/watchlistApi"
+import { parseOptionalPrice } from "@utils/api/client/watchlist"
 
 interface EditWatchlistItemDialogProps {
   item: WatchlistItem

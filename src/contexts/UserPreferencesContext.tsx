@@ -20,6 +20,7 @@ import {
   ValueInOption,
 } from "types/constants"
 import { useRegistration } from "./RegistrationContext"
+import { getMe } from "@utils/api/client/account"
 
 interface UserPreferencesContextValue {
   preferences: UserPreferences | null
@@ -64,7 +65,7 @@ export function UserPreferencesProvider({
     }
 
     try {
-      const response = await fetch("/api/me")
+      const response = await getMe()
       if (response.ok) {
         const data = await response.json()
         if (data.preferences) {

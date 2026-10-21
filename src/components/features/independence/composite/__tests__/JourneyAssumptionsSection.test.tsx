@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { IndependencePlan, RetirementPlan } from "types/independence"
+import { makeCompositeCtx as makeCtx } from "@test-fixtures/independence"
 import {
   CompositeProjectionProvider,
   type CompositeProjectionValue,
@@ -83,30 +84,6 @@ function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
     assumptionsInherited: true,
     ...overrides,
   } as RetirementPlan
-}
-
-function makeCtx(
-  overrides: Partial<CompositeProjectionValue> = {},
-): CompositeProjectionValue {
-  return {
-    plans: [],
-    phases: [],
-    setPhases: jest.fn(),
-    displayCurrency: "USD",
-    setDisplayCurrency: jest.fn(),
-    excludedPlanIds: new Set<string>(),
-    toggleExclusion: jest.fn(),
-    compositeWorkScenarioId: undefined,
-    setCompositeWorkScenarioId: jest.fn(),
-    refreshProjection: jest.fn(),
-    projection: undefined,
-    scenarios: undefined,
-    isLoading: false,
-    isSettled: true,
-    error: null,
-    mc: { result: null, isRunning: false, error: null, run: jest.fn() },
-    ...overrides,
-  } as CompositeProjectionValue
 }
 
 /**

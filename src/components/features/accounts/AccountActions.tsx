@@ -3,6 +3,7 @@ import { useRouter } from "next/router"
 import { TabType } from "./accountTypes"
 import { fetchAndDownloadCsv } from "@lib/csvExport"
 import Spinner from "@components/ui/Spinner"
+import { assetsExportUrl } from "@utils/api/client/assets"
 
 interface AccountActionsProps {
   onImportClick: () => void
@@ -19,7 +20,7 @@ const AccountActions = ({
   const handleExport = async (): Promise<void> => {
     setIsExporting(true)
     try {
-      await fetchAndDownloadCsv("/api/assets/export", "assets.csv")
+      await fetchAndDownloadCsv(assetsExportUrl, "assets.csv")
     } catch (err) {
       console.error("Export failed:", err)
     } finally {

@@ -4,11 +4,12 @@ import { Portfolio } from "types/beancounter"
 import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock dependencies
-jest.mock("./apiHelper", () => ({
+jest.mock("@utils/api/client/trns", () => ({
+  ...jest.requireActual("@utils/api/client/trns"),
   updateTrn: jest.fn(),
 }))
 
-const { updateTrn } = jest.requireMock("./apiHelper")
+const { updateTrn } = jest.requireMock("@utils/api/client/trns")
 
 // Mock global fetch for submitExpense
 const mockFetch = jest.fn()

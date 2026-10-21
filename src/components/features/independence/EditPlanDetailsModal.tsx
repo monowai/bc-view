@@ -47,6 +47,7 @@ import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import JourneyTargetHint from "./JourneyTargetHint"
+import { holdingsAllocationUrl } from "@utils/api/client/holdings"
 
 const HIDDEN_VALUE = "****"
 
@@ -176,9 +177,7 @@ export default function EditPlanDetailsModal({
     if (includedIds.length === 0) return
 
     setIsSyncingAllocation(true)
-    fetch(
-      `/api/holdings/allocation?asAt=today&ids=${encodeURIComponent(includedIds.join(","))}`,
-    )
+    fetch(holdingsAllocationUrl(includedIds.join(",")))
       .then((res) => res.json())
       .then((response) => {
         const d = response?.data

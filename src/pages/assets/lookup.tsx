@@ -29,7 +29,12 @@ import {
   toAssetCategoryId,
 } from "@lib/assets/assetUtils"
 import { createAsset } from "@lib/assets/createAsset"
-import { formatCurrency, formatDate, formatPercent } from "@lib/formatters"
+import {
+  formatCurrency,
+  formatDate,
+  formatPercent,
+  formatQuantity,
+} from "@lib/formatters"
 import Alert from "@components/ui/Alert"
 import EmptyState from "@components/ui/EmptyState"
 import ActionMenu, { ActionMenuItem } from "@components/ui/ActionMenu"
@@ -42,6 +47,9 @@ import AssetLookupTabNav, {
 import AssetBrokersTab from "@components/features/assets/AssetBrokersTab"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 import { usePermissions } from "@hooks/usePermissions"
+import { assetPositionsKey, deleteAssetAdmin } from "@utils/api/client/assets"
+import { assetModelsKey } from "@utils/api/client/rebalance"
+import { priceQuoteKey } from "@utils/api/client/prices"
 
 interface AssetPosition {
   // Composite assets (CPF, ILP, ...) don't belong to a portfolio — svc-position
@@ -199,15 +207,15 @@ function AssetLookupPage(): React.ReactElement {
     data: AssetPosition[]
   }>(
     selectedAsset?.assetId && (activeTab === "portfolios" || isAdmin)
-      ? `/api/assets/${selectedAsset.assetId}/positions?date=today`
+      ? assetPositionsKey(selectedAsset.assetId)
       : null,
-    simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
+    simpleFetcher(assetPositionsKey(`${selectedAsset?.assetId}`)),
   )
 
   // Latest quote from svc-data: the provider's live/delayed price where its
   // plan allows, else the stored close.
   const priceKey = selectedAsset?.assetId
-    ? `/api/prices/${selectedAsset.assetId}/quote`
+    ? priceQuoteKey(selectedAsset.assetId)
     : null
   const { data: priceResponse, isLoading: loadingPrice } = useSWR<{
     data: PriceData[]
@@ -228,9 +236,9 @@ function AssetLookupPage(): React.ReactElement {
   const { data: modelsData, isLoading: loadingModels } =
     useSWR<ModelsContainingAssetResponse>(
       selectedAsset?.assetId && activeTab === "models"
-        ? `/api/rebalance/assets/${selectedAsset.assetId}/models`
+        ? assetModelsKey(selectedAsset.assetId)
         : null,
-      simpleFetcher(`/api/rebalance/assets/${selectedAsset?.assetId}/models`),
+      simpleFetcher(assetModelsKey(`${selectedAsset?.assetId}`)),
     )
 
   const models = modelsData?.data || []
@@ -254,7 +262,7 @@ function AssetLookupPage(): React.ReactElement {
     if (!open) {
       setSellRow(null)
       if (selectedAsset?.assetId) {
-        mutate(`/api/assets/${selectedAsset.assetId}/positions?date=today`)
+        mutate(assetPositionsKey(selectedAsset.assetId))
       }
     }
   }
@@ -348,10 +356,7 @@ function AssetLookupPage(): React.ReactElement {
     const fail = (message: string): void =>
       setDeleteError({ assetId: targetAssetId, message })
     try {
-      const response = await fetch(
-        `/api/assets/admin/${encodeURIComponent(targetAssetId)}`,
-        { method: "DELETE" },
-      )
+      const response = await deleteAssetAdmin(targetAssetId)
       if (!response.ok) {
         // API proxy writes JSON `{ error, message, ... }` on failures —
         // surface that message rather than the raw envelope.
@@ -395,19 +400,6 @@ function AssetLookupPage(): React.ReactElement {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value)
-  }
-
-  // Format quantity
-  const formatQuantity = (value: number): string => {
-    return new Intl.NumberFormat(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
-    }).format(value)
-  }
-
-  // Format weight as percentage
-  const formatWeight = (value: number): string => {
-    return `${(value * 100).toFixed(2)}%`
   }
 
   const assetFacts = selectedAsset
@@ -955,7 +947,7 @@ function AssetLookupPage(): React.ReactElement {
                       v{model.planVersion}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-900 font-medium tabular-nums">
-                      {formatWeight(model.targetWeight)}
+                      {formatPercent(model.targetWeight)}
                     </td>
                   </tr>
                 ))}

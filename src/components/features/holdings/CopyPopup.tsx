@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import type { ValueInOption } from "types/constants"
 import { Position } from "types/beancounter"
 import { getReportCategory } from "@lib/categoryMapping"
 import Dialog from "@components/ui/Dialog"
@@ -6,7 +7,7 @@ import Dialog from "@components/ui/Dialog"
 interface CopyPopupProps {
   columns: string[]
   data: Record<string, Position>
-  valueIn: string
+  valueIn: ValueInOption
   modalOpen: boolean
   onClose: () => void
 }

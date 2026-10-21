@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, ShareAccessLevel } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { inviteAdviser } from "@utils/api/client/shares"
 
 interface ShareInviteDialogProps {
   portfolios: Portfolio[]
@@ -56,14 +57,10 @@ export default function ShareInviteDialog({
     }
 
     await handleSubmit(async () => {
-      const response = await fetch("/api/shares/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          adviserEmail: email.trim(),
-          portfolioIds: Array.from(selectedPortfolioIds),
-          accessLevel,
-        }),
+      const response = await inviteAdviser({
+        adviserEmail: email.trim(),
+        portfolioIds: Array.from(selectedPortfolioIds),
+        accessLevel,
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))

@@ -1,7 +1,11 @@
 import React, { useState } from "react"
 import { Asset } from "types/beancounter"
+import MathInput from "@components/ui/MathInput"
+import DateInput from "@components/ui/DateInput"
+import Dialog from "@components/ui/Dialog"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { todayIso } from "@lib/formatters"
 
 const CATEGORY_LABELS: Record<string, string> = {
   PENSION: "Policies",
@@ -11,9 +15,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   "MUTUAL FUND": "Mutual Fund",
   POLICY: "Policies",
 }
-import Dialog from "@components/ui/Dialog"
-import Alert from "@components/ui/Alert"
-import { todayIso } from "@lib/formatters"
 
 interface SetPriceDialogProps {
   asset: Asset
@@ -21,11 +22,11 @@ interface SetPriceDialogProps {
   onSave: (assetId: string, date: string, price: string) => Promise<void>
 }
 
-const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
+export default function SetPriceDialog({
   asset,
   onClose,
   onSave,
-}) => {
+}: SetPriceDialogProps): React.ReactElement {
   const [date, setDate] = useState(todayIso())
   const [price, setPrice] = useState("")
   const {
@@ -33,7 +34,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
     submitError: error,
     handleSubmit,
     setError,
-  } = useDialogSubmit({ fallbackError: "Failed to set price" })
+  } = useDialogSubmit({ fallbackError: "Failed to update price" })
 
   const handleSave = async (): Promise<void> => {
     if (!price || parseFloat(price) <= 0) {
@@ -61,7 +62,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
         </>
       }
     >
-      <Alert variant="info">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
           {asset.displayCode} -{" "}
@@ -69,16 +70,15 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
             asset.assetCategory?.name ||
             "-"}
         </div>
-      </Alert>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {"Price Date"}
         </label>
-        <input
-          type="date"
+        <DateInput
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={setDate}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
         />
       </div>
@@ -87,20 +87,15 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {"Price Value"} ({getAssetCurrency(asset) || "USD"})
         </label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
+        <MathInput
+          value={price ? parseFloat(price) : 0}
+          onChange={(value) => setPrice(String(value))}
           placeholder={"Current market value or valuation"}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
         />
       </div>
 
-      {error && <Alert>{error}</Alert>}
+      <Dialog.ErrorAlert message={error} />
     </Dialog>
   )
 }
-
-export default SetPriceDialog

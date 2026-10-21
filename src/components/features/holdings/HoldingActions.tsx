@@ -1,3 +1,4 @@
+import type { ValueInOption } from "types/constants"
 import React, {
   useState,
   useEffect,
@@ -131,7 +132,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
 interface HoldingActionsProps {
   holdingResults: HoldingContract
   columns: string[]
-  valueIn: string
+  valueIn: ValueInOption
   quickSellData?: QuickSellData
   onQuickSellHandled?: () => void
   emptyHoldings?: boolean

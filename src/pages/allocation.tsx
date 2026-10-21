@@ -13,6 +13,8 @@ import {
 } from "@lib/allocation/aggregateHoldings"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
+import { postFxRates } from "@utils/api/client/fx"
+import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
 
 export default withPageAuthRequired(function Allocation(): React.ReactElement {
   const router = useRouter()
@@ -22,9 +24,7 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
   const portfolioCodes = useMemo(() => (codes ? codes.split(",") : []), [codes])
 
   // Build the API URL with optional codes parameter
-  const aggregatedHoldingsKey = codes
-    ? `/api/holdings/aggregated?asAt=today&codes=${encodeURIComponent(codes)}`
-    : "/api/holdings/aggregated?asAt=today"
+  const aggregatedHoldingsKey = aggregatedHoldingsCodesKey(codes)
 
   const [groupBy, setGroupBy] = useState<GroupingMode>("category")
   const [valueIn, setValueIn] = useState<ValueIn>(ValueIn.PORTFOLIO)
@@ -65,13 +65,9 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
       return
     }
 
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rateDate: "today",
-        pairs: [{ from: baseCurrency.code, to: displayCurrency.code }],
-      }),
+    postFxRates({
+      rateDate: "today",
+      pairs: [{ from: baseCurrency.code, to: displayCurrency.code }],
     })
       .then((res) => res.json())
       .then((fxResponse: FxResponse) => {

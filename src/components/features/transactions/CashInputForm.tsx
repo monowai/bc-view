@@ -26,12 +26,15 @@ import {
   buildCombinedAssetOptions,
   resolveFxCurrencyPair,
   resolveAssetSelection,
-  calculateFxBuyAmount,
   filterFxBuyOptions,
   buildCashCopyData,
   resolveFxDisplayInfo,
 } from "@lib/trns/cashFormHelpers"
 import { todayIso } from "@lib/formatters"
+import { accountsKey, tradeAccountsKey } from "@utils/api/client/assets"
+import { postFxRates } from "@utils/api/client/fx"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { useFxBuyAmount } from "./useFxBuyAmount"
 
 // Fetcher for FX rates
 const fxFetcher = async (
@@ -39,11 +42,7 @@ const fxFetcher = async (
   to: string,
 ): Promise<FxResponse | null> => {
   if (!from || !to || from === to) return null
-  const response = await fetch("/api/fx", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pairs: [{ from, to }] }),
-  })
+  const response = await postFxRates({ pairs: [{ from, to }] })
   if (!response.ok) return null
   return response.json()
 }
@@ -165,12 +164,12 @@ const CashInputForm: React.FC<{
     simpleFetcher(ccyKey),
   )
   const { data: accountsData, error: accountsError } = useSwr(
-    "/api/assets?category=ACCOUNT",
-    simpleFetcher("/api/assets?category=ACCOUNT"),
+    accountsKey,
+    simpleFetcher(accountsKey),
   )
   const { data: tradeAccountsData } = useSwr(
-    "/api/assets?category=TRADE",
-    simpleFetcher("/api/assets?category=TRADE"),
+    tradeAccountsKey,
+    simpleFetcher(tradeAccountsKey),
   )
 
   // Log accounts fetch status for debugging
@@ -215,7 +214,6 @@ const CashInputForm: React.FC<{
   // FX rate state
   const [fxRate, setFxRate] = useState<number | null>(null)
   const [fxRateLoading, setFxRateLoading] = useState(false)
-  const [manualBuyAmount, setManualBuyAmount] = useState(false)
 
   // Fetch FX rate when currencies change (for FX transactions). The sync
   // setFxRate(null) early returns are deliberate "clear stale rate" steps;
@@ -253,30 +251,27 @@ const CashInputForm: React.FC<{
       .finally(() => setFxRateLoading(false))
   }, [type.value, asset, cashCurrency?.value, combinedOptions])
 
-  // Auto-calculate buy amount when sell amount or rate changes. setValue
-  // here pushes derived FX output back into the form so other watchers see
-  // it; this *is* the intended side-effect.
-  useEffect(() => {
-    if (type.value === "FX" && fxRate && qty > 0 && !manualBuyAmount) {
-      setValue("cashAmount", calculateFxBuyAmount(qty, fxRate))
-    }
-  }, [type.value, fxRate, qty, manualBuyAmount, setValue])
+  // Auto-calculate buy amount when sell amount or rate changes.
+  const setBuyAmount = useCallback(
+    (value: number) => setValue("cashAmount", value),
+    [setValue],
+  )
+  const {
+    manualBuyAmount,
+    overrideBuyAmount: handleBuyAmountChange,
+    resumeAutoBuyAmount,
+  } = useFxBuyAmount({
+    sellAmount: qty,
+    fxRate,
+    onBuyAmount: setBuyAmount,
+    enabled: type.value === "FX",
+  })
 
   // Reset the manual-override flag when the user changes currencies so the
   // auto-calc effect above re-engages. Form coordination, not derived state.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setManualBuyAmount(false)
-  }, [asset, cashCurrency?.value])
-
-  // Handle manual buy amount change
-  const handleBuyAmountChange = useCallback(
-    (value: number) => {
-      setManualBuyAmount(true)
-      setValue("cashAmount", value)
-    },
-    [setValue],
-  )
+    resumeAutoBuyAmount()
+  }, [asset, cashCurrency?.value, resumeAutoBuyAmount])
 
   // Update market and currency when asset changes. setSelectedMarket and
   // the form setValue calls are the intended side effects of an asset
@@ -468,7 +463,7 @@ const CashInputForm: React.FC<{
                   if (!open) {
                     setTimeout(() => {
                       mutate(holdingKey(portfolio.code, "today"))
-                      mutate("/api/holdings/aggregated?asAt=today")
+                      mutate(aggregatedHoldingsTodayKey)
                     }, 1500)
                   }
                 })

@@ -1,4 +1,5 @@
 import { readErrorMessage } from "@utils/api/readErrorMessage"
+import { planPhasesUrl } from "@utils/api/client/independence"
 
 /**
  * Converts a just-created base plan into the default phased trio
@@ -38,7 +39,7 @@ export async function generatePhasedPlans(
 ): Promise<void> {
   if (!planId) return
 
-  const res = await fetchImpl(`/api/independence/plans/${planId}/phases`, {
+  const res = await fetchImpl(planPhasesUrl(planId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ force }),

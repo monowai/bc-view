@@ -13,6 +13,10 @@ import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { deleteTrn, isProposedTrnsKey } from "@utils/api/client/trns"
+import { postFxRates } from "@utils/api/client/fx"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { useFxBuyAmount } from "./useFxBuyAmount"
 
 // Fetcher for FX rates
 const fxFetcher = async (
@@ -20,11 +24,7 @@ const fxFetcher = async (
   to: string,
 ): Promise<FxResponse | null> => {
   if (!from || !to || from === to) return null
-  const response = await fetch("/api/fx", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pairs: [{ from, to }] }),
-  })
+  const response = await postFxRates({ pairs: [{ from, to }] })
   if (!response.ok) return null
   return response.json()
 }
@@ -77,7 +77,6 @@ export default function FxEditModal({
   })
   const [fxRate, setFxRate] = useState<number | null>(null)
   const [fxRateLoading, setFxRateLoading] = useState(false)
-  const [manualBuyAmount, setManualBuyAmount] = useState(false)
 
   // Extract FX-specific values from transaction
   // For FX_BUY: asset is the buy side, cashAsset is the sell side
@@ -158,21 +157,15 @@ export default function FxEditModal({
   }, [sellCurrency, buyCurrency])
 
   // Auto-calculate buy amount when sell amount or rate changes (if not manually overridden)
-  useEffect(() => {
-    if (fxRate && sellAmount > 0 && !manualBuyAmount) {
-      const calculatedBuyAmount = sellAmount * fxRate
-      setValue("buyAmount", parseFloat(calculatedBuyAmount.toFixed(2)))
-    }
-  }, [fxRate, sellAmount, manualBuyAmount, setValue])
-
-  // Handle manual buy amount change
-  const handleBuyAmountChange = useCallback(
-    (value: number) => {
-      setManualBuyAmount(true)
-      setValue("buyAmount", value)
-    },
+  const setBuyAmount = useCallback(
+    (value: number) => setValue("buyAmount", value),
     [setValue],
   )
+  const {
+    manualBuyAmount,
+    overrideBuyAmount: handleBuyAmountChange,
+    resumeAutoBuyAmount,
+  } = useFxBuyAmount({ sellAmount, fxRate, onBuyAmount: setBuyAmount })
 
   // Calculate implied rate from current values
   const impliedRate = useMemo(() => {
@@ -219,16 +212,14 @@ export default function FxEditModal({
   const invalidateHoldingsCache = (portfolioCode: string): void => {
     setTimeout(() => {
       mutate(holdingKey(portfolioCode, "today"))
-      mutate("/api/holdings/aggregated?asAt=today")
+      mutate(aggregatedHoldingsTodayKey)
     }, 1500)
   }
 
   const onSubmit = async (data: FxEditFormData): Promise<void> => {
     await dialogHandleSubmit(async () => {
       // FX transactions: Delete old + Add new via CSV import
-      const deleteResponse = await fetch(`/api/trns/trades/${trn.id}`, {
-        method: "DELETE",
-      })
+      const deleteResponse = await deleteTrn(trn.id)
       if (!deleteResponse.ok) {
         throw new Error("Failed to delete transaction")
       }
@@ -265,10 +256,7 @@ export default function FxEditModal({
       const row = convert(formData)
       await postData(trn.portfolio, false, row.split(","))
       await mutate(trnKey(trn.id))
-      mutate(
-        (key) =>
-          typeof key === "string" && key.startsWith("/api/trns/proposed"),
-      )
+      mutate(isProposedTrnsKey)
       invalidateHoldingsCache(trn.portfolio.code)
       onClose()
     })
@@ -436,7 +424,7 @@ export default function FxEditModal({
               <MathInput
                 value={field.value}
                 onChange={(value) => {
-                  setManualBuyAmount(false) // Reset manual override when sell amount changes
+                  resumeAutoBuyAmount() // Reset manual override when sell amount changes
                   field.onChange(value)
                 }}
                 className={`${inputClass} border-red-200 bg-red-50`}

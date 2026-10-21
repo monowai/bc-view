@@ -1,5 +1,6 @@
 import { PlanDto } from "types/rebalance"
 import { useRebalanceList, UseListResult } from "./useRebalanceData"
+import { modelPlansKey } from "@utils/api/client/rebalance"
 
 export interface UseModelPlansResult extends UseListResult<PlanDto> {
   plans: PlanDto[]
@@ -8,7 +9,7 @@ export interface UseModelPlansResult extends UseListResult<PlanDto> {
 export function useModelPlans(
   modelId: string | undefined,
 ): UseModelPlansResult {
-  const key = modelId ? `/api/rebalance/models/${modelId}/plans` : null
+  const key = modelId ? modelPlansKey(modelId) : null
   const result = useRebalanceList<PlanDto>(key)
   return {
     ...result,

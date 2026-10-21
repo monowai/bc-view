@@ -8,7 +8,7 @@ import {
   WatchlistApiError,
   addWatchlistItem,
   parseOptionalPrice,
-} from "@lib/watchlists/watchlistApi"
+} from "@utils/api/client/watchlist"
 import { watchlistKey } from "@utils/api/fetchHelper"
 
 export interface WatchlistAssetRef {

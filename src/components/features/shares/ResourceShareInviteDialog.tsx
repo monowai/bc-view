@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { ShareAccessLevel, ShareResourceType } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { inviteResourceShare } from "@utils/api/client/shares"
 
 interface ShareableResource {
   id: string
@@ -67,15 +68,11 @@ export default function ResourceShareInviteDialog({
     }
 
     await handleSubmit(async () => {
-      const response = await fetch("/api/resource-shares/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resourceType,
-          resourceIds: Array.from(selectedIds),
-          adviserEmail: email.trim(),
-          accessLevel,
-        }),
+      const response = await inviteResourceShare({
+        resourceType,
+        resourceIds: Array.from(selectedIds),
+        adviserEmail: email.trim(),
+        accessLevel,
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))

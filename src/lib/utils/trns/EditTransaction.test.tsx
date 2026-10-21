@@ -73,7 +73,7 @@ const mockCashTransaction = {
 }
 
 // Import the API helper functions to test
-import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
+import { updateTrn, TrnUpdatePayload } from "@utils/api/client/trns"
 
 describe("Edit Transaction API", () => {
   beforeEach(() => {

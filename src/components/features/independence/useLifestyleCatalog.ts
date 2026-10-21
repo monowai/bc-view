@@ -1,6 +1,7 @@
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import type { LifestyleCatalogResponse } from "types/independence"
+import { lifestyleCatalogKey } from "@utils/api/client/independence"
 
 /**
  * The lifestyle catalog: per-category tiers, each with an amount, an emoji and
@@ -14,9 +15,7 @@ export function useLifestyleCatalog(currency: string | undefined): {
   catalog: LifestyleCatalogResponse | undefined
   isLoading: boolean
 } {
-  const key = currency
-    ? `/api/independence/lifestyle-catalog?currency=${encodeURIComponent(currency)}`
-    : "/api/independence/lifestyle-catalog"
+  const key = lifestyleCatalogKey(currency)
   const { data, isLoading } = useSwr<LifestyleCatalogResponse>(
     key,
     simpleFetcher(key),

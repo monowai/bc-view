@@ -4,8 +4,7 @@ import type {
   MonteCarloResponse,
   MonteCarloResult,
 } from "types/independence"
-
-const COMPOSITE_MONTE_CARLO_URL = "/api/independence/composite/monte-carlo"
+import { runCompositeMonteCarlo } from "@utils/api/client/independence"
 
 export interface CompositeMonteCarloRunArgs {
   iterations: number
@@ -64,11 +63,7 @@ export function useCompositeMonteCarloSimulation(): UseCompositeMonteCarloSimula
           requestBody.neverSellIlliquid = true
         }
 
-        const response = await fetch(COMPOSITE_MONTE_CARLO_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        })
+        const response = await runCompositeMonteCarlo(requestBody)
 
         if (run !== latestRun.current) return
         if (!response.ok) {

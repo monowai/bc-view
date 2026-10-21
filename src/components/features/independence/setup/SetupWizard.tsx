@@ -18,6 +18,13 @@ import { currencySymbolFor, toErrorMessage } from "@lib/formatters"
 import { phaseFailureMessage } from "@lib/independence/phasing"
 import { readErrorMessage } from "@utils/api/readErrorMessage"
 import { WorkScenario } from "types/independence"
+import {
+  createPlan,
+  createWorkScenario,
+  getWorkScenarios,
+  updateIndependenceSettings,
+  updateWorkScenario,
+} from "@utils/api/client/independence"
 
 export const SETUP_STEPS = [
   { id: 1, label: "Spending" },
@@ -89,7 +96,7 @@ export default function SetupWizard(): React.ReactElement {
     if (loadedScenario.current) return
     loadedScenario.current = true
 
-    fetch("/api/independence/work-scenarios")
+    getWorkScenarios()
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { data?: WorkScenario[] } | null) => {
         const scenarios = body?.data ?? []
@@ -124,16 +131,9 @@ export default function SetupWizard(): React.ReactElement {
     }
     // Update the scenario the user already has rather than leaving them with
     // two "Working Situation"s, only one of which is current.
-    const res = await fetch(
-      existingScenarioId
-        ? `/api/independence/work-scenarios/${existingScenarioId}`
-        : "/api/independence/work-scenarios",
-      {
-        method: existingScenarioId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    )
+    const res = existingScenarioId
+      ? await updateWorkScenario(existingScenarioId, payload)
+      : await createWorkScenario(payload)
     return res.ok
       ? null
       : readErrorMessage(res, "Failed to save your working situation")
@@ -154,10 +154,8 @@ export default function SetupWizard(): React.ReactElement {
       // that row is null — so PATCHing /api/me here would be ignored for any
       // user who already has a settings row. svc-retire mirrors the value back
       // to svc-data itself.
-      const settingsResponse = await fetch("/api/independence/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetIndependenceAge: targetAge }),
+      const settingsResponse = await updateIndependenceSettings({
+        targetIndependenceAge: targetAge,
       })
       if (!settingsResponse.ok) {
         setError(
@@ -178,33 +176,29 @@ export default function SetupWizard(): React.ReactElement {
         return
       }
 
-      const planResponse = await fetch("/api/independence/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: planName.trim() || DEFAULT_PLAN_NAME,
-          planningHorizonYears: 90 - targetAge,
-          lifeExpectancy: 90,
-          monthlyExpenses: monthlyExpenses + medicalExpenses,
-          expensesCurrency: currency,
-          cashReturnRate: 0.03,
-          equityReturnRate: 0.08,
-          housingReturnRate: 0.04,
-          inflationRate: 0.025,
-          cashAllocation: 0.2,
-          equityAllocation: 0.8,
-          housingAllocation: 0.0,
-          pensionMonthly: 0,
-          socialSecurityMonthly: 0,
-          otherIncomeMonthly: 0,
-          // The working figures live on the work scenario, not the stage —
-          // same split onboarding uses.
-          workingIncomeMonthly: 0,
-          workingExpensesMonthly: 0,
-          taxesMonthly: 0,
-          bonusMonthly: 0,
-          investmentAllocationPercent: 0.8,
-        }),
+      const planResponse = await createPlan({
+        name: planName.trim() || DEFAULT_PLAN_NAME,
+        planningHorizonYears: 90 - targetAge,
+        lifeExpectancy: 90,
+        monthlyExpenses: monthlyExpenses + medicalExpenses,
+        expensesCurrency: currency,
+        cashReturnRate: 0.03,
+        equityReturnRate: 0.08,
+        housingReturnRate: 0.04,
+        inflationRate: 0.025,
+        cashAllocation: 0.2,
+        equityAllocation: 0.8,
+        housingAllocation: 0.0,
+        pensionMonthly: 0,
+        socialSecurityMonthly: 0,
+        otherIncomeMonthly: 0,
+        // The working figures live on the work scenario, not the stage —
+        // same split onboarding uses.
+        workingIncomeMonthly: 0,
+        workingExpensesMonthly: 0,
+        taxesMonthly: 0,
+        bonusMonthly: 0,
+        investmentAllocationPercent: 0.8,
       })
       if (!planResponse.ok) {
         setError(

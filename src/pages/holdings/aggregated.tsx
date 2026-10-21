@@ -77,6 +77,9 @@ import {
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { assetsKey, updateAsset } from "@utils/api/client/assets"
+import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
+import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
 
 const viewModes = VIEW_MODES
 
@@ -103,9 +106,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
     preferences?.reportingCurrencyCode || preferences?.baseCurrencyCode
 
   // Build the API URL with optional codes + currency parameters
-  const aggregatedHoldingsKey = codes
-    ? `/api/holdings/aggregated?asAt=today&codes=${encodeURIComponent(codes)}`
-    : "/api/holdings/aggregated?asAt=today"
+  const aggregatedHoldingsKey = aggregatedHoldingsCodesKey(codes)
   const aggregatedHoldingsUrl = reportCurrency
     ? `${aggregatedHoldingsKey}&currency=${encodeURIComponent(reportCurrency)}`
     : aggregatedHoldingsKey
@@ -207,8 +208,8 @@ function AggregatedHoldingsPage(): React.ReactElement {
     simpleFetcher(categoriesKey),
   )
   const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    editAsset ? "/api/classifications/sectors" : null,
-    simpleFetcher("/api/classifications/sectors"),
+    editAsset ? sectorsKey : null,
+    simpleFetcher(sectorsKey),
   )
   const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
   const categoryOptions: CategoryOption[] = categoriesData?.data
@@ -251,35 +252,27 @@ function AggregatedHoldingsPage(): React.ReactElement {
       sector?: string,
       expectedReturnRate?: number,
     ): Promise<void> => {
-      const response = await fetch(`/api/assets/${assetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market: "PRIVATE",
-          code,
-          name,
-          currency,
-          category,
-          expectedReturnRate,
-        }),
+      const response = await updateAsset(assetId, {
+        market: "PRIVATE",
+        code,
+        name,
+        currency,
+        category,
+        expectedReturnRate,
       })
       if (!response.ok) {
         throw new Error("Failed to update asset")
       }
       if (sector) {
         try {
-          await fetch(`/api/classifications/${assetId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sector }),
-          })
+          await setAssetSector(assetId, sector)
         } catch (err) {
           console.error("Failed to update sector classification:", err)
         }
       }
       // Refresh aggregated holdings + the assets list (accounts page cache)
       await mutate()
-      await globalMutate("/api/assets")
+      await globalMutate(assetsKey)
       setEditAsset(undefined)
     },
     [mutate],
@@ -863,7 +856,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             onSaved={async () => {
               setAdminEditAsset(undefined)
               await mutate()
-              await globalMutate("/api/assets")
+              await globalMutate(assetsKey)
             }}
           />
         )}

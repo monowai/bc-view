@@ -1,8 +1,9 @@
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import type { CategoryLabel, CategoryLabelsResponse } from "types/independence"
+import { expenseCategoriesKey } from "@utils/api/client/independence"
 
-const categoriesKey = "/api/independence/categories"
+const categoriesKey = expenseCategoriesKey
 
 /**
  * The category definitions, for their descriptions — "Medical, dental, vision,

@@ -6,6 +6,11 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import AssetClassifyPanel from "@components/features/assets/AssetClassifyPanel"
 import { Asset, AssetCategory } from "types/beancounter"
+import {
+  assetKey,
+  enrichAsset,
+  updateAssetAdmin,
+} from "@utils/api/client/assets"
 
 interface AssetAdminDialogProps {
   assetId: string
@@ -27,12 +32,12 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
   onClose,
   onUpdated,
 }) => {
-  const assetKey = `/api/assets/${assetId}`
+  const assetUrl = assetKey(assetId)
   const {
     data: assetResp,
     isLoading,
     mutate,
-  } = useSWR<{ data: Asset }>(assetKey, simpleFetcher(assetKey))
+  } = useSWR<{ data: Asset }>(assetUrl, simpleFetcher(assetUrl))
   const asset = assetResp?.data
 
   const { data: catResp } = useSWR<{ data: AssetCategory[] }>(
@@ -71,15 +76,11 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
     setError(null)
     setSaved(false)
     try {
-      const res = await fetch(`/api/assets/admin/${assetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market: asset.market.code,
-          code: asset.code,
-          name,
-          category,
-        }),
+      const res = await updateAssetAdmin(assetId, {
+        market: asset.market.code,
+        code: asset.code,
+        name,
+        category,
       })
       if (!res.ok) {
         const body = await res.text()
@@ -103,9 +104,7 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
     setError(null)
     setSaved(false)
     try {
-      const res = await fetch(`/api/assets/${assetId}/enrich`, {
-        method: "POST",
-      })
+      const res = await enrichAsset(assetId)
       if (!res.ok) {
         const body = await res.text()
         throw new Error(body || `Enrich failed (${res.status})`)

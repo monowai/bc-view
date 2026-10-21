@@ -13,6 +13,7 @@ import MathInput from "@components/ui/MathInput"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { getAssetPositions } from "@utils/api/client/assets"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -76,9 +77,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       setError(null)
 
       try {
-        const response = await fetch(
-          `/api/assets/${asset.id}/positions?date=today`,
-        )
+        const response = await getAssetPositions(asset.id)
         if (!response.ok) {
           setError(`Failed to fetch positions: ${response.status}`)
           return

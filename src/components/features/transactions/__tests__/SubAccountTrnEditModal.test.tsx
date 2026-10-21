@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import SubAccountTrnEditModal from "../SubAccountTrnEditModal"
 import { Transaction } from "types/beancounter"
+import { makeTrn as baseTrn } from "@test-fixtures/beancounter"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -10,10 +11,8 @@ jest.mock("swr", () => ({
 }))
 
 const makeTrn = (overrides: Partial<Transaction> = {}): Transaction =>
-  ({
-    id: "trn-1",
+  baseTrn({
     trnType: "BALANCE",
-    status: "SETTLED",
     portfolio: { id: "pf-1", code: "MAIN", name: "Main" },
     asset: {
       id: "cpf-1",
@@ -29,12 +28,9 @@ const makeTrn = (overrides: Partial<Transaction> = {}): Transaction =>
     tradeAmount: 100000,
     cashCurrency: "SGD",
     cashAmount: 0,
-    fees: 0,
-    tax: 0,
-    comments: "",
     subAccounts: { OA: 60000, SA: 20000, MA: 20000 },
     ...overrides,
-  }) as unknown as Transaction
+  } as unknown as Partial<Transaction>)
 
 const mockFetch = (): void => {
   global.fetch = jest.fn((url: RequestInfo | URL) => {

@@ -1,5 +1,6 @@
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { assetConfigsKey, getAssetPositions } from "@utils/api/client/assets"
 
 /**
  * Subset of svc-data's PrivateAssetConfig response — only the fields the
@@ -42,7 +43,7 @@ interface AssetPositionsResponse {
   data: Array<{ portfolio: { id: string } | null }>
 }
 
-const CONFIGS_KEY = "/api/assets/config"
+const CONFIGS_KEY = assetConfigsKey
 
 // Composite policies are denominated in a fixed currency dictated by the
 // scheme rules. CPF is statutory SGD; ILP / generic policies vary and need
@@ -122,9 +123,7 @@ export function useStandaloneCompositeAssets(): {
       const checks = await Promise.all(
         composites.map(async (c) => {
           try {
-            const r = await fetch(
-              `/api/assets/${c.assetId}/positions?date=today`,
-            )
+            const r = await getAssetPositions(c.assetId)
             if (!r.ok) return c.assetId
             const body: AssetPositionsResponse = await r.json()
             const held = (body.data ?? []).some(

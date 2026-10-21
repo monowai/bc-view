@@ -3,12 +3,24 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
-interface PortfolioImportDialogProps {
+interface CsvImportDialogProps {
+  title: string
+  /** What the CSV should hold, shown above the drop zone. */
+  description: string
+  /** Posts `csvContent` to the domain's import route, e.g. `importAssets`. */
+  importCsv: (csvContent: string) => Promise<Response>
+  /** Singular noun for the success line, e.g. "asset". */
+  noun: string
   onClose: () => void
   onComplete: () => Promise<void>
 }
 
-const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
+/** Upload a CSV through a domain import call and report how many records it made. */
+const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
+  title,
+  description,
+  importCsv,
+  noun,
   onClose,
   onComplete,
 }) => {
@@ -40,17 +52,16 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
     }
     await handleSubmit(async () => {
       const csvContent = await selectedFile.text()
-      const response = await fetch("/api/portfolios/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csvContent }),
-      })
+      const response = await importCsv(csvContent)
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || "Import failed")
       }
+
       const result = await response.json()
-      const count = result.data ? result.data.length : 0
+      // Assets come back keyed by code, portfolios as an array: count either.
+      const count = result.data ? Object.keys(result.data).length : 0
       setImportResult({ count })
     })
   }
@@ -61,7 +72,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
 
   return (
     <Dialog
-      title={"Import Portfolios"}
+      title={title}
       onClose={onClose}
       footer={
         !importResult ? (
@@ -89,11 +100,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
     >
       {!importResult ? (
         <>
-          <p className="text-sm text-gray-600">
-            {
-              "Import portfolios from a CSV file. The file should have columns: Code, Name, Currency, Base."
-            }
-          </p>
+          <p className="text-sm text-gray-600">{description}</p>
 
           <div
             className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
@@ -132,7 +139,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
         <Alert variant="success" className="p-4 text-center">
           <i className="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
           <p className="text-green-700 font-medium">
-            {`Successfully imported ${importResult.count} portfolio(s)`}
+            {`Successfully imported ${importResult.count} ${noun}(s)`}
           </p>
         </Alert>
       )}
@@ -140,4 +147,4 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
   )
 }
 
-export default PortfolioImportDialog
+export default CsvImportDialog

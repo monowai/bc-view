@@ -10,6 +10,12 @@ import AssetSearch from "@components/features/assets/AssetSearch"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency, getDisplayCode } from "@lib/assets/assetUtils"
+import {
+  enrichAsset,
+  getAsset,
+  updateAsset,
+  updateAssetStatus,
+} from "@utils/api/client/assets"
 
 const EDITABLE_CATEGORIES = [
   { id: "ACCOUNT", name: "Bank Account" },
@@ -86,7 +92,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
 
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/assets/${option.assetId}`)
+      const response = await getAsset(option.assetId)
       if (!response.ok) {
         setMessage({
           type: "error",
@@ -123,11 +129,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
     try {
       const newStatus =
         selectedAsset.status === "Inactive" ? "Active" : "Inactive"
-      const response = await fetch(`/api/assets/${selectedAsset.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      })
+      const response = await updateAssetStatus(selectedAsset.id, newStatus)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         setMessage({
@@ -157,9 +159,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
     setIsEnriching(true)
     setMessage(null)
     try {
-      const response = await fetch(`/api/assets/${selectedAsset.id}/enrich`, {
-        method: "POST",
-      })
+      const response = await enrichAsset(selectedAsset.id)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         setMessage({
@@ -211,11 +211,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
         category: editCategory,
         expectedReturnRate: returnRate,
       }
-      const response = await fetch(`/api/assets/${selectedAsset.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
+      const response = await updateAsset(selectedAsset.id, body)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         setMessage({

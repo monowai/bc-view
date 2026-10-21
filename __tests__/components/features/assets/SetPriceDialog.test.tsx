@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
+import SetPriceDialog from "@components/features/assets/SetPriceDialog"
 import { Asset } from "types/beancounter"
 import { pinClock, unpinClock } from "../../../support/pinClock"
 
@@ -16,7 +16,7 @@ const mockAsset = {
 const dateInput = (): HTMLInputElement =>
   document.querySelector('input[type="date"]') as HTMLInputElement
 
-describe("holdings/SetPriceDialog price date", () => {
+describe("SetPriceDialog price date", () => {
   afterEach(unpinClock)
 
   // 23:00 UTC on 2 Aug is already 07:00 on 3 Aug in Singapore (UTC+8).
@@ -52,5 +52,34 @@ describe("holdings/SetPriceDialog price date", () => {
     await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith("asset-1", "2026-08-03", "1500"),
     )
+  })
+})
+
+describe("SetPriceDialog asset summary", () => {
+  it("labels the category by its friendly name", () => {
+    render(
+      <SetPriceDialog
+        asset={mockAsset}
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    )
+    expect(screen.getByText(/Real Estate/)).toBeInTheDocument()
+  })
+
+  it("shows a dash when the asset has no category", () => {
+    const uncategorised = {
+      ...mockAsset,
+      displayCode: "HOUSE",
+      assetCategory: undefined,
+    } as unknown as Asset
+    render(
+      <SetPriceDialog
+        asset={uncategorised}
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    )
+    expect(screen.getByText("HOUSE - -")).toBeInTheDocument()
   })
 })

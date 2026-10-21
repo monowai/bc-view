@@ -69,7 +69,7 @@ import { getGroupComparator } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/transactions/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
-import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
+import SetPriceDialog from "@components/features/assets/SetPriceDialog"
 import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
 import CashTransferDialog from "@components/features/transactions/CashTransferDialog"
 import MovePositionDialog from "@components/features/transactions/MovePositionDialog"
@@ -84,6 +84,10 @@ import SelectPlanDialog from "@components/features/rebalance/execution/SelectPla
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
 import { usePermissions } from "@hooks/usePermissions"
+import { assetsKey, updateAsset } from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
+import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
+import { writePrice } from "@utils/api/client/prices"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -261,8 +265,8 @@ function HoldingsPage(): React.ReactElement {
     simpleFetcher(categoriesKey),
   )
   const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    editAsset ? "/api/classifications/sectors" : null,
-    simpleFetcher("/api/classifications/sectors"),
+    editAsset ? sectorsKey : null,
+    simpleFetcher(sectorsKey),
   )
   const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
   const categoryOptions: CategoryOption[] = categoriesData?.data
@@ -305,35 +309,27 @@ function HoldingsPage(): React.ReactElement {
       sector?: string,
       expectedReturnRate?: number,
     ): Promise<void> => {
-      const response = await fetch(`/api/assets/${assetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market: "PRIVATE",
-          code,
-          name,
-          currency,
-          category,
-          expectedReturnRate,
-        }),
+      const response = await updateAsset(assetId, {
+        market: "PRIVATE",
+        code,
+        name,
+        currency,
+        category,
+        expectedReturnRate,
       })
       if (!response.ok) {
         throw new Error("Failed to update asset")
       }
       if (sector) {
         try {
-          await fetch(`/api/classifications/${assetId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sector }),
-          })
+          await setAssetSector(assetId, sector)
         } catch (err) {
           console.error("Failed to update sector classification:", err)
         }
       }
       // Refresh holdings (this page) and the assets list (accounts page cache)
       await mutate()
-      await globalMutate("/api/assets")
+      await globalMutate(assetsKey)
       setEditAsset(undefined)
     },
     [mutate],
@@ -521,23 +517,19 @@ function HoldingsPage(): React.ReactElement {
       // Get the trade currency from the costAdjustData
       const tradeCurrency = costAdjustData?.currency?.code || ""
 
-      const response = await fetch("/api/trns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          portfolioId,
-          data: [
-            {
-              trnType: "COST_ADJUST",
-              assetId,
-              tradeDate: date,
-              tradeAmount: adjustmentAmount,
-              tradeCurrency,
-              quantity: 0,
-              status: "SETTLED",
-            },
-          ],
-        }),
+      const response = await createTrns({
+        portfolioId,
+        data: [
+          {
+            trnType: "COST_ADJUST",
+            assetId,
+            tradeDate: date,
+            tradeAmount: adjustmentAmount,
+            tradeCurrency,
+            quantity: 0,
+            status: "SETTLED",
+          },
+        ],
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -557,14 +549,10 @@ function HoldingsPage(): React.ReactElement {
   // Save price via API
   const handleSetPriceSave = useCallback(
     async (assetId: string, date: string, price: string): Promise<void> => {
-      const response = await fetch("/api/prices/write", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assetId,
-          date,
-          closePrice: parseFloat(price),
-        }),
+      const response = await writePrice({
+        assetId,
+        date,
+        closePrice: parseFloat(price),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -995,7 +983,7 @@ function HoldingsPage(): React.ReactElement {
           onSaved={async () => {
             setAdminEditAsset(undefined)
             await mutate()
-            await globalMutate("/api/assets")
+            await globalMutate(assetsKey)
           }}
         />
       )}

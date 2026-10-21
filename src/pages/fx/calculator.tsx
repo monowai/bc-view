@@ -5,18 +5,11 @@ import useSwr from "swr"
 import { Currency, FxRequest, FxResponse } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
+import { fxKey as fxRatesUrl, postFxRates } from "@utils/api/client/fx"
 
-const fxFetcher = async (
-  url: string,
-  from: string,
-  to: string,
-): Promise<FxResponse> => {
+const fxFetcher = async (from: string, to: string): Promise<FxResponse> => {
   const body: FxRequest = { pairs: [{ from, to }] }
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
+  const response = await postFxRates(body)
   if (!response.ok)
     throw new Error(`Failed to fetch FX rate: ${response.status}`)
   return response.json()
@@ -71,10 +64,10 @@ export default withPageAuthRequired(
       }
     }, [currencies, from])
 
-    const fxKey = from && to && from !== to ? ["/api/fx", from, to] : null
+    const fxKey = from && to && from !== to ? [fxRatesUrl, from, to] : null
     const { data: fxData, isLoading: fxLoading } = useSwr<FxResponse>(
       fxKey,
-      ([url, f, t]: [string, string, string]) => fxFetcher(url, f, t),
+      ([, f, t]: [string, string, string]) => fxFetcher(f, t),
     )
 
     const rateKey = from && to ? `${from}:${to}` : null

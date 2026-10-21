@@ -11,6 +11,10 @@
  */
 
 import type { CategoryLabelsResponse } from "types/independence"
+import {
+  expenseCategoriesKey,
+  planExpensesKey,
+} from "@utils/api/client/independence"
 
 const OTHER_CATEGORY = "Other"
 const HEALTHCARE_CATEGORY = "Healthcare"
@@ -67,7 +71,7 @@ export async function saveOnboardingExpenses(
   }
 
   for (const row of rows) {
-    const res = await fetchImpl(`/api/independence/plans/${planId}/expenses`, {
+    const res = await fetchImpl(planExpensesKey(planId), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -93,7 +97,7 @@ async function fetchCategoryLabels(
   fetchImpl: typeof fetch,
 ): Promise<CategoryLabelsResponse["data"] | undefined> {
   try {
-    const res = await fetchImpl("/api/independence/categories")
+    const res = await fetchImpl(expenseCategoriesKey)
     if (res.ok) {
       const body = (await res.json()) as CategoryLabelsResponse
       return body.data

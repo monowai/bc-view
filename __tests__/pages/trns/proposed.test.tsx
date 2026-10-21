@@ -175,8 +175,8 @@ describe("Proposed Transactions broker filter", () => {
 
   it("ignores stale stored dates unless the user explicitly changed them", async () => {
     // Simulate a previous session that merely visited the page (no explicit change)
-    sessionStorage.setItem("proposed-from", JSON.stringify("2020-01-01"))
-    sessionStorage.setItem("proposed-to", JSON.stringify("2020-01-03"))
+    sessionStorage.setItem("bc:proposed-from", JSON.stringify("2020-01-01"))
+    sessionStorage.setItem("bc:proposed-to", JSON.stringify("2020-01-03"))
 
     render(<ProposedTransactions />)
 
@@ -189,9 +189,9 @@ describe("Proposed Transactions broker filter", () => {
   })
 
   it("honours stored dates when the user explicitly changed them", async () => {
-    sessionStorage.setItem("proposed-from", JSON.stringify("2020-01-01"))
-    sessionStorage.setItem("proposed-to", JSON.stringify("2020-01-03"))
-    sessionStorage.setItem("proposed-dates-touched", JSON.stringify(true))
+    sessionStorage.setItem("bc:proposed-from", JSON.stringify("2020-01-01"))
+    sessionStorage.setItem("bc:proposed-to", JSON.stringify("2020-01-03"))
+    sessionStorage.setItem("bc:proposed-dates-touched", JSON.stringify(true))
 
     render(<ProposedTransactions />)
 

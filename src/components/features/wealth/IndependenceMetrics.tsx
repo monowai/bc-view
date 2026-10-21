@@ -8,6 +8,7 @@ import type { RetirementPlan, RetirementProjection } from "types/independence"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { investmentsMonthlyTransactionsKey } from "@utils/api/client/trns"
 
 interface MonthlyInvestmentData {
   startDate: string
@@ -40,7 +41,7 @@ export default function IndependenceMetrics({
 
   // Fetch transactions only when modal is open
   const investmentTrnsUrl = showInvestmentModal
-    ? "/api/trns/investments/monthly/transactions?days=30"
+    ? investmentsMonthlyTransactionsKey
     : null
   const { data: investmentTrnsData } = useSwr<{ data: Transaction[] }>(
     investmentTrnsUrl,

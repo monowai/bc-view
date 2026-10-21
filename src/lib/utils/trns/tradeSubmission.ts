@@ -1,4 +1,4 @@
-import { TrnUpdatePayload } from "./apiHelper"
+import { TrnUpdatePayload } from "@utils/api/client/trns"
 import { TradeFormValues } from "./tradeFormHelpers"
 import { TRN_STATUS } from "types/constants"
 

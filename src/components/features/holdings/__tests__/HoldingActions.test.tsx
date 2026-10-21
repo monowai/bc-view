@@ -155,7 +155,7 @@ const mockHoldingResults: HoldingContract = {
 }
 
 const mockColumns = ["asset", "quantity", "price", "value"]
-const mockValueIn = "USD"
+const mockValueIn = "PORTFOLIO" as const
 
 describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
   describe("Mobile Portrait Mode (width < height, width < 640px)", () => {

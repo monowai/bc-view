@@ -20,9 +20,10 @@ import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
 import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
-import { unsettleTrn } from "@utils/trns/apiHelper"
+import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
 import { buildTradeGroups } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
@@ -210,9 +211,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const handleListDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!listDeleteTarget) return
     try {
-      const response = await fetch(`/api/trns/trades/${listDeleteTarget.id}`, {
-        method: "DELETE",
-      })
+      const response = await deleteTrn(listDeleteTarget.id)
       if (response.ok) {
         setTimeout(() => {
           mutate(holdingKey(listDeleteTarget.portfolioCode, "today"))
@@ -267,14 +266,12 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     const handleDeleteConfirm = async (): Promise<void> => {
       setShowDeleteConfirm(false)
       try {
-        const response = await fetch(`/api/trns/trades/${transaction.id}`, {
-          method: "DELETE",
-        })
+        const response = await deleteTrn(transaction.id)
         if (response.ok) {
           // Invalidate holdings cache after delete (with delay for message broker)
           setTimeout(() => {
             mutate(holdingKey(transaction.portfolio.code, "today"))
-            mutate("/api/holdings/aggregated?asAt=today")
+            mutate(aggregatedHoldingsTodayKey)
           }, 1500)
           router.back()
         }
@@ -301,7 +298,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         // status, then close.
         setTimeout(() => {
           mutate(holdingKey(transaction.portfolio.code, "today"))
-          mutate("/api/holdings/aggregated?asAt=today")
+          mutate(aggregatedHoldingsTodayKey)
         }, 1500)
         router.back()
       } catch (err) {

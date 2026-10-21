@@ -17,6 +17,17 @@ export const formatCurrency = (value: number, fractionDigits = 2): string => {
 }
 
 /**
+ * Format a holding quantity: whole units bare, fractions to at most 4dp.
+ * @param value - Quantity
+ * @returns Locale-formatted string (e.g., "1,250", "0.1235")
+ */
+export const formatQuantity = (value: number): string =>
+  new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  }).format(value)
+
+/**
  * Format a number as percentage from a decimal value.
  * @param value - Numeric value as decimal (e.g., 0.25 for 25%)
  * @param fractionDigits - Number of decimal places (default: 2)
@@ -143,12 +154,27 @@ export const currencySymbolFor = (
  * @param currency - ISO currency code (e.g. "SGD"). Omit for a bare "$".
  * @returns Compact string (e.g. "S$2.14M", "NZ$180K", "£950")
  */
-export const formatCompact = (value: number, currency?: string): string => {
-  const symbol = currencySymbolFor(currency)
+export const formatCompact = (value: number, currency?: string): string =>
+  formatCompactSymbol(value, currencySymbolFor(currency))
+
+/**
+ * Compact money with a display symbol already in hand (e.g. a backend
+ * `currency.symbol`). Same scale rules as {@link formatCompact}.
+ *
+ * @param value - Numeric value
+ * @param symbol - Symbol prefix (e.g. "$", "RM")
+ * @param millionDigits - Decimals at the millions scale (charts use 1)
+ * @returns Compact string (e.g. "$2.14M", "-$5K", "$950")
+ */
+export const formatCompactSymbol = (
+  value: number,
+  symbol: string,
+  millionDigits = 2,
+): string => {
   const sign = value < 0 ? "-" : ""
   const abs = Math.abs(value)
   if (abs >= 1_000_000 || roundsIntoMillions(abs)) {
-    return `${sign}${symbol}${(abs / 1_000_000).toFixed(2)}M`
+    return `${sign}${symbol}${(abs / 1_000_000).toFixed(millionDigits)}M`
   }
   if (abs >= 1_000) return `${sign}${symbol}${Math.round(abs / 1_000)}K`
   return `${sign}${symbol}${Math.round(abs).toLocaleString()}`

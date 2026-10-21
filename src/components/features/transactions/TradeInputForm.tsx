@@ -76,6 +76,10 @@ import {
 } from "@lib/trns/tradeFormConfig"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { showPortfolioPicker } from "@lib/user/zenMode"
+import { getExecution } from "@utils/api/client/rebalance"
+import { activePortfoliosKey } from "@utils/api/client/portfolios"
+import { brokersWithAccountsKey } from "@utils/api/client/brokers"
+import { marketPriceUrl } from "@utils/api/client/prices"
 
 /** Two decimals is the resolution money and weights are quoted at here. */
 const round2 = (value: number): number => Math.round(value * 100) / 100
@@ -160,8 +164,8 @@ const TradeInputForm: React.FC<{
 
   // Fetch portfolios for portfolio selection
   const { data: portfoliosData } = useSwr(
-    "/api/portfolios",
-    simpleFetcher("/api/portfolios"),
+    activePortfoliosKey,
+    simpleFetcher(activePortfoliosKey),
   )
   const portfolios: Portfolio[] = useMemo(
     () => portfoliosData?.data || [],
@@ -195,7 +199,7 @@ const TradeInputForm: React.FC<{
       transaction.callerRef.batch
     ) {
       const executionId = transaction.callerRef.batch
-      fetch(`/api/rebalance/executions/${executionId}`)
+      getExecution(executionId)
         .then((res) => {
           if (res.ok) return res.json()
           return null
@@ -236,8 +240,8 @@ const TradeInputForm: React.FC<{
 
   // Fetch brokers with settlement accounts for dropdown
   const { data: brokersData } = useSwr(
-    "/api/brokers?includeAccounts=true",
-    simpleFetcher("/api/brokers?includeAccounts=true"),
+    brokersWithAccountsKey,
+    simpleFetcher(brokersWithAccountsKey),
   )
   const brokers: BrokerWithAccounts[] = useMemo(
     () => brokersData?.data || [],
@@ -484,7 +488,9 @@ const TradeInputForm: React.FC<{
       setIsFetchingPrice(true)
       try {
         const qs = asAt ? `?asAt=${encodeURIComponent(asAt)}` : ""
-        const response = await fetch(`/api/prices/${market}/${assetCode}${qs}`)
+        const response = await fetch(
+          `${marketPriceUrl(market, assetCode)}${qs}`,
+        )
         if (!response.ok) {
           return null
         }

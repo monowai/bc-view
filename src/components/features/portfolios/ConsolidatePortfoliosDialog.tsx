@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { Portfolio } from "types/beancounter"
+import { mergePortfolios } from "@utils/api/client/portfolios"
 
 interface ConsolidatePortfoliosDialogProps {
   portfolios: Portfolio[]
@@ -46,10 +47,7 @@ const ConsolidatePortfoliosDialog: React.FC<
   const handleMerge = async (): Promise<void> => {
     if (!canReview) return
     await handleSubmit(async () => {
-      const response = await fetch(
-        `/api/portfolios/${sourceId}/merge/${targetId}`,
-        { method: "POST", headers: { "Content-Type": "application/json" } },
-      )
+      const response = await mergePortfolios(sourceId, targetId)
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(

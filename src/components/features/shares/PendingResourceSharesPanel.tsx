@@ -4,6 +4,7 @@ import {
   ResourceShare,
   ShareResourceType,
 } from "types/beancounter"
+import { resourceShareUrl } from "@utils/api/client/shares"
 
 interface PendingResourceSharesPanelProps {
   pending: PendingResourceSharesResponse
@@ -122,14 +123,14 @@ function PendingResourceShareRow({
 
   const handleAccept = (): Promise<void> =>
     runAction(
-      `/api/resource-shares/${share.id}/accept`,
+      `${resourceShareUrl(share.id)}/accept`,
       "POST",
       "Failed to accept invitation",
     )
 
   const handleDecline = (): Promise<void> =>
     runAction(
-      `/api/resource-shares/${share.id}`,
+      resourceShareUrl(share.id),
       "DELETE",
       "Failed to decline invitation",
     )

@@ -205,8 +205,8 @@ export default function Rows({
                       asset={asset}
                       portfolioId={portfolio.id}
                       portfolioCode={portfolio.code}
-                      fromDate={dateValues?.opened}
-                      closedDate={dateValues?.closed}
+                      fromDate={dateValues?.opened ?? undefined}
+                      closedDate={dateValues?.closed ?? undefined}
                       quantity={quantityValues.total}
                       price={
                         // A trade is denominated in the asset's own currency,
@@ -315,7 +315,7 @@ export default function Rows({
                   })()}
             </td>
             <td className={getCellClasses(1)}>
-              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
+              {!moneyValues[valueIn].priceData?.changePercent ? (
                 " "
               ) : (
                 <span

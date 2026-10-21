@@ -14,6 +14,7 @@ import {
   thRight,
   tbodyBase,
 } from "@utils/tableStyles"
+import { createModelPlan, deleteModelPlan } from "@utils/api/client/rebalance"
 
 interface ModelPlansProps {
   modelId: string
@@ -30,10 +31,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
     if (!deletePlanId) return
     setDeletingId(deletePlanId)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${deletePlanId}`,
-        { method: "DELETE" },
-      )
+      const response = await deleteModelPlan(modelId, deletePlanId)
       if (response.ok || response.status === 204) {
         mutate()
       }
@@ -54,13 +52,10 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   const handleCreatePlan = async (): Promise<void> => {
     setCreating(true)
     try {
-      const response = await fetch(`/api/rebalance/models/${modelId}/plans`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          latestApproved ? { sourcePlanId: latestApproved.id } : {},
-        ),
-      })
+      const response = await createModelPlan(
+        modelId,
+        latestApproved ? { sourcePlanId: latestApproved.id } : {},
+      )
       if (response.ok) {
         const result = await response.json()
         mutate()

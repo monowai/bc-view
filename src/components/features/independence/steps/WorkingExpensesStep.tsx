@@ -14,6 +14,7 @@ import { WizardFormData, CategoryLabelsResponse } from "types/independence"
 import { wizardMessages } from "@lib/independence/messages"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
+import { expenseCategoriesKey } from "@utils/api/client/independence"
 
 const msg = wizardMessages.steps.workingExpenses
 
@@ -25,7 +26,7 @@ interface WorkingExpensesStepProps {
   isEditMode?: boolean
 }
 
-const categoriesKey = "/api/independence/categories"
+const categoriesKey = expenseCategoriesKey
 
 export default function WorkingExpensesStep({
   control,
