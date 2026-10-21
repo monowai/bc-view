@@ -12,6 +12,7 @@ import {
   thCenter,
   hiddenSm,
 } from "@utils/tableStyles"
+import { deleteModel, updateModel } from "@utils/api/client/rebalance"
 
 interface ModelListProps {
   onSelect?: (model: ModelDto) => void
@@ -31,9 +32,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   const handleDeleteConfirm = async (): Promise<void> => {
     if (!deleteModelId) return
     try {
-      const response = await fetch(`/api/rebalance/models/${deleteModelId}`, {
-        method: "DELETE",
-      })
+      const response = await deleteModel(deleteModelId)
       if (response.ok) {
         mutate()
       }
@@ -46,17 +45,13 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
 
   const handleTogglePublic = async (model: ModelDto): Promise<void> => {
     try {
-      const response = await fetch(`/api/rebalance/models/${model.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: model.name,
-          objective: model.objective,
-          description: model.description,
-          baseCurrency: model.baseCurrency,
-          shared: !model.shared,
-          risk: model.risk,
-        }),
+      const response = await updateModel(model.id, {
+        name: model.name,
+        objective: model.objective,
+        description: model.description,
+        baseCurrency: model.baseCurrency,
+        shared: !model.shared,
+        risk: model.risk,
       })
       if (response.ok) {
         mutate()

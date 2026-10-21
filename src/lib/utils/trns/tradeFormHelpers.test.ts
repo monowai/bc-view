@@ -21,6 +21,7 @@ import {
   deriveTradeToPortfolioFxRate,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
+import { makeAsset, makeTrn } from "@test-fixtures/beancounter"
 
 describe("tradeFormHelpers", () => {
   describe("computeWeightInfo", () => {
@@ -375,11 +376,8 @@ describe("tradeFormHelpers", () => {
   })
 
   describe("buildEditModeValues", () => {
-    const baseTransaction: Transaction = {
-      id: "trn-1",
+    const baseTransaction: Transaction = makeTrn({
       callerRef: { provider: "MANUAL", batch: "20240115", callerId: "" },
-      trnType: "BUY",
-      status: "SETTLED",
       portfolio: {
         id: "p1",
         code: "TEST",
@@ -389,36 +387,14 @@ describe("tradeFormHelpers", () => {
         marketValue: 10000,
         irr: 0.05,
       },
-      asset: {
+      asset: makeAsset({
         id: "a1",
-        code: "AAPL",
         name: "Apple Inc",
         assetCategory: { id: "1", name: "Equity" },
-        chartable: true,
-        watchable: true,
-        hasNews: true,
-        cashLike: false,
-        displayCode: "AAPL",
-        market: {
-          code: "NASDAQ",
-          name: "NASDAQ",
-          currency: { code: "USD", name: "US Dollar", symbol: "$" },
-        },
-      },
-      tradeDate: "2024-01-15",
-      quantity: 10,
-      price: 150,
-      tradeCurrency: { code: "USD", name: "US Dollar", symbol: "$" },
-      tradeAmount: 1500,
-      tradeBaseRate: 1,
-      tradePortfolioRate: 1,
-      cashCurrency: "USD",
-      cashAmount: -1500,
-      tradeCashRate: 1,
+      }),
       fees: 5,
-      tax: 0,
       comments: "Test trade",
-    }
+    })
 
     test("maps transaction fields to form values", () => {
       const result = buildEditModeValues(baseTransaction)

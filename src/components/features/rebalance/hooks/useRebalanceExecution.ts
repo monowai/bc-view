@@ -11,6 +11,14 @@ import {
 } from "types/rebalance"
 import { Asset, BrokerWithAccounts, TrnStatus } from "types/beancounter"
 import { TRN_STATUS } from "types/constants"
+import {
+  commitExecution,
+  createExecution,
+  getExecution,
+  refreshExecution,
+  updateExecution,
+} from "@utils/api/client/rebalance"
+import { brokersWithAccountsKey } from "@utils/api/client/brokers"
 
 // --- Public types ---
 
@@ -190,8 +198,8 @@ export function useRebalanceExecution(
   // --- SWR data ---
 
   const { data: brokersData } = useSwr(
-    "/api/brokers?includeAccounts=true",
-    simpleFetcher("/api/brokers?includeAccounts=true"),
+    brokersWithAccountsKey,
+    simpleFetcher(brokersWithAccountsKey),
   )
   const brokers: BrokerWithAccounts[] = useMemo(
     () => brokersData?.data || [],
@@ -238,7 +246,7 @@ export function useRebalanceExecution(
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/rebalance/executions/${executionId}`)
+        const response = await getExecution(executionId)
         if (!response.ok) {
           setError(`Failed to load execution: ${response.status}`)
           return
@@ -294,11 +302,7 @@ export function useRebalanceExecution(
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch("/api/rebalance/executions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(createBody),
-        })
+        const response = await createExecution(createBody)
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           setError(
@@ -394,16 +398,9 @@ export function useRebalanceExecution(
           excluded: localExclusions[item.assetId] ?? item.excluded,
         }))
 
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemUpdates,
-          }),
-        },
-      )
+      const response = await updateExecution(execution.id, {
+        itemUpdates,
+      })
 
       if (!response.ok) {
         setError(`Failed to save: ${response.status}`)
@@ -434,10 +431,7 @@ export function useRebalanceExecution(
 
     setRefreshing(true)
     try {
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}/refresh`,
-        { method: "POST" },
-      )
+      const response = await refreshExecution(execution.id)
 
       if (!response.ok) {
         setError(`Failed to refresh: ${response.status}`)
@@ -641,14 +635,7 @@ export function useRebalanceExecution(
         cashAssetId,
       }
 
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}/commit`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(commitRequest),
-        },
-      )
+      const response = await commitExecution(execution.id, commitRequest)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

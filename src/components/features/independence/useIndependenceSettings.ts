@@ -6,8 +6,9 @@ import {
   UpdateSettingsRequest,
 } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { independenceSettingsKey } from "@utils/api/client/independence"
 
-const settingsKey = "/api/independence/settings"
+const settingsKey = independenceSettingsKey
 
 interface UseIndependenceSettingsResult {
   settings: UserIndependenceSettings | undefined

@@ -36,6 +36,9 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { localIsoDate } from "@lib/formatters"
+import { assetResolveKey } from "@utils/api/client/assets"
+import { tradeKey, trnsKey } from "@utils/api/client/trns"
+import { priceHistoryKey, repairSplits } from "@utils/api/client/prices"
 
 export interface PriceChartPopupProps {
   asset: Asset
@@ -253,15 +256,13 @@ function useOverlayLeg(
   to: string,
 ): { prices?: PricePoint[]; failed: boolean } {
   const resolveUrl = spec
-    ? `/api/assets/resolve?code=${encodeURIComponent(spec)}`
+    ? assetResolveKey(`code=${encodeURIComponent(spec)}`)
     : null
   const { data: resolved, error: resolveError } = useSwr<{
     data: { id: string }
   }>(resolveUrl, resolveUrl ? simpleFetcher(resolveUrl) : null)
   const legId = resolved?.data?.id
-  const historyUrl = legId
-    ? `/api/prices/history/${legId}?from=${from}&to=${to}`
-    : null
+  const historyUrl = legId ? priceHistoryKey(legId, from, to) : null
   const { data, error: historyError } = useSwr<PriceHistoryResponse>(
     historyUrl,
     historyUrl ? simpleFetcher(historyUrl) : null,
@@ -415,7 +416,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     }
   }, [months])
 
-  const priceUrl = `/api/prices/history/${asset.id}?from=${from}&to=${to}`
+  const priceUrl = priceHistoryKey(asset.id, from, to)
   const {
     data: priceData,
     error: priceError,
@@ -452,9 +453,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const handleRepairSplits = useCallback(async () => {
     setRepairState({ busy: true, message: null, error: false })
     try {
-      const response = await fetch(`/api/prices/${asset.id}/repair-splits`, {
-        method: "POST",
-      })
+      const response = await repairSplits(asset.id)
       if (!response.ok) {
         const detail =
           response.status === 403
@@ -491,11 +490,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   const tradesUrl =
     portfolios && portfolios.length > 0
-      ? `/api/trns/trades/${asset.id}?portfolios=${encodeURIComponent(
+      ? `${trnsKey}/trades/${asset.id}?portfolios=${encodeURIComponent(
           portfolios.join(","),
         )}`
       : portfolioId
-        ? `/api/trns/trades/${portfolioId}/${asset.id}`
+        ? tradeKey(portfolioId, asset.id)
         : null
   const { data: tradesData } = useSwr<{ data: Transaction[] }>(
     tradesUrl,

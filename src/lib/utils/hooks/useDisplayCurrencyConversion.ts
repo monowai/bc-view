@@ -3,6 +3,7 @@ import useSWR from "swr"
 import { Currency, Portfolio, FxResponse } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import { postFxRates } from "@utils/api/client/fx"
 
 const SWR_CURRENCIES_CONFIG = {
   revalidateOnFocus: false,
@@ -25,13 +26,9 @@ async function fetchFxRate(from: string, to: string): Promise<number> {
   }
 
   try {
-    const response = await fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rateDate: "today",
-        pairs: [{ from, to }],
-      }),
+    const response = await postFxRates({
+      rateDate: "today",
+      pairs: [{ from, to }],
     })
 
     const fxResponse: FxResponse = await response.json()

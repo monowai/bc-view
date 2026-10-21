@@ -11,9 +11,10 @@ import type {
 } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { primaryJourney } from "@lib/independence/journeyPhases"
+import { independencePlansKey } from "@utils/api/client/independence"
 
 /** SWR key for the user's journeys. Every mutator revalidates it. */
-export const independencePlansKey = "/api/independence/independence-plans"
+export { independencePlansKey }
 
 /** Query-string parameter carrying the selected journey on /independence. */
 export const ACTIVE_PLAN_QUERY_PARAM = "plan"

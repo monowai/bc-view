@@ -1,4 +1,5 @@
 import { NextApiRequest } from "next"
+import { readServerMessage } from "@utils/api/client/request"
 
 /**
  * Create request init for backend API calls.
@@ -73,28 +74,27 @@ export const fetcher = async (url: string): Promise<any> => {
   return res.json()
 }
 const apiRoot = "/api"
+// Asset keys live with the rest of the assets API; re-exported for older importers.
+export {
+  accountsKey,
+  assetKey,
+  assetsKey,
+  tradeAccountsKey,
+} from "@utils/api/client/assets"
 export const ccyKey = `${apiRoot}/currencies`
 export const marketsKey = `${apiRoot}/markets`
 export const categoriesKey = `${apiRoot}/categories`
 
-const portfoliosBase = `${apiRoot}/portfolios`
-export const portfoliosKey = `${portfoliosBase}?inactive=true`
-export const assetsKey = `${apiRoot}/assets`
-export const accountsKey = `${assetsKey}?category=ACCOUNT`
-export const tradeAccountsKey = `${assetsKey}?category=TRADE`
+export { portfolioKey, portfoliosKey } from "@utils/api/client/portfolios"
 export const cashKey = `${apiRoot}/cash`
 
-export const trnsKey = `${apiRoot}/trns`
-export const assetKey = (assetId: string): string =>
-  `${apiRoot}/assets/${assetId}`
-export const tradeKey = (portfolioId: string, assetId: string): string =>
-  `${trnsKey}/trades/${portfolioId}/${assetId}`
-export const tradeKeyMulti = (
-  assetId: string,
-  portfolioIds: string[],
-): string => `${trnsKey}/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
-export const eventKey = (portfolioId: string, assetId: string): string =>
-  `${trnsKey}/events/${portfolioId}/${assetId}`
+export {
+  eventKey,
+  tradeKey,
+  tradeKeyMulti,
+  trnKey,
+  trnsKey,
+} from "@utils/api/client/trns"
 
 export const newsKey = (symbol: string, market?: string): string => {
   const params = new URLSearchParams({ tickers: symbol })
@@ -102,35 +102,17 @@ export const newsKey = (symbol: string, market?: string): string => {
   return `${apiRoot}/news?${params.toString()}`
 }
 
-export const holdingKey = (portfolioCode: string, asAt: string): string =>
-  `${apiRoot}/holdings/${portfolioCode}?asAt=${asAt}`
+export { holdingByIdKey, holdingKey } from "@utils/api/client/holdings"
 
-export const holdingByIdKey = (portfolioId: string, asAt: string): string =>
-  `${apiRoot}/holdings/id/${portfolioId}?asAt=${asAt}`
-
-export const portfolioKey = (portfolioId: string): string =>
-  `${portfoliosBase}/${portfolioId}`
-
-export const trnKey = (trnId: string): string => `${trnsKey}/${trnId}`
-
-export const corporateEventsKey = (
-  assetId: string,
-  fromDate?: string,
-  toDate?: string,
-): string => {
-  const base = `${apiRoot}/corporate-events/${assetId}`
-  if (fromDate && toDate) {
-    return `${base}?fromDate=${fromDate}&toDate=${toDate}`
-  }
-  return base
-}
+export { corporateEventsKey } from "@utils/api/client/corporateEvents"
 
 // Rebalance API keys
-export const modelsKey = `${apiRoot}/rebalance/models`
-export const executionsKey = `${apiRoot}/rebalance/executions`
-
-export const modelKey = (id: string): string => `${modelsKey}/${id}`
-export const executionKey = (id: string): string => `${executionsKey}/${id}`
+export {
+  executionKey,
+  executionsKey,
+  modelKey,
+  modelsKey,
+} from "@utils/api/client/rebalance"
 
 // Watchlist (svc-data) — one per user
 export const watchlistKey = `${apiRoot}/watchlist`
@@ -139,15 +121,16 @@ export const watchlistKey = `${apiRoot}/watchlist`
 export const apiKeysKey = `${apiRoot}/me/api-keys`
 
 // Shares API keys
-export const sharesPendingKey = `${apiRoot}/shares/pending`
-export const sharesManagedKey = `${apiRoot}/shares/managed`
-export const resourceSharesPendingKey = `${apiRoot}/resource-shares/pending`
-export const resourceSharesManagedKey = (resourceType: string): string =>
-  `${apiRoot}/resource-shares/managed/${resourceType}`
+export {
+  resourceSharesManagedKey,
+  resourceSharesPendingKey,
+  sharesManagedKey,
+  sharesPendingKey,
+} from "@utils/api/client/shares"
 
 /**
  * POST a JSON body and return the parsed response as T.
- * Throws an Error (with server `error` message when available) on non-2xx.
+ * Throws an Error (with the server's message when available) on non-2xx.
  */
 export async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -156,9 +139,9 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
     throw new Error(
-      data?.error || `${url} failed (${res.status} ${res.statusText})`,
+      (await readServerMessage(res)) ||
+        `${url} failed (${res.status} ${res.statusText})`,
     )
   }
   return (await res.json()) as T
@@ -166,7 +149,7 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
 
 /**
  * PATCH a JSON body and return the parsed response as T.
- * Throws an Error (with server `error` message when available) on non-2xx.
+ * Throws an Error (with the server's message when available) on non-2xx.
  */
 export async function patchJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -175,9 +158,9 @@ export async function patchJson<T>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
     throw new Error(
-      data?.error || `${url} failed (${res.status} ${res.statusText})`,
+      (await readServerMessage(res)) ||
+        `${url} failed (${res.status} ${res.statusText})`,
     )
   }
   return (await res.json()) as T

@@ -8,8 +8,9 @@ import {
   WorkScenariosResponse,
 } from "types/independence"
 import ScenarioEditor from "./scenarios/ScenarioEditor"
+import { workScenariosKey } from "@utils/api/client/independence"
 
-const scenariosKey = "/api/independence/work-scenarios"
+const scenariosKey = workScenariosKey
 
 function computeContribution(scenario: WorkScenario): number {
   const income =

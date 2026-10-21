@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { fxHistoryKey } from "@utils/api/client/fx"
 
 interface FxHistoryResponse {
   from: string
@@ -40,8 +41,8 @@ export function useFxHistory(
   const to = isInverted ? initialFrom : initialTo
 
   const { data, isLoading, error } = useSwr<FxHistoryResponse>(
-    `/api/fx/history?from=${from}&to=${to}&months=${months}`,
-    simpleFetcher(`/api/fx/history?from=${from}&to=${to}&months=${months}`),
+    fxHistoryKey(from, to, months),
+    simpleFetcher(fxHistoryKey(from, to, months)),
   )
 
   const chartData = data?.data || []

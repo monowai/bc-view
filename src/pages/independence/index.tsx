@@ -50,8 +50,18 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import ActionMenu from "@components/ui/ActionMenu"
+import {
+  copyPlan as copyIndependencePlan,
+  deletePlan,
+  exportPlan,
+  generatePlanPhases,
+  importPlan,
+  plansKey,
+  setPrimaryPlan,
+  workScenariosKey,
+} from "@utils/api/client/independence"
+import { revokeResourceShare } from "@utils/api/client/shares"
 
-const plansKey = "/api/independence/plans"
 const HIDDEN_VALUE = "****"
 
 /**
@@ -399,8 +409,8 @@ function RetirementPlanning(): React.ReactElement {
     mutate: mutateJourneys,
   } = useActiveIndependencePlan()
   const { data: scenariosData } = useSwr<WorkScenariosResponse>(
-    "/api/independence/work-scenarios",
-    simpleFetcher("/api/independence/work-scenarios"),
+    workScenariosKey,
+    simpleFetcher(workScenariosKey),
   )
   const hasNoWorkScenarios =
     scenariosData !== undefined && (scenariosData.data?.length ?? 0) === 0
@@ -504,9 +514,7 @@ function RetirementPlanning(): React.ReactElement {
       return
     }
     try {
-      const res = await fetch(`/api/resource-shares/${shareId}`, {
-        method: "DELETE",
-      })
+      const res = await revokeResourceShare(shareId)
       if (!res.ok) {
         const body = await res.text()
         setLeaveError(body || `Revoke failed (${res.status})`)
@@ -602,7 +610,7 @@ function RetirementPlanning(): React.ReactElement {
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {
-      const response = await fetch(`/api/independence/plans/${plan.id}/export`)
+      const response = await exportPlan(plan.id)
       if (!response.ok) return
       const result = await response.json()
       const exportData = result.data
@@ -664,9 +672,7 @@ function RetirementPlanning(): React.ReactElement {
   const handleDeletePlanConfirm = async (): Promise<void> => {
     if (!deletePlanId) return
     try {
-      await fetch(`/api/independence/plans/${deletePlanId}`, {
-        method: "DELETE",
-      })
+      await deletePlan(deletePlanId)
       mutate()
     } catch (err) {
       console.error("Failed to delete plan:", err)
@@ -718,11 +724,7 @@ function RetirementPlanning(): React.ReactElement {
 
     // Import the plan
     try {
-      const response = await fetch("/api/independence/plans/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(planData),
-      })
+      const response = await importPlan(planData)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -751,14 +753,7 @@ function RetirementPlanning(): React.ReactElement {
   const handleCopyConfirm = async (): Promise<void> => {
     if (!copyPlan || !copyName.trim()) return
     try {
-      const response = await fetch(
-        `/api/independence/plans/${copyPlan.id}/copy`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: copyName.trim() }),
-        },
-      )
+      const response = await copyIndependencePlan(copyPlan.id, copyName.trim())
       if (response.ok) {
         mutate()
       }
@@ -771,10 +766,7 @@ function RetirementPlanning(): React.ReactElement {
 
   const handleSetPrimary = async (planId: string): Promise<void> => {
     try {
-      const response = await fetch(
-        `/api/independence/plans/${planId}/primary`,
-        { method: "POST" },
-      )
+      const response = await setPrimaryPlan(planId)
       if (response.ok) {
         mutate()
       }
@@ -788,18 +780,13 @@ function RetirementPlanning(): React.ReactElement {
     setIsGeneratingPhases(true)
     setGeneratePhasesError(null)
     try {
-      const response = await fetch(
-        `/api/independence/plans/${planToPhase.id}/phases`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // Name the plan being phased. The backend refuses per plan now, and
-          // the offer only shows for a plan with no composite, so there is
-          // nothing here to overwrite — `force` would only put a tuned
-          // composite on another plan at risk.
-          body: JSON.stringify({ independencePlanId: activePlanId }),
-        },
-      )
+      // Name the plan being phased. The backend refuses per plan now, and
+      // the offer only shows for a plan with no composite, so there is
+      // nothing here to overwrite — `force` would only put a tuned
+      // composite on another plan at risk.
+      const response = await generatePlanPhases(planToPhase.id, {
+        independencePlanId: activePlanId,
+      })
       if (!response.ok) {
         const body = await response.text()
         setGeneratePhasesError(

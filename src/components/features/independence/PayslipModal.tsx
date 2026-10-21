@@ -24,19 +24,18 @@ import {
 } from "@components/features/independence/useDefinedContribution"
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
 import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
-import { todayIso } from "@lib/formatters"
+import { formatCurrency, todayIso } from "@lib/formatters"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { assetPositionsKey } from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
+import { plansKey, workScenariosKey } from "@utils/api/client/independence"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { updateMe } from "@utils/api/client/account"
 
 interface PayslipModalProps {
   modalOpen: boolean
   onClose: () => void
 }
-
-const formatAmount = (n: number): string =>
-  n.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
 
 const parseNum = (s: string): number => {
   const n = parseFloat(s)
@@ -101,12 +100,11 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   // ACTIVE work scenario, not the RetirementPlan (whose workingIncomeMonthly
   // is 0 when income is held in the scenario). Prefer the current scenario,
   // fall back to the primary plan's field.
-  const scenariosKey = "/api/independence/work-scenarios"
+  const scenariosKey = workScenariosKey
   const { data: scenariosData } = useSWR<WorkScenariosResponse>(
     modalOpen ? scenariosKey : null,
     simpleFetcher(scenariosKey),
   )
-  const plansKey = "/api/independence/plans"
   const { data: plansData } = useSWR<PlansResponse>(
     modalOpen ? plansKey : null,
     simpleFetcher(plansKey),
@@ -161,9 +159,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   // (one targeted lookup) rather than scanning every portfolio's holdings.
   const cpfAssetId = cpfConfig?.assetId
   const { data: cpfPortfolioId } = useSWR(
-    modalOpen && cpfAssetId
-      ? `/api/assets/${cpfAssetId}/positions?date=today`
-      : null,
+    modalOpen && cpfAssetId ? assetPositionsKey(cpfAssetId) : null,
     async (url: string): Promise<string> => {
       const res = await fetch(url)
       if (!res.ok) return ""
@@ -320,11 +316,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     if (!canSubmit) return
     await handleSubmit(async () => {
       const payload = buildPayload()
-      const response = await fetch("/api/trns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      const response = await createTrns(payload)
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(
@@ -334,13 +326,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
       // Remember the selection for next time (best-effort).
       try {
-        await fetch("/api/me", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            defaultPayslipPortfolioId: effectivePortfolioId,
-            defaultPayslipCashAssetId: effectiveCashAssetId,
-          }),
+        await updateMe({
+          defaultPayslipPortfolioId: effectivePortfolioId,
+          defaultPayslipCashAssetId: effectiveCashAssetId,
         })
       } catch {
         // Non-fatal — the transactions already posted.
@@ -348,7 +336,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
       const portfolio = portfolios.find((p) => p.id === effectivePortfolioId)
       if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
-      globalMutate("/api/holdings/aggregated?asAt=today")
+      globalMutate(aggregatedHoldingsTodayKey)
       // Wealth screen sums portfolio.marketValue from this list; without
       // invalidating it the top-line total stays stale after a payslip posts.
       globalMutate(portfoliosKey)
@@ -482,11 +470,11 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
             <div className="pt-2 border-t border-amber-200 text-xs text-gray-600 space-y-1">
               <div className="flex justify-between">
                 <span>{"Your contribution"}</span>
-                <span>{formatAmount(dc.employeeContribution)}</span>
+                <span>{formatCurrency(dc.employeeContribution)}</span>
               </div>
               <div className="flex justify-between">
                 <span>{"Employer contribution"}</span>
-                <span>{formatAmount(dc.employerContribution)}</span>
+                <span>{formatCurrency(dc.employerContribution)}</span>
               </div>
               <div
                 className="flex justify-between pt-1 border-t border-amber-200 font-semibold text-gray-800"
@@ -494,7 +482,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
               >
                 <span>{"Total contribution"}</span>
                 <span>
-                  {formatAmount(
+                  {formatCurrency(
                     dc.employeeContribution + dc.employerContribution,
                   )}
                 </span>

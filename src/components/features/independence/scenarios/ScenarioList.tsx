@@ -12,9 +12,13 @@ import EmptyState from "@components/ui/EmptyState"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import {
+  deletedWorkScenariosKey,
+  workScenariosKey,
+} from "@utils/api/client/independence"
 
-const scenariosKey = "/api/independence/work-scenarios"
-const deletedKey = "/api/independence/work-scenarios/deleted"
+const scenariosKey = workScenariosKey
+const deletedKey = deletedWorkScenariosKey
 
 interface ScenarioListProps {
   /** Plan currency used to default a NEW scenario. */

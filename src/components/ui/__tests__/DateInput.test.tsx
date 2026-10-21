@@ -134,7 +134,7 @@ describe("DateInput", () => {
     beforeEach(() => {
       // Mock today's date
       jest.useFakeTimers()
-      jest.setSystemTime(new Date("2024-06-15").getTime())
+      jest.setSystemTime(new Date(2024, 5, 15, 12).getTime())
     })
 
     afterEach(() => {

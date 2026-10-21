@@ -14,8 +14,10 @@ import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import Link from "next/link"
 import WeightedSellDialog from "@components/features/brokers/WeightedSellDialog"
-
-const brokersKey = "/api/brokers"
+import { brokerTrnHoldingsKey } from "@utils/api/client/trns"
+import { brokerHoldingsKey } from "@utils/api/client/holdings"
+import { brokersKey } from "@utils/api/client/brokers"
+import { formatQuantity } from "@lib/formatters"
 
 export default withPageAuthRequired(
   function BrokerHoldings(): React.ReactElement {
@@ -38,7 +40,7 @@ export default withPageAuthRequired(
     // Fetch split-adjusted positions from svc-position
     const positionsKey =
       brokerId && typeof brokerId === "string"
-        ? `/api/holdings/broker/${brokerId}?value=false`
+        ? brokerHoldingsKey(brokerId)
         : null
     const { data: positionsData, error: positionsError } = useSwr<{
       data: HoldingContract
@@ -47,7 +49,7 @@ export default withPageAuthRequired(
     // Fetch transaction details from bc-data for drill-down
     const transactionsKey =
       brokerId && typeof brokerId === "string"
-        ? `/api/trns/broker/${brokerId}/holdings`
+        ? brokerTrnHoldingsKey(brokerId)
         : null
     const { data: transactionsData, error: transactionsError } =
       useSwr<BrokerHoldingsResponse>(
@@ -160,13 +162,6 @@ export default withPageAuthRequired(
     const handleSellSubmitted = (): void => {
       if (positionsKey) mutate(positionsKey)
       if (transactionsKey) mutate(transactionsKey)
-    }
-
-    const formatQuantity = (qty: number): string => {
-      return qty.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 4,
-      })
     }
 
     const renderHoldingRow = (

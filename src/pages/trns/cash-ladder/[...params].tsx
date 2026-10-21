@@ -11,11 +11,7 @@ import { getAssetCurrency, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
-
-// SWR key for cash ladder
-function cashLadderKey(portfolioId: string, cashAssetId: string): string {
-  return `/api/trns/portfolio/${portfolioId}/cash-ladder/${cashAssetId}`
-}
+import { cashLadderKey, deleteTrn } from "@utils/api/client/trns"
 
 // Format transaction description for cash ladder
 // Priority: 1) transaction comments, 2) type-specific description with asset name
@@ -183,9 +179,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   const handleDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!deleteTarget) return
     try {
-      const response = await fetch(`/api/trns/trades/${deleteTarget.id}`, {
-        method: "DELETE",
-      })
+      const response = await deleteTrn(deleteTarget.id)
       if (response.ok) {
         setTimeout(() => {
           mutate(holdingKey(deleteTarget.portfolioCode, "today"))

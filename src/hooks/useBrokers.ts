@@ -2,9 +2,17 @@ import { useCallback } from "react"
 import useSwr from "swr"
 import { BrokerInput, BrokerWithAccounts, Asset } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { accountsKey } from "@utils/api/client/assets"
+import {
+  brokersWithAccountsKey,
+  createBroker,
+  deleteBroker as requestBrokerDelete,
+  transferBrokerHoldings,
+  updateBroker,
+} from "@utils/api/client/brokers"
 
-const brokersKey = "/api/brokers?includeAccounts=true"
-const accountAssetsKey = "/api/assets?category=ACCOUNT"
+const brokersKey = brokersWithAccountsKey
+const accountAssetsKey = accountsKey
 
 interface UseBrokersResult {
   brokers: BrokerWithAccounts[]
@@ -30,14 +38,9 @@ export function useBrokers(): UseBrokersResult {
 
   const saveBroker = useCallback(
     async (id: string | undefined, formData: BrokerInput): Promise<void> => {
-      const url = id ? `/api/brokers/${id}` : "/api/brokers"
-      const method = id ? "PATCH" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+      const response = id
+        ? await updateBroker(id, formData)
+        : await createBroker(formData)
 
       if (!response.ok) {
         const text = await response.text()
@@ -50,9 +53,7 @@ export function useBrokers(): UseBrokersResult {
 
   const deleteBroker = useCallback(
     async (id: string): Promise<void> => {
-      const response = await fetch(`/api/brokers/${id}`, {
-        method: "DELETE",
-      })
+      const response = await requestBrokerDelete(id)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -67,10 +68,7 @@ export function useBrokers(): UseBrokersResult {
 
   const transferTransactions = useCallback(
     async (fromId: string, toId: string): Promise<void> => {
-      const response = await fetch(
-        `/api/brokers/${fromId}/transfer?toBrokerId=${toId}`,
-        { method: "POST" },
-      )
+      const response = await transferBrokerHoldings(fromId, toId)
 
       if (!response.ok) {
         const errorData = await response.json()

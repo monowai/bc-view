@@ -6,6 +6,7 @@ import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAss
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { todayIso } from "@lib/formatters"
+import { createTrns } from "@utils/api/client/trns"
 
 interface Props {
   config: StandaloneCompositeConfig
@@ -75,11 +76,7 @@ export default function LinkCompositeDialog({
         comments: `Link ${config.assetName} balance to portfolio`,
         subAccounts: subAccountsMap,
       }
-      const r = await fetch("/api/trns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolioId, data: [trnData] }),
-      })
+      const r = await createTrns({ portfolioId, data: [trnData] })
       if (!r.ok) {
         const body = await r.json().catch(() => ({}))
         throw new Error(body.message || body.detail || "Link failed")

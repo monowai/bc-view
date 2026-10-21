@@ -3,8 +3,9 @@ import useSwr from "swr"
 import type { WorkScenariosResponse } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { useCompositeProjectionContext } from "../composite/CompositeProjectionContext"
+import { workScenariosKey } from "@utils/api/client/independence"
 
-const WORK_SCENARIOS_URL = "/api/independence/work-scenarios"
+const WORK_SCENARIOS_URL = workScenariosKey
 
 /**
  * Which work scenario this plan's accumulation runs on.

@@ -4,20 +4,14 @@ import {
   WatchlistItemUpdate,
 } from "types/beancounter"
 import { watchlistKey } from "@utils/api/fetchHelper"
+import { ApiError, readServerMessage } from "@utils/api/client/request"
 
 /** A failed watchlist call, keeping the HTTP status so callers can branch on 400 / 409. */
-export class WatchlistApiError extends Error {
-  readonly status: number
+export class WatchlistApiError extends ApiError {
   constructor(status: number, message: string) {
-    super(message)
+    super(status, message)
     this.name = "WatchlistApiError"
-    this.status = status
   }
-}
-
-interface ErrorEnvelope {
-  message?: string
-  error?: string
 }
 
 async function request(
@@ -31,10 +25,9 @@ async function request(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as ErrorEnvelope
     throw new WatchlistApiError(
       res.status,
-      data.message || data.error || `Request failed (${res.status})`,
+      (await readServerMessage(res)) || `Request failed (${res.status})`,
     )
   }
   return res

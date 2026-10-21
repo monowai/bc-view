@@ -20,6 +20,10 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { todayIso } from "@lib/formatters"
+import {
+  loadCorporateEventsUrl,
+  processCorporateEvent,
+} from "@utils/api/client/corporateEvents"
 
 interface CorporateActionsPopupProps {
   asset: Asset
@@ -56,7 +60,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   const initialFromDate = (() => {
     if (isValidDate(fromDateProp)) return fromDateProp!
     const date = new Date(initialToDate)
-    date.setFullYear(date.getFullYear() - 1)
+    date.setUTCFullYear(date.getUTCFullYear() - 1)
     return date.toISOString().split("T")[0]
   })()
 
@@ -123,7 +127,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
       for (
         let currentDate = new Date(startDate);
         currentDate <= endDate;
-        currentDate.setDate(currentDate.getDate() + intervalDays)
+        currentDate.setUTCDate(currentDate.getUTCDate() + intervalDays)
       ) {
         datesToLoad.push(currentDate.toISOString().split("T")[0])
       }
@@ -142,7 +146,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
       let lastError = ""
 
       for (const dateStr of datesToLoad) {
-        const loadUrl = `/api/corporate-events/load/asset/${asset.id}?asAt=${dateStr}`
+        const loadUrl = loadCorporateEventsUrl(asset.id, dateStr)
         console.log(`[CorporateActions] Load URL: ${loadUrl}`)
         const response = await fetch(loadUrl, { method: "POST" })
         console.log(
@@ -203,10 +207,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
       payDate || (event ? calculateEffectivePayDate(event) : toDate)
 
     try {
-      const url = payDate
-        ? `/api/corporate-events/process/${eventId}?payDate=${payDate}`
-        : `/api/corporate-events/process/${eventId}`
-      const response = await fetch(url, { method: "POST" })
+      const response = await processCorporateEvent(eventId, payDate)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -274,10 +275,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
       try {
         const effectivePayDate = calculateEffectivePayDate(event)
-        const response = await fetch(
-          `/api/corporate-events/process/${event.id}`,
-          { method: "POST" },
-        )
+        const response = await processCorporateEvent(event.id)
 
         if (response.ok) {
           setProcessedPayDates((prev) => ({

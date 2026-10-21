@@ -23,12 +23,20 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import DetailedTransactionsTable from "@components/features/transactions/DetailedTransactionsTable"
 import AggregatedTransactionsTable from "@components/features/transactions/AggregatedTransactionsTable"
 import PriceChartPopup from "@components/features/assets/PriceChartPopup"
+import { getSessionValue, setSessionValue } from "@lib/storage/sessionState"
+import { getDateOffset } from "@lib/dateUtils"
+import { todayIso } from "@lib/formatters"
 import {
-  getToday,
-  getDateOffset,
-  getSessionValue,
-  setSessionValue,
-} from "@lib/sessionStorage"
+  deleteTrnById,
+  isProposedTrnsKey,
+  patchTrn,
+  proposedCountKey,
+  proposedTrnsKey,
+  settlePortfolioTrns,
+  settledTrnsUrl,
+  unsettlePortfolioTrns,
+} from "@utils/api/client/trns"
+import { brokersKey } from "@utils/api/client/brokers"
 
 // Session storage keys for filter preferences
 const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
@@ -175,9 +183,7 @@ function ProposedTransactions(): React.JSX.Element {
   }, [filtersOpen, sessionInitialized])
 
   // Fetch proposed transactions across all portfolios, bounded to those due on or before toDate.
-  const proposedKey = user
-    ? `/api/trns/proposed?scope=${scope}&asAt=${toDate}`
-    : null
+  const proposedKey = user ? proposedTrnsKey(scope, toDate) : null
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
@@ -197,8 +203,8 @@ function ProposedTransactions(): React.JSX.Element {
 
   // Fetch brokers for dropdown
   const { data: brokersData } = useSwr(
-    user ? "/api/brokers" : null,
-    simpleFetcher("/api/brokers"),
+    user ? brokersKey : null,
+    simpleFetcher(brokersKey),
   )
   const brokers: Broker[] = useMemo(
     () => brokersData?.data || [],
@@ -219,9 +225,7 @@ function ProposedTransactions(): React.JSX.Element {
       setSettledLoading(true)
       setSettledError(null)
       try {
-        const response = await fetch(
-          `/api/trns/settled?from=${fromDate}&to=${toDate}`,
-        )
+        const response = await fetch(settledTrnsUrl(fromDate, toDate))
         if (!response.ok) {
           setSettledError(`Failed to fetch: ${response.statusText}`)
           return
@@ -438,7 +442,7 @@ function ProposedTransactions(): React.JSX.Element {
         // When changing to SETTLED, default tradeDate to today
         const updates: Partial<ProposedTransaction> = { editedStatus: value }
         if (value === "SETTLED" && trn.editedStatus !== "SETTLED") {
-          updates.editedTradeDate = getToday()
+          updates.editedTradeDate = todayIso()
         }
         return { ...trn, ...updates }
       }),
@@ -494,7 +498,7 @@ function ProposedTransactions(): React.JSX.Element {
 
     const updates: Partial<ProposedTransaction> = { editedStatus: value }
     if (value === "SETTLED") {
-      updates.editedTradeDate = getToday()
+      updates.editedTradeDate = todayIso()
     }
 
     setTransactions((prev) =>
@@ -583,9 +587,7 @@ function ProposedTransactions(): React.JSX.Element {
     setDeleteTargetId(null)
 
     try {
-      const response = await fetch(`/api/trns/${id}`, {
-        method: "DELETE",
-      })
+      const response = await deleteTrnById(id)
 
       if (!response.ok) {
         setError(`Failed to delete transaction: ${response.statusText}`)
@@ -595,10 +597,7 @@ function ProposedTransactions(): React.JSX.Element {
       // Remove from local state and invalidate every /api/trns/proposed* key
       // (covers all scopes plus the /count badge).
       setTransactions((prev) => prev.filter((t) => t.id !== id))
-      mutate(
-        (key) =>
-          typeof key === "string" && key.startsWith("/api/trns/proposed"),
-      )
+      mutate(isProposedTrnsKey)
     } catch (err) {
       console.error("Error deleting transaction:", err)
       setError(
@@ -663,14 +662,7 @@ function ProposedTransactions(): React.JSX.Element {
 
       // Settle each portfolio's transactions
       for (const [portfolioId, trnIds] of byPortfolio) {
-        const response = await fetch(
-          `/api/trns/portfolio/${portfolioId}/settle`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ trnIds }),
-          },
-        )
+        const response = await settlePortfolioTrns(portfolioId, trnIds)
 
         if (!response.ok) {
           setError(`Failed to settle: ${response.statusText}`)
@@ -681,7 +673,7 @@ function ProposedTransactions(): React.JSX.Element {
 
       // Refresh and clear selection
       mutate(proposedKey)
-      mutate("/api/trns/proposed/count")
+      mutate(proposedCountKey)
       setSelectedIds(new Set())
     } catch (err) {
       console.error("Error settling transactions:", err)
@@ -711,14 +703,7 @@ function ProposedTransactions(): React.JSX.Element {
       // Unsettle each portfolio's transactions. The server reverts each trade's
       // auto-settled cash legs to PROPOSED (not deleted); mutate shows them on refresh.
       for (const [portfolioId, trnIds] of byPortfolio) {
-        const response = await fetch(
-          `/api/trns/portfolio/${portfolioId}/unsettle`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ trnIds }),
-          },
-        )
+        const response = await unsettlePortfolioTrns(portfolioId, trnIds)
 
         if (!response.ok) {
           setError(`Failed to unsettle: ${response.statusText}`)
@@ -729,7 +714,7 @@ function ProposedTransactions(): React.JSX.Element {
 
       // Refresh and clear selection
       mutate(proposedKey)
-      mutate("/api/trns/proposed/count")
+      mutate(proposedCountKey)
       setSelectedIds(new Set())
     } catch (err) {
       console.error("Error unsettling transactions:", err)
@@ -779,31 +764,24 @@ function ProposedTransactions(): React.JSX.Element {
     if (!hasChanges(trn)) return true
 
     try {
-      const response = await fetch(
-        `/api/trns/patch/${trn.portfolio.id}/${trn.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            assetId: trn.asset.id,
-            trnType: trn.trnType,
-            quantity: trn.quantity,
-            tradeCurrency: trn.tradeCurrency.code,
-            price: trn.editedPrice,
-            fees: trn.editedFees,
-            status: trn.editedStatus,
-            tradeDate: trn.editedTradeDate,
-            tradeAmount: calculateTradeAmount(
-              trn.quantity,
-              trn.editedPrice || trn.price,
-              0,
-              trn.editedFees || 0,
-              trn.trnType,
-            ),
-            brokerId: trn.editedBrokerId,
-          }),
-        },
-      )
+      const response = await patchTrn(trn.portfolio.id, trn.id, {
+        assetId: trn.asset.id,
+        trnType: trn.trnType,
+        quantity: trn.quantity,
+        tradeCurrency: trn.tradeCurrency.code,
+        price: trn.editedPrice,
+        fees: trn.editedFees,
+        status: trn.editedStatus,
+        tradeDate: trn.editedTradeDate,
+        tradeAmount: calculateTradeAmount(
+          trn.quantity,
+          trn.editedPrice || trn.price,
+          0,
+          trn.editedFees || 0,
+          trn.trnType,
+        ),
+        brokerId: trn.editedBrokerId,
+      })
 
       if (!response.ok) {
         console.error(`Failed to update transaction: ${response.statusText}`)
@@ -826,7 +804,7 @@ function ProposedTransactions(): React.JSX.Element {
     if (results.every((r) => r)) {
       // Refresh the data and badge count
       mutate(proposedKey)
-      mutate("/api/trns/proposed/count")
+      mutate(proposedCountKey)
     } else {
       setError("Some transactions failed to save")
     }

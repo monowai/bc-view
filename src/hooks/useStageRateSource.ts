@@ -3,9 +3,10 @@ import { mutate } from "swr"
 import type { RetirementPlan } from "types/independence"
 import { toPlanRequestPayload } from "@utils/independence/planHelpers"
 import { toErrorMessage } from "@lib/formatters"
+import { plansKey, updatePlan } from "@utils/api/client/independence"
 
 /** SWR key the composite page reads its phase plans from. */
-const PLANS_KEY = "/api/independence/plans"
+const PLANS_KEY = plansKey
 
 const FAILED = "Failed to change which rates this stage uses"
 
@@ -26,13 +27,9 @@ async function writeAssumptionSource(
   // Full-plan echo: svc-retire's PATCH replaces every field it receives and
   // defaults the ones it doesn't, so a {assumptionsInherited}-only body
   // 400s or clobbers the stage's other settings.
-  const response = await fetch(`/api/independence/plans/${plan.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...toPlanRequestPayload(plan),
-      assumptionsInherited,
-    }),
+  const response = await updatePlan(plan.id, {
+    ...toPlanRequestPayload(plan),
+    assumptionsInherited,
   })
   if (!response.ok) throw new Error(FAILED)
 }

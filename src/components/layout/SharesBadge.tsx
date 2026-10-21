@@ -7,6 +7,7 @@ import {
   PendingSharesResponse,
   PendingResourceSharesResponse,
 } from "types/beancounter"
+import { sharesPendingKey } from "@utils/api/client/shares"
 
 /**
  * Header notification badge showing the count of pending share actions
@@ -18,7 +19,7 @@ export default function SharesBadge(): React.ReactElement | null {
   const { isRegistered, isChecking } = useRegistration()
 
   const { data, error } = useSwr<PendingSharesResponse>(
-    isRegistered ? "/api/shares/pending" : null,
+    isRegistered ? sharesPendingKey : null,
     fetcher,
     {
       refreshInterval: 300000,

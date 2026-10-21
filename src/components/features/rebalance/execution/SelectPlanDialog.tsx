@@ -4,6 +4,7 @@ import Spinner from "@components/ui/Spinner"
 import ModelCard from "@components/features/rebalance/common/ModelCard"
 import { useApprovedModels } from "@components/features/rebalance/hooks/useApprovedModels"
 import { ModelDto, PlanDto } from "types/rebalance"
+import { approvedModelPlansUrl } from "@utils/api/client/rebalance"
 
 interface SelectPlanDialogProps {
   modalOpen: boolean
@@ -37,9 +38,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
 
     try {
       // Fetch the approved plan
-      const response = await fetch(
-        `/api/rebalance/models/${model.id}/plans/approved`,
-      )
+      const response = await fetch(approvedModelPlansUrl(model.id))
       if (response.ok) {
         const planData = await response.json()
         onSelectPlan(model, planData.data, filterByModel)

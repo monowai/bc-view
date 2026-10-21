@@ -39,6 +39,8 @@ import {
 } from "@lib/wealth/wealthSummary"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
+import { investmentsMonthlyKey } from "@utils/api/client/trns"
+import { plansKey } from "@utils/api/client/independence"
 
 type SortConfig = {
   key: string | null
@@ -98,8 +100,8 @@ function WealthDashboard(): React.ReactElement {
 
   // Fetch phase plans (every journey's, flat) and the journeys themselves
   const { data: plansData } = useSwr<IndependencePlansResponse>(
-    "/api/independence/plans",
-    simpleFetcher("/api/independence/plans"),
+    plansKey,
+    simpleFetcher(plansKey),
   )
   const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
 
@@ -144,7 +146,7 @@ function WealthDashboard(): React.ReactElement {
 
   // Fetch investment over the rolling 30-day window (depends on display currency)
   const monthlyInvestmentUrl = displayCurrency
-    ? `/api/trns/investments/monthly?currency=${displayCurrency.code}&days=30`
+    ? investmentsMonthlyKey(displayCurrency.code)
     : null
   const { data: monthlyInvestmentData } = useSwr<{
     startDate: string

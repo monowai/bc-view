@@ -8,7 +8,7 @@ import { Transaction } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import { deleteTrn } from "@lib/trns/apiHelper"
+import { deleteTrn } from "@utils/api/client/trns"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {

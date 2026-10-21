@@ -21,26 +21,18 @@ import type { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
 import KpiCard from "@components/ui/KpiCard"
 import CollapsibleSection from "@components/ui/CollapsibleSection"
-import { currencySymbolFor } from "@lib/formatters"
+import {
+  currencySymbolFor,
+  formatCompact,
+  formatCompactBare,
+  formatCurrencySymbol,
+} from "@lib/formatters"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
 
-function fmtShort(v: number, currency: string): string {
-  const sym = currencySymbolFor(currency)
-  if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}M`
-  if (v >= 1_000) return `${sym}${(v / 1_000).toFixed(0)}K`
-  return `${sym}${v.toLocaleString()}`
-}
-
 function fmtFull(v: number, currency: string): string {
-  return `${currencySymbolFor(currency)}${Math.round(v).toLocaleString()}`
-}
-
-function fmtAxis(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
-  return String(v)
+  return formatCurrencySymbol(Math.round(v), currencySymbolFor(currency))
 }
 
 interface ChartRow {
@@ -254,13 +246,17 @@ export default function PlanFiOverviewTab({
         <KpiCard
           label="FI Target"
           value={
-            hideValues ? HIDDEN_VALUE : fmtShort(fiNumber, effectiveCurrency)
+            hideValues
+              ? HIDDEN_VALUE
+              : formatCompact(fiNumber, effectiveCurrency)
           }
           sub="25× annual net spend"
         />
         <KpiCard
           label={isAchieved ? "Surplus" : "Gap to FI"}
-          value={hideValues ? HIDDEN_VALUE : fmtShort(gap, effectiveCurrency)}
+          value={
+            hideValues ? HIDDEN_VALUE : formatCompact(gap, effectiveCurrency)
+          }
           sub={isAchieved ? "above target" : "remaining"}
           tone={isAchieved ? "positive" : "default"}
         />
@@ -340,7 +336,7 @@ export default function PlanFiOverviewTab({
               FI Number ={" "}
               {hideValues
                 ? HIDDEN_VALUE
-                : fmtShort(fiNumber, effectiveCurrency)}{" "}
+                : formatCompact(fiNumber, effectiveCurrency)}{" "}
               (25× annual net spend at the 4% rule)
             </p>
           </div>
@@ -492,7 +488,7 @@ export default function PlanFiOverviewTab({
               }}
             />
             <YAxis
-              tickFormatter={hideValues ? () => "***" : fmtAxis}
+              tickFormatter={hideValues ? () => "***" : formatCompactBare}
               tick={{ fontSize: 11, fill: "#94a3b8" }}
               tickLine={false}
               axisLine={false}
@@ -503,7 +499,7 @@ export default function PlanFiOverviewTab({
               formatter={(val: any, name: any) => {
                 if (hideValues) return [HIDDEN_VALUE, name ?? ""]
                 const n = typeof val === "number" ? val : 0
-                return [fmtShort(n, effectiveCurrency), name ?? ""]
+                return [formatCompact(n, effectiveCurrency), name ?? ""]
               }}
               labelFormatter={(age) => `Age ${age}`}
               contentStyle={{
@@ -585,7 +581,7 @@ export default function PlanFiOverviewTab({
                 label={{
                   value: hideValues
                     ? "FI Target"
-                    : `FI: ${fmtShort(fiNumber, effectiveCurrency)}`,
+                    : `FI: ${formatCompact(fiNumber, effectiveCurrency)}`,
                   position: "insideTopRight",
                   fontSize: 11,
                   fill: "#f97316",

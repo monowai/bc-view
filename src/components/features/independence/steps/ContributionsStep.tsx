@@ -25,6 +25,8 @@ import {
   SummaryBox,
   SummaryItem,
 } from "../form"
+import { assetsKey } from "@utils/api/client/assets"
+import { fxPairsKey, postFxRates } from "@utils/api/client/fx"
 
 const msg = wizardMessages.steps.contributions
 
@@ -91,8 +93,8 @@ export default function ContributionsStep({
 
   // Fetch user's assets to get names and categories
   const { data: assetsData, isLoading: assetsLoading } = useSwr<AssetsResponse>(
-    "/api/assets",
-    simpleFetcher("/api/assets"),
+    assetsKey,
+    simpleFetcher(assetsKey),
   )
 
   const isLoading = configsLoading || assetsLoading
@@ -168,22 +170,15 @@ export default function ContributionsStep({
     }))
   }, [rentalProperties, excludedRentalIds, planCurrency])
 
-  const fxKey =
-    rentalFxPairs.length > 0
-      ? `/api/fx?pairs=${rentalFxPairs.map((p) => `${p.from}:${p.to}`).join(",")}`
-      : null
+  const fxKey = rentalFxPairs.length > 0 ? fxPairsKey(rentalFxPairs) : null
 
   const { data: fxData } = useSwr(
     fxKey,
     fxKey
       ? async () => {
-          const res = await fetch("/api/fx", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rateDate: "today",
-              pairs: rentalFxPairs,
-            }),
+          const res = await postFxRates({
+            rateDate: "today",
+            pairs: rentalFxPairs,
           })
           if (!res.ok) return null
           return res.json()

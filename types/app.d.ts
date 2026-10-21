@@ -1,4 +1,8 @@
 import { Market, Portfolio, TrnInput } from "./beancounter"
+import type {
+  GroupByOption as GroupBy,
+  ValueInOption as ValueIn,
+} from "./constants"
 
 interface TransactionUpload {
   portfolio: Portfolio
@@ -7,7 +11,7 @@ interface TransactionUpload {
 }
 
 interface FormatNumber {
-  value
+  value: number | null | undefined // anything but a number renders defaultValue
   scale?: number
   multiplier?: number
   defaultValue?: string
@@ -51,7 +55,7 @@ export interface DisplayCurrencyOption {
 
 export interface TradeDefaults {
   readonly onMarket: boolean
-  setOffMarket(value: boolean)
+  setOffMarket(value: boolean): void
   readonly market: Market
   setMarket(market: Market): void
   readonly trnInput: TrnInput

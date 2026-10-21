@@ -16,6 +16,7 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Dialog from "@components/ui/Dialog"
 import { GROUP_BY_OPTIONS } from "types/constants"
+import { incomeMonthlyKey } from "@utils/api/client/trns"
 
 interface IncomeViewProps {
   portfolio?: Portfolio
@@ -192,7 +193,7 @@ const IncomeView: React.FC<IncomeViewProps> = ({
     params.append("portfolioIds", portfolioIds.join(","))
   }
 
-  const apiUrl = `/api/trns/income/monthly?${params.toString()}`
+  const apiUrl = incomeMonthlyKey(params.toString())
   const { data, error, isLoading } = useSwr<MonthlyIncomeResponse>(
     apiUrl,
     simpleFetcher(apiUrl),

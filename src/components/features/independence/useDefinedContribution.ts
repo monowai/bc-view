@@ -1,5 +1,6 @@
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { definedContributionKey } from "@utils/api/client/independence"
 
 /**
  * A single defined-contribution bucket (e.g. CPF OA / SA|RA / MA). `amount` is
@@ -35,9 +36,7 @@ export function useDefinedContribution(
 } {
   const shouldFetch = salary > 0 && age != null && age > 0
 
-  const url = shouldFetch
-    ? `/api/independence/projection/defined-contribution?salary=${salary}&age=${age}`
-    : null
+  const url = shouldFetch ? definedContributionKey(salary, age as number) : null
 
   // keepPreviousData: the salary is in the URL, so every keystroke is a new SWR
   // key. Without this, `data` blips to undefined between keys and any

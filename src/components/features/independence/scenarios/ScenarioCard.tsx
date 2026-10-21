@@ -1,6 +1,7 @@
 import React from "react"
 import { WorkScenario } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { formatCurrencySymbol } from "@lib/formatters"
 
 const HIDDEN_VALUE = "****"
 
@@ -40,7 +41,7 @@ export default function ScenarioCard({
 
   const formatMoney = (value: number): string => {
     if (hideValues) return HIDDEN_VALUE
-    return `${currency}${Math.round(value).toLocaleString()}`
+    return formatCurrencySymbol(Math.round(value), currency)
   }
 
   const netContribution = scenario.computedMonthlyContribution

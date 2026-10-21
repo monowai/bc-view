@@ -9,6 +9,7 @@ import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { convertAt, sumConverted } from "@lib/currency"
+import { todayIso } from "@lib/formatters"
 
 interface PortfoliosListProps {
   portfolios: Portfolio[]
@@ -51,9 +52,7 @@ function saveSelectedCodes(codes: string[]): void {
 // Check if valuation date is stale (not today)
 function isStale(valuedAt: string | undefined): boolean {
   if (!valuedAt) return true
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-  return valuedAt !== today
+  return valuedAt !== todayIso()
 }
 
 // Format the valued at date for display

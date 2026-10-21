@@ -10,6 +10,7 @@ import {
   MilestoneState,
 } from "@utils/milestones/types"
 import { rootLoader } from "@components/ui/PageLoader"
+import { updateMe } from "@utils/api/client/account"
 
 const MODE_OPTIONS: { value: MilestoneMode; label: string; desc: string }[] = [
   {
@@ -61,11 +62,7 @@ function MilestonesPage(): React.ReactElement {
 
   const handleModeChange = async (newMode: MilestoneMode): Promise<void> => {
     try {
-      await fetch("/api/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ milestoneMode: newMode }),
-      })
+      await updateMe({ milestoneMode: newMode })
       // Context will pick up the change on next fetch
       window.location.reload()
     } catch (error) {

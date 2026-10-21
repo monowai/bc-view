@@ -7,6 +7,7 @@ import {
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { createTrns } from "@utils/api/client/trns"
 
 interface SetCashBalanceDialogProps {
   modalOpen: boolean
@@ -71,27 +72,23 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
     if (calculation.amount === 0) return
     await handleSubmit(async () => {
       const displayName = assetName || assetCode || currency
-      const response = await fetch("/api/trns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          portfolioId: portfolio.id,
-          data: [
-            {
-              assetId,
-              cashAssetId: assetId,
-              trnType: calculation.type,
-              quantity: calculation.amount,
-              // The import path set both; cashAmount is what the cash ladder reads,
-              // and the backend signs it from the trn type.
-              cashAmount: calculation.amount,
-              tradeCurrency: currency,
-              cashCurrency: currency,
-              status: "SETTLED",
-              comments: `Set ${displayName} balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
-            },
-          ],
-        }),
+      const response = await createTrns({
+        portfolioId: portfolio.id,
+        data: [
+          {
+            assetId,
+            cashAssetId: assetId,
+            trnType: calculation.type,
+            quantity: calculation.amount,
+            // The import path set both; cashAmount is what the cash ladder reads,
+            // and the backend signs it from the trn type.
+            cashAmount: calculation.amount,
+            tradeCurrency: currency,
+            cashCurrency: currency,
+            status: "SETTLED",
+            comments: `Set ${displayName} balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
+          },
+        ],
       })
 
       if (!response.ok) {

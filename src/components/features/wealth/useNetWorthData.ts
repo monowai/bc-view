@@ -8,6 +8,7 @@ import {
   holdingKey,
 } from "@utils/api/fetchHelper"
 import { useFxRates } from "@hooks/useFxRates"
+import { aggregatedHoldingsQueryUrl } from "@utils/api/client/holdings"
 
 export interface UseNetWorthDataResult {
   portfolios: Portfolio[]
@@ -74,7 +75,7 @@ export function useNetWorthData(
     }
     const params = new URLSearchParams({ asAt: "today" })
     params.set("ids", includedIds.join(","))
-    return `/api/holdings/aggregated?${params.toString()}`
+    return aggregatedHoldingsQueryUrl(params.toString())
   }, [excludedPortfolioIds, portfolios])
 
   const { data: holdingsResponse, isLoading: holdingsLoading } = useSwr<{

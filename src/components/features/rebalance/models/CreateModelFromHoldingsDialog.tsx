@@ -12,6 +12,7 @@ import {
 import { AssetWeightWithDetails, ModelDto } from "types/rebalance"
 import { Holdings, Position } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { createModel, createModelPlan } from "@utils/api/client/rebalance"
 
 interface CreateModelFromHoldingsDialogProps {
   modalOpen: boolean
@@ -98,11 +99,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         clientId: clientId.trim() || undefined,
       }
 
-      const modelResponse = await fetch("/api/rebalance/models", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(modelPayload),
-      })
+      const modelResponse = await createModel(modelPayload)
 
       if (!modelResponse.ok) {
         const errorData = await modelResponse.json().catch(() => ({}))
@@ -122,14 +119,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         })),
       }
 
-      const planResponse = await fetch(
-        `/api/rebalance/models/${model.id}/plans`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(planPayload),
-        },
-      )
+      const planResponse = await createModelPlan(model.id, planPayload)
 
       if (!planResponse.ok) {
         // Plan creation failed, but model was created - navigate to it anyway

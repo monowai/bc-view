@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import type { PensionProjection } from "@lib/independence/planHelpers"
+import { projectLumpSum } from "@utils/api/client/independence"
 
 export interface LumpSumAssetConfig {
   assetId: string
@@ -59,15 +60,11 @@ export function useIndependencePlanProjections(
         }
 
         try {
-          const response = await fetch("/api/projection/lump-sum", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              monthlyContribution: config.monthlyContribution || 0,
-              expectedReturnRate: config.expectedReturnRate,
-              currentAge: currentAge,
-              payoutAge: config.payoutAge,
-            }),
+          const response = await projectLumpSum({
+            monthlyContribution: config.monthlyContribution || 0,
+            expectedReturnRate: config.expectedReturnRate,
+            currentAge: currentAge,
+            payoutAge: config.payoutAge,
           })
 
           if (!response.ok) {

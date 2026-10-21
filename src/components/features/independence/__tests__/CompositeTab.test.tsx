@@ -5,9 +5,9 @@ import "@testing-library/jest-dom"
 import CompositeTab from "../CompositeTab"
 import type {
   CompositeProjectionResult,
-  RetirementPlan,
   UserIndependenceSettings,
 } from "types/independence"
+import { makePlan } from "@test-fixtures/independence"
 
 // Mock recharts: in JSDOM the real ResponsiveContainer has width/height 0
 // and logs "The width(-1) and height(-1) of chart should be greater than 0".
@@ -95,37 +95,6 @@ jest.mock(
     })),
   }),
 )
-
-function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
-  return {
-    id: "plan-1",
-    ownerId: "owner-1",
-    name: "Test Plan",
-    planningHorizonYears: 30,
-    lifeExpectancy: 90,
-    monthlyExpenses: 3000,
-    expensesCurrency: "SGD",
-    cashReturnRate: 0.02,
-    equityReturnRate: 0.07,
-    housingReturnRate: 0.03,
-    inflationRate: 0.03,
-    cashAllocation: 20,
-    equityAllocation: 60,
-    housingAllocation: 20,
-    pensionMonthly: 0,
-    socialSecurityMonthly: 0,
-    otherIncomeMonthly: 0,
-    workingIncomeMonthly: 0,
-    workingExpensesMonthly: 0,
-    taxesMonthly: 0,
-    bonusMonthly: 0,
-    investmentAllocationPercent: 80,
-    isPrimary: false,
-    createdDate: "2025-01-01",
-    updatedDate: "2025-01-01",
-    ...overrides,
-  }
-}
 
 const settings: UserIndependenceSettings = {
   id: "s1",

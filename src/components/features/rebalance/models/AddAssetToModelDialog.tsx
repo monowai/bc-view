@@ -7,6 +7,7 @@ import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { clampWeightPercent } from "@lib/rebalance/weights"
+import { resolveAsset as getResolvedAsset } from "@utils/api/client/assets"
 
 interface AddAssetToModelDialogProps {
   modalOpen: boolean
@@ -111,7 +112,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     try {
       const params = new URLSearchParams({ code })
       if (market) params.set("market", market)
-      const response = await fetch(`/api/assets/resolve?${params.toString()}`)
+      const response = await getResolvedAsset(params.toString())
       if (!response.ok) {
         console.warn("Failed to resolve asset:", code, response.status)
         return null

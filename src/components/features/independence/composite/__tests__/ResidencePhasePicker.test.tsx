@@ -2,6 +2,7 @@ import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { CompositePhase, PlanPropertyIncome } from "types/independence"
+import { makeCompositeCtx } from "@test-fixtures/independence"
 import type { PrivateAssetConfig } from "types/beancounter"
 import {
   CompositeProjectionProvider,
@@ -82,38 +83,18 @@ const defaultPhases: CompositePhase[] = [
   { planId: "p2", fromAge: 75 },
 ]
 
-function makeCtx(
+const makeCtx = (
   overrides: Partial<CompositeProjectionValue> = {},
-): CompositeProjectionValue {
-  return {
+): CompositeProjectionValue =>
+  makeCompositeCtx({
     plans: [
       // Minimal RetirementPlan shape — only fields the component reads.
       { id: "p1", name: "Asia Plan" } as never,
       { id: "p2", name: "Europe Plan" } as never,
     ],
     phases: defaultPhases,
-    setPhases: jest.fn(),
-    displayCurrency: "USD",
-    setDisplayCurrency: jest.fn(),
-    excludedPlanIds: new Set<string>(),
-    toggleExclusion: jest.fn(),
-    compositeWorkScenarioId: undefined,
-    setCompositeWorkScenarioId: jest.fn(),
-    refreshProjection: jest.fn(),
-    projection: undefined,
-    scenarios: undefined,
-    isLoading: false,
-    isSettled: true,
-    error: null,
-    mc: {
-      result: null,
-      isRunning: false,
-      error: null,
-      run: jest.fn(),
-    },
     ...overrides,
-  }
-}
+  })
 
 function renderWithCtx(
   ctxOverrides: Partial<CompositeProjectionValue> = {},

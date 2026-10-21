@@ -22,7 +22,8 @@ export const calculateEffectivePayDate = (event: CorporateEvent): string => {
     return event.payDate
   }
   const recordDate = new Date(event.recordDate)
-  recordDate.setDate(recordDate.getDate() + DIVIDEND_PAY_DATE_OFFSET_DAYS)
+  // UTC on both sides: a local setter shifts a day across daylight saving.
+  recordDate.setUTCDate(recordDate.getUTCDate() + DIVIDEND_PAY_DATE_OFFSET_DAYS)
   return recordDate.toISOString().split("T")[0]
 }
 
@@ -68,9 +69,11 @@ export const getMatchingTransaction = (
     // Use payDate for matching since transactions settle around that time
     const payDate = new Date(event.payDate)
     const windowStart = new Date(payDate)
-    windowStart.setDate(windowStart.getDate() - TRANSACTION_MATCH_WINDOW_DAYS)
+    windowStart.setUTCDate(
+      windowStart.getUTCDate() - TRANSACTION_MATCH_WINDOW_DAYS,
+    )
     const windowEnd = new Date(payDate)
-    windowEnd.setDate(windowEnd.getDate() + TRANSACTION_MATCH_WINDOW_DAYS)
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + TRANSACTION_MATCH_WINDOW_DAYS)
     const trnDate = new Date(trn.tradeDate)
     return trnDate >= windowStart && trnDate <= windowEnd
   })
@@ -102,7 +105,7 @@ export const isEventReconciled = (
  * @returns true if position was closed before the event's record date
  */
 export const isClosedBeforeEvent = (
-  closedDate: string | undefined,
+  closedDate: string | null | undefined,
   event: CorporateEvent,
 ): boolean => {
   if (!closedDate) return false // Position still open

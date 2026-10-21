@@ -11,6 +11,9 @@ import {
 } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { accountsKey } from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -58,8 +61,8 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
 
   // Fetch available account assets (ACCOUNT category - bank accounts)
   const { data: accountAssetsData } = useSWR(
-    modalOpen ? "/api/assets?category=ACCOUNT" : null,
-    simpleFetcher("/api/assets?category=ACCOUNT"),
+    modalOpen ? accountsKey : null,
+    simpleFetcher(accountsKey),
   )
 
   // Fetch currencies for CASH market assets
@@ -213,13 +216,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
 
       if (isSamePortfolio) {
         // Same portfolio: send both in one request
-        const response = await fetch("/api/trns", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId: sourceData.portfolioId,
-            data: [withdrawal, deposit],
-          }),
+        const response = await createTrns({
+          portfolioId: sourceData.portfolioId,
+          data: [withdrawal, deposit],
         })
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
@@ -229,13 +228,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         }
       } else {
         // Different portfolios: two sequential requests
-        const withdrawalResponse = await fetch("/api/trns", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId: sourceData.portfolioId,
-            data: [withdrawal],
-          }),
+        const withdrawalResponse = await createTrns({
+          portfolioId: sourceData.portfolioId,
+          data: [withdrawal],
         })
         if (!withdrawalResponse.ok) {
           const errorData = await withdrawalResponse.json().catch(() => ({}))
@@ -246,13 +241,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           )
         }
 
-        const depositResponse = await fetch("/api/trns", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId: targetPortfolioId,
-            data: [deposit],
-          }),
+        const depositResponse = await createTrns({
+          portfolioId: targetPortfolioId,
+          data: [deposit],
         })
         if (!depositResponse.ok) {
           const errorData = await depositResponse.json().catch(() => ({}))
@@ -266,7 +257,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
 
       // Invalidate caches
       mutate(holdingKey(sourceData.portfolioCode, "today"))
-      mutate("/api/holdings/aggregated?asAt=today")
+      mutate(aggregatedHoldingsTodayKey)
       if (sourceData.portfolioId !== targetPortfolioId) {
         const tp = portfolios.find((p) => p.id === targetPortfolioId)
         if (tp) {

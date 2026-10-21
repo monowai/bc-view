@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Currency, HoldingGroup, Portfolio, Position } from "types/beancounter"
-import { GROUP_BY_OPTIONS } from "types/constants"
+import { GROUP_BY_OPTIONS, type ValueInOption } from "types/constants"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { isCash, isNonTradeable } from "@lib/assets/assetUtils"
 import { getGroupComparator } from "@lib/categoryMapping"
@@ -11,7 +11,7 @@ import { squarify, TreemapRect } from "@lib/holdings/treemapLayout"
 
 interface PerformanceHeatmapProps {
   holdingGroups: Record<string, HoldingGroup>
-  valueIn: string
+  valueIn: ValueInOption
   portfolio: Portfolio
   viewByGroup?: boolean // When true, show groups as cells instead of positions
   portfolioTotalValue?: number // Total portfolio value for weight calculation (includes cash)
@@ -50,7 +50,7 @@ const UNCLASSIFIED_SECTOR = "Unclassified"
 // specialised for a single position since the heatmap dialog shows one
 // PositionCard at a time rather than a whole grouped view.
 function getSourceCurrency(
-  valueIn: string,
+  valueIn: ValueInOption,
   portfolio: Portfolio,
   position: Position,
 ): Currency | undefined {

@@ -131,6 +131,28 @@ describe("transformToAllocationSlices", () => {
       expect(markets).toContain("CASH")
     })
 
+    it("groups a private bank account under CASH, as the holdings table does", () => {
+      const positions: HoldingContract["positions"] = JSON.parse(
+        JSON.stringify(holdingContract.positions),
+      )
+      const [firstKey] = Object.keys(positions)
+      const account = positions[firstKey]
+      account.asset = {
+        ...account.asset,
+        cashLike: true,
+        market: { ...account.asset.market, code: "PRIVATE" },
+        assetCategory: { id: "ACCOUNT", name: "Bank Account" },
+      }
+      const result = transformToAllocationSlices(
+        { ...holdingContract, positions },
+        "market",
+        ValueIn.PORTFOLIO,
+      )
+
+      expect(result.map((s) => s.key)).not.toContain("PRIVATE")
+      expect(result.map((s) => s.key)).toContain("CASH")
+    })
+
     it("should sum market values per market", () => {
       const result = transformToAllocationSlices(
         holdingContract,

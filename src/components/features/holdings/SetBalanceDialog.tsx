@@ -23,6 +23,8 @@ import Dialog from "@components/ui/Dialog"
 import SubAccountBalanceInputs from "@components/features/transactions/SubAccountBalanceInputs"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
+import { getAssetConfig, getAssetPositions } from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -73,7 +75,7 @@ export default function SetBalanceDialog({
   useEffect(() => {
     const fetchConfig = async (): Promise<void> => {
       try {
-        const response = await fetch(`/api/assets/config/${asset.id}`)
+        const response = await getAssetConfig(asset.id)
         if (response.ok) {
           const data: { data: PrivateAssetConfig } = await response.json()
           if (data.data?.subAccounts?.length) {
@@ -121,9 +123,7 @@ export default function SetBalanceDialog({
     const fetchBalance = async (): Promise<void> => {
       setIsLoadingBalance(true)
       try {
-        const response = await fetch(
-          `/api/assets/${asset.id}/positions?date=today`,
-        )
+        const response = await getAssetPositions(asset.id)
         if (response.ok) {
           const data = await response.json()
           const positions: AssetPosition[] = data.data || []
@@ -185,13 +185,9 @@ export default function SetBalanceDialog({
         trnData.subAccounts = subAccountsMap
       }
 
-      const response = await fetch("/api/trns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          portfolioId: selectedPortfolioId,
-          data: [trnData],
-        }),
+      const response = await createTrns({
+        portfolioId: selectedPortfolioId,
+        data: [trnData],
       })
 
       if (!response.ok) {

@@ -3,6 +3,7 @@ import useSwr from "swr"
 import Link from "next/link"
 import { fetcher } from "@utils/api/fetchHelper"
 import { useRegistration } from "@contexts/RegistrationContext"
+import { proposedCountKey } from "@utils/api/client/trns"
 
 interface ProposedCountResponse {
   count: number
@@ -17,7 +18,7 @@ export default function ProposedBadge(): React.ReactElement | null {
 
   // Only fetch when user is registered (not just authenticated)
   const { data, error } = useSwr<ProposedCountResponse>(
-    isRegistered ? "/api/trns/proposed/count" : null,
+    isRegistered ? proposedCountKey : null,
     fetcher,
     {
       refreshInterval: 120_000, // 2 minutes — proposed trns arrive via corporate action flow

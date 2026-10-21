@@ -7,6 +7,7 @@ import {
   Portfolio,
 } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { netWorthUrl } from "@utils/api/client/holdings"
 
 export interface UseNetWorthResult {
   netWorth: NetWorth | undefined
@@ -50,7 +51,7 @@ export function useNetWorth(
       if (includedIds.length === 0) return null
       params.set("ids", includedIds.join(","))
     }
-    return `/api/net-worth?${params.toString()}`
+    return netWorthUrl(params.toString())
   }, [displayCurrency, excludedPortfolioIds, portfolios])
 
   const { data, isLoading, error } = useSwr<NetWorthResponse, Error>(

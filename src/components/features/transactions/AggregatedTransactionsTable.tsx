@@ -1,7 +1,7 @@
 import React from "react"
 import { TrnStatus } from "types/beancounter"
 import { AggregatedTransaction } from "types/proposed"
-import { getToday } from "@lib/sessionStorage"
+import { todayIso } from "@lib/formatters"
 import DecimalInput from "@components/ui/DecimalInput"
 
 interface AggregatedTransactionsTableProps {
@@ -245,7 +245,7 @@ export default function AggregatedTransactionsTable({
                   <td className="px-2 py-1.5 whitespace-nowrap">
                     <input
                       type="date"
-                      value={agg.editedTradeDate || getToday()}
+                      value={agg.editedTradeDate || todayIso()}
                       onChange={(e) =>
                         onTradeDateChange(agg.aggregateKey, e.target.value)
                       }

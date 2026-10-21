@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { FxResponse } from "types/beancounter"
+import { postFxRates } from "@utils/api/client/fx"
 
 export interface UseIndependencePlanCurrencyResult {
   displayCurrency: string | null
@@ -37,13 +38,9 @@ export function useIndependencePlanCurrency(
       // Mark as loading while fetching
       setFxRateLoaded(false)
       try {
-        const response = await fetch("/api/fx", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rateDate: "today",
-            pairs: [{ from: planCurrency, to: displayCurrency }],
-          }),
+        const response = await postFxRates({
+          rateDate: "today",
+          pairs: [{ from: planCurrency, to: displayCurrency }],
         })
         const fxResponse: FxResponse = await response.json()
         const rateKey = `${planCurrency}:${displayCurrency}`

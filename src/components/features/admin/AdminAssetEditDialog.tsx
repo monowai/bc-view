@@ -5,6 +5,8 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, AssetCategory } from "types/beancounter"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { dedupeSectorsByName } from "@utils/assets/dedupeSectors"
+import { updateAssetAdmin } from "@utils/api/client/assets"
+import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 
 interface SectorInfo {
   name: string
@@ -42,8 +44,8 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
     simpleFetcher("/api/categories"),
   )
   const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    "/api/classifications/sectors",
-    simpleFetcher("/api/classifications/sectors"),
+    sectorsKey,
+    simpleFetcher(sectorsKey),
   )
 
   // Re-initialise form fields when the asset prop changes. Render-phase reset
@@ -63,26 +65,18 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
       return
     }
     await handleSubmit(async () => {
-      const res = await fetch(`/api/assets/admin/${asset.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market: asset.market.code,
-          code: asset.code,
-          name,
-          category,
-        }),
+      const res = await updateAssetAdmin(asset.id, {
+        market: asset.market.code,
+        code: asset.code,
+        name,
+        category,
       })
       if (!res.ok) {
         const body = await res.text()
         throw new Error(body || `Update failed (${res.status})`)
       }
       if (sector && sector !== (asset.sector || "")) {
-        const sectorRes = await fetch(`/api/classifications/${asset.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sector }),
-        })
+        const sectorRes = await setAssetSector(asset.id, sector)
         if (!sectorRes.ok) {
           throw new Error(`Sector update failed (${sectorRes.status})`)
         }

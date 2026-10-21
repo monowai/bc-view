@@ -7,16 +7,12 @@ import {
   AssetBrokerHolding,
   AssetBrokerHoldingsResponse,
 } from "types/beancounter"
+import { assetBrokersKey } from "@utils/api/client/assets"
+import { formatQuantity } from "@lib/formatters"
 
 interface AssetBrokersTabProps {
   assetId: string
 }
-
-const formatQuantity = (value: number): string =>
-  new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  }).format(value)
 
 /**
  * Brokers tab on the asset lookup page — shows which brokers hold the
@@ -31,7 +27,7 @@ export default function AssetBrokersTab({
   )
   const { mutate } = useSWRConfig()
 
-  const brokersKey = `/api/assets/${assetId}/brokers`
+  const brokersKey = assetBrokersKey(assetId)
   const { data, isLoading } = useSWR<AssetBrokerHoldingsResponse>(
     brokersKey,
     simpleFetcher(brokersKey),

@@ -31,7 +31,7 @@ function getPath(path: string, position: Position): string {
  *   TRADE accounts) collapse into the CASH group instead of using their backing
  *   market.code (which is PRIVATE for ACCOUNT/TRADE).
  */
-function getGroupKey(groupBy: GroupBy, position: Position): string {
+export function getGroupKey(groupBy: GroupBy, position: Position): string {
   if (groupBy === GroupBy.ASSET_CLASS) {
     // Use report categories for asset class grouping
     return getReportCategory(position.asset)
@@ -69,7 +69,7 @@ function updateSubTotal(
   position: Position,
   valueIn: ValueIn,
 ): MoneyValues {
-  const keys: (keyof MoneyValues)[] = [
+  const keys = [
     "marketValue",
     "costValue",
     "dividends",
@@ -77,7 +77,7 @@ function updateSubTotal(
     "unrealisedGain",
     "irr",
     "totalGain",
-  ]
+  ] as const
   keys.forEach((key) => {
     if (typeof position.moneyValues[valueIn][key] === "number") {
       subTotal[key] += position.moneyValues[valueIn][key]
