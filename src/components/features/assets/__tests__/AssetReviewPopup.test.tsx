@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import AssetReviewPopup from "../AssetReviewPopup"
 import { clearAnalysisCache } from "@components/features/chat/useAnalysisChat"
 import { sseAnswer, sseResponse, withUnsavedAnalyses } from "@test-fixtures/sse"
@@ -139,5 +139,45 @@ describe("AssetReviewPopup", () => {
     expect(await screen.findByText("LSE review")).toBeInTheDocument()
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
     expect(bodyOf(1).context.market).toBe("LSE")
+  })
+  it("offers no holding analysis without a portfolio", async () => {
+    mockFetch.mockResolvedValueOnce(sseAnswer("Bullish"))
+    render(<AssetReviewPopup ticker="AAPL" onClose={jest.fn()} />)
+    await screen.findByText("Bullish")
+    expect(
+      screen.queryByRole("button", { name: "Analyse my holding" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("starts a Holding Analysis as a new conversation, not a follow-up", async () => {
+    mockFetch
+      .mockResolvedValueOnce(sseAnswer("Bullish"))
+      .mockResolvedValueOnce(sseAnswer("Your position"))
+    render(
+      <AssetReviewPopup
+        ticker="AAPL"
+        market="NASDAQ"
+        assetName="Apple Inc."
+        portfolioCode="PF"
+        onClose={jest.fn()}
+      />,
+    )
+    await screen.findByText("Bullish")
+    fireEvent.click(screen.getByRole("button", { name: "Analyse my holding" }))
+
+    expect(await screen.findByText("Your position")).toBeInTheDocument()
+    expect(screen.getByText("Holding Analysis — AAPL")).toBeInTheDocument()
+    expect(screen.queryByText("Asset Review — AAPL")).not.toBeInTheDocument()
+    const body = bodyOf(1)
+    expect(body.query).toBe("")
+    expect(body.context).toEqual({
+      page: "Holding Analysis",
+      tickers: "AAPL",
+      market: "NASDAQ",
+      portfolioCode: "PF",
+    })
+    // A fresh thread: the review is not carried as history into it.
+    expect(body.history ?? []).toEqual([])
+    expect(body.conversationId).toBeUndefined()
   })
 })

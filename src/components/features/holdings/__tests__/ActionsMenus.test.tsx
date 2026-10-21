@@ -30,6 +30,22 @@ const openMenu = (): void => {
 }
 
 describe("ActionsMenu", () => {
+  it("offers Analyse my holding when given a handler and calls it", () => {
+    const onAnalyseHolding = jest.fn()
+    render(<ActionsMenu {...baseProps} onAnalyseHolding={onAnalyseHolding} />)
+    openMenu()
+    fireEvent.click(screen.getByRole("button", { name: "Analyse my holding" }))
+    expect(onAnalyseHolding).toHaveBeenCalledTimes(1)
+  })
+
+  it("omits Analyse my holding without a handler", () => {
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+    expect(
+      screen.queryByRole("button", { name: "Analyse my holding" }),
+    ).not.toBeInTheDocument()
+  })
+
   it("includes the asset id in the trade payload so the page can resolve the portfolio", () => {
     const onTrade = jest.fn()
     render(<ActionsMenu {...baseProps} onTrade={onTrade} />)

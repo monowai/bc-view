@@ -38,6 +38,11 @@ import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
+import { useHoldingAnalysis } from "@components/features/assets/useHoldingAnalysis"
+import {
+  canAnalyseHolding,
+  holdingAnalysisPortfolioCode,
+} from "@lib/holdings/holdingAnalysis"
 import {
   ActionsMenu,
   CashActionsMenu,
@@ -321,6 +326,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
   const {
+    popup: analysisPopup,
+    enabled: analysisEnabled,
+    showAnalysis,
+  } = useHoldingAnalysis()
+  const {
     asset,
     moneyValues,
     quantityValues,
@@ -389,6 +399,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
   const tradeMoney = moneyValues["TRADE"]
   const tradeCurrency = tradeMoney?.currency || portfolio.currency
 
+  const analysisPortfolioCode =
+    analysisEnabled && canAnalyseHolding(asset, quantityValues.total)
+      ? holdingAnalysisPortfolioCode(portfolio.code, portfolioBreakdown)
+      : undefined
+
   const actionsNode =
     hasActions || hasCashActions ? (
       <div className="flex items-center gap-1">
@@ -417,6 +432,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             onRecordExpense={onRecordExpense}
             onEditAsset={onEditAsset}
             onGoToPortfolio={onGoToPortfolio}
+            onAnalyseHolding={
+              analysisPortfolioCode
+                ? () => showAnalysis(asset, analysisPortfolioCode)
+                : undefined
+            }
           />
         )}
         {hasCashActions && (
@@ -449,6 +469,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       title="Double-click to open"
     >
       {popup}
+      {analysisPopup && (
+        // React events bubble through the dialog's portal to this card, whose
+        // double-click opens trades; stop them at the dialog boundary.
+        <div onDoubleClick={(e) => e.stopPropagation()}>{analysisPopup}</div>
+      )}
       <PositionHeader
         asset={asset}
         displayName={displayName}

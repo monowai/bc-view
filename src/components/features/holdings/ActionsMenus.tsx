@@ -166,6 +166,11 @@ export interface ActionsMenuProps {
   onEditAsset?: (asset: Asset) => void
   /** Aggregated holdings: jump to one of the portfolios holding this asset. */
   onGoToPortfolio?: (asset: Asset) => void
+  /**
+   * Open a Holding Analysis of this position. The caller passes it only when
+   * the holding can be analysed (held, reviewable, in one real portfolio).
+   */
+  onAnalyseHolding?: () => void
 }
 
 export const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -193,6 +198,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onRecordExpense,
   onEditAsset,
   onGoToPortfolio,
+  onAnalyseHolding,
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
@@ -348,6 +354,13 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                       type: "EXPENSE",
                     }),
                   )}
+                />
+              )}
+              {onAnalyseHolding && (
+                <MenuItem
+                  iconClass="fas fa-magnifying-glass-chart text-purple-500 w-4"
+                  label="Analyse my holding"
+                  onClick={handle(onAnalyseHolding)}
                 />
               )}
               {canWatch && (

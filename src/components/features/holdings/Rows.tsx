@@ -11,6 +11,7 @@ import {
   CashTransferData,
   CostAdjustData,
   MovePositionData,
+  PortfolioBreakdown,
   PortfolioBreakdownData,
   PriceChartData,
 } from "types/beancounter"
@@ -31,6 +32,11 @@ import Link from "next/link"
 import { useRouter } from "next/router"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
+import { useHoldingAnalysis } from "@components/features/assets/useHoldingAnalysis"
+import {
+  canAnalyseHolding,
+  holdingAnalysisPortfolioCode,
+} from "@lib/holdings/holdingAnalysis"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
@@ -101,6 +107,23 @@ export default function Rows({
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
+  const {
+    popup: analysisPopup,
+    enabled: analysisEnabled,
+    showAnalysis,
+  } = useHoldingAnalysis()
+
+  // Undefined (no menu item) unless this row is one holding we can analyse.
+  const analyseHandler = (
+    asset: Asset,
+    quantity: number,
+    breakdown: PortfolioBreakdown[] | undefined,
+  ): (() => void) | undefined => {
+    if (!analysisEnabled || !canAnalyseHolding(asset, quantity))
+      return undefined
+    const code = holdingAnalysisPortfolioCode(portfolio.code, breakdown)
+    return code ? () => showAnalysis(asset, code) : undefined
+  }
 
   // Source currency based on valueIn selection
   const sourceCurrency = useMemo(() => {
@@ -241,6 +264,11 @@ export default function Rows({
                       onRecordExpense={onRecordExpense}
                       onEditAsset={onEditAsset}
                       onGoToPortfolio={onGoToPortfolio}
+                      onAnalyseHolding={analyseHandler(
+                        asset,
+                        quantityValues.total,
+                        portfolioBreakdown,
+                      )}
                     />
                   </div>
                 ) : null}
@@ -570,6 +598,11 @@ export default function Rows({
       {newsPopup && (
         <tr>
           <td>{newsPopup}</td>
+        </tr>
+      )}
+      {analysisPopup && (
+        <tr>
+          <td>{analysisPopup}</td>
         </tr>
       )}
     </tbody>

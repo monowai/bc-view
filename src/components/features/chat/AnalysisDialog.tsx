@@ -19,6 +19,8 @@ interface AnalysisDialogProps {
   /** Spinner copy while the opening analysis has produced nothing yet. */
   loadingLabel: string
   onClose: () => void
+  /** Extra controls shown above the report, e.g. a related analysis. */
+  actions?: React.ReactNode
 }
 
 // Within this many pixels of the bottom still counts as "at the bottom";
@@ -45,6 +47,7 @@ export default function AnalysisDialog({
   request,
   loadingLabel,
   onClose,
+  actions,
 }: AnalysisDialogProps): React.ReactElement {
   const { messages, isLoading, sendMessage, cancel, conversationId } =
     useAnalysisChat(request)
@@ -171,6 +174,7 @@ export default function AnalysisDialog({
       scrollable
       footer={footer}
     >
+      {actions && <div className="flex justify-end mb-3">{actions}</div>}
       {awaitingFirstToken && followUps.length === 0 && (
         <div
           role="status"
