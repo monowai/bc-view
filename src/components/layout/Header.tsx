@@ -4,6 +4,7 @@ import HeaderBrand from "@components/layout/HeaderBrand"
 import HeaderUserControls from "@components/layout/HeaderUserControls"
 import ProposedBadge from "@components/layout/ProposedBadge"
 import SharesBadge from "@components/layout/SharesBadge"
+import WatchlistAlertsBadge from "@components/layout/WatchlistAlertsBadge"
 
 export default function Header(): React.ReactElement {
   return (
@@ -24,6 +25,7 @@ export default function Header(): React.ReactElement {
         <HeaderAssetSearch />
         <div className="flex items-center gap-2">
           <SharesBadge />
+          <WatchlistAlertsBadge />
           <ProposedBadge />
           <HeaderUserControls />
         </div>

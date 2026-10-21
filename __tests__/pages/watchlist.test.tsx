@@ -13,9 +13,11 @@ import {
   makeAsset,
   makePortfolio,
   makeWatchlist,
+  makeWatchlistAlert,
   makeWatchlistItem,
 } from "@test-fixtures/beancounter"
-import { Watchlist } from "types/beancounter"
+import { Watchlist, WatchlistAlert } from "types/beancounter"
+import { formatDate } from "@lib/formatters"
 
 // The dialog has its own tests; here it only needs to report a successful add.
 jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
@@ -117,6 +119,7 @@ interface Call {
 }
 let calls: Call[] = []
 let watchlist: Watchlist
+let alerts: WatchlistAlert[]
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -184,6 +187,7 @@ beforeEach(() => {
   mockCanRunAi = false
   calls = []
   watchlist = makeWatchlist({ items: [priced, unpriced] })
+  alerts = []
   global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method || "GET"
@@ -194,6 +198,14 @@ beforeEach(() => {
     })
     if (url === "/api/watchlist" && method === "GET") {
       return Promise.resolve(jsonResponse(200, { data: watchlist }))
+    }
+    if (url === "/api/watchlist/alerts" && method === "GET") {
+      return Promise.resolve(jsonResponse(200, { data: alerts }))
+    }
+    if (url.startsWith("/api/watchlist/alerts/") && method === "DELETE") {
+      const id = url.split("/").pop()
+      alerts = alerts.filter((a) => a.id !== id)
+      return Promise.resolve(jsonResponse(200, { data: alerts }))
     }
     if (url.startsWith("/api/watchlist/items/")) {
       return Promise.resolve(
@@ -651,6 +663,64 @@ describe("Watchlist page", () => {
       expect(
         within(row("wi-4")).queryByRole("button", { name: /^Trade/ }),
       ).not.toBeInTheDocument()
+    })
+  })
+
+  describe("target alerts", () => {
+    it("marks an item whose target was hit with the hit date", async () => {
+      watchlist = makeWatchlist({
+        items: [{ ...priced, targetHitOn: "2026-03-04" }, unpriced],
+      })
+      renderPage()
+
+      const chip = await within(
+        await screen.findByTestId("watchlist-item-wi-1"),
+      ).findByTestId("target-hit")
+      expect(chip).toHaveTextContent(`Target hit ${formatDate("2026-03-04")}`)
+      expect(
+        within(row("wi-2")).queryByTestId("target-hit"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("lists alerts above the table and drops one on dismiss", async () => {
+      alerts = [
+        makeWatchlistAlert({
+          id: "wa-1",
+          itemId: "wi-1",
+          asset: priced.asset,
+          direction: "ABOVE",
+        }),
+        makeWatchlistAlert({
+          id: "wa-2",
+          itemId: "wi-2",
+          asset: unpriced.asset,
+          direction: "BELOW",
+        }),
+      ]
+      renderPage()
+
+      const first = await screen.findByTestId("watchlist-alert-wa-1")
+      expect(first).toHaveTextContent(/rose to/i)
+      expect(screen.getByTestId("watchlist-alert-wa-2")).toHaveTextContent(
+        /fell to/i,
+      )
+
+      fireEvent.click(
+        within(first).getByRole("button", { name: "Dismiss AAA alert" }),
+      )
+
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId("watchlist-alert-wa-1"),
+        ).not.toBeInTheDocument(),
+      )
+      expect(screen.getByTestId("watchlist-alert-wa-2")).toBeInTheDocument()
+      expect(calls).toContainEqual(
+        expect.objectContaining({
+          url: "/api/watchlist/alerts/wa-1",
+          method: "DELETE",
+        }),
+      )
     })
   })
 })

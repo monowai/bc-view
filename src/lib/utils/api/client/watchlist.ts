@@ -1,4 +1,5 @@
 import {
+  WatchlistAlert,
   WatchlistItem,
   WatchlistItemRequest,
   WatchlistItemUpdate,
@@ -70,6 +71,20 @@ export async function removeWatchlistItem(itemId: string): Promise<void> {
   // svc-data answers 200 `{ deleted }`; a 204 is equally fine. Either way
   // there is nothing to return, so the body is not read.
   await request(`${itemsUrl}/${itemId}`, "DELETE")
+}
+
+/** SWR key for the caller's target alerts: `{ data: WatchlistAlert[] }`, newest first. */
+export const watchlistAlertsKey = `${watchlistKey}/alerts`
+
+/** Dismiss one alert; svc-data answers with the alerts that remain. */
+export async function dismissWatchlistAlert(
+  alertId: string,
+): Promise<WatchlistAlert[]> {
+  const res = await request(`${watchlistAlertsKey}/${alertId}`, "DELETE")
+  const parsed = (await res.json().catch(() => ({}))) as {
+    data?: WatchlistAlert[]
+  }
+  return parsed.data ?? []
 }
 
 /**

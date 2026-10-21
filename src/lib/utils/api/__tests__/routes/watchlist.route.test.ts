@@ -1,6 +1,8 @@
 import watchlistHandler from "@pages/api/watchlist"
 import itemsHandler from "@pages/api/watchlist/items"
 import itemHandler from "@pages/api/watchlist/items/[itemId]"
+import alertsHandler from "@pages/api/watchlist/alerts"
+import alertHandler from "@pages/api/watchlist/alerts/[alertId]"
 
 jest.mock("@lib/auth0", () => ({
   auth0: {
@@ -149,6 +151,61 @@ describe("/api/watchlist routes", () => {
       await call(itemHandler, {
         method: "DELETE",
         query: { itemId },
+        headers: {},
+      })
+
+      expect(mockFetch).not.toHaveBeenCalled()
+      const responseWriter = jest.requireMock("@utils/api/responseWriter")
+      expect(responseWriter.fetchError).toHaveBeenCalled()
+    },
+  )
+
+  it("reads the caller's target alerts from the backend", async () => {
+    await call(alertsHandler, { method: "GET", query: {}, headers: {} })
+
+    expect(lastFetch().url).toBe("http://data.test/watchlist/alerts")
+    expect(lastFetch().init.method).toBe("GET")
+  })
+
+  it("allows only GET on the alerts list", async () => {
+    const res = await call(alertsHandler, {
+      method: "POST",
+      query: {},
+      headers: {},
+    })
+
+    expect(res.status).toHaveBeenCalledWith(405)
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("forwards a dismiss to DELETE /watchlist/alerts/{alertId}", async () => {
+    await call(alertHandler, {
+      method: "DELETE",
+      query: { alertId: "wa-3" },
+      headers: {},
+    })
+
+    expect(lastFetch().url).toBe("http://data.test/watchlist/alerts/wa-3")
+    expect(lastFetch().init.method).toBe("DELETE")
+  })
+
+  it("allows only DELETE on a single alert", async () => {
+    const res = await call(alertHandler, {
+      method: "GET",
+      query: { alertId: "wa-3" },
+      headers: {},
+    })
+
+    expect(res.status).toHaveBeenCalledWith(405)
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it.each(["../items/wi-1", "a/b", "a\\b"])(
+    "rejects alert id %s without calling the backend",
+    async (alertId) => {
+      await call(alertHandler, {
+        method: "DELETE",
+        query: { alertId },
         headers: {},
       })
 

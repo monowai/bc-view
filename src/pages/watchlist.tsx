@@ -11,7 +11,9 @@ import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlist
 import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
 import AssetChart from "@components/features/assets/AssetChart"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
+import WatchlistAlertsPanel from "@components/features/watchlists/WatchlistAlertsPanel"
 import { useWatchlist } from "@hooks/useWatchlist"
+import { useWatchlistAlerts } from "@hooks/useWatchlistAlerts"
 import {
   removeWatchlistItem,
   updateWatchlistItem,
@@ -27,6 +29,7 @@ import { currencySymbolFor } from "@lib/formatters"
 export default withPageAuthRequired(
   function WatchlistPage(): React.ReactElement {
     const { items, error, mutate } = useWatchlist()
+    const { alerts, setAlerts } = useWatchlistAlerts()
     // Captured at click time, so a background refresh cannot re-key an open review.
     const [reviewing, setReviewing] = useState<NewsAssetRef | null>(null)
     const { popup: newsPopup, showNews } = useNewsAsset()
@@ -88,6 +91,17 @@ export default withPageAuthRequired(
           <Alert variant="error" className="mb-4">
             {actionError}
           </Alert>
+        )}
+
+        {alerts && (
+          <WatchlistAlertsPanel
+            alerts={alerts}
+            onDismissed={(remaining) => {
+              setAlerts(remaining)
+              // targetHitOn on the items is the backend's to re-state.
+              void mutate()
+            }}
+          />
         )}
 
         {items.length === 0 ? (
