@@ -14,7 +14,7 @@ import CopyFieldsDialog, {
   CopyFields,
   DEFAULT_COPY_FIELDS,
 } from "@components/features/rebalance/models/CopyFieldsDialog"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import StatusBadge from "@components/features/rebalance/common/StatusBadge"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"

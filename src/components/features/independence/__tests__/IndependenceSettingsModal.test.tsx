@@ -6,7 +6,7 @@ import IndependenceSettingsModal from "../IndependenceSettingsModal"
 const mockUpdateSettings = jest.fn().mockResolvedValue({})
 const mockMutateSettings = jest.fn()
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
+jest.mock("@components/features/independence/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
     settings: {
       id: "test-id",

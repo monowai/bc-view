@@ -5,6 +5,7 @@ import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
 import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAssets"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { todayIso } from "@lib/formatters"
 
 interface Props {
   config: StandaloneCompositeConfig
@@ -58,7 +59,7 @@ export default function LinkCompositeDialog({
   async function submit(): Promise<void> {
     if (!portfolioId) return
     await handleSubmit(async () => {
-      const today = new Date().toISOString().slice(0, 10)
+      const today = todayIso()
       const subAccountsMap = Object.fromEntries(
         config.subAccounts.map((sa) => [sa.code, sa.balance]),
       )

@@ -10,11 +10,11 @@ import {
 import ExecuteRebalancePage, {
   buildDraftContext,
 } from "@pages/rebalance/execute/index"
-import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
+import { useRebalanceExecution } from "@components/features/rebalance/hooks/useRebalanceExecution"
 import type {
   DisplayItem,
   UseRebalanceExecutionResult,
-} from "@hooks/useRebalanceExecution"
+} from "@components/features/rebalance/hooks/useRebalanceExecution"
 import type { ExecutionDto } from "types/rebalance"
 import { setPageContext } from "@components/features/chat/pageContextBus"
 
@@ -25,7 +25,7 @@ const mockSetPageContext = setPageContext as jest.Mock
 
 // --- Mocks ---
 
-jest.mock("@hooks/useRebalanceExecution")
+jest.mock("@components/features/rebalance/hooks/useRebalanceExecution")
 const mockUseRebalanceExecution = useRebalanceExecution as jest.Mock
 
 jest.mock("next/router", () => ({
@@ -40,7 +40,7 @@ jest.mock("next/router", () => ({
 // PriceChartPopup and AssetInsightPopup are heavy (recharts / SSE streaming)
 // and already covered by their own test suites — stand in with prop-capturing
 // stubs so this page test only asserts wiring (correct asset/prompt passed).
-jest.mock("@components/features/holdings/PriceChartPopup", () => {
+jest.mock("@components/features/assets/PriceChartPopup", () => {
   return function MockPriceChartPopup(props: {
     asset: { id: string; code: string }
     portfolioId?: string

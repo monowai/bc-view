@@ -6,7 +6,7 @@ import { AnalysisRequest, clearAnalysisCache } from "../useAnalysisChat"
 import { onChatOpen, ChatOpenDetail } from "../chatBus"
 import { usePermissions } from "@hooks/usePermissions"
 import { sseAnswer } from "@test-fixtures/sse"
-import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
+import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
 
 // react-markdown / remark-gfm are mocked globally in jest.setup.js
 

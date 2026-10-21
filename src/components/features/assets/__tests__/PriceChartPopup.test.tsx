@@ -323,6 +323,33 @@ describe("PriceChartPopup", () => {
     expect(latest).toContain("to=")
   })
 
+  it.each([
+    ["just after local midnight", 0, 30],
+    ["just before local midnight", 23, 30],
+  ])(
+    "ends the price range on the local calendar date %s",
+    (_label, hour, minute) => {
+      // Built from local fields, so in any zone other than UTC one of these
+      // instants falls on a different UTC date.
+      jest.setSystemTime(new Date(2026, 3, 25, hour, minute))
+      try {
+        mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+        renderPopup()
+
+        const priceKeys = mockUseSwr.mock.calls
+          .map((call) => call[0])
+          .filter(
+            (k): k is string =>
+              typeof k === "string" && k.startsWith("/api/prices/history/"),
+          )
+        expect(priceKeys[priceKeys.length - 1]).toContain("to=2026-04-25")
+      } finally {
+        jest.setSystemTime(new Date("2026-04-25T00:00:00Z"))
+      }
+    },
+  )
+
   it("renders the SMA line when a window is selected", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react"
 import { WorkScenario, WorkScenarioRequest } from "types/independence"
 import Dialog from "@components/ui/Dialog"
 import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { currentAgeFromSettings } from "@lib/independence/age"
 
 interface ScenarioEditorProps {

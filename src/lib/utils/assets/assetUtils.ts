@@ -17,10 +17,6 @@ export function getAssetCurrency(asset: {
   )
 }
 
-export function isCashRelated(asset: Asset): boolean {
-  return isCash(asset) || isAccount(asset)
-}
-
 export function isNonTradeable(asset: Asset): boolean {
   return asset.assetCategory.id === "RE" || isCash(asset) || isAccount(asset)
 }
@@ -52,11 +48,6 @@ export function isFundLike(asset: Asset): boolean {
 // Assets with constant price of 1 - don't require external market data pricing
 export function isConstantPrice(asset: Asset): boolean {
   return isCash(asset) || isAccount(asset) || isPolicy(asset)
-}
-
-// Check if asset supports balance setting (CASH currencies or ACCOUNT bank accounts)
-export function supportsBalanceSetting(asset: Asset): boolean {
-  return isCash(asset) || isAccount(asset)
 }
 
 // Owner-prefix detection. Private-asset codes are stored as `${userId}.${CODE}`

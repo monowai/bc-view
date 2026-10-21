@@ -14,14 +14,14 @@ import CashSummaryPanel from "@components/features/rebalance/execution/CashSumma
 import BrokerSelect, {
   confirmBrokerSelection,
 } from "@components/features/rebalance/common/BrokerSelect"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
 import { setPageContext } from "@components/features/chat/pageContextBus"
 import {
   useRebalanceExecution,
   DisplayItem,
   CashSummary,
-} from "@hooks/useRebalanceExecution"
+} from "@components/features/rebalance/hooks/useRebalanceExecution"
 import { clampWeightPercent, weightsSumValid } from "@lib/rebalance/weights"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { Asset } from "types/beancounter"
@@ -138,6 +138,7 @@ function toChartAsset(item: DisplayItem): Asset {
     watchable: false,
     hasNews: false,
     displayCode: item.assetCode || item.assetId,
+    cashLike: false,
   }
 }
 

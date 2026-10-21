@@ -38,7 +38,7 @@ import {
   phaseFailureMessage,
 } from "@lib/independence/phasing"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import {
   ACTIVE_PLAN_QUERY_PARAM,
   useIndependencePlans,

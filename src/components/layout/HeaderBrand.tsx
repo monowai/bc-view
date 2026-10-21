@@ -6,7 +6,7 @@ import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
-import PayslipModal from "@components/features/transactions/PayslipModal"
+import PayslipModal from "@components/features/independence/PayslipModal"
 
 // Sentinel `action` values for nav items that open a modal instead of
 // navigating. The href is kept (as a hash) so existing rendering still works.

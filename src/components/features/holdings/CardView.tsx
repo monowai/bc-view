@@ -24,20 +24,18 @@ import {
   buildTradesHref,
   buildAggregatedTradesHref,
   getPositionDisplayName,
-  isCashRelated,
   isConstantPrice,
   isFundLike,
   isNonTradeable,
   priceDecimals,
-  supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { QuickTooltip } from "@components/ui/Tooltip"
-import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
-import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
+import AssetNewsButton from "@components/features/assets/AssetNewsButton"
+import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import {
   ActionsMenu,
   CashActionsMenu,
@@ -262,7 +260,7 @@ const PositionPnL: React.FC<PositionPnLProps> = ({
         {isPositive ? "Your Profit" : "Your Loss"}
       </div>
     </div>
-    {!isCashRelated(asset) && (
+    {!asset.cashLike && (
       <div className="text-right">
         <div
           className={`text-lg font-semibold ${irr >= 0 ? "text-green-600" : "text-red-600"}`}
@@ -342,7 +340,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
   const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
   const hasActions =
-    !isCashRelated(asset) &&
+    !asset.cashLike &&
     (!!onTrade ||
       !!onQuickSell ||
       !!onCorporateActions ||
@@ -361,7 +359,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       !!onGoToPortfolio)
 
   const hasCashActions =
-    supportsBalanceSetting(asset) &&
+    asset.cashLike &&
     (!!onSetCashBalance ||
       !!onCashTransfer ||
       !!onCashTransaction ||
@@ -389,16 +387,14 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             costBasis={tradeMoney?.costBasis || 0}
             tradeCurrency={tradeCurrency}
             valueIn={valueIn}
-            onTrade={isCashRelated(asset) ? undefined : onTrade}
-            onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
-            onCorporateActions={
-              isCashRelated(asset) ? undefined : onCorporateActions
-            }
+            onTrade={asset.cashLike ? undefined : onTrade}
+            onQuickSell={asset.cashLike ? undefined : onQuickSell}
+            onCorporateActions={asset.cashLike ? undefined : onCorporateActions}
             onSetPrice={onSetPrice}
             onSetBalance={onSetBalance}
             onSectorWeightings={onSectorWeightings}
-            onCostAdjust={isCashRelated(asset) ? undefined : onCostAdjust}
-            onMovePosition={isCashRelated(asset) ? undefined : onMovePosition}
+            onCostAdjust={asset.cashLike ? undefined : onCostAdjust}
+            onMovePosition={asset.cashLike ? undefined : onMovePosition}
             onRecordIncome={onRecordIncome}
             onRecordExpense={onRecordExpense}
             onEditAsset={onEditAsset}
@@ -424,7 +420,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
     ) : undefined
 
   const handleDoubleClick = useCallback(() => {
-    router.push(supportsBalanceSetting(asset) ? cashLadderHref : tradesHref)
+    router.push(asset.cashLike ? cashLadderHref : tradesHref)
   }, [router, asset, cashLadderHref, tradesHref])
 
   return (
@@ -479,7 +475,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         currencySymbol={currencySymbol}
       />
 
-      {!isCashRelated(asset) &&
+      {!asset.cashLike &&
         (() => {
           const isChartable =
             !!onPriceChart && !!values.priceData?.close && asset.chartable

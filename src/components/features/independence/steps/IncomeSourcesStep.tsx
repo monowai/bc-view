@@ -4,7 +4,7 @@ import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import MathInput from "@components/ui/MathInput"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { currentAgeFromSettings } from "@lib/independence/age"
 
 /**

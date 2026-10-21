@@ -35,6 +35,7 @@ import {
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import { localIsoDate } from "@lib/formatters"
 
 export interface PriceChartPopupProps {
   asset: Asset
@@ -194,10 +195,6 @@ function subtractMonths(date: Date, months: number): Date {
   const d = new Date(date)
   d.setMonth(d.getMonth() - months)
   return d
-}
-
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
 }
 
 function formatAxisDate(dateStr: string, months: number): string {
@@ -391,8 +388,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const { from, to } = useMemo(() => {
     const today = new Date()
     return {
-      from: toIsoDate(subtractMonths(today, months)),
-      to: toIsoDate(today),
+      from: localIsoDate(subtractMonths(today, months)),
+      to: localIsoDate(today),
     }
   }, [months])
 

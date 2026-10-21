@@ -39,7 +39,7 @@ jest.mock("@hooks/useIndependencePlans", () => ({
 }))
 
 let mockSettingsLoading = false
-jest.mock("@hooks/useIndependenceSettings", () => ({
+jest.mock("@components/features/independence/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
     isLoading: mockSettingsLoading,
     settings: {

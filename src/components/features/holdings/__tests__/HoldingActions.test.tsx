@@ -67,7 +67,7 @@ jest.mock("@components/features/transactions/CashInputForm", () => {
   }
 })
 
-jest.mock("@components/ui/CopyPopup", () => {
+jest.mock("@components/features/holdings/CopyPopup", () => {
   return function CopyPopup() {
     return <div data-testid="copy-popup" />
   }

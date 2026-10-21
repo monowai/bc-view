@@ -627,6 +627,7 @@ export interface Asset {
   watchable: boolean // Can go on a watchlist
   hasNews: boolean // News, and an AI review built on it, can be found
   displayCode: string // The code a user reads: private owner prefix dropped
+  cashLike: boolean // Currency cash or a bank account (category CASH or ACCOUNT)
 }
 
 export interface AssetCategory {

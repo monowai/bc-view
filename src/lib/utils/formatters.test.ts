@@ -1,4 +1,34 @@
-import { formatCompact, formatCompactBare, formatDate } from "./formatters"
+import {
+  formatCompact,
+  formatCompactBare,
+  formatDate,
+  localIsoDate,
+  todayIso,
+} from "./formatters"
+import { LOCAL_MIDNIGHT_EDGES, pinDate } from "@test-fixtures/clock"
+
+describe("todayIso", () => {
+  afterEach(() => jest.useRealTimers())
+
+  it.each(LOCAL_MIDNIGHT_EDGES)(
+    "is the local calendar date at %i:%i",
+    (hour, minute) => {
+      pinDate(new Date(2026, 9, 21, hour, minute))
+      expect(todayIso()).toBe("2026-10-21")
+    },
+  )
+})
+
+describe("localIsoDate", () => {
+  it.each(LOCAL_MIDNIGHT_EDGES)(
+    "formats a date by its local fields at %i:%i",
+    (hour, minute) => {
+      expect(localIsoDate(new Date(2026, 0, 5, hour, minute))).toBe(
+        "2026-01-05",
+      )
+    },
+  )
+})
 
 describe("formatDate", () => {
   // Locale decides ordering ("4 Aug 2026" vs "Aug 4, 2026"), so assert on the

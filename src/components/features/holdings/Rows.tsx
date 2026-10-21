@@ -24,15 +24,13 @@ import {
   buildAggregatedTradesHref,
   getPositionDisplayName,
   isCash,
-  isCashRelated,
   isConstantPrice,
   priceDecimals,
-  supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
-import AssetNewsButton from "./AssetNewsButton"
-import { useNewsAsset } from "./useNewsAsset"
+import AssetNewsButton from "@components/features/assets/AssetNewsButton"
+import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
@@ -150,7 +148,7 @@ export default function Rows({
               index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
             }`}
             onDoubleClick={() =>
-              supportsBalanceSetting(asset)
+              asset.cashLike
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
                 : portfolioBreakdown && portfolioBreakdown.length > 0
                   ? router.push(
@@ -187,7 +185,7 @@ export default function Rows({
                     </div>
                   )}
                 </div>
-                {!isCashRelated(asset) &&
+                {!asset.cashLike &&
                 (onTrade ||
                   onQuickSell ||
                   onCorporateActions ||
@@ -226,21 +224,17 @@ export default function Rows({
                       held={held}
                       fxRate={deriveTradeToPortfolioFxRate(moneyValues)}
                       currentWeight={moneyValues[valueIn].weight * 100}
-                      onTrade={isCashRelated(asset) ? undefined : onTrade}
-                      onQuickSell={
-                        isCashRelated(asset) ? undefined : onQuickSell
-                      }
+                      onTrade={asset.cashLike ? undefined : onTrade}
+                      onQuickSell={asset.cashLike ? undefined : onQuickSell}
                       onCorporateActions={
-                        isCashRelated(asset) ? undefined : onCorporateActions
+                        asset.cashLike ? undefined : onCorporateActions
                       }
                       onSetPrice={onSetPrice}
                       onSetBalance={onSetBalance}
                       onSectorWeightings={onSectorWeightings}
-                      onCostAdjust={
-                        isCashRelated(asset) ? undefined : onCostAdjust
-                      }
+                      onCostAdjust={asset.cashLike ? undefined : onCostAdjust}
                       onMovePosition={
-                        isCashRelated(asset) ? undefined : onMovePosition
+                        asset.cashLike ? undefined : onMovePosition
                       }
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
@@ -249,7 +243,7 @@ export default function Rows({
                     />
                   </div>
                 ) : null}
-                {supportsBalanceSetting(asset) &&
+                {asset.cashLike &&
                   (onSetCashBalance ||
                     onCashTransfer ||
                     onCashTransaction ||
@@ -367,7 +361,7 @@ export default function Rows({
             <td className={getCellClasses(3)}>
               {(() => {
                 if (
-                  isCashRelated(asset) ||
+                  asset.cashLike ||
                   hideValue(moneyValues[valueIn].priceData)
                 ) {
                   return " "
@@ -456,7 +450,7 @@ export default function Rows({
               )}
             </td>
             <td className={getCellClasses(6)}>
-              {!isCashRelated(asset) && (
+              {!asset.cashLike && (
                 <span
                   className={`relative group tabular-nums ${
                     moneyValues[valueIn].irr < 0
@@ -514,9 +508,9 @@ export default function Rows({
                     : moneyValues[valueIn].weight > 0
                       ? "text-emerald-600"
                       : "text-slate-600"
-                } ${onWeightClick && !isCashRelated(asset) ? "cursor-pointer hover:underline decoration-dotted underline-offset-2" : ""}`}
+                } ${onWeightClick && !asset.cashLike ? "cursor-pointer hover:underline decoration-dotted underline-offset-2" : ""}`}
                 onClick={
-                  onWeightClick && !isCashRelated(asset)
+                  onWeightClick && !asset.cashLike
                     ? (e) => {
                         e.stopPropagation()
                         onWeightClick({
@@ -537,9 +531,7 @@ export default function Rows({
                     : undefined
                 }
                 title={
-                  onWeightClick && !isCashRelated(asset)
-                    ? "Rebalance"
-                    : undefined
+                  onWeightClick && !asset.cashLike ? "Rebalance" : undefined
                 }
               >
                 <FormatValue

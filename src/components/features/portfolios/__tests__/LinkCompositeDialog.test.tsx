@@ -1,5 +1,6 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { LOCAL_MIDNIGHT_EDGES, pinDate } from "@test-fixtures/clock"
 import { SGD, USD, makePortfolio } from "@test-fixtures/beancounter"
 import LinkCompositeDialog from "@components/features/portfolios/LinkCompositeDialog"
 import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAssets"
@@ -51,4 +52,32 @@ describe("LinkCompositeDialog zen-awareness", () => {
     expect(screen.getByRole("combobox")).toBeInTheDocument()
     expect(screen.getByRole("option", { name: /MAIN/ })).toBeInTheDocument()
   })
+})
+
+describe("LinkCompositeDialog balance date", () => {
+  const mockFetch = jest.fn()
+
+  beforeEach(() => {
+    mockPortfolios = [
+      makePortfolio({ id: "pf-1", code: "MAIN", name: "Main", currency: SGD }),
+    ]
+    mockFetch.mockReset()
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) })
+    global.fetch = mockFetch as unknown as typeof fetch
+  })
+  afterEach(() => jest.useRealTimers())
+
+  it.each(LOCAL_MIDNIGHT_EDGES)(
+    "dates the linking balance on the local today at %i:%i",
+    async (hour, minute) => {
+      pinDate(new Date(2026, 9, 21, hour, minute))
+      render(<LinkCompositeDialog config={config} onClose={jest.fn()} />)
+
+      fireEvent.click(screen.getByRole("button", { name: "Link" }))
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.data[0].tradeDate).toBe("2026-10-21")
+    },
+  )
 })

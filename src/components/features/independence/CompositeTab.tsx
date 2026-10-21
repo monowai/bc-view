@@ -6,8 +6,8 @@ import type {
   RetirementPlan,
   UserIndependenceSettings,
 } from "types/independence"
-import { useCompositeProjection } from "@hooks/useCompositeProjection"
-import { useCompositeMonteCarloSimulation } from "@hooks/useCompositeMonteCarloSimulation"
+import { useCompositeProjection } from "@components/features/independence/useCompositeProjection"
+import { useCompositeMonteCarloSimulation } from "@components/features/independence/useCompositeMonteCarloSimulation"
 import {
   CompositeProjectionProvider,
   CompositeProjectionValue,

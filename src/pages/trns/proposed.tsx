@@ -22,7 +22,7 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import DetailedTransactionsTable from "@components/features/transactions/DetailedTransactionsTable"
 import AggregatedTransactionsTable from "@components/features/transactions/AggregatedTransactionsTable"
-import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import {
   getToday,
   getDateOffset,

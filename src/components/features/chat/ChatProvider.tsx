@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react"
 import { useUser } from "@auth0/nextjs-auth0/client"
-import { useChat, UseChatReturn } from "@hooks/useChat"
+import { useChat, UseChatReturn } from "@components/features/chat/useChat"
 
 const ChatContext = createContext<UseChatReturn | null>(null)
 

@@ -18,7 +18,7 @@ jest.mock("@components/features/fx/RateChartModal", () => {
     )
   }
 })
-jest.mock("@components/features/holdings/PriceChartPopup", () => {
+jest.mock("@components/features/assets/PriceChartPopup", () => {
   return function PriceChartPopup(props: {
     asset: { code: string }
     portfolioId?: string

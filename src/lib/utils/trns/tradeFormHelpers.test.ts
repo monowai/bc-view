@@ -397,6 +397,7 @@ describe("tradeFormHelpers", () => {
         chartable: true,
         watchable: true,
         hasNews: true,
+        cashLike: false,
         displayCode: "AAPL",
         market: {
           code: "NASDAQ",

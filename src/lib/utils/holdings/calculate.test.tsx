@@ -301,6 +301,38 @@ describe("Cash grouping behavior", () => {
     )
     expect(holdings.holdingGroups["PRIVATE"]).toBeUndefined()
   })
+
+  it("should group by the server's cashLike flag when grouping by MARKET", () => {
+    // svc-data owns which assets are cash-like; a category bc-view does not
+    // know still lands under CASH when the server flags it.
+    const contract: HoldingContract = JSON.parse(data).data
+    const cashTemplate = contract.positions["USD:CASH"]
+    contract.positions["WALLET:PRIVATE"] = {
+      ...cashTemplate,
+      asset: {
+        ...cashTemplate.asset,
+        code: "user.WALLET",
+        id: "wallet-id",
+        name: "Wallet",
+        market: { ...cashTemplate.asset.market, code: "PRIVATE" },
+        assetCategory: { id: "WALLET", name: "Wallet" },
+        cashLike: true,
+      },
+    } as unknown as Position
+
+    const holdings = calculateHoldings(
+      contract,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET,
+    )
+
+    const cashCodes = holdings.holdingGroups["CASH"].positions.map(
+      (p) => p.asset.code,
+    )
+    expect(cashCodes).toContain("user.WALLET")
+    expect(holdings.holdingGroups["PRIVATE"]).toBeUndefined()
+  })
 })
 
 describe("hideEmpty filtering for ACCOUNT assets", () => {

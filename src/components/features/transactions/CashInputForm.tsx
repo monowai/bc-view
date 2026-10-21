@@ -17,7 +17,7 @@ import {
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import TradeStatusToggle from "@components/ui/TradeStatusToggle"
+import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
 import DateInput from "@components/ui/DateInput"
 import MathInput from "@components/ui/MathInput"
 import Alert from "@components/ui/Alert"

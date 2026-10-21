@@ -158,7 +158,9 @@ export function transformToAllocationSlices(
  * taken from each position's BASE money values and converted to the display
  * currency via `fxRates[baseCurrencyCode]` — the same per-position rule
  * `useWealthSummary` applies — so the grouped allocation reconciles with the
- * rest of the wealth page rather than mixing raw currencies.
+ * rest of the wealth page rather than mixing raw currencies. A position whose
+ * currency has no rate is left out rather than valued at 1, so a foreign
+ * amount is never charted or summed as if it were in the display currency.
  */
 export function transformFxAllocationSlices(
   holdingContract: HoldingContract,
@@ -177,7 +179,8 @@ export function transformFxAllocationSlices(
     if (!moneyValues) continue
 
     const currency = moneyValues.currency?.code
-    const rate = currency ? fxRates[currency] || 1 : 1
+    const rate = currency === undefined ? undefined : fxRates[currency]
+    if (rate === undefined) continue
     const { key, label } = getGroupKey(position, groupBy)
     const marketValue = (moneyValues.marketValue || 0) * rate
     const gainOnDay = (moneyValues.gainOnDay || 0) * rate

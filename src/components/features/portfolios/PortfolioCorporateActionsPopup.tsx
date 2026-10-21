@@ -13,7 +13,6 @@ import {
   simpleFetcher,
   corporateEventsKey,
 } from "@utils/api/fetchHelper"
-import { isCashRelated } from "@lib/assets/assetUtils"
 import {
   calculateEffectivePayDate,
   canProcessEvent,
@@ -79,7 +78,7 @@ const PortfolioCorporateActionsPopup: React.FC<
 
     const positions = Object.values(
       holdingsData.data.positions as Record<string, Position>,
-    ).filter((pos) => !isCashRelated(pos.asset))
+    ).filter((pos) => !pos.asset.cashLike)
 
     setScanProgress({ current: 0, total: positions.length })
 

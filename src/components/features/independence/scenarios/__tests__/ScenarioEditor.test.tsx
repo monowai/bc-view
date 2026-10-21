@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import ScenarioEditor from "../ScenarioEditor"
 import { WorkScenario } from "types/independence"
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
+jest.mock("@components/features/independence/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({ settings: undefined }),
 }))
 

@@ -1,8 +1,26 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import DateInput from "../DateInput"
+import { LOCAL_MIDNIGHT_EDGES, pinDate } from "@test-fixtures/clock"
 
 describe("DateInput", () => {
+  describe("adjusting an empty date starts from the local today", () => {
+    afterEach(() => jest.useRealTimers())
+
+    it.each(LOCAL_MIDNIGHT_EDGES)(
+      "steps from the local date at %i:%i",
+      (hour, minute) => {
+        pinDate(new Date(2026, 9, 21, hour, minute))
+        const onChange = jest.fn()
+        const { container } = render(<DateInput value="" onChange={onChange} />)
+
+        fireEvent.keyDown(container.querySelector("input")!, { key: "+" })
+
+        expect(onChange).toHaveBeenCalledWith("2026-10-22")
+      },
+    )
+  })
+
   it("renders with initial value", () => {
     render(<DateInput value="2024-01-15" onChange={jest.fn()} />)
     expect(screen.getByDisplayValue("2024-01-15")).toBeInTheDocument()

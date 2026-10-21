@@ -13,7 +13,7 @@ jest.mock("next/router", () => ({
   useRouter: () => ({ push: jest.fn(), query: {} }),
 }))
 
-jest.mock("@components/features/holdings/useNewsAsset", () => ({
+jest.mock("@components/features/assets/useNewsAsset", () => ({
   useNewsAsset: () => ({ newsAsset: null, setNewsAsset: jest.fn() }),
 }))
 

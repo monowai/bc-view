@@ -16,6 +16,7 @@ import {
   MilestoneEvalData,
 } from "@utils/milestones/types"
 import { evaluateAll, findNewMilestones } from "@utils/milestones/evaluator"
+import { todayIso } from "@lib/formatters"
 
 interface MilestonesContextValue {
   /** All milestone states (earned + unevaluated) */
@@ -108,7 +109,7 @@ export function MilestonesProvider({
       }
 
       // Update local earned state
-      const now = new Date().toISOString().slice(0, 10)
+      const now = todayIso()
       const newEarned: EarnedMilestone[] = newOnes.map((m) => ({
         id: "",
         milestoneId: m.milestoneId,

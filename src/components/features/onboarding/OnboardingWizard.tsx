@@ -10,7 +10,7 @@ import {
   SubAccountRequest,
   TaxTreatment,
 } from "types/beancounter"
-import OnboardingProgress from "./OnboardingProgress"
+import OnboardingProgress from "@components/ui/OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
 import AssetsStep from "./steps/AssetsStep"
