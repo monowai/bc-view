@@ -26,14 +26,17 @@ export function useHoldingAnalysis(): UseHoldingAnalysisReturn {
   const { ai, preview } = usePermissions()
   const [target, setTarget] = useState<AnalysisTarget | null>(null)
   const close = useCallback(() => setTarget(null), [])
+  const enabled = ai || preview
   const showAnalysis = useCallback(
-    (asset: Asset, portfolioCode: string) =>
+    (asset: Asset, portfolioCode: string) => {
+      if (!enabled) return
       setTarget({
         ticker: asset.displayCode,
         market: asset.market.code,
         portfolioCode,
-      }),
-    [],
+      })
+    },
+    [enabled],
   )
   const popup = target ? (
     <HoldingAnalysisPopup
@@ -44,5 +47,5 @@ export function useHoldingAnalysis(): UseHoldingAnalysisReturn {
       onClose={close}
     />
   ) : null
-  return { popup, enabled: ai || preview, showAnalysis }
+  return { popup, enabled, showAnalysis }
 }

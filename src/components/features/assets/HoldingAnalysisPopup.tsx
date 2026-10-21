@@ -10,8 +10,8 @@ interface HoldingAnalysisPopupProps {
 }
 
 // Holding facts move with every trade, so a reopened analysis is reused for
-// less time than an Asset Review.
-const CACHE_TTL_MS = 10 * 60 * 1000
+// less time than an Asset Review (30 minutes).
+const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
 /**
  * The Holding Analysis request: the asset review, enriched server-side with
