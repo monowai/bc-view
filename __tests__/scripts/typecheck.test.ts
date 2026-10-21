@@ -47,4 +47,22 @@ describe("ownErrors", () => {
 
     expect(ownErrors(output)).toEqual([])
   })
+
+  it("treats a global error naming a node_modules file as third-party", () => {
+    const output =
+      "error TS6053: File '/repo/node_modules/some-pkg/index.d.ts' not found."
+
+    expect(ownErrors(output)).toEqual([])
+  })
+
+  it("reads a Windows-style node_modules path as third-party", () => {
+    const output =
+      "C:\\repo\\node_modules\\pkg\\index.d.ts(1,1): error TS2503: Cannot find namespace 'JSX'."
+
+    expect(ownErrors(output)).toEqual([])
+  })
+
+  it("returns nothing for missing output", () => {
+    expect(ownErrors(null)).toEqual([])
+  })
 })
