@@ -272,7 +272,7 @@ export function transformHoldingsToAllocationSlices(
       percentage: (subTotals.marketValue / total) * 100,
       color: getColor(groupKey, index),
       gainOnDay: subTotals.gainOnDay,
-      irr: subTotals.weightedIrr, // Use pre-calculated weighted IRR from backend
+      irr: subTotals.weightedIrr, // Weighted IRR computed by calculateHoldings
     }
   })
 

@@ -9,7 +9,7 @@ import {
   PieChart,
   Pie,
 } from "recharts"
-import { Holdings, MoneyValues } from "types/beancounter"
+import { Holdings, SubTotalValues } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { ProgressBar } from "@components/ui/ProgressBar"
 import {
@@ -178,7 +178,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   }, [])
 
   // Get the viewTotals based on valueIn
-  const viewTotals: MoneyValues = holdings.viewTotals
+  const viewTotals: SubTotalValues = holdings.viewTotals
 
   // Filter allocation data and sort by predefined order
   const filteredAllocation = useMemo(() => {

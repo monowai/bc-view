@@ -7,14 +7,13 @@ import {
   PortfolioBreakdown,
   Position,
   QuantityValues,
+  SubTotalValues,
 } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { USD, makeAsset } from "./asset"
 import { makePortfolio } from "./portfolio"
 
-// MoneyValues uses an index signature that TS doesn't narrow neatly per-bucket.
-// Use `Money` as a local alias for "the per-bucket money values" — semantically
-// equivalent to Money without the type-lookup headaches.
+// `Money` is a position's per-bucket MoneyValues, in the shape svc-position sends.
 type Money = MoneyValues
 
 export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
@@ -26,9 +25,9 @@ export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
     unrealisedGain: 5000,
     realisedGain: 0,
     dividends: 0,
+    expenses: 0,
     fees: 0,
-    tax: 0,
-    cash: 0,
+    earmarked: 0,
     purchases: 10000,
     sales: 0,
     costBasis: 10000,
@@ -36,20 +35,39 @@ export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
     irr: 0.2,
     roi: 0.5,
     weight: 0.25,
-    weightedIrr: 0.05,
     totalGain: 5000,
     gainOnDay: 100,
-    valueIn: USD,
     priceData: {
       close: 150,
       previousClose: 149,
       change: 1,
       changePercent: 0.0067,
       priceDate: "2024-01-15",
-      ...(priceOverrides as object),
+      ...priceOverrides,
     },
     ...rest,
-  } as Money
+  }
+}
+
+/** Client-computed group subtotal / view total, as calculateHoldings builds it. */
+export function makeSubTotalValues(
+  overrides: Partial<SubTotalValues> = {},
+): SubTotalValues {
+  return {
+    currency: USD,
+    costValue: 10000,
+    marketValue: 15000,
+    dividends: 0,
+    purchases: 10000,
+    sales: 0,
+    realisedGain: 0,
+    unrealisedGain: 5000,
+    totalGain: 5000,
+    gainOnDay: 100,
+    weight: 0.25,
+    weightedIrr: 0.05,
+    ...overrides,
+  }
 }
 
 export function makeQuantityValues(
@@ -118,7 +136,7 @@ export function makePosition(options: MakePositionOptions = {}): Position {
 
 export interface MakeHoldingGroupOptions {
   positions?: Position[]
-  subTotals?: Partial<Money>
+  subTotals?: Partial<SubTotalValues>
   buckets?: ValueIn[]
 }
 
@@ -131,14 +149,14 @@ export function makeHoldingGroup(
     buckets = [ValueIn.PORTFOLIO],
   } = options
 
-  const money = makeMoneyValues({
+  const money = makeSubTotalValues({
     marketValue: 15000,
     totalGain: 5000,
     gainOnDay: 100,
     weight: 1,
     ...subTotals,
   })
-  const subTotalsByBucket: Record<string, Money> = {}
+  const subTotalsByBucket: Record<string, SubTotalValues> = {}
   for (const b of buckets) subTotalsByBucket[b] = money
 
   return {
@@ -167,7 +185,7 @@ export interface MakeHoldingsOptions {
    * Per-portfolio aggregate row consumed by `GrandTotal`. Pass `null` to
    * simulate the missing-totals branch.
    */
-  viewTotals?: Partial<Money> | null
+  viewTotals?: Partial<SubTotalValues> | null
   valueIn?: ValueIn
 }
 
@@ -191,7 +209,7 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
     viewTotals:
       viewTotals === null
         ? undefined
-        : makeMoneyValues({ currency: portfolio.currency, ...viewTotals }),
+        : makeSubTotalValues({ currency: portfolio.currency, ...viewTotals }),
     totals: {
       marketValue: 15000,
       purchases: 10000,

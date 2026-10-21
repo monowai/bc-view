@@ -18,7 +18,7 @@ export interface Holdings {
   currency: Currency
   portfolio: Portfolio
   valueIn: ValueIn
-  viewTotals: MoneyValues
+  viewTotals: SubTotalValues
   totals: Total
 }
 
@@ -29,7 +29,7 @@ export interface GroupKey {
 // User defined grouping
 export interface HoldingGroup {
   positions: Position[]
-  subTotals: Record<ValueIn, MoneyValues>
+  subTotals: Record<ValueIn, SubTotalValues>
 }
 
 export interface Total {
@@ -50,29 +50,51 @@ export interface HoldingValues {
   valueIn: ValueIn
 }
 
+/**
+ * Per-bucket money values exactly as svc-position sends them
+ * (jar-contracts `MoneyValues`). Every field has a server default, so all are
+ * always present.
+ */
 export interface MoneyValues {
+  currency: Currency
   dividends: number
+  expenses: number
   costValue: number
+  costBasis: number
   fees: number
-  tax: number
-  cash: number // separate out cash into its own bucket
-  /** Cash reserved for pending/unsettled settlement; marketValue + earmarked = nominal */
-  earmarked: number
   purchases: number
   sales: number
-  costBasis: number
+  marketValue: number
+  /** Cash reserved for pending/unsettled settlement; marketValue + earmarked = nominal */
+  earmarked: number
+  weight: number
+  irr: number
+  roi: number
+  priceData: PriceData
   averageCost: number
   realisedGain: number
   unrealisedGain: number
-  gainOnDay: number
   totalGain: number
-  priceData: PriceData
-  marketValue: number
+  gainOnDay: number
+}
+
+/**
+ * Group subtotals and view totals summed in the browser by calculateHoldings.
+ * Not a server type: `weightedIrr` exists only here.
+ */
+export interface SubTotalValues {
   currency: Currency
-  valueIn: ValueIn
+  costValue: number
+  marketValue: number
+  dividends: number
+  purchases: number
+  sales: number
+  realisedGain: number
+  unrealisedGain: number
+  totalGain: number
+  gainOnDay: number
   weight: number
-  roi: number
-  irr: number
+  /** Market-value-weighted IRR of the group's tradeable positions */
   weightedIrr: number
 }
 
@@ -125,7 +147,7 @@ export interface DateValues {
 
 export interface GroupedSubtotals {
   groupBy: string
-  subTotals: Record<ValueIn, MoneyValues>
+  subTotals: Record<ValueIn, SubTotalValues>
   valueIn: ValueIn
 }
 
