@@ -1,6 +1,7 @@
 import {
   WatchlistApiError,
   addWatchlistItem,
+  dismissWatchlistAlert,
   removeWatchlistItem,
   updateWatchlistItem,
 } from "@utils/api/client/watchlist"
@@ -19,6 +20,33 @@ function response(status: number, text: string): Response {
 }
 
 describe("watchlist api client", () => {
+  it("dismisses an alert and returns the remaining alerts", async () => {
+    const remaining = [{ id: "wa-2" }]
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue(response(200, JSON.stringify({ data: remaining })))
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    await expect(dismissWatchlistAlert("wa-1")).resolves.toEqual(remaining)
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/watchlist/alerts/wa-1",
+      expect.objectContaining({ method: "DELETE" }),
+    )
+  })
+
+  it("carries the status when a dismiss fails", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(
+        response(404, JSON.stringify({ message: "no such alert" })),
+      ) as unknown as typeof fetch
+
+    await expect(dismissWatchlistAlert("wa-9")).rejects.toMatchObject({
+      status: 404,
+      message: "no such alert",
+    })
+  })
+
   it("removes an item at /api/watchlist/items/{itemId}", async () => {
     const fetchMock = jest.fn().mockResolvedValue(response(204, ""))
     global.fetch = fetchMock as unknown as typeof fetch
