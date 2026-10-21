@@ -32,14 +32,12 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
   onClose,
   onUpdated,
 }) => {
+  const assetUrl = assetKey(assetId)
   const {
     data: assetResp,
     isLoading,
     mutate,
-  } = useSWR<{ data: Asset }>(
-    assetKey(assetId),
-    simpleFetcher(assetKey(assetId)),
-  )
+  } = useSWR<{ data: Asset }>(assetUrl, simpleFetcher(assetUrl))
   const asset = assetResp?.data
 
   const { data: catResp } = useSWR<{ data: AssetCategory[] }>(
