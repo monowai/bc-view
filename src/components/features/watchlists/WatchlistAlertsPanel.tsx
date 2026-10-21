@@ -6,8 +6,11 @@ import {
   getPositionDisplayName,
   priceDecimals,
 } from "@lib/assets/assetUtils"
-import { formatCurrency, formatDate } from "@lib/formatters"
+import { formatCurrency, formatDate, toErrorMessage } from "@lib/formatters"
 import { dismissWatchlistAlert } from "@utils/api/client/watchlist"
+
+/** Fragment id of the alerts panel; the header badge links to it. */
+export const WATCHLIST_ALERTS_ANCHOR = "alerts"
 
 interface WatchlistAlertsPanelProps {
   alerts: WatchlistAlert[]
@@ -23,7 +26,7 @@ export default function WatchlistAlertsPanel({
   if (alerts.length === 0) return null
   return (
     <section
-      id="alerts"
+      id={WATCHLIST_ALERTS_ANCHOR}
       aria-label="Target alerts"
       className="mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4"
     >
@@ -57,8 +60,9 @@ function AlertRow({
     setError(null)
     try {
       onDismissed(await dismissWatchlistAlert(alert.id))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Dismiss failed")
+    } catch (err) {
+      setError(toErrorMessage(err, "Dismiss failed"))
+    } finally {
       setBusy(false)
     }
   }
