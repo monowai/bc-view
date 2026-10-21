@@ -30,6 +30,7 @@
         "id": "ETF",
         "name": "Exchange Traded Fund"
       },
+      "cashLike": false,
       "status": "Active",
       "version": "1"
     },
@@ -71,6 +72,7 @@
         "id": "CASH",
         "name": "Cash"
       },
+      "cashLike": true,
       "status": "Active",
       "version": "1"
     },
@@ -143,6 +145,7 @@
         "id": "ETF",
         "name": "Exchange Traded Fund"
       },
+      "cashLike": false,
       "status": "Active",
       "version": "1"
     },
@@ -184,6 +187,7 @@
         "id": "CASH",
         "name": "Cash"
       },
+      "cashLike": true,
       "status": "Active",
       "version": "1"
     },
@@ -256,6 +260,7 @@
         "id": "ETF",
         "name": "Exchange Traded Fund"
       },
+      "cashLike": false,
       "status": "Active",
       "version": "1"
     },
@@ -297,6 +302,7 @@
         "id": "CASH",
         "name": "Cash"
       },
+      "cashLike": true,
       "status": "Active",
       "version": "1"
     },

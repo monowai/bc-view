@@ -26,6 +26,7 @@ import { usePortfolios } from "@hooks/usePortfolios"
 import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
 import { buildCompositeBalanceTrn } from "@utils/trns/compositeBalanceTrn"
 import PortfolioPickerDialog from "@components/features/portfolios/PortfolioPickerDialog"
+import { todayIso } from "@lib/formatters"
 
 interface SectorInfo {
   code: string
@@ -200,7 +201,7 @@ export default withPageAuthRequired(
               assetId,
               assetName: formData.name,
               currency: formData.currency.value,
-              tradeDate: new Date().toISOString().slice(0, 10),
+              tradeDate: todayIso(),
               subAccounts,
             })
           : null

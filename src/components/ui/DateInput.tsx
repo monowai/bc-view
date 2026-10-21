@@ -1,5 +1,5 @@
 import React, { useCallback, forwardRef } from "react"
-import { todayIso } from "@lib/formatters"
+import { localIsoDate, todayIso } from "@lib/formatters"
 
 interface DateInputProps {
   value: string
@@ -28,7 +28,9 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   ) {
     const adjustDate = useCallback(
       (unit: "day" | "month" | "year", amount: number): void => {
-        const currentDate = value ? new Date(value) : new Date()
+        // Local midnight of the shown date (a bare YYYY-MM-DD parses as UTC),
+        // or now; local setters and formatting keep it on the same calendar.
+        const currentDate = value ? new Date(`${value}T00:00:00`) : new Date()
 
         if (unit === "day") {
           currentDate.setDate(currentDate.getDate() + amount)
@@ -38,8 +40,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           currentDate.setFullYear(currentDate.getFullYear() + amount)
         }
 
-        const newDate = currentDate.toISOString().split("T")[0]
-        onChange(newDate)
+        onChange(localIsoDate(currentDate))
       },
       [value, onChange],
     )

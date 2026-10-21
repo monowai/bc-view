@@ -5,6 +5,7 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import Spinner from "@components/ui/Spinner"
+import { localIsoDate } from "@lib/formatters"
 
 interface TaskResult {
   success: boolean
@@ -33,8 +34,8 @@ const getDefaultDates = (): TaskDates => {
   const thirtyDaysAgo = new Date(today)
   thirtyDaysAgo.setDate(today.getDate() - 30)
   return {
-    fromDate: thirtyDaysAgo.toISOString().split("T")[0],
-    toDate: today.toISOString().split("T")[0],
+    fromDate: localIsoDate(thirtyDaysAgo),
+    toDate: localIsoDate(today),
   }
 }
 

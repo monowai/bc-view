@@ -8,6 +8,7 @@
     "id": "Equity",
     "name": "Equity"
   },
+  "cashLike": false,
   "market": {
     "code": "NASDAQ",
     "currency": {

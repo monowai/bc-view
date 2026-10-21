@@ -42,6 +42,7 @@ const mockAsset: Asset = {
   chartable: true,
   watchable: true,
   hasNews: true,
+  cashLike: false,
   displayCode: "NASDAQ.AAPL",
   market: {
     code: "NASDAQ",

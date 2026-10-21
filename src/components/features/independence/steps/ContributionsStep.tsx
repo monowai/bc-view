@@ -15,6 +15,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ContributionFormEntry } from "types/independence"
 import { Asset, PrivateAssetConfig } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import { convertAt } from "@lib/currency"
 import Spinner from "@components/ui/Spinner"
 import { useDefinedContribution } from "../useDefinedContribution"
 import {
@@ -45,6 +46,20 @@ function getNetRentalIncome(config: PrivateAssetConfig): number {
     monthlyInsurance +
     (config.monthlyOtherExpenses || 0)
   return Math.max(0, config.monthlyRentalIncome - totalExpenses)
+}
+
+// Net rental income in plan currency; undefined while its FX rate is unknown.
+function rentalInPlanCurrency(
+  config: PrivateAssetConfig,
+  planCurrency: string,
+  fxRates: Record<string, number>,
+): number | undefined {
+  const netIncome = getNetRentalIncome(config)
+  if (config.rentalCurrency === planCurrency) return netIncome
+  return convertAt(
+    netIncome,
+    fxRates[`${config.rentalCurrency}:${planCurrency}`],
+  )
 }
 
 interface ContributionsStepProps {
@@ -185,19 +200,17 @@ export default function ContributionsStep({
     return rates
   }, [fxData])
 
-  // Total rental income converted to plan currency
+  // Total rental income converted to plan currency. A rental whose rate has
+  // not arrived is left out (its row shows a placeholder) rather than added
+  // as if already in plan currency.
   const totalRentalIncome = useMemo(() => {
     return rentalProperties
       .filter((c) => !excludedRentalIds.has(c.assetId))
-      .reduce((sum, config) => {
-        const netIncome = getNetRentalIncome(config)
-        if (config.rentalCurrency === planCurrency) {
-          return sum + netIncome
-        }
-        const rateKey = `${config.rentalCurrency}:${planCurrency}`
-        const rate = fxRates[rateKey] || 1
-        return sum + netIncome * rate
-      }, 0)
+      .reduce(
+        (sum, config) =>
+          sum + (rentalInPlanCurrency(config, planCurrency, fxRates) ?? 0),
+        0,
+      )
   }, [rentalProperties, excludedRentalIds, planCurrency, fxRates])
 
   // Watch income-related fields for summary
@@ -491,11 +504,11 @@ export default function ContributionsStep({
                 const netIncome = getNetRentalIncome(config)
                 const name = assetNames[config.assetId] || config.assetId
                 const needsConversion = config.rentalCurrency !== planCurrency
-                const rateKey = `${config.rentalCurrency}:${planCurrency}`
-                const rate = fxRates[rateKey] || 1
-                const convertedIncome = needsConversion
-                  ? netIncome * rate
-                  : netIncome
+                const convertedIncome = rentalInPlanCurrency(
+                  config,
+                  planCurrency,
+                  fxRates,
+                )
                 return (
                   <label
                     key={config.assetId}
@@ -526,7 +539,9 @@ export default function ContributionsStep({
                       className={`text-sm font-medium ${isExcluded ? "text-gray-400 line-through" : "text-green-600"}`}
                     >
                       {planCurrency}{" "}
-                      {Math.round(convertedIncome).toLocaleString()}
+                      {convertedIncome === undefined
+                        ? "–"
+                        : Math.round(convertedIncome).toLocaleString()}
                       {needsConversion && (
                         <span className="text-xs text-gray-400 ml-1">
                           ({config.rentalCurrency}{" "}

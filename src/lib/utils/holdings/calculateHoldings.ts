@@ -7,7 +7,7 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isNonTradeable, isCash, isCashRelated } from "@lib/assets/assetUtils"
+import { isNonTradeable, isCash } from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -54,7 +54,7 @@ function getGroupKey(groupBy: GroupBy, position: Position): string {
   }
   if (groupBy === GroupBy.MARKET) {
     if (
-      isCashRelated(position.asset) ||
+      position.asset.cashLike ||
       position.asset.assetCategory.id === "TRADE"
     ) {
       return "CASH"

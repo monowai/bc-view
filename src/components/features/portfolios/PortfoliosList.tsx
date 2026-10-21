@@ -8,6 +8,7 @@ import PortfolioActions from "./PortfolioActions"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
+import { convertAt, sumConverted } from "@lib/currency"
 
 interface PortfoliosListProps {
   portfolios: Portfolio[]
@@ -78,6 +79,21 @@ function formatLastUpdated(lastUpdated: string | undefined): string {
 }
 
 // Safe gain-on-day percentage: returns formatted string or null if previous value is zero
+// Shown in place of a value that cannot be converted for want of an FX rate.
+const NO_RATE = "–"
+
+function gainOnDayText(
+  gainOnDay: number | undefined,
+  displayCurrency: Currency | null,
+): string {
+  if (gainOnDay === undefined) return NO_RATE
+  const amount = gainOnDay.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+  return `${gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${amount}`
+}
+
 function gainOnDayPercent(
   gainOnDay: number,
   marketValue: number,
@@ -292,14 +308,19 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
     )
   }
 
-  const totalMarketValue = sortedPortfolios.reduce(
-    (sum, p) => sum + (p.marketValue || 0) * (fxRates[p.base.code] || 1),
-    0,
+  // A portfolio already in the display currency needs no rate; any other
+  // without one shows a placeholder and keeps the total from being summed.
+  const rateFor = (portfolio: Portfolio): number | undefined =>
+    portfolio.base.code === displayCurrency?.code
+      ? 1
+      : fxRates[portfolio.base.code]
+
+  const totalMarketValue = sumConverted(
+    sortedPortfolios.map((p) => convertAt(p.marketValue || 0, rateFor(p))),
   )
 
-  const totalGainOnDay = sortedPortfolios.reduce(
-    (sum, p) => sum + (p.gainOnDay || 0) * (fxRates[p.base.code] || 1),
-    0,
+  const totalGainOnDay = sumConverted(
+    sortedPortfolios.map((p) => convertAt(p.gainOnDay || 0, rateFor(p))),
   )
 
   const allSelected =
@@ -457,17 +478,21 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                         ? displayCurrency?.code
                         : displayCurrency?.symbol}
                       <FormatValue
-                        value={
-                          (portfolio.marketValue ? portfolio.marketValue : 0) *
-                          (fxRates[portfolio.base.code] || 1)
-                        }
+                        value={convertAt(
+                          portfolio.marketValue ? portfolio.marketValue : 0,
+                          rateFor(portfolio),
+                        )}
+                        defaultValue={NO_RATE}
                       />
                     </div>
                     {portfolio.gainOnDay !== undefined &&
                       portfolio.gainOnDay !== 0 &&
                       portfolio.marketValue && (
                         <QuickTooltip
-                          text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                          text={gainOnDayText(
+                            convertAt(portfolio.gainOnDay, rateFor(portfolio)),
+                            displayCurrency,
+                          )}
                         >
                           <span
                             className={`text-sm font-medium tabular-nums ${
@@ -586,27 +611,34 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   {displayCurrency?.symbol === "?"
                     ? displayCurrency?.code
                     : displayCurrency?.symbol}
-                  <FormatValue value={totalMarketValue} />
+                  <FormatValue
+                    value={totalMarketValue}
+                    defaultValue={NO_RATE}
+                  />
                 </span>
-                {totalGainOnDay !== 0 && totalMarketValue && (
-                  <QuickTooltip
-                    text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  >
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        totalGainOnDay >= 0
-                          ? "text-emerald-200"
-                          : "text-red-200"
-                      }`}
+                {totalGainOnDay !== undefined &&
+                  totalGainOnDay !== 0 &&
+                  totalMarketValue !== undefined &&
+                  totalMarketValue !== 0 && (
+                    <QuickTooltip
+                      text={gainOnDayText(totalGainOnDay, displayCurrency)}
                     >
-                      {(
-                        (totalGainOnDay / (totalMarketValue - totalGainOnDay)) *
-                        100
-                      ).toFixed(2)}
-                      %
-                    </span>
-                  </QuickTooltip>
-                )}
+                      <span
+                        className={`text-sm font-semibold tabular-nums ${
+                          totalGainOnDay >= 0
+                            ? "text-emerald-200"
+                            : "text-red-200"
+                        }`}
+                      >
+                        {(
+                          (totalGainOnDay /
+                            (totalMarketValue - totalGainOnDay)) *
+                          100
+                        ).toFixed(2)}
+                        %
+                      </span>
+                    </QuickTooltip>
+                  )}
               </div>
             </div>
           </div>
@@ -731,11 +763,11 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
                         <FormatValue
-                          value={
-                            (portfolio.marketValue
-                              ? portfolio.marketValue
-                              : 0) * (fxRates[portfolio.base.code] || 1)
-                          }
+                          value={convertAt(
+                            portfolio.marketValue ? portfolio.marketValue : 0,
+                            rateFor(portfolio),
+                          )}
+                          defaultValue={NO_RATE}
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -743,7 +775,13 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                         portfolio.gainOnDay !== 0 &&
                         portfolio.marketValue ? (
                           <QuickTooltip
-                            text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            text={gainOnDayText(
+                              convertAt(
+                                portfolio.gainOnDay,
+                                rateFor(portfolio),
+                              ),
+                              displayCurrency,
+                            )}
                           >
                             <span
                               className={`font-semibold tabular-nums ${
@@ -877,12 +915,17 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     {displayCurrency?.symbol === "?"
                       ? displayCurrency?.code
                       : displayCurrency?.symbol}
-                    <FormatValue value={totalMarketValue} />
+                    <FormatValue
+                      value={totalMarketValue}
+                      defaultValue={NO_RATE}
+                    />
                   </td>
                   <td className="px-4 py-3 text-right text-sm">
-                    {totalGainOnDay !== 0 && totalMarketValue ? (
+                    {totalGainOnDay !== undefined &&
+                    totalGainOnDay !== 0 &&
+                    totalMarketValue ? (
                       <QuickTooltip
-                        text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        text={gainOnDayText(totalGainOnDay, displayCurrency)}
                       >
                         <span
                           className={`font-bold tabular-nums ${

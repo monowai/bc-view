@@ -244,15 +244,25 @@ describe("transformToAllocationSlices", () => {
       expect(percentSum).toBeCloseTo(100, 1)
     })
 
-    it("defaults to a rate of 1 for currencies missing from the map", () => {
-      const withRate = transformFxAllocationSlices(holdingContract, "asset", {
-        USD: 1,
-      })
-      const noRate = transformFxAllocationSlices(holdingContract, "asset", {})
+    it("leaves out a position whose currency has no rate, never valuing it at 1", () => {
+      // Re-denominate one holding in NZD; only USD has a rate.
+      const contract: HoldingContract = JSON.parse(
+        JSON.stringify(holdingContract),
+      )
+      const base = contract.positions["BKNG:US"].moneyValues.BASE
+      base.currency = { code: "NZD", name: "NZ Dollar", symbol: "$" }
 
-      withRate.forEach((slice, i) => {
-        expect(slice.value).toBeCloseTo(noRate[i].value, 2)
-      })
+      const fx = transformFxAllocationSlices(contract, "asset", { USD: 1 })
+
+      expect(fx.map((s) => s.key)).not.toContain("BKNG")
+      const percentSum = fx.reduce((sum, s) => sum + s.percentage, 0)
+      expect(percentSum).toBeCloseTo(100, 1)
+    })
+
+    it("returns [] when no position's currency has a rate", () => {
+      expect(transformFxAllocationSlices(holdingContract, "asset", {})).toEqual(
+        [],
+      )
     })
 
     it("suppresses zero-value holdings", () => {

@@ -136,6 +136,7 @@ function assetOptionToAsset(option: AssetOption): Asset {
     watchable: option.watchable ?? false,
     hasNews: option.hasNews ?? false,
     displayCode: option.displayCode ?? option.symbol,
+    cashLike: false, // Search finds listed assets, never cash or accounts
   }
 }
 

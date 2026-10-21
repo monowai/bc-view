@@ -1,7 +1,6 @@
 import {
   stripOwnerPrefix,
   getDisplayCode,
-  isCashRelated,
   isNonTradeable,
   isFundLike,
   getPositionDisplayName,
@@ -76,25 +75,6 @@ describe("stripOwnerPrefix", () => {
 
   it("strips when prefix is long enough to plausibly be an owner id", () => {
     expect(stripOwnerPrefix(`${USER_ID}.BRK.B`)).toBe("BRK.B")
-  })
-})
-
-describe("isCashRelated", () => {
-  it("returns true for CASH", () => {
-    expect(isCashRelated({ assetCategory: { id: "CASH" } } as any)).toBe(true)
-  })
-  it("returns true for ACCOUNT", () => {
-    expect(isCashRelated({ assetCategory: { id: "ACCOUNT" } } as any)).toBe(
-      true,
-    )
-  })
-  it("returns false for RE", () => {
-    expect(isCashRelated({ assetCategory: { id: "RE" } } as any)).toBe(false)
-  })
-  it("returns false for EQUITY", () => {
-    expect(isCashRelated({ assetCategory: { id: "EQUITY" } } as any)).toBe(
-      false,
-    )
   })
 })
 

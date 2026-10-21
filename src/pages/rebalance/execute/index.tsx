@@ -138,6 +138,7 @@ function toChartAsset(item: DisplayItem): Asset {
     watchable: false,
     hasNews: false,
     displayCode: item.assetCode || item.assetId,
+    cashLike: false,
   }
 }
 

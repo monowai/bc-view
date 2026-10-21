@@ -202,11 +202,16 @@ export const formatSignedNumber = (
  * which the backend resolves against its own configured zone — so an off-by-one
  * lands the row on the wrong day.
  */
-export const todayIso = (): string => {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const day = String(now.getDate()).padStart(2, "0")
-  return `${now.getFullYear()}-${month}-${day}`
+export const todayIso = (): string => localIsoDate(new Date())
+
+/**
+ * A date as YYYY-MM-DD by its *local* calendar fields. Use for dates derived
+ * from "now" (e.g. a range ending today); `toISOString()` gives the UTC date.
+ */
+export const localIsoDate = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 /**

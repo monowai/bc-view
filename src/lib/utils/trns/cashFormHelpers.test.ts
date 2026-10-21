@@ -38,6 +38,7 @@ const makeAsset = (
   chartable: false,
   watchable: false,
   hasNews: false,
+  cashLike: true,
   market: {
     code: marketCode,
     name: marketCode,

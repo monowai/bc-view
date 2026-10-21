@@ -85,6 +85,7 @@ describe("categoryMapping", () => {
       chartable: true,
       watchable: true,
       hasNews: true,
+      cashLike: false,
       displayCode: "TEST",
       market: {
         code: "NASDAQ",

@@ -57,6 +57,8 @@ export function makeCurrency(overrides: Partial<Currency> = {}): Currency {
  * private (owner-prefixed) code must pass its own `displayCode` and flags.
  */
 export function makeAsset(overrides: Partial<Asset> = {}): Asset {
+  // svc-data sends cashLike for currency cash and bank accounts.
+  const category = overrides.assetCategory?.id
   return {
     id: "asset-aapl",
     code: "AAPL",
@@ -67,6 +69,7 @@ export function makeAsset(overrides: Partial<Asset> = {}): Asset {
     watchable: true,
     hasNews: true,
     displayCode: overrides.code ?? "AAPL",
+    cashLike: category === "CASH" || category === "ACCOUNT",
     ...overrides,
   } as Asset
 }
