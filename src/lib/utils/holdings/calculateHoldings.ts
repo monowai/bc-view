@@ -279,6 +279,11 @@ function calculateSummaryTotals(
     viewTotals.totalGain += group.subTotals[valueIn].totalGain
     viewTotals.costValue += group.subTotals[valueIn].costValue
   })
+  // Weighed over every group's positions at once, as each group's own is.
+  viewTotals.weightedIrr = calculateWeightedIrr(
+    Object.values(holdings.holdingGroups).flatMap((group) => group.positions),
+    valueIn,
+  )
 
   // Return the updated viewTotals after the loop
   return viewTotals
