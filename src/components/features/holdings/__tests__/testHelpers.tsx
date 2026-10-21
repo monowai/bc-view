@@ -22,10 +22,8 @@ export const grandTotalHoldings = (
       dividends: 299.02,
       unrealisedGain: 3503.85,
       realisedGain: 481.44,
-      irr: 0.15,
       weight: 1.0,
       totalGain: 4284.31,
-      averageCost: 45.28,
     },
     totals: {
       marketValue: 12643.74,
