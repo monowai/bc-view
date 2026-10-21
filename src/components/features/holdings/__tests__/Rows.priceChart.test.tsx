@@ -89,3 +89,13 @@ describe("Rows price chart icon", () => {
     ).not.toBeInTheDocument()
   })
 })
+
+describe("Rows AI news action", () => {
+  it("shows the AI sparkle, not the newspaper, on the news action", () => {
+    renderRow(makeAsset())
+
+    const button = screen.getByRole("button", { name: "News AAPL" })
+    expect(button.querySelector(".fa-wand-magic-sparkles")).not.toBeNull()
+    expect(button.querySelector(".fa-newspaper")).toBeNull()
+  })
+})

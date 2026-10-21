@@ -20,6 +20,17 @@ describe("AssetNewsButton", () => {
     expect(screen.getByLabelText("News AAPL")).toBeInTheDocument()
   })
 
+  it("shows the newspaper icon by default", () => {
+    render(
+      <AssetNewsButton
+        asset={makeAsset({ code: "AAPL" })}
+        onShow={jest.fn()}
+      />,
+    )
+    const button = screen.getByLabelText("News AAPL")
+    expect(button.querySelector(".fa-newspaper")).not.toBeNull()
+  })
+
   it("returns null for cash assets", () => {
     const { container } = render(
       <AssetNewsButton asset={makeCashAsset()} onShow={jest.fn()} />,

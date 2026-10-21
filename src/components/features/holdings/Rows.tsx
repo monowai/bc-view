@@ -198,6 +198,7 @@ export default function Rows({
                       asset={asset}
                       onShow={() => showNews(asset)}
                       iconClassName="text-[10px]"
+                      icon="fa-wand-magic-sparkles"
                     />
                   </div>
                   {!isCash(asset) && asset.name && (

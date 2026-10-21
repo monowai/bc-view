@@ -233,7 +233,11 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
     <div className="flex-1 min-w-0">
       <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
         {displayName}
-        <AssetNewsButton asset={asset} onShow={onShowNews} />
+        <AssetNewsButton
+          asset={asset}
+          onShow={onShowNews}
+          icon="fa-wand-magic-sparkles"
+        />
       </h3>
       {hasDistinctName && (
         <p className="text-sm text-gray-500 truncate">{truncatedName}</p>

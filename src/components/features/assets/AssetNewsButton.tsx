@@ -7,6 +7,8 @@ interface AssetNewsButtonProps {
   onShow: () => void
   /** Override icon size (default `text-xs`). */
   iconClassName?: string
+  /** Font Awesome icon (default `fa-newspaper`); holdings shows the AI sparkle. */
+  icon?: string
 }
 
 /**
@@ -18,6 +20,7 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
   asset,
   onShow,
   iconClassName = "text-xs",
+  icon = "fa-newspaper",
 }): ReactElement | null => {
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   if (!canRunAi && !canPreview) return null
@@ -35,7 +38,7 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
       title={`News for ${ticker}`}
       aria-label={`News ${ticker}`}
     >
-      <i className={`fas fa-newspaper ${iconClassName}`}></i>
+      <i aria-hidden="true" className={`fas ${icon} ${iconClassName}`}></i>
     </button>
   )
 }
