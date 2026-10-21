@@ -58,7 +58,7 @@ export function makeCurrency(overrides: Partial<Currency> = {}): Currency {
  */
 export function makeAsset(overrides: Partial<Asset> = {}): Asset {
   // svc-data sends cashLike for currency cash and bank accounts.
-  const category = overrides.assetCategory?.id
+  const category = overrides.assetCategory?.id?.toUpperCase()
   return {
     id: "asset-aapl",
     code: "AAPL",

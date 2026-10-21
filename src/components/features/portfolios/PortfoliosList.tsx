@@ -78,7 +78,6 @@ function formatLastUpdated(lastUpdated: string | undefined): string {
   })
 }
 
-// Safe gain-on-day percentage: returns formatted string or null if previous value is zero
 // Shown in place of a value that cannot be converted for want of an FX rate.
 const NO_RATE = "–"
 
@@ -94,6 +93,7 @@ function gainOnDayText(
   return `${gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${amount}`
 }
 
+// Safe gain-on-day percentage: returns formatted string or null if previous value is zero
 function gainOnDayPercent(
   gainOnDay: number,
   marketValue: number,
