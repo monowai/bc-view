@@ -16,7 +16,7 @@
 const { spawnSync } = require("child_process")
 
 // "path(line,col): error TSnnnn: message", or a global "error TSnnnn: message".
-const ERROR_LINE = /^(?:(\S+)\(\d+,\d+\): )?error TS\d+:/
+const ERROR_LINE = /^(?:(.*?)\(\d+,\d+\): )?error TS\d+:/
 
 function ownErrors(output) {
   return output.split("\n").filter((line) => {
@@ -26,20 +26,39 @@ function ownErrors(output) {
 }
 
 function main() {
+  // The pinned compiler, never one npx might fetch.
   const tsc = spawnSync(
-    "npx",
-    ["tsc", "--noEmit", "--skipLibCheck", "false", "--pretty", "false"],
+    process.execPath,
+    [
+      require.resolve("typescript/bin/tsc"),
+      "--noEmit",
+      "--skipLibCheck",
+      "false",
+      "--pretty",
+      "false",
+    ],
     { encoding: "utf8" },
   )
   if (tsc.error) {
     console.error(tsc.error.message)
     process.exit(1)
   }
-  const errors = ownErrors(`${tsc.stdout}${tsc.stderr}`)
+  const output = `${tsc.stdout}${tsc.stderr}`
+  const errors = ownErrors(output)
   if (errors.length > 0) {
     console.error(errors.join("\n"))
-    console.error(`\n${errors.length} type error(s) in types/ or src/`)
+    console.error(`\n${errors.length} type error(s) in project files`)
     process.exit(1)
+  }
+  // tsc failed without a diagnostic we can read (bad config, crash, signal):
+  // never let that pass. Third-party declaration errors alone also exit
+  // non-zero, so only fail when nothing but those was reported.
+  const thirdPartyOnly = output
+    .split("\n")
+    .some((line) => line.startsWith("node_modules/"))
+  if (tsc.signal || (tsc.status !== 0 && !thirdPartyOnly)) {
+    console.error(output.trim() || `tsc exited with code ${tsc.status}`)
+    process.exit(tsc.status || 1)
   }
 }
 

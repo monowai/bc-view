@@ -40,4 +40,11 @@ describe("ownErrors", () => {
       "error TS5023: Unknown compiler option 'foo'.",
     ])
   })
+
+  it("reads a path that contains spaces", () => {
+    const output =
+      "node_modules/some pkg/index.d.ts(1,1): error TS2503: Cannot find namespace 'JSX'."
+
+    expect(ownErrors(output)).toEqual([])
+  })
 })
