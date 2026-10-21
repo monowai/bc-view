@@ -3,8 +3,8 @@ import {
   HoldingContract,
   HoldingGroup,
   Holdings,
-  MoneyValues,
   Position,
+  SubTotalValues,
   Total,
 } from "types/beancounter"
 import { isNonTradeable, isCash } from "@lib/assets/assetUtils"
@@ -65,17 +65,16 @@ export function getGroupKey(groupBy: GroupBy, position: Position): string {
 
 // Helper function to update total
 function updateSubTotal(
-  subTotal: MoneyValues,
+  subTotal: SubTotalValues,
   position: Position,
   valueIn: ValueIn,
-): MoneyValues {
+): SubTotalValues {
   const keys = [
     "marketValue",
     "costValue",
     "dividends",
     "realisedGain",
     "unrealisedGain",
-    "irr",
     "totalGain",
   ] as const
   keys.forEach((key) => {
@@ -84,7 +83,6 @@ function updateSubTotal(
     }
   })
   if (isNonTradeable(position.asset)) {
-    subTotal.cash += position.moneyValues[valueIn].marketValue
     subTotal.weight += position.moneyValues[valueIn].weight
   } else {
     subTotal.purchases += position.moneyValues[valueIn].purchases
@@ -112,35 +110,19 @@ function zeroTotal(currency: Currency): Total {
   }
 }
 
-function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
+function zeroSubTotals(currency: Currency): SubTotalValues {
   return {
+    currency: currency,
     costValue: 0,
-    dividends: 0,
     marketValue: 0,
-    realisedGain: 0,
-    totalGain: 0,
-    unrealisedGain: 0,
-    fees: 0,
-    cash: 0,
-    earmarked: 0,
+    dividends: 0,
     purchases: 0,
     sales: 0,
-    tax: 0,
-    weight: 0,
-    roi: 0,
-    irr: 0,
-    costBasis: 0,
+    realisedGain: 0,
+    unrealisedGain: 0,
+    totalGain: 0,
     gainOnDay: 0,
-    priceData: {
-      close: 0,
-      change: 0,
-      changePercent: 0,
-      priceDate: "",
-      previousClose: 0,
-    },
-    valueIn: valueIn,
-    averageCost: 0,
-    currency: currency,
+    weight: 0,
     weightedIrr: 0,
   }
 }
@@ -149,18 +131,13 @@ function createHoldingGroup(
   _groupKey: string,
   position: Position,
 ): HoldingGroup {
-  const initialTotals: Record<ValueIn, MoneyValues> = {
-    [ValueIn.PORTFOLIO]: zeroMoneyValues(
+  const initialTotals: Record<ValueIn, SubTotalValues> = {
+    [ValueIn.PORTFOLIO]: zeroSubTotals(
       position.moneyValues[ValueIn.PORTFOLIO].currency,
-      ValueIn.PORTFOLIO,
     ),
-    [ValueIn.BASE]: zeroMoneyValues(
-      position.moneyValues[ValueIn.BASE].currency,
-      ValueIn.BASE,
-    ),
-    [ValueIn.TRADE]: zeroMoneyValues(
+    [ValueIn.BASE]: zeroSubTotals(position.moneyValues[ValueIn.BASE].currency),
+    [ValueIn.TRADE]: zeroSubTotals(
       position.moneyValues[ValueIn.TRADE].currency,
-      ValueIn.TRADE,
     ),
   }
 
@@ -171,9 +148,9 @@ function createHoldingGroup(
 }
 
 function addSubtotalPosition(
-  subTotals: Record<ValueIn, MoneyValues>,
+  subTotals: Record<ValueIn, SubTotalValues>,
   position: Position,
-): Record<ValueIn, MoneyValues> {
+): Record<ValueIn, SubTotalValues> {
   subTotals[ValueIn.BASE] = updateSubTotal(
     subTotals[ValueIn.BASE],
     position,
@@ -261,7 +238,7 @@ export function calculateHoldings(
       valueIn: valueIn,
       currency: { code: "", symbol: "" } as Currency,
       totals: zeroTotal(totalsCurrency),
-      viewTotals: zeroMoneyValues(contract.portfolio.currency, valueIn),
+      viewTotals: zeroSubTotals(contract.portfolio.currency),
     },
   )
 
@@ -286,16 +263,15 @@ export function calculateHoldings(
 function calculateSummaryTotals(
   holdings: Holdings,
   valueIn: ValueIn,
-): MoneyValues {
+): SubTotalValues {
   // Initialize viewTotals with zero values.
-  const viewTotals = zeroMoneyValues(holdings.currency!, valueIn)
+  const viewTotals = zeroSubTotals(holdings.currency!)
   Object.values(holdings.holdingGroups).forEach((group: HoldingGroup) => {
     // Update viewTotals for each group
     viewTotals.marketValue += group.subTotals[valueIn].marketValue
     viewTotals.weight += group.subTotals[valueIn].weight
     viewTotals.purchases += group.subTotals[valueIn].purchases
     viewTotals.sales += group.subTotals[valueIn].sales
-    viewTotals.cash += group.subTotals[valueIn].cash
     viewTotals.dividends += group.subTotals[valueIn].dividends
     viewTotals.gainOnDay += group.subTotals[valueIn].gainOnDay
     viewTotals.realisedGain += group.subTotals[valueIn].realisedGain
