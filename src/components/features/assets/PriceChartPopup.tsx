@@ -89,7 +89,8 @@ interface ChartPoint {
   closeRaw: number
   splitFactor: number
   split?: number
-  sma?: number
+  // One field per selected SMA window, e.g. `sma20`, `sma200`.
+  [smaKey: `sma${number}`]: number | undefined
   ratio?: number
   trend?: RatioTrend
   buyPrice?: number | null
@@ -102,7 +103,7 @@ interface ChartPoint {
   // 1.0-based scale as the ratio overlay. Only present while an overlay is on;
   // otherwise the chart plots the money values themselves.
   closeIndex?: number
-  smaIndex?: number
+  [smaIndexKey: `sma${number}Index`]: number | undefined
   buyIndex?: number | null
   sellIndex?: number | null
 }
@@ -117,12 +118,38 @@ const RANGES: { label: string; months: number }[] = [
   { label: "10y", months: 120 },
 ]
 
-const SMA_OPTIONS: { label: string; window: number }[] = [
-  { label: "Off", window: 0 },
-  { label: "SMA 20", window: 20 },
-  { label: "SMA 50", window: 50 },
-  { label: "SMA 200", window: 200 },
+// Each window keeps its own colour and dash whatever else is on, so a line
+// reads the same however many are drawn.
+const SMA_OPTIONS: {
+  label: string
+  window: number
+  color: string
+  dash: string
+}[] = [
+  { label: "SMA 20", window: 20, color: "#6366F1", dash: "4 3" },
+  { label: "SMA 50", window: 50, color: "#7C3AED", dash: "6 3" },
+  { label: "SMA 200", window: 200, color: "#D97706", dash: "10 4" },
 ]
+
+const FALLBACK_SMAS = [20]
+
+const smaKey = (window: number): `sma${number}` => `sma${window}`
+const smaIndexKey = (window: number): `sma${number}Index` => `sma${window}Index`
+
+/**
+ * The SMA windows to show on open, from `NEXT_PUBLIC_CHART_DEFAULT_SMA`: one
+ * window or a comma list ("50,200"). "0" means none. Windows the chart does
+ * not offer are dropped; a value that leaves none falls back to SMA 20.
+ */
+export function parseDefaultSmas(raw: string | undefined): number[] {
+  if (raw === undefined || raw.trim() === "") return FALLBACK_SMAS
+  if (raw.trim() === "0") return []
+  const wanted = raw.split(",").map((part) => Number(part.trim()))
+  const picked = SMA_OPTIONS.map((o) => o.window).filter((w) =>
+    wanted.includes(w),
+  )
+  return picked.length > 0 ? picked : FALLBACK_SMAS
+}
 
 // A ratio overlay divides one price series by another and plots the result,
 // rebased to 1.0, on the same indexed scale as the price. `SELF` means "the
@@ -183,11 +210,7 @@ const DEFAULT_MONTHS = pickDefault(
   RANGES.map((r) => r.months),
   6,
 )
-const DEFAULT_SMA = pickDefault(
-  process.env.NEXT_PUBLIC_CHART_DEFAULT_SMA,
-  SMA_OPTIONS.map((s) => s.window),
-  20,
-)
+const DEFAULT_SMAS = parseDefaultSmas(process.env.NEXT_PUBLIC_CHART_DEFAULT_SMA)
 // Off by default: the overlay costs two more asset lookups plus two price
 // histories, and most holdings are opened to read price, not breadth.
 const DEFAULT_OVERLAY =
@@ -325,12 +348,19 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
       {point.split && (
         <div className="text-[11px] text-amber-600">Split {point.split}:1</div>
       )}
-      {typeof point.sma === "number" && (
-        <div className="text-xs text-indigo-600 tabular-nums">
-          SMA: {currencySymbol}
-          <FormatValue value={point.sma} />
-        </div>
-      )}
+      {SMA_OPTIONS.map((opt) => {
+        const value = point[smaKey(opt.window)]
+        return typeof value === "number" ? (
+          <div
+            key={opt.window}
+            className="text-xs tabular-nums"
+            style={{ color: opt.color }}
+          >
+            {opt.label}: {currencySymbol}
+            <FormatValue value={value} />
+          </div>
+        ) : null
+      })}
       {point.trend && trendLabels && (
         <div className="text-xs" style={{ color: TREND_COLOR[point.trend] }}>
           {ratioLabel}: {trendLabels[point.trend]}
@@ -397,7 +427,16 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   onClose,
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
-  const [smaWindow, setSmaWindow] = useState(DEFAULT_SMA)
+  const [smaWindows, setSmaWindows] = useState<number[]>(DEFAULT_SMAS)
+  const toggleSma = (window: number): void =>
+    setSmaWindows((current) =>
+      current.includes(window)
+        ? current.filter((w) => w !== window)
+        : SMA_OPTIONS.map((o) => o.window).filter(
+            (w) => w === window || current.includes(w),
+          ),
+    )
+  const longestSma = smaWindows.length > 0 ? Math.max(...smaWindows) : 0
   const [overlayLabel, setOverlayLabel] = useState(DEFAULT_OVERLAY)
   const { admin: isAdmin } = usePermissions()
   const [repairState, setRepairState] = useState<{
@@ -426,10 +465,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // History before the range, so the SMA's first displayed points average a
   // full window rather than whatever the range happens to hold. A separate
   // request, so the price area, overlay and trades read the range alone.
+  // Sized for the longest selected window, which covers the shorter ones.
   const warmupUrl =
-    smaWindow > 0
+    longestSma > 0
       ? `/api/prices/history/${asset.id}?from=${localIsoDate(
-          addDays(rangeStart, -smaWarmupDays(smaWindow)),
+          addDays(rangeStart, -smaWarmupDays(longestSma)),
         )}&to=${localIsoDate(addDays(rangeStart, -1))}`
       : null
   const { data: warmupData } = useSwr<PriceHistoryResponse>(
@@ -579,9 +619,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     const warmupCloses = (warmupData?.prices ?? [])
       .filter((p) => !firstShown || p.priceDate < firstShown)
       .map((p) => Number(p.close))
-    const smaSeries = computeSma([...warmupCloses, ...closes], smaWindow).slice(
-      warmupCloses.length,
-    )
+    const allCloses = [...warmupCloses, ...closes]
+    const smaSeries = smaWindows.map((window) => ({
+      window,
+      values: computeSma(allCloses, window).slice(warmupCloses.length),
+    }))
     // The ribbon describes the ratio on screen, so it reads the same series the
     // overlay line plots. No overlay, no ribbon.
     const trendStates = ratioTrendStates(ratioSeries)
@@ -597,13 +639,18 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       const buy = trades.find((t) => t.type === "BUY")
       const sell = trades.find((t) => t.type === "SELL")
       const splitNum = Number(p.split ?? 1)
+      const smaFields: Record<string, number | undefined> = {}
+      for (const { window, values } of smaSeries) {
+        smaFields[smaKey(window)] = values[i]
+        smaFields[smaIndexKey(window)] = index(values[i])
+      }
       return {
+        ...smaFields,
         priceDate: p.priceDate,
         close: closes[i],
         closeRaw: closes[i],
         splitFactor: 1,
         split: splitNum !== 1 ? splitNum : undefined,
-        sma: smaSeries[i],
         ratio: ratioSeries[i],
         trend: typeof ratioSeries[i] === "number" ? trendStates[i] : undefined,
         buyPrice: buy ? buy.price : null,
@@ -613,7 +660,6 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         buyQty: buy?.quantity,
         sellQty: sell?.quantity,
         closeIndex: index(closes[i]),
-        smaIndex: index(smaSeries[i]),
         // Scatter plots nothing for a null and skips the point; undefined
         // would leave the marker on the money scale's height.
         buyIndex: buy ? (index(buy.price) ?? null) : null,
@@ -624,7 +670,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     priceData,
     warmupData,
     tradesByDate,
-    smaWindow,
+    smaWindows,
     ratioSeries,
     indexed,
     priceBase,
@@ -638,14 +684,17 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     const vals: number[] = []
     for (const p of series) {
       vals.push(p.close)
-      if (typeof p.sma === "number") vals.push(p.sma)
+      for (const w of smaWindows) {
+        const v = p[smaKey(w)]
+        if (typeof v === "number") vals.push(v)
+      }
       if (typeof p.buyPrice === "number") vals.push(p.buyPrice)
       if (typeof p.sellPrice === "number") vals.push(p.sellPrice)
     }
     // Keep the limit line inside the plotted range so it never clips off-axis.
     if (typeof limitPrice === "number") vals.push(limitPrice)
     return { min: Math.min(...vals), max: Math.max(...vals) }
-  }, [series, limitPrice])
+  }, [series, smaWindows, limitPrice])
 
   // No ratio selected (or none loaded yet) means nothing to describe: the lane
   // is not reserved and the chart is exactly what it was before the ribbon.
@@ -663,7 +712,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
           : []
       return indexedAxisDomain([
         series.map((p) => p.closeIndex),
-        series.map((p) => p.smaIndex),
+        ...smaWindows.map((w) => series.map((p) => p[smaIndexKey(w)])),
         series.map((p) => p.buyIndex ?? undefined),
         series.map((p) => p.sellIndex ?? undefined),
         series.map((p) => p.ratio),
@@ -672,7 +721,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     }
     const span = max - min || max * 0.02 || 1
     return [min - span * 0.1, max + span * 0.1]
-  }, [series, indexed, min, max, limitPrice, priceBase])
+  }, [series, smaWindows, indexed, min, max, limitPrice, priceBase])
 
   const yDomain = useMemo<[number, number]>(
     () => (trendActive ? reserveRibbonLane(plottedDomain) : plottedDomain),
@@ -801,10 +850,17 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
             {SMA_OPTIONS.map((opt) => (
               <button
                 key={opt.label}
-                onClick={() => setSmaWindow(opt.window)}
+                onClick={() => toggleSma(opt.window)}
+                aria-pressed={smaWindows.includes(opt.window)}
+                // A selected button wears its line's colour, so the buttons key the lines.
+                style={
+                  smaWindows.includes(opt.window)
+                    ? { backgroundColor: opt.color }
+                    : undefined
+                }
                 className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                  smaWindow === opt.window
-                    ? "bg-indigo-600 text-white"
+                  smaWindows.includes(opt.window)
+                    ? "text-white"
                     : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                 }`}
               >
@@ -1072,20 +1128,24 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   }}
                 />
               ))}
-              {smaWindow > 0 && (
-                <Line
-                  key={`sma-${smaWindow}-${indexed}`}
-                  yAxisId="price"
-                  type="monotone"
-                  dataKey={indexed ? "smaIndex" : "sma"}
-                  stroke="#6366F1"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 3"
-                  dot={false}
-                  isAnimationActive
-                  animationDuration={400}
-                  connectNulls
-                />
+              {SMA_OPTIONS.filter((opt) => smaWindows.includes(opt.window)).map(
+                (opt) => (
+                  <Line
+                    key={`sma-${opt.window}-${indexed}`}
+                    yAxisId="price"
+                    type="monotone"
+                    dataKey={
+                      indexed ? smaIndexKey(opt.window) : smaKey(opt.window)
+                    }
+                    stroke={opt.color}
+                    strokeWidth={1.5}
+                    strokeDasharray={opt.dash}
+                    dot={false}
+                    isAnimationActive
+                    animationDuration={400}
+                    connectNulls
+                  />
+                ),
               )}
               {indexed && (
                 <Line

@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import PriceChartPopup from "../PriceChartPopup"
+import PriceChartPopup, { parseDefaultSmas } from "../PriceChartPopup"
 import useSwr from "swr"
 import { makeAsset } from "@test-fixtures/beancounter"
 import { localIsoDate } from "@lib/formatters"
@@ -352,6 +352,20 @@ describe("PriceChartPopup", () => {
     expect(screen.queryByText("Limit")).not.toBeInTheDocument()
   })
 
+  it("colours each selected SMA button as its line and leaves the others plain", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+    expect(screen.getByRole("button", { name: "SMA 200" })).toHaveStyle({
+      backgroundColor: "#D97706",
+    })
+    expect(
+      screen.getByRole("button", { name: "SMA 50" }).style.backgroundColor,
+    ).toBe("")
+  })
+
   it("defaults to the 6m range with SMA 20 on", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
@@ -360,10 +374,21 @@ describe("PriceChartPopup", () => {
     expect(screen.getByRole("button", { name: "6m" })).toHaveClass(
       "bg-wealth-600",
     )
-    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveClass(
-      "bg-indigo-600",
+    // A selected button wears its line's colour, so the buttons key the lines.
+    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveStyle({
+      backgroundColor: "#6366F1",
+    })
+    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
     )
-    expect(screen.getByTestId("line-sma")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "SMA 50" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    )
+    expect(screen.getByTestId("line-sma20")).toBeInTheDocument()
+    expect(screen.queryByTestId("line-sma50")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("line-sma200")).not.toBeInTheDocument()
   })
 
   it("refetches prices with a new range when a period tab is clicked", () => {
@@ -406,16 +431,127 @@ describe("PriceChartPopup", () => {
     },
   )
 
-  it("renders the SMA line when a window is selected", () => {
-    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
-
-    renderPopup()
-
-    fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
-    expect(screen.getByTestId("line-sma")).toBeInTheDocument()
-  })
-
   describe("simple moving average", () => {
+    it("offers no Off button: SMAs are independent toggles", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+
+      expect(
+        screen.queryByRole("button", { name: "Off" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("draws several SMAs at once, one line each", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 50" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      expect(screen.getByTestId("line-sma20")).toBeInTheDocument()
+      expect(screen.getByTestId("line-sma50")).toBeInTheDocument()
+      expect(screen.getByTestId("line-sma200")).toBeInTheDocument()
+      for (const name of ["SMA 20", "SMA 50", "SMA 200"]) {
+        expect(screen.getByRole("button", { name })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        )
+      }
+    })
+
+    it("toggling one SMA off removes only its line", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
+
+      expect(screen.queryByTestId("line-sma20")).not.toBeInTheDocument()
+      expect(screen.getByTestId("line-sma200")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      )
+    })
+
+    it("sizes the warm-up by the longest selected window", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+      const day = 24 * 60 * 60 * 1000
+      const latestWarmSpan = (): number => {
+        const main = mainHistoryKey()
+        const warm = assetHistoryKeys()
+          .filter((k) => param(k, "to") < param(main, "to"))
+          .pop() as string
+        const warmTo = new Date(`${param(warm, "to")}T00:00:00Z`)
+        const warmFrom = new Date(`${param(warm, "from")}T00:00:00Z`)
+        return (warmTo.getTime() - warmFrom.getTime()) / day
+      }
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 50" }))
+      // 50 trading days: more than 70 calendar days, well short of 200's.
+      expect(latestWarmSpan()).toBeGreaterThan(70)
+      expect(latestWarmSpan()).toBeLessThan(150)
+
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+      expect(latestWarmSpan()).toBeGreaterThan(290)
+
+      // Turning the short windows off leaves 200 in charge of the warm-up.
+      fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 50" }))
+      expect(latestWarmSpan()).toBeGreaterThan(290)
+
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 50" }))
+      expect(latestWarmSpan()).toBeLessThan(150)
+    })
+
+    it("gives each selected window its own series and tooltip row", () => {
+      const warmCloses = Array.from({ length: 250 }, (_, i) => i + 1)
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          warmup: daysBefore("2026-03-21", warmCloses),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      const rows = chartRows()
+      const combined = [...warmCloses, ...history.prices.map((p) => p.close)]
+      const last = combined.length
+      expect(rows[2].sma20).toBeCloseTo(mean(combined.slice(last - 20)), 6)
+      expect(rows[2].sma200).toBeCloseTo(mean(combined.slice(last - 200)), 6)
+      expect(rows[2].sma50).toBeUndefined()
+
+      const tooltip = screen.getByTestId("tooltip")
+      expect(tooltip).toHaveTextContent("SMA 20:")
+      expect(tooltip).toHaveTextContent("SMA 200:")
+      expect(tooltip).not.toHaveTextContent("SMA 50:")
+    })
+
+    it("keeps every selected SMA inside the price axis", () => {
+      // A long run of high closes puts SMA 200 far above the displayed range.
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          warmup: daysBefore("2026-03-21", new Array(250).fill(2000)),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      const top = Math.max(
+        ...chartRows().map((r) => (r.sma200 as number | undefined) ?? 0),
+      )
+      expect(top).toBeGreaterThan(1900)
+      const domain = JSON.parse(
+        screen.getByTestId("yaxis-price").getAttribute("data-domain") as string,
+      ) as [number, number]
+      expect(domain[1]).toBeGreaterThanOrEqual(top)
+    })
+
     it("offers a 200-day SMA", () => {
       mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
@@ -464,11 +600,11 @@ describe("PriceChartPopup", () => {
       const combined = [...warmCloses, ...closes]
       const firstShown = warmCloses.length
       expect(rows).toHaveLength(closes.length)
-      expect(rows[0].sma).toBeCloseTo(
+      expect(rows[0].sma200).toBeCloseTo(
         mean(combined.slice(firstShown - 199, firstShown + 1)),
         6,
       )
-      expect(rows[2].sma).toBeCloseTo(
+      expect(rows[2].sma200).toBeCloseTo(
         mean(combined.slice(firstShown - 197, firstShown + 3)),
         6,
       )
@@ -487,8 +623,8 @@ describe("PriceChartPopup", () => {
       renderPopup()
 
       const rows = chartRows()
-      expect(rows[0].sma).toBeUndefined()
-      expect(rows[1].sma).toBeCloseTo(
+      expect(rows[0].sma20).toBeUndefined()
+      expect(rows[1].sma20).toBeCloseTo(
         mean([...warmCloses, 400, 410].slice(-20)),
         6,
       )
@@ -500,14 +636,14 @@ describe("PriceChartPopup", () => {
       renderPopup()
       fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
 
-      expect(chartRows().every((r) => r.sma === undefined)).toBe(true)
+      expect(chartRows().every((r) => r.sma200 === undefined)).toBe(true)
     })
 
-    it("fetches no warm-up history when the SMA is off", () => {
+    it("fetches no warm-up history when no SMA is selected", () => {
       mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
       renderPopup()
-      fireEvent.click(screen.getByRole("button", { name: "Off" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
       mockUseSwr.mockClear()
       fireEvent.click(screen.getByRole("button", { name: "12m" }))
 
@@ -515,7 +651,22 @@ describe("PriceChartPopup", () => {
       expect(keys.length).toBeGreaterThan(0)
       const main = mainHistoryKey()
       expect(keys.every((k) => k === main)).toBe(true)
-      expect(screen.queryByTestId("line-sma")).not.toBeInTheDocument()
+      expect(screen.queryByTestId("line-sma20")).not.toBeInTheDocument()
+    })
+
+    it.each([
+      [undefined, [20]],
+      ["", [20]],
+      ["20", [20]],
+      ["200", [200]],
+      ["50,200", [50, 200]],
+      [" 200 , 20 ", [20, 200]],
+      ["0", []],
+      ["50,7", [50]],
+      ["7", [20]],
+      ["abc", [20]],
+    ])("reads the default SMAs from %p as %p", (raw, expected) => {
+      expect(parseDefaultSmas(raw)).toEqual(expected)
     })
   })
 
@@ -636,11 +787,11 @@ describe("PriceChartPopup", () => {
 
     const rows = JSON.parse(
       screen.getByTestId("chart").getAttribute("data-series") as string,
-    ) as Array<{ buyIndex?: number | null; smaIndex?: number }>
+    ) as Array<{ buyIndex?: number | null; sma20Index?: number }>
     expect(rows.find((r) => r.buyIndex != null)?.buyIndex).toBeCloseTo(0.95, 6)
-    expect(rows[0].smaIndex).toBeCloseTo(1, 6)
+    expect(rows[0].sma20Index).toBeCloseTo(1, 6)
     expect(screen.getByTestId("scatter-buyIndex")).toBeInTheDocument()
-    expect(screen.getByTestId("line-smaIndex")).toBeInTheDocument()
+    expect(screen.getByTestId("line-sma20Index")).toBeInTheDocument()
     // Anything left on the money scale would sit at the wrong height.
     expect(screen.getByTestId("refline-y-1.05")).toBeInTheDocument()
     // The label still quotes the limit in money — that is what was entered.
