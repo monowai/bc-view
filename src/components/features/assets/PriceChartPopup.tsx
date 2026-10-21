@@ -852,9 +852,15 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 key={opt.label}
                 onClick={() => toggleSma(opt.window)}
                 aria-pressed={smaWindows.includes(opt.window)}
+                // A selected button wears its line's colour, so the buttons key the lines.
+                style={
+                  smaWindows.includes(opt.window)
+                    ? { backgroundColor: opt.color }
+                    : undefined
+                }
                 className={`px-2 py-0.5 rounded font-medium transition-colors ${
                   smaWindows.includes(opt.window)
-                    ? "bg-indigo-600 text-white"
+                    ? "text-white"
                     : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                 }`}
               >

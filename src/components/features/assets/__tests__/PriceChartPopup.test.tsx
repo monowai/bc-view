@@ -352,6 +352,20 @@ describe("PriceChartPopup", () => {
     expect(screen.queryByText("Limit")).not.toBeInTheDocument()
   })
 
+  it("colours each selected SMA button as its line and leaves the others plain", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup()
+    fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+    expect(screen.getByRole("button", { name: "SMA 200" })).toHaveStyle({
+      backgroundColor: "#D97706",
+    })
+    expect(
+      screen.getByRole("button", { name: "SMA 50" }).style.backgroundColor,
+    ).toBe("")
+  })
+
   it("defaults to the 6m range with SMA 20 on", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
@@ -360,9 +374,10 @@ describe("PriceChartPopup", () => {
     expect(screen.getByRole("button", { name: "6m" })).toHaveClass(
       "bg-wealth-600",
     )
-    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveClass(
-      "bg-indigo-600",
-    )
+    // A selected button wears its line's colour, so the buttons key the lines.
+    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveStyle({
+      backgroundColor: "#6366F1",
+    })
     expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
       "aria-pressed",
       "true",
