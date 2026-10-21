@@ -94,7 +94,10 @@ export interface SubTotalValues {
   totalGain: number
   gainOnDay: number
   weight: number
-  /** Market-value-weighted IRR of the group's tradeable positions */
+  /**
+   * Market-value-weighted IRR of the group's tradeable positions, in the
+   * bucket (`valueIn`) this subtotal belongs to.
+   */
   weightedIrr: number
 }
 

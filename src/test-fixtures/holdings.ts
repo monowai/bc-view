@@ -209,7 +209,12 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
     viewTotals:
       viewTotals === null
         ? undefined
-        : makeSubTotalValues({ currency: portfolio.currency, ...viewTotals }),
+        : makeSubTotalValues({
+            currency: portfolio.currency,
+            // A view total spans every group, so its weight is the whole.
+            weight: 1,
+            ...viewTotals,
+          }),
     totals: {
       marketValue: 15000,
       purchases: 10000,
