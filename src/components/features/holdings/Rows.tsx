@@ -109,7 +109,7 @@ export default function Rows({
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
-  const { popup: reviewPopup, showAsset: showReview } = useAssetReview()
+  const { popup: reviewPopup, showAsset: openReview } = useAssetReview()
   const {
     popup: analysisPopup,
     enabled: analysisEnabled,
@@ -204,7 +204,7 @@ export default function Rows({
                     />
                     <AssetReviewButton
                       asset={asset}
-                      onShow={() => showReview(asset)}
+                      onShow={() => openReview(asset)}
                       iconClassName="text-[10px]"
                     />
                   </div>

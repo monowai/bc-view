@@ -330,7 +330,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
-  const { popup: reviewPopup, showAsset: showReview } = useAssetReview()
+  const { popup: reviewPopup, showAsset: openReview } = useAssetReview()
   const {
     popup: analysisPopup,
     enabled: analysisEnabled,
@@ -491,7 +491,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         truncatedName={truncatedName}
         changePercent={values.priceData?.changePercent}
         onShowNews={() => showNews(asset)}
-        onShowReview={() => showReview(asset)}
+        onShowReview={() => openReview(asset)}
         actionsMenu={actionsNode}
       />
 
