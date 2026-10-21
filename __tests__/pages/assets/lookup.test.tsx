@@ -31,7 +31,7 @@ jest.mock("next/router", () => ({
 }))
 
 let capturedSectorProps: Record<string, unknown> | null = null
-jest.mock("@components/features/holdings/SectorWeightingsPopup", () => {
+jest.mock("@components/features/portfolios/SectorWeightingsPopup", () => {
   return function SectorWeightingsPopup(props: Record<string, unknown>) {
     capturedSectorProps = props
     return props.modalOpen ? <div data-testid="sector-popup" /> : null
@@ -103,7 +103,7 @@ jest.mock("@components/features/fx/RateChartModal", () => {
     return <div>{`rate chart ${props.from}/${props.to}`}</div>
   }
 })
-jest.mock("@components/features/holdings/PriceChartPopup", () => {
+jest.mock("@components/features/assets/PriceChartPopup", () => {
   return function PriceChartPopup(props: { asset: { code: string } }) {
     return <div>{`price chart ${props.asset.code}`}</div>
   }

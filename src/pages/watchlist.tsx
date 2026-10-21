@@ -10,7 +10,7 @@ import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchli
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
 import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
 import AssetChart from "@components/features/assets/AssetChart"
-import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
+import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import { useWatchlist } from "@hooks/useWatchlist"
 import {
   removeWatchlistItem,

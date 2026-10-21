@@ -15,7 +15,7 @@ import {
   gainLossClass,
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
-import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
+import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 
 const DASH = "–"

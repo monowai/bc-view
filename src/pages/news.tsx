@@ -4,10 +4,10 @@ import Head from "next/head"
 import useSwr from "swr"
 import { ChatPanel } from "@components/features/chat"
 import { getPageContext } from "@components/features/chat/pageContext"
-import { useChat } from "@hooks/useChat"
+import { useChat } from "@components/features/chat/useChat"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { extractTickers } from "../lib/holdings/tickerExtraction"
+import { extractTickers } from "../lib/utils/news/tickerExtraction"
 
 function NewsPage(): React.ReactElement {
   const { portfolios, isLoading: portfoliosLoading } = usePortfolios()

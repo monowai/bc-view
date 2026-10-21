@@ -6,7 +6,7 @@ import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
 import { requestChatOpen } from "../chatBus"
 import { ChatMessage } from "types/agent"
-import { CONVERSATION_STORAGE_KEY } from "@hooks/useChat"
+import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 

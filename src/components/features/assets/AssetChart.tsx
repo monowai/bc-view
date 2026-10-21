@@ -1,7 +1,7 @@
 import React from "react"
 import PriceChartPopup, {
   PriceChartPopupProps,
-} from "@components/features/holdings/PriceChartPopup"
+} from "@components/features/assets/PriceChartPopup"
 import RateChartModal from "@components/features/fx/RateChartModal"
 import { fxPairLegs } from "@lib/assets/assetUtils"
 

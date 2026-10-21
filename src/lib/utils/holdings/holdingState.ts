@@ -6,7 +6,7 @@ import {
   HoldingDefaults,
   ValuationOption,
 } from "types/app"
-import { useValuationOptions } from "@components/ui/ValueIn"
+import { useValuationOptions } from "@components/features/holdings/ValueIn"
 import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
 import { useEffect } from "react"

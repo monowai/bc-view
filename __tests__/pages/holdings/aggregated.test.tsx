@@ -31,7 +31,7 @@ jest.mock("@hooks/usePermissions", () => ({
 
 // The popup's own content is covered by SectorWeightingsPopup.test.tsx —
 // here we only care that the aggregated page opens it.
-jest.mock("@components/features/holdings/SectorWeightingsPopup", () => ({
+jest.mock("@components/features/portfolios/SectorWeightingsPopup", () => ({
   __esModule: true,
   default: ({ asset }: { asset: { code: string } }) => (
     <div data-testid="sector-weightings-popup">{asset.code}</div>

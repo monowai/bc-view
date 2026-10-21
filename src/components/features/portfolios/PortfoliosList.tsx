@@ -7,7 +7,7 @@ import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioActions from "./PortfolioActions"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import { usePermissions } from "@hooks/usePermissions"
-import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
+import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { convertAt, sumConverted } from "@lib/currency"
 
 interface PortfoliosListProps {

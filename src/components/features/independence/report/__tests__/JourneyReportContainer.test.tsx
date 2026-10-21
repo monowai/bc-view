@@ -16,7 +16,7 @@ let mockSettled = true
 let mockError: string | null = null
 let mockPhases: CompositePhase[] = []
 
-jest.mock("@hooks/useCompositeProjection", () => ({
+jest.mock("@components/features/independence/useCompositeProjection", () => ({
   useCompositeProjection: () => ({
     phases: mockPhases,
     setPhases: jest.fn(),
@@ -35,14 +35,17 @@ jest.mock("@hooks/useCompositeProjection", () => ({
     error: mockError,
   }),
 }))
-jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
-  useCompositeMonteCarloSimulation: () => ({
-    result: null,
-    isRunning: false,
-    error: null,
-    runSimulation: mockRun,
+jest.mock(
+  "@components/features/independence/useCompositeMonteCarloSimulation",
+  () => ({
+    useCompositeMonteCarloSimulation: () => ({
+      result: null,
+      isRunning: false,
+      error: null,
+      runSimulation: mockRun,
+    }),
   }),
-}))
+)
 const mockReport = jest.fn()
 jest.mock("@components/features/independence/report/JourneyReport", () => ({
   __esModule: true,

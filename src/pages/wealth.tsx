@@ -30,6 +30,7 @@ import IndependenceMetrics from "@components/features/wealth/IndependenceMetrics
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
 import QuickActionCards from "@components/features/wealth/QuickActionCards"
+import PayslipModal from "@components/features/independence/PayslipModal"
 import WealthPerformanceChart from "@components/features/wealth/WealthPerformanceChart"
 import { useNetWorth } from "@components/features/wealth/useNetWorth"
 import {
@@ -52,6 +53,7 @@ function WealthDashboard(): React.ReactElement {
   })
 
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const [payslipOpen, setPayslipOpen] = useState(false)
 
   // Collapsible sections state - all collapsed by default
   const [collapsedSections, setCollapsedSections] = useState<
@@ -380,7 +382,16 @@ function WealthDashboard(): React.ReactElement {
           )}
 
           {/* Quick Actions */}
-          <QuickActionCards zenMode={zenMode} />
+          <QuickActionCards
+            zenMode={zenMode}
+            onPayslip={() => setPayslipOpen(true)}
+          />
+          {zenMode && (
+            <PayslipModal
+              modalOpen={payslipOpen}
+              onClose={() => setPayslipOpen(false)}
+            />
+          )}
         </div>
       </div>
 

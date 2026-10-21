@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 import { INPUT_CLS } from "@lib/ui/formClasses"
 import Alert from "@components/ui/Alert"

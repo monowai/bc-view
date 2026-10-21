@@ -20,7 +20,7 @@ import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
-import SubAccountBalanceInputs from "@components/features/holdings/SubAccountBalanceInputs"
+import SubAccountBalanceInputs from "@components/features/transactions/SubAccountBalanceInputs"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { todayIso } from "@lib/formatters"
 

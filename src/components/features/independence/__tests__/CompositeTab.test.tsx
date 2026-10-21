@@ -33,7 +33,7 @@ jest.mock("recharts", () => ({
 }))
 
 // Mock the hooks
-jest.mock("@hooks/useCompositeProjection", () => ({
+jest.mock("@components/features/independence/useCompositeProjection", () => ({
   useCompositeProjection: jest.fn(() => ({
     phases: [
       { planId: "p1", fromAge: 60, toAge: 75 },
@@ -55,7 +55,7 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: jest.fn(() => ({ hideValues: false })),
 }))
 
-jest.mock("@hooks/useIndependenceSettings", () => ({
+jest.mock("@components/features/independence/useIndependenceSettings", () => ({
   useIndependenceSettings: () => ({
     settings: { yearOfBirth: 1970, lifeExpectancy: 90 },
     isLoading: false,
@@ -77,21 +77,24 @@ jest.mock(
   }),
 )
 
-jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    result: null,
-    isRunning: false,
-    error: null,
-    runSimulation: jest.fn(),
-  })),
-  useCompositeMonteCarloSimulation: jest.fn(() => ({
-    result: null,
-    isRunning: false,
-    error: null,
-    runSimulation: jest.fn(),
-  })),
-}))
+jest.mock(
+  "@components/features/independence/useCompositeMonteCarloSimulation",
+  () => ({
+    __esModule: true,
+    default: jest.fn(() => ({
+      result: null,
+      isRunning: false,
+      error: null,
+      runSimulation: jest.fn(),
+    })),
+    useCompositeMonteCarloSimulation: jest.fn(() => ({
+      result: null,
+      isRunning: false,
+      error: null,
+      runSimulation: jest.fn(),
+    })),
+  }),
+)
 
 function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
   return {
@@ -174,7 +177,7 @@ describe("CompositeTab", () => {
 
   const mockProjection = (overrides: Record<string, unknown> = {}): void => {
     const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
+      "@components/features/independence/useCompositeProjection",
     )
     useCompositeProjection.mockReturnValue({
       phases: [

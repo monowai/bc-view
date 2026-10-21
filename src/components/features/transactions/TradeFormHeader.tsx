@@ -1,6 +1,6 @@
 import React from "react"
 import { Controller, Control } from "react-hook-form"
-import TradeStatusToggle from "@components/ui/TradeStatusToggle"
+import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { Portfolio } from "types/beancounter"
 

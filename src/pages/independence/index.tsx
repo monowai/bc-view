@@ -24,7 +24,7 @@ import {
   ResourceSharesResponse,
 } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
 import {
