@@ -12,8 +12,8 @@ import OverviewTab from "@components/features/accounts/OverviewTab"
 import AssetTable from "@components/features/accounts/AssetTable"
 import EditAccountDialog from "@components/features/accounts/EditAccountDialog"
 import DeleteAccountDialog from "@components/features/accounts/DeleteAccountDialog"
-import SetPriceDialog from "@components/features/accounts/SetPriceDialog"
-import ImportDialog from "@components/features/accounts/ImportDialog"
+import SetPriceDialog from "@components/features/assets/SetPriceDialog"
+import CsvImportDialog from "@components/ui/CsvImportDialog"
 import Alert from "@components/ui/Alert"
 import {
   SectorInfo,
@@ -27,6 +27,15 @@ import {
   TabType,
   USER_ASSET_CATEGORIES,
 } from "@components/features/accounts/accountTypes"
+import {
+  assetsKey,
+  deleteAsset,
+  importAssets,
+  updateAsset,
+} from "@utils/api/client/assets"
+import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { writePrice } from "@utils/api/client/prices"
 
 const categoryLabels: Record<string, string> = {
   PENSION: "Policies",
@@ -43,7 +52,7 @@ function AccountsPage(): React.ReactElement {
     data: accountsData,
     error,
     isLoading,
-  } = useSwr("/api/assets", simpleFetcher("/api/assets"))
+  } = useSwr(assetsKey, simpleFetcher(assetsKey))
   const { data: ccyData, isLoading: ccyLoading } = useSwr(
     ccyKey,
     simpleFetcher(ccyKey),
@@ -54,10 +63,7 @@ function AccountsPage(): React.ReactElement {
   )
   const { data: sectorsData, isLoading: sectorsLoading } = useSwr<{
     data: SectorInfo[]
-  }>(
-    "/api/classifications/sectors",
-    simpleFetcher("/api/classifications/sectors"),
-  )
+  }>(sectorsKey, simpleFetcher(sectorsKey))
 
   // Convert backend categories to select options, filtering to user asset types
   const categoryOptions: CategoryOption[] = categoriesData?.data
@@ -120,17 +126,13 @@ function AccountsPage(): React.ReactElement {
       sector?: string,
       expectedReturnRate?: number,
     ) => {
-      const response = await fetch(`/api/assets/${assetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market: "PRIVATE",
-          code,
-          name,
-          currency,
-          category,
-          expectedReturnRate,
-        }),
+      const response = await updateAsset(assetId, {
+        market: "PRIVATE",
+        code,
+        name,
+        currency,
+        category,
+        expectedReturnRate,
       })
       if (!response.ok) {
         const error = new Error("Failed to update asset")
@@ -140,26 +142,20 @@ function AccountsPage(): React.ReactElement {
       // Update sector classification if provided
       if (sector) {
         try {
-          await fetch(`/api/classifications/${assetId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sector }),
-          })
+          await setAssetSector(assetId, sector)
         } catch (err) {
           console.error("Failed to update sector classification:", err)
         }
       }
       // Refresh the assets list
-      await mutate("/api/assets")
+      await mutate(assetsKey)
       setEditData(undefined)
     },
     [],
   )
 
   const handleDeleteConfirm = useCallback(async (assetId: string) => {
-    const response = await fetch(`/api/assets/${assetId}`, {
-      method: "DELETE",
-    })
+    const response = await deleteAsset(assetId)
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       const message =
@@ -169,8 +165,8 @@ function AccountsPage(): React.ReactElement {
       throw error
     }
     // Refresh the assets list and invalidate holdings
-    await mutate("/api/assets")
-    mutate("/api/holdings/aggregated?asAt=today")
+    await mutate(assetsKey)
+    mutate(aggregatedHoldingsTodayKey)
     setDeleteData(undefined)
   }, [])
 
@@ -204,7 +200,7 @@ function AccountsPage(): React.ReactElement {
   }, [])
 
   const handleSetBalanceComplete = useCallback(async () => {
-    await mutate("/api/assets")
+    await mutate(assetsKey)
     setSetBalanceData(undefined)
   }, [])
 
@@ -217,20 +213,16 @@ function AccountsPage(): React.ReactElement {
   }, [])
 
   const handleImportComplete = useCallback(async () => {
-    await mutate("/api/assets")
+    await mutate(assetsKey)
     setShowImportDialog(false)
   }, [])
 
   const handleSetPriceSave = useCallback(
     async (assetId: string, date: string, price: string) => {
-      const response = await fetch("/api/prices/write", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assetId,
-          date,
-          closePrice: parseFloat(price),
-        }),
+      const response = await writePrice({
+        assetId,
+        date,
+        closePrice: parseFloat(price),
       })
       if (!response.ok) {
         const error = new Error("Failed to set price")
@@ -404,7 +396,11 @@ function AccountsPage(): React.ReactElement {
 
       {/* Import Dialog */}
       {showImportDialog && (
-        <ImportDialog
+        <CsvImportDialog
+          title="Import Assets"
+          description="Import assets from a CSV file. The file should have columns: Code, Name, Category, Currency."
+          importCsv={importAssets}
+          noun="asset"
           onClose={handleImportClose}
           onComplete={handleImportComplete}
         />

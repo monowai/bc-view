@@ -3,6 +3,7 @@ import useSwr from "swr"
 import { Portfolio, Currency } from "types/beancounter"
 import { ccyKey, portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useFxRates } from "./useFxRates"
+import { deletePortfolio as requestPortfolioDelete } from "@utils/api/client/portfolios"
 
 interface UsePortfoliosResult {
   portfolios: Portfolio[]
@@ -46,9 +47,7 @@ export function usePortfolios(): UsePortfoliosResult {
 
   const deletePortfolio = useCallback(
     async (id: string): Promise<void> => {
-      const response = await fetch(`/api/portfolios/${id}`, {
-        method: "DELETE",
-      })
+      const response = await requestPortfolioDelete(id)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(

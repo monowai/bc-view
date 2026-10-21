@@ -12,6 +12,7 @@ import {
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
 import { MonteCarloResult, RetirementProjection } from "types/independence"
+import { formatCurrencySymbol } from "@lib/formatters"
 
 const HIDDEN_VALUE = "****"
 
@@ -61,7 +62,7 @@ export function FanChart({
 
   const formatFullCurrency = (value: number): string => {
     if (hideValues) return HIDDEN_VALUE
-    return `${currency}${Math.round(value).toLocaleString()}`
+    return formatCurrencySymbol(Math.round(value), currency)
   }
 
   if (fanChartData.length === 0) return null

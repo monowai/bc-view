@@ -3,6 +3,13 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { dedupeSectorsByName } from "@utils/assets/dedupeSectors"
+import {
+  deleteSector,
+  getAssetClassification,
+  getAssetExposures,
+  getSectors,
+  setAssetSector,
+} from "@utils/api/client/classifications"
 
 interface SectorInfo {
   code: string
@@ -60,7 +67,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
   useEffect(() => {
     async function fetchSectors(): Promise<void> {
       try {
-        const response = await fetch("/api/classifications/sectors")
+        const response = await getSectors()
         if (response.ok) {
           const data = await response.json()
           setDbSectors(data.data || [])
@@ -92,8 +99,8 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
     async function fetchCurrentSector(): Promise<void> {
       try {
         const [classResponse, exposuresResponse] = await Promise.all([
-          fetch(`/api/classifications/${assetId}`),
-          fetch(`/api/classifications/${assetId}/exposures`),
+          getAssetClassification(assetId),
+          getAssetExposures(assetId),
         ])
 
         let sector: string | undefined
@@ -163,11 +170,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
     setMessage(null)
 
     try {
-      const response = await fetch(`/api/classifications/${assetId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sector }),
-      })
+      const response = await setAssetSector(assetId, sector)
 
       if (response.ok) {
         setMessage({
@@ -177,7 +180,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
         setCurrentAssetSector(sector)
 
         // Refresh sectors list to include any newly created sector
-        const sectorsResponse = await fetch("/api/classifications/sectors")
+        const sectorsResponse = await getSectors()
         if (sectorsResponse.ok) {
           const sectorsData = await sectorsResponse.json()
           setDbSectors(sectorsData.data || [])
@@ -201,12 +204,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
 
     setIsDeleting(true)
     try {
-      const response = await fetch(
-        `/api/classifications/sectors/${encodeURIComponent(sectorToDelete.code)}`,
-        {
-          method: "DELETE",
-        },
-      )
+      const response = await deleteSector(sectorToDelete.code)
 
       if (response.ok) {
         const data = await response.json()

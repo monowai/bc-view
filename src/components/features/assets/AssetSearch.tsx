@@ -5,6 +5,7 @@ import { GroupBase } from "react-select"
 import { AssetOption, AssetSearchResult } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { parseSearchInput } from "./parseSearchInput"
+import { searchAssets } from "@utils/api/client/assets"
 
 interface AssetSearchProps {
   onSelect: (option: AssetOption | null) => void
@@ -146,7 +147,7 @@ export default function AssetSearch({
       if (searchMarket) {
         params.set("market", searchMarket)
       }
-      const response = await fetch(`/api/assets/search?${params}`)
+      const response = await searchAssets(params)
       if (!response.ok) return []
       const data = await response.json()
       return data.data || []

@@ -13,7 +13,6 @@ export { default as IncomeView } from "./IncomeView"
 export { default as GroupByOptions } from "./GroupByOptions"
 export { default as CorporateActionsPopup } from "./CorporateActionsPopup"
 export { default as SetCashBalanceDialog } from "./SetCashBalanceDialog"
-export { default as SetPriceDialog } from "./SetPriceDialog"
 export { default as SetBalanceDialog } from "./SetBalanceDialog"
 
 // Types and utilities

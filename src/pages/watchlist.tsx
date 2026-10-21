@@ -15,7 +15,7 @@ import { useWatchlist } from "@hooks/useWatchlist"
 import {
   removeWatchlistItem,
   updateWatchlistItem,
-} from "@lib/watchlists/watchlistApi"
+} from "@utils/api/client/watchlist"
 import {
   buildNewsAsset,
   getPositionDisplayName,

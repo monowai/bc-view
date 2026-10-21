@@ -7,6 +7,12 @@ import {
   PrivateAssetConfigsResponse,
   TaxRatesResponse,
 } from "types/beancounter"
+import {
+  assetConfigsKey,
+  deleteAssetConfig,
+  saveAssetConfig,
+} from "@utils/api/client/assets"
+import { taxRatesKey } from "@utils/api/client/account"
 
 interface UsePrivateAssetConfigsResult {
   configs: PrivateAssetConfig[]
@@ -30,8 +36,8 @@ interface UsePrivateAssetConfigsResult {
   getCompositeLiquidTotal: (config: PrivateAssetConfig) => number
 }
 
-const API_URL = "/api/assets/config"
-const TAX_RATES_URL = "/api/tax-rates"
+const API_URL = assetConfigsKey
+const TAX_RATES_URL = taxRatesKey
 
 /**
  * Hook to fetch and manage private asset configurations.
@@ -68,11 +74,7 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     assetId: string,
     request: PrivateAssetConfigRequest,
   ): Promise<PrivateAssetConfig | null> => {
-    const response = await fetch(`${API_URL}/${encodeURIComponent(assetId)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    })
+    const response = await saveAssetConfig(encodeURIComponent(assetId), request)
 
     if (!response.ok) {
       throw new Error("Failed to save asset config")
@@ -90,9 +92,7 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
    * Delete a private asset configuration.
    */
   const deleteConfig = async (assetId: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/${encodeURIComponent(assetId)}`, {
-      method: "DELETE",
-    })
+    const response = await deleteAssetConfig(encodeURIComponent(assetId))
 
     if (!response.ok) {
       throw new Error("Failed to delete asset config")

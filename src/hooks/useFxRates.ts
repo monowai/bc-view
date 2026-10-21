@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Currency, FxResponse } from "types/beancounter"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { postFxRates } from "@utils/api/client/fx"
 
 interface UseFxRatesResult {
   displayCurrency: Currency | null
@@ -94,11 +95,7 @@ export function useFxRates(
     const expectedKey = fetchKeyFor(displayCurrency, unique)
     let cancelled = false
 
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rateDate: "today", pairs }),
-    })
+    postFxRates({ rateDate: "today", pairs })
       .then((res) => res.json())
       .then((fxResponse: FxResponse) => {
         if (cancelled) return

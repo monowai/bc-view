@@ -7,6 +7,7 @@ import type {
   RetirementPlan,
   RetirementProjection,
 } from "types/independence"
+import { makePlan as basePlan } from "@test-fixtures/independence"
 import type { AssetBreakdown } from "../useAssetBreakdown"
 import type { UseMonteCarloSimulationProps } from "../useMonteCarloSimulation"
 
@@ -49,35 +50,13 @@ import MonteCarloTab from "../MonteCarloTab"
 import { fixtureMonteCarloResult } from "../__fixtures__/monteCarloResult"
 
 function makePlan(): RetirementPlan {
-  return {
-    id: "plan-1",
-    ownerId: "owner-1",
+  return basePlan({
     name: "Snapshot Plan",
-    planningHorizonYears: 30,
-    lifeExpectancy: 90,
     yearOfBirth: 1965,
     monthlyExpenses: 4000,
-    expensesCurrency: "SGD",
     targetBalance: 0,
-    cashReturnRate: 0.02,
-    equityReturnRate: 0.07,
-    housingReturnRate: 0.03,
-    inflationRate: 0.03,
-    cashAllocation: 20,
-    equityAllocation: 60,
-    housingAllocation: 20,
-    pensionMonthly: 0,
-    socialSecurityMonthly: 0,
-    otherIncomeMonthly: 0,
-    workingIncomeMonthly: 0,
-    workingExpensesMonthly: 0,
-    taxesMonthly: 0,
-    bonusMonthly: 0,
-    investmentAllocationPercent: 80,
     isPrimary: true,
-    createdDate: "2025-01-01",
-    updatedDate: "2025-01-01",
-  }
+  })
 }
 
 const assets: AssetBreakdown = {

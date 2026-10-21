@@ -19,9 +19,11 @@ import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { toErrorMessage } from "@lib/formatters"
 import { currentAgeFromSettings } from "@lib/independence/age"
 import { landingPlan } from "@lib/independence/journeyPhases"
+import {
+  runCompositeProjection,
+  runCompositeScenarios,
+} from "@utils/api/client/independence"
 
-const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
-const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
 const DEBOUNCE_MS = 500
 const SAVE_DEBOUNCE_MS = 1000
 
@@ -349,16 +351,8 @@ export function useCompositeProjection(
 
       try {
         const [projRes, scenRes] = await Promise.all([
-          fetch(COMPOSITE_PROJECTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(request),
-          }),
-          fetch(COMPOSITE_SCENARIOS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(request),
-          }),
+          runCompositeProjection(request),
+          runCompositeScenarios(request),
         ])
 
         // Expected-failure path: the projection endpoint returned non-2xx.

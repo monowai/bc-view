@@ -9,7 +9,8 @@ import { rootLoader } from "@components/ui/PageLoader"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
-import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
+import CsvImportDialog from "@components/ui/CsvImportDialog"
+import { importPortfolios } from "@utils/api/client/portfolios"
 import PortfoliosList from "@components/features/portfolios/PortfoliosList"
 import LinkCompositeBanner from "@components/features/portfolios/LinkCompositeBanner"
 import ConsolidatePortfoliosDialog from "@components/features/portfolios/ConsolidatePortfoliosDialog"
@@ -240,7 +241,11 @@ export default withPageAuthRequired(function Portfolios({
         />
       )}
       {showImportDialog && (
-        <PortfolioImportDialog
+        <CsvImportDialog
+          title="Import Portfolios"
+          description="Import portfolios from a CSV file. The file should have columns: Code, Name, Currency, Base."
+          importCsv={importPortfolios}
+          noun="portfolio"
           onClose={() => setShowImportDialog(false)}
           onComplete={handleImportComplete}
         />

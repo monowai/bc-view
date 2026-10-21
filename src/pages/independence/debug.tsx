@@ -15,8 +15,8 @@ import { useAssetBreakdown } from "@components/features/independence"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
+import { plansKey, projectionKey } from "@utils/api/client/independence"
 
-const plansKey = "/api/independence/plans"
 const PROJECTION_DEBOUNCE_MS = 300
 
 interface Sliders {
@@ -433,15 +433,12 @@ function IndependenceDebug(): React.ReactElement {
           body.nonSpendableAssets = assets.nonSpendableAssets
         }
         setLastRequestBody(body)
-        const res = await fetch(
-          `/api/independence/projection/${selectedPlan.id}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-            signal: controller.signal,
-          },
-        )
+        const res = await fetch(projectionKey(selectedPlan.id), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        })
         if (!res.ok) {
           throw new Error(`Projection failed: ${res.status}`)
         }

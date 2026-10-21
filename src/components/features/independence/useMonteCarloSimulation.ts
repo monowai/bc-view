@@ -11,6 +11,7 @@ import {
 import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
+import { runMonteCarlo } from "@utils/api/client/independence"
 
 export interface UseMonteCarloSimulationProps {
   plan: RetirementPlan | undefined
@@ -94,14 +95,7 @@ export function useMonteCarloSimulation({
           requestBody.seed = seed
         }
 
-        const response = await fetch(
-          `/api/independence/projection/${plan.id}/monte-carlo`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-          },
-        )
+        const response = await runMonteCarlo(plan.id, requestBody)
 
         if (run !== latestRun.current) return
         if (!response.ok) {

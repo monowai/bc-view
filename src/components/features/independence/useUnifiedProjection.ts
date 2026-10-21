@@ -11,6 +11,7 @@ import {
 } from "./scenario/scenarioToPayload"
 import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
+import { projectionKey, runProjection } from "@utils/api/client/independence"
 
 /**
  * Simple hash function to create a numeric checksum from a string.
@@ -240,11 +241,7 @@ export function useUnifiedProjection({
       }
       const requestBody = scenarioToPayload(scenario, ctx)
 
-      const response = await fetch(`/api/independence/projection/${plan.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      })
+      const response = await runProjection(plan.id, requestBody)
 
       if (!response.ok) {
         const errorMsg = "Failed to fetch projection"
@@ -360,9 +357,7 @@ export function useFiProjectionSimple({
   error: Error | undefined
 } {
   // Build projection URL
-  const projectionUrl = plan?.id
-    ? `/api/independence/projection/${plan.id}`
-    : null
+  const projectionUrl = plan?.id ? projectionKey(plan.id) : null
 
   // Track if we're waiting for assets — only spin when holdings haven't loaded yet.
   // An empty portfolio (isLoaded=true, hasAssets=false) should NOT spin indefinitely.

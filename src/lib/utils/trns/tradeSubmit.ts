@@ -8,9 +8,14 @@ import {
   buildIncomePayload,
   buildCreateModeData,
 } from "./tradeSubmission"
-import { updateTrn } from "./apiHelper"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { onSubmit } from "./formUtils"
+import {
+  createTrns,
+  isProposedTrnsKey,
+  updateTrn,
+} from "@utils/api/client/trns"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 type MutateFn = (key: string) => Promise<any>
 
@@ -30,9 +35,7 @@ async function parseWarnings(response: Response): Promise<string[]> {
 
 // Invalidate any /api/trns/proposed* SWR cache entry (varies by scope)
 const mutateProposedCaches = (): void => {
-  globalMutate(
-    (key) => typeof key === "string" && key.startsWith("/api/trns/proposed"),
-  )
+  globalMutate(isProposedTrnsKey)
 }
 
 export interface SubmitEditModeParams {
@@ -88,7 +91,7 @@ export async function submitEditMode(
       mutateProposedCaches()
       setTimeout(() => {
         mutate(holdingKey(transaction.portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
+        mutate(aggregatedHoldingsTodayKey)
         if (portfolioChanged) {
           const newPortfolio = portfolios.find(
             (p) => p.id === selectedPortfolioId,
@@ -146,16 +149,12 @@ export async function submitExpense(
   setSubmitWarnings?.([])
   try {
     const payload = buildExpensePayload(data, portfolio.id)
-    const response = await fetch("/api/trns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
+    const response = await createTrns(payload)
     if (response.ok) {
       const warnings = await parseWarnings(response)
       setTimeout(() => {
         mutate(holdingKey(portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
+        mutate(aggregatedHoldingsTodayKey)
       }, 1500)
       setSubmitWarnings?.(warnings)
       if (warnings.length === 0) {
@@ -210,16 +209,12 @@ export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
   setSubmitWarnings?.([])
   try {
     const payload = buildIncomePayload(data, portfolio.id)
-    const response = await fetch("/api/trns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
+    const response = await createTrns(payload)
     if (response.ok) {
       const warnings = await parseWarnings(response)
       setTimeout(() => {
         mutate(holdingKey(portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
+        mutate(aggregatedHoldingsTodayKey)
       }, 1500)
       setSubmitWarnings?.(warnings)
       if (warnings.length === 0) {
@@ -271,7 +266,7 @@ export async function submitCreateMode(
       if (!open) {
         setTimeout(() => {
           mutate(holdingKey(portfolio.code, "today"))
-          mutate("/api/holdings/aggregated?asAt=today")
+          mutate(aggregatedHoldingsTodayKey)
         }, 1500)
       }
     },

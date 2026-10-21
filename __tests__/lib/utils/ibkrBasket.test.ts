@@ -1,26 +1,16 @@
 import { buildIbkrBasketCsv, ibkrBasketFilename } from "@lib/ibkrBasket"
 import { Transaction } from "types/beancounter"
+import { makeTrn as baseTrn } from "@test-fixtures/beancounter"
 
 const HEADER =
   "Action,Quantity,Symbol,SecType,Exchange,Currency,TimeInForce,OrderType,LmtPrice,BasketTag"
 
 const makeTrn = (overrides: Record<string, unknown> = {}): Transaction =>
-  ({
-    id: "trn-1",
-    callerRef: { provider: "BC", batch: "b1", callerId: "caller-1" },
-    trnType: "BUY",
+  baseTrn({
     status: "PROPOSED",
-    quantity: 10,
     price: 5.25,
-    tradeCurrency: { code: "USD" },
-    asset: {
-      id: "asset-1",
-      code: "AAPL",
-      name: "Apple Inc",
-      market: { code: "NASDAQ" },
-    },
     ...overrides,
-  }) as unknown as Transaction
+  } as Partial<Transaction>)
 
 describe("buildIbkrBasketCsv", () => {
   it("returns header only for empty input", () => {

@@ -23,6 +23,14 @@ import {
 } from "types/constants"
 import { usePermissions } from "@hooks/usePermissions"
 import ApiKeysTab from "@components/features/settings/ApiKeysTab"
+import { updateIndependenceSettings } from "@utils/api/client/independence"
+import {
+  deleteTaxRate,
+  getMe,
+  getTaxRates,
+  saveTaxRate,
+  updateMe,
+} from "@utils/api/client/account"
 
 type SettingsTab = "profile" | "wealth" | "tax" | "apikeys" | "account"
 
@@ -145,9 +153,9 @@ function SettingsPage(): React.ReactElement {
           taxRatesResponse,
           marketsResponse,
         ] = await Promise.all([
-          fetch("/api/me"),
+          getMe(),
           fetch("/api/currencies"),
-          fetch("/api/tax-rates"),
+          getTaxRates(),
           fetch("/api/markets"),
         ])
 
@@ -229,11 +237,7 @@ function SettingsPage(): React.ReactElement {
         }),
       }
 
-      const response = await fetch("/api/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      })
+      const response = await updateMe(request)
 
       if (response.ok) {
         // Date of birth lives in two stores: UserPreferences (here) and the
@@ -245,12 +249,10 @@ function SettingsPage(): React.ReactElement {
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 3000)
           try {
-            const syncRes = await fetch("/api/independence/settings", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ yearOfBirth, monthOfBirth }),
-              signal: controller.signal,
-            })
+            const syncRes = await updateIndependenceSettings(
+              { yearOfBirth, monthOfBirth },
+              controller.signal,
+            )
             if (!syncRes.ok) {
               console.warn(
                 "DOB saved, but independence-settings sync failed:",
@@ -291,11 +293,7 @@ function SettingsPage(): React.ReactElement {
     setError(null)
 
     try {
-      const response = await fetch("/api/tax-rates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ countryCode: newTaxCountry, rate }),
-      })
+      const response = await saveTaxRate({ countryCode: newTaxCountry, rate })
 
       if (response.ok) {
         const data = await response.json()
@@ -329,9 +327,7 @@ function SettingsPage(): React.ReactElement {
   const handleDeleteTaxRate = useCallback(
     async (countryCode: string): Promise<void> => {
       try {
-        const response = await fetch(`/api/tax-rates/${countryCode}`, {
-          method: "DELETE",
-        })
+        const response = await deleteTaxRate(countryCode)
 
         if (response.ok || response.status === 204) {
           setTaxRates((prev) =>

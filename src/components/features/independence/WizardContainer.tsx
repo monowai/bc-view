@@ -44,6 +44,16 @@ import {
   useIndependencePlans,
 } from "@hooks/useIndependencePlans"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
+import {
+  createPlan,
+  createPlanExpense,
+  deletePlanExpense,
+  getPlanExpenses,
+  planDetailsKey,
+  planKey,
+  plansKey,
+  updatePlan,
+} from "@utils/api/client/independence"
 
 interface WizardContainerProps {
   planId?: string
@@ -385,18 +395,9 @@ export default function WizardContainer({
         independencePlanId: journeyId,
       })
 
-      const url = isEditMode
-        ? `/api/independence/plans/${planId}`
-        : "/api/independence/plans"
-      const method = isEditMode ? "PATCH" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(planRequest),
-      })
+      const response = isEditMode
+        ? await updatePlan(planId as string, planRequest)
+        : await createPlan(planRequest)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -413,19 +414,12 @@ export default function WizardContainer({
 
       // Sync retirement expenses to the plan - for edit mode, delete existing first
       if (isEditMode) {
-        const existingExpensesRes = await fetch(
-          `/api/independence/plans/${savedPlanId}/expenses`,
-        )
+        const existingExpensesRes = await getPlanExpenses(savedPlanId)
         if (existingExpensesRes.ok) {
           const existingData = await existingExpensesRes.json()
           const existingExpenses = existingData.data || []
           for (const expense of existingExpenses) {
-            await fetch(
-              `/api/independence/plans/${savedPlanId}/expenses/${expense.id}`,
-              {
-                method: "DELETE",
-              },
-            )
+            await deletePlanExpense(savedPlanId, expense.id)
           }
         }
       }
@@ -433,27 +427,21 @@ export default function WizardContainer({
       // Add retirement expenses with expensePhase: "RETIREMENT" (default)
       if (formData.expenses.length > 0) {
         for (const expense of formData.expenses) {
-          await fetch(`/api/independence/plans/${savedPlanId}/expenses`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              categoryLabelId: expense.categoryLabelId,
-              categoryName: expense.categoryName,
-              monthlyAmount: expense.monthlyAmount,
-              currency: formData.expensesCurrency,
-              expensePhase: "RETIREMENT",
-            }),
+          await createPlanExpense(savedPlanId, {
+            categoryLabelId: expense.categoryLabelId,
+            categoryName: expense.categoryName,
+            monthlyAmount: expense.monthlyAmount,
+            currency: formData.expensesCurrency,
+            expensePhase: "RETIREMENT",
           })
         }
       }
 
       // Mark cached data as stale so other pages refetch on next access
       await Promise.all([
-        mutate(`/api/independence/plans/${savedPlanId}`),
-        mutate(`/api/independence/plans/${savedPlanId}/details`),
-        mutate("/api/independence/plans"),
+        mutate(planKey(savedPlanId)),
+        mutate(planDetailsKey(savedPlanId)),
+        mutate(plansKey),
       ])
 
       if (isEditMode) {

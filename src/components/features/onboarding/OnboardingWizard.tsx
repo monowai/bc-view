@@ -34,6 +34,20 @@ import Spinner from "@components/ui/Spinner"
 import { buildMePatchBody } from "./buildMePatchBody"
 import { buildPensionTrn } from "./buildPensionTrn"
 import { todayIso } from "@lib/formatters"
+import {
+  assetsKey,
+  createAssets as postAssets,
+  saveAssetConfig,
+} from "@utils/api/client/assets"
+import { createTrns } from "@utils/api/client/trns"
+import { createPlan, createWorkScenario } from "@utils/api/client/independence"
+import {
+  activePortfoliosKey,
+  createPortfolios,
+} from "@utils/api/client/portfolios"
+import { holdingKey } from "@utils/api/client/holdings"
+import { updateMe } from "@utils/api/client/account"
+import { writePrice } from "@utils/api/client/prices"
 
 export interface BankAccount {
   name: string
@@ -121,8 +135,8 @@ const OnboardingWizard: React.FC = () => {
 
   // Fetch portfolios for the Brokerage step's source-portfolio dropdown
   const { data: portfoliosResponse } = useSwr<{ data: Portfolio[] }>(
-    "/api/portfolios",
-    simpleFetcher("/api/portfolios"),
+    activePortfoliosKey,
+    simpleFetcher(activePortfoliosKey),
   )
   const existingPortfolios: Portfolio[] = portfoliosResponse?.data ?? []
 
@@ -385,11 +399,7 @@ const OnboardingWizard: React.FC = () => {
 
     console.log("Creating transaction:", JSON.stringify(requestBody, null, 2))
 
-    const response = await fetch("/api/trns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    })
+    const response = await createTrns(requestBody)
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -421,10 +431,8 @@ const OnboardingWizard: React.FC = () => {
       return existing
     }
 
-    const assetResponse = await fetch("/api/assets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: { [assetCode]: assetPayload } }),
+    const assetResponse = await postAssets({
+      data: { [assetCode]: assetPayload },
     })
 
     if (!assetResponse.ok) return null
@@ -437,7 +445,7 @@ const OnboardingWizard: React.FC = () => {
   ): Promise<{ bankAccountAssetIds: Record<string, string> }> => {
     const bankAccountAssetIds: Record<string, string> = {}
     // Fetch existing user assets to avoid creating duplicates
-    const existingResponse = await fetch("/api/assets")
+    const existingResponse = await fetch(assetsKey)
     const existingAssets: Record<string, { id: string }> = existingResponse.ok
       ? (
           (await existingResponse.json()) as {
@@ -503,14 +511,10 @@ const OnboardingWizard: React.FC = () => {
 
         // Set current market value as a price for the asset if different from purchase price
         if (currentValue !== property.price) {
-          await fetch("/api/prices/write", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              assetId: asset.id,
-              date: todayIso(),
-              closePrice: currentValue,
-            }),
+          await writePrice({
+            assetId: asset.id,
+            date: todayIso(),
+            closePrice: currentValue,
           })
         }
       }
@@ -529,29 +533,25 @@ const OnboardingWizard: React.FC = () => {
 
       if (asset?.id) {
         // Always create PrivateAssetConfig for pension assets with isPension: true
-        await fetch(`/api/assets/config/${asset.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            isPension: true,
-            expectedReturnRate: pension.expectedReturnRate,
-            payoutAge: pension.payoutAge,
-            monthlyPayoutAmount: pension.lumpSum
-              ? undefined
-              : pension.monthlyPayoutAmount,
-            lumpSum: pension.lumpSum,
-            monthlyContribution: pension.monthlyContribution,
-            rentalCurrency: pension.currency,
-            policyType: pension.policyType,
-            cpfLifePlan: pension.cpfLifePlan,
-            lockedUntilDate: pension.lockedUntilDate || null,
-            subAccounts: pension.subAccounts,
-            taxTreatment: pension.taxTreatment,
-            employeeDeferralPercent: pension.employeeDeferralPercent,
-            employerMatchPercent: pension.employerMatchPercent,
-            employerMatchCapPercent: pension.employerMatchCapPercent,
-            withdrawalTaxRate: pension.withdrawalTaxRate,
-          }),
+        await saveAssetConfig(asset.id, {
+          isPension: true,
+          expectedReturnRate: pension.expectedReturnRate,
+          payoutAge: pension.payoutAge,
+          monthlyPayoutAmount: pension.lumpSum
+            ? undefined
+            : pension.monthlyPayoutAmount,
+          lumpSum: pension.lumpSum,
+          monthlyContribution: pension.monthlyContribution,
+          rentalCurrency: pension.currency,
+          policyType: pension.policyType,
+          cpfLifePlan: pension.cpfLifePlan,
+          lockedUntilDate: pension.lockedUntilDate || null,
+          subAccounts: pension.subAccounts,
+          taxTreatment: pension.taxTreatment,
+          employeeDeferralPercent: pension.employeeDeferralPercent,
+          employerMatchPercent: pension.employerMatchPercent,
+          employerMatchCapPercent: pension.employerMatchCapPercent,
+          withdrawalTaxRate: pension.withdrawalTaxRate,
         })
 
         // Link the pension to the default portfolio so a freshly
@@ -563,11 +563,7 @@ const OnboardingWizard: React.FC = () => {
         // to link. See buildPensionTrn for the shape.
         const trnRow = buildPensionTrn(pension, asset.id, todayIso())
         if (trnRow) {
-          const response = await fetch("/api/trns", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ portfolioId, data: [trnRow] }),
-          })
+          const response = await createTrns({ portfolioId, data: [trnRow] })
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new Error(
@@ -591,20 +587,16 @@ const OnboardingWizard: React.FC = () => {
 
       if (asset?.id) {
         // Create PrivateAssetConfig for insurance settings
-        await fetch(`/api/assets/config/${asset.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            isPension: true, // Insurance policies are tracked like pensions
-            expectedReturnRate: insurance.expectedReturnRate,
-            payoutAge: insurance.payoutAge,
-            monthlyPayoutAmount: insurance.lumpSum
-              ? undefined
-              : insurance.payoutAmount,
-            lumpSum: insurance.lumpSum !== false, // Default to true for insurance
-            monthlyContribution: insurance.monthlyContribution,
-            rentalCurrency: insurance.currency,
-          }),
+        await saveAssetConfig(asset.id, {
+          isPension: true, // Insurance policies are tracked like pensions
+          expectedReturnRate: insurance.expectedReturnRate,
+          payoutAge: insurance.payoutAge,
+          monthlyPayoutAmount: insurance.lumpSum
+            ? undefined
+            : insurance.payoutAmount,
+          lumpSum: insurance.lumpSum !== false, // Default to true for insurance
+          monthlyContribution: insurance.monthlyContribution,
+          rentalCurrency: insurance.currency,
         })
 
         // Create ADD transaction - use current value if provided, otherwise default to 1
@@ -623,14 +615,10 @@ const OnboardingWizard: React.FC = () => {
         )
 
         // Set constant price of 1 for insurance assets
-        await fetch("/api/prices/write", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            assetId: asset.id,
-            date: todayIso(),
-            closePrice: 1,
-          }),
+        await writePrice({
+          assetId: asset.id,
+          date: todayIso(),
+          closePrice: 1,
         })
       }
     }
@@ -650,22 +638,18 @@ const OnboardingWizard: React.FC = () => {
       // / target-65 defaults. svc-retire's UserIndependenceSettings reads
       // these as its fallback when its own row has null demographic
       // fields — see bc-claude/USER_PROFILE.md.
-      await fetch("/api/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          buildMePatchBody({
-            preferredName,
-            baseCurrency,
-            reportingCurrency,
-            independencePlanEnabled: createIndependencePlan,
-            cpfRequiresDob: hasCpfPension,
-            independenceYearOfBirth,
-            independenceMonthOfBirth,
-            independenceTargetAge,
-          }),
-        ),
-      })
+      await updateMe(
+        buildMePatchBody({
+          preferredName,
+          baseCurrency,
+          reportingCurrency,
+          independencePlanEnabled: createIndependencePlan,
+          cpfRequiresDob: hasCpfPension,
+          independenceYearOfBirth,
+          independenceMonthOfBirth,
+          independenceTargetAge,
+        }),
+      )
 
       // Create portfolio with reporting currency as display currency
       // and base currency as cost tracking currency. Make the call
@@ -678,19 +662,15 @@ const OnboardingWizard: React.FC = () => {
       )
       let portfolioId: string | undefined = existingPortfolio?.id
       if (!portfolioId) {
-        const portfolioResponse = await fetch("/api/portfolios", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            data: [
-              {
-                code: portfolioCode,
-                name: portfolioName,
-                currency: reportingCurrency,
-                base: baseCurrency,
-              },
-            ],
-          }),
+        const portfolioResponse = await createPortfolios({
+          data: [
+            {
+              code: portfolioCode,
+              name: portfolioName,
+              currency: reportingCurrency,
+              base: baseCurrency,
+            },
+          ],
         })
 
         if (!portfolioResponse.ok) {
@@ -718,10 +698,9 @@ const OnboardingWizard: React.FC = () => {
 
       // Trigger portfolio valuation by fetching holdings
       const today = todayIso()
-      const holdingsResponse = await fetch(
-        `/api/holdings/${portfolioCode}?asAt=${today}`,
-        { credentials: "include" },
-      )
+      const holdingsResponse = await fetch(holdingKey(portfolioCode, today), {
+        credentials: "include",
+      })
       if (!holdingsResponse.ok) {
         console.warn(
           "Failed to trigger portfolio valuation:",
@@ -733,51 +712,43 @@ const OnboardingWizard: React.FC = () => {
       if (createIndependencePlan) {
         try {
           // Create a work scenario with user-provided income/expense data
-          await fetch("/api/independence/work-scenarios", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: "Working Situation",
-              currency: baseCurrency,
-              workingIncomeMonthly,
-              workingExpensesMonthly,
-              taxesMonthly,
-              bonusMonthly,
-              investmentAllocationPercent: investmentAllocationPercent / 100,
-            }),
+          await createWorkScenario({
+            name: "Working Situation",
+            currency: baseCurrency,
+            workingIncomeMonthly,
+            workingExpensesMonthly,
+            taxesMonthly,
+            bonusMonthly,
+            investmentAllocationPercent: investmentAllocationPercent / 100,
           })
         } catch (scenarioErr) {
           console.warn("Work scenario creation failed:", scenarioErr)
         }
 
         try {
-          const planResponse = await fetch("/api/independence/plans", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: "My Independence Plan",
-              yearOfBirth: independenceYearOfBirth,
-              planningHorizonYears: 90 - independenceTargetAge,
-              lifeExpectancy: 90,
-              monthlyExpenses:
-                independenceMonthlyExpenses + independenceMedicalExpenses,
-              expensesCurrency: baseCurrency,
-              cashReturnRate: 0.03,
-              equityReturnRate: 0.08,
-              housingReturnRate: 0.04,
-              inflationRate: 0.025,
-              cashAllocation: 0.2,
-              equityAllocation: 0.8,
-              housingAllocation: 0.0,
-              pensionMonthly: 0,
-              socialSecurityMonthly: 0,
-              otherIncomeMonthly: 0,
-              workingIncomeMonthly: 0,
-              workingExpensesMonthly: 0,
-              taxesMonthly: 0,
-              bonusMonthly: 0,
-              investmentAllocationPercent: 0.8,
-            }),
+          const planResponse = await createPlan({
+            name: "My Independence Plan",
+            yearOfBirth: independenceYearOfBirth,
+            planningHorizonYears: 90 - independenceTargetAge,
+            lifeExpectancy: 90,
+            monthlyExpenses:
+              independenceMonthlyExpenses + independenceMedicalExpenses,
+            expensesCurrency: baseCurrency,
+            cashReturnRate: 0.03,
+            equityReturnRate: 0.08,
+            housingReturnRate: 0.04,
+            inflationRate: 0.025,
+            cashAllocation: 0.2,
+            equityAllocation: 0.8,
+            housingAllocation: 0.0,
+            pensionMonthly: 0,
+            socialSecurityMonthly: 0,
+            otherIncomeMonthly: 0,
+            workingIncomeMonthly: 0,
+            workingExpensesMonthly: 0,
+            taxesMonthly: 0,
+            bonusMonthly: 0,
+            investmentAllocationPercent: 0.8,
           })
           if (planResponse.ok) {
             setIndependencePlanCreated(true)
@@ -891,7 +862,7 @@ const OnboardingWizard: React.FC = () => {
           // opens it.
           try {
             const valuationCode = usedPortfolioCode
-            await fetch(`/api/holdings/${valuationCode}?asAt=${today}`, {
+            await fetch(holdingKey(valuationCode, today), {
               credentials: "include",
             })
           } catch (vErr) {

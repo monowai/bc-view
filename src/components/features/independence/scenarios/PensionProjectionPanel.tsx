@@ -1,6 +1,10 @@
 import React from "react"
 import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  cpfBalanceSeriesUrl,
+  cpfPolicyBalanceSeriesUrl,
+} from "@utils/api/client/independence"
 
 /**
  * Year-by-year balance projection body for a pension asset. Extracted
@@ -59,7 +63,7 @@ export default function PensionProjectionPanel({
     subAccounts?.find((s) => s.code === code)?.balance ?? 0
 
   const cpfKey = isCpf
-    ? `/api/independence/cpf/balance-series?currentAge=${currentAge}` +
+    ? `${cpfBalanceSeriesUrl}?currentAge=${currentAge}` +
       `&payoutAge=${payoutAge}` +
       `&oa=${subBalanceFor("OA")}&sa=${subBalanceFor("SA")}` +
       `&ma=${subBalanceFor("MA")}&ra=${subBalanceFor("RA")}` +
@@ -83,7 +87,7 @@ export default function PensionProjectionPanel({
       ? scenarioAnnualOverride / 12
       : (monthlyContribution ?? 0)
   const policyKey = !isCpf
-    ? `/api/independence/cpf/policy-balance-series?currentAge=${currentAge}` +
+    ? `${cpfPolicyBalanceSeriesUrl}?currentAge=${currentAge}` +
       `&payoutAge=${payoutAge}` +
       `&startingBalance=${subBalanceFor("BALANCE") || 0}` +
       `&monthlyContribution=${policyMonthly}` +

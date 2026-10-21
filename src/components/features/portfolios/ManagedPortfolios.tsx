@@ -21,6 +21,7 @@ interface ManagedSharesResponse {
 import { rootLoader } from "@components/ui/PageLoader"
 import PendingSharesPanel from "./PendingSharesPanel"
 import RequestAccessDialog from "./RequestAccessDialog"
+import { revokeShare } from "@utils/api/client/shares"
 
 interface ManagedPortfoliosProps {
   /** Open the Portfolio Corporate Actions popup for the chosen portfolio. */
@@ -277,7 +278,7 @@ function RevokeButton({
     setShowConfirm(false)
     setIsLoading(true)
     try {
-      await fetch(`/api/shares/${shareId}`, { method: "DELETE" })
+      await revokeShare(shareId)
       onRevoked()
     } catch {
       // silently handle

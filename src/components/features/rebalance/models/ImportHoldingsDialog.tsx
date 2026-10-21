@@ -12,6 +12,7 @@ import {
 } from "@lib/rebalance/weights"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { Portfolio } from "types/beancounter"
+import { weightsFromHoldingsUrl } from "@utils/api/client/rebalance"
 
 interface HoldingWeightDto {
   assetId: string
@@ -83,7 +84,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
         portfolio?.currency?.code || portfolios[0]?.currency?.code || ""
 
       const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/weights-from-holdings?portfolioId=${portfolioId}&valueCurrency=${valueCurrency}`,
+        weightsFromHoldingsUrl(modelId, portfolioId, valueCurrency),
       )
 
       if (response.ok) {

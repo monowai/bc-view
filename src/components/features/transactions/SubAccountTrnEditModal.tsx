@@ -8,8 +8,10 @@ import SubAccountBalanceInputs, {
 } from "@components/features/transactions/SubAccountBalanceInputs"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { holdingKey } from "@utils/api/fetchHelper"
-import { updateTrn } from "@utils/trns/apiHelper"
+import { updateTrn } from "@utils/api/client/trns"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { getAssetConfig } from "@utils/api/client/assets"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 interface SubAccountTrnEditModalProps {
   trn: Transaction
@@ -52,7 +54,7 @@ export default function SubAccountTrnEditModal({
     let cancelled = false
     const fetchConfig = async (): Promise<void> => {
       try {
-        const res = await fetch(`/api/assets/config/${trn.asset.id}`)
+        const res = await getAssetConfig(trn.asset.id)
         if (!res.ok) return
         const body: { data: PrivateAssetConfig } = await res.json()
         const subs = body.data?.subAccounts
@@ -112,7 +114,7 @@ export default function SubAccountTrnEditModal({
       }
       setTimeout(() => {
         mutate(holdingKey(trn.portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
+        mutate(aggregatedHoldingsTodayKey)
       }, 1500)
     })
   }

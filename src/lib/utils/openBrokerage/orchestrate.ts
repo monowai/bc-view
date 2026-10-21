@@ -11,18 +11,15 @@ import {
   brokerCashAssetCode,
 } from "@lib/openBrokerage/brokerCode"
 import { postJson } from "@utils/api/fetchHelper"
-
-// Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
-// not UTC's. `new Date().toISOString()` would mis-report the day for any
-// user east of GMT after late afternoon.
-const today = (): string => {
-  const d = new Date()
-  return (
-    `${d.getFullYear()}-` +
-    `${String(d.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(d.getDate()).padStart(2, "0")}`
-  )
-}
+import { assetsKey } from "@utils/api/client/assets"
+import { trnsKey } from "@utils/api/client/trns"
+import { activePortfoliosKey } from "@utils/api/client/portfolios"
+import {
+  brokersKey,
+  brokersWithAccountsKey,
+  updateBroker,
+} from "@utils/api/client/brokers"
+import { todayIso } from "@lib/formatters"
 
 interface BrokerStep {
   mode: "existing" | "new"
@@ -91,7 +88,7 @@ async function registerBrokerSettlementAccounts(
 ): Promise<void> {
   if (Object.keys(byCurrency).length === 0) return
   try {
-    const existing = await fetch("/api/brokers?includeAccounts=true")
+    const existing = await fetch(brokersWithAccountsKey)
       .then((r) =>
         r.ok ? (r.json() as Promise<{ data: BrokerWithAccounts[] }>) : null,
       )
@@ -103,15 +100,11 @@ async function registerBrokerSettlementAccounts(
     })
     // Newly-opened accounts win for their currency.
     Object.assign(merged, byCurrency)
-    const res = await fetch(`/api/brokers/${broker.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: broker.name,
-        accountNumber: broker.accountNumber,
-        notes: broker.notes,
-        settlementAccounts: merged,
-      }),
+    const res = await updateBroker(broker.id, {
+      name: broker.name,
+      accountNumber: broker.accountNumber,
+      notes: broker.notes,
+      settlementAccounts: merged,
     })
     if (!res.ok) {
       console.warn(
@@ -130,7 +123,7 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
     // (deriveBrokerCode(name)) is correct for existing brokers too — without
     // this the code would collapse to "-{ccy}" on the existing-broker path.
     const existingId = step.existingId
-    const found = await fetch("/api/brokers")
+    const found = await fetch(brokersKey)
       .then((r) => (r.ok ? (r.json() as Promise<{ data: Broker[] }>) : null))
       .then((j) => j?.data.find((b) => b.id === existingId))
       .catch(() => undefined)
@@ -145,12 +138,12 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
   // after a downstream failure (e.g. duplicate-portfolio-code 409) doesn't
   // collide with the backend's unique broker-name-per-owner constraint.
   const newName = step.newName
-  const existing = await fetch("/api/brokers")
+  const existing = await fetch(brokersKey)
     .then((r) => (r.ok ? (r.json() as Promise<{ data: Broker[] }>) : null))
     .then((j) => j?.data.find((b) => b.name === newName))
     .catch(() => undefined)
   if (existing) return existing
-  const resp = await postJson<{ data: Broker }>("/api/brokers", {
+  const resp = await postJson<{ data: Broker }>(brokersKey, {
     name: step.newName,
     accountNumber: step.newAccountNumber || undefined,
   })
@@ -168,7 +161,7 @@ async function resolvePortfolio(
     throw new Error("New portfolio requires code, name and base currency")
   }
   const resp = await postJson<{ data: Array<{ id: string }> }>(
-    "/api/portfolios",
+    activePortfoliosKey,
     {
       data: [
         {
@@ -193,7 +186,7 @@ async function ensureAsset(payload: {
 }): Promise<string> {
   const resp = await postJson<{
     data: Record<string, { id: string }>
-  }>("/api/assets", {
+  }>(assetsKey, {
     data: { [payload.code]: payload },
   })
   const asset = Object.values(resp.data)[0]
@@ -239,7 +232,7 @@ interface TrnLeg {
 
 async function postTrn(leg: TrnLeg): Promise<string> {
   const resp = await postJson<{ data: { trns?: Array<{ id: string }> } }>(
-    "/api/trns",
+    trnsKey,
     {
       portfolioId: leg.portfolioId,
       data: [
@@ -252,7 +245,7 @@ async function postTrn(leg: TrnLeg): Promise<string> {
           tradeCurrency: leg.currency,
           cashCurrency: leg.currency,
           cashAmount: leg.amount,
-          tradeDate: today(),
+          tradeDate: todayIso(),
           status: "SETTLED",
         },
       ],

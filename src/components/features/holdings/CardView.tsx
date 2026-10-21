@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react"
+import type { ValueInOption } from "types/constants"
 import {
   Asset,
   CashTransferData,
@@ -66,7 +67,7 @@ interface SharedActionHandlers {
 interface CardViewProps extends SharedActionHandlers {
   holdings: Holdings
   portfolio: Portfolio
-  valueIn: string
+  valueIn: ValueInOption
   groupBy?: string
   isMixedCurrencies?: boolean
   targetAssetId?: string
@@ -75,7 +76,7 @@ interface CardViewProps extends SharedActionHandlers {
 interface PositionCardProps extends SharedActionHandlers {
   position: Position
   portfolio: Portfolio
-  valueIn: string
+  valueIn: ValueInOption
   sourceCurrency: Currency | undefined
 }
 
@@ -379,8 +380,8 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             asset={asset}
             portfolioId={portfolio.id}
             portfolioCode={portfolio.code}
-            fromDate={dateValues?.opened}
-            closedDate={dateValues?.closed}
+            fromDate={dateValues?.opened ?? undefined}
+            closedDate={dateValues?.closed ?? undefined}
             quantity={quantityValues.total}
             held={held}
             price={values.priceData?.close || 0}
@@ -545,7 +546,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
 // Helper to sort positions within a group
 const sortPositionsWithinGroup = (
   positions: Position[],
-  valueIn: string,
+  valueIn: ValueInOption,
 ): Position[] => {
   return [...positions].sort((a, b) => {
     const aIsCash = isNonTradeable(a.asset)

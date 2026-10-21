@@ -14,7 +14,7 @@ export default function GrandTotal({
   // GrandTotal data: skips first column (Price), maps to headers[1-12]
   const gainOnDay = holdings.viewTotals.gainOnDay || 0
   const data: {
-    value: number | string | null
+    value: number | null
     colSpan: number
     multiplier?: number
     tooltip?: string
@@ -148,7 +148,7 @@ export default function GrandTotal({
               colSpan={item.colSpan}
               className={`${padding} bg-blue-100/60 text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass} ${fontClass}`}
             >
-              {item.value !== null && item.value !== "" ? (
+              {item.value !== null ? (
                 <>
                   {/* Use ResponsiveFormatValue for monetary amounts, FormatValue for percentages */}
                   {headerIndex === HEADER_INDICES.WEIGHT ? (
@@ -161,8 +161,7 @@ export default function GrandTotal({
                   ) : (
                     <ResponsiveFormatValue
                       value={
-                        headerIndex === HEADER_INDICES.CHANGE &&
-                        typeof item.value === "number"
+                        headerIndex === HEADER_INDICES.CHANGE
                           ? Math.abs(item.value)
                           : item.value
                       }
@@ -180,8 +179,6 @@ export default function GrandTotal({
                       : item.tooltip}
                   </span>
                 </span>
-              ) : typeof item.value === "string" ? (
-                item.value
               ) : headerIndex === HEADER_INDICES.GAIN_ON_DAY ? (
                 "0"
               ) : (

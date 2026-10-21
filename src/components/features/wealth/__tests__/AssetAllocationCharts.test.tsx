@@ -35,6 +35,7 @@ function makeHoldings(count: number): HoldingContract {
         code,
         name: `Asset ${i}`,
         market: { code: "NASDAQ" },
+        assetCategory: { id: "EQUITY", name: "Equity" },
       },
       moneyValues: {
         BASE: {

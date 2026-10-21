@@ -7,9 +7,13 @@ import {
   FxResponse,
 } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  fxKey as fxRatesUrl,
+  fxProvidersKey,
+  postFxRates,
+} from "@utils/api/client/fx"
 
 const fxFetcher = async (
-  url: string,
   pairs: Array<{ from: string; to: string }>,
   provider?: string,
 ): Promise<FxResponse> => {
@@ -17,11 +21,7 @@ const fxFetcher = async (
   if (provider) {
     body.provider = provider
   }
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
+  const response = await postFxRates(body)
   if (!response.ok) {
     throw new Error(`Failed to fetch FX rates: ${response.status}`)
   }
@@ -55,8 +55,8 @@ export function useFxMatrix(
   )
 
   const providersResponse = useSwr<FxProvidersResponse>(
-    "/api/fx/providers",
-    simpleFetcher("/api/fx/providers"),
+    fxProvidersKey,
+    simpleFetcher(fxProvidersKey),
   )
 
   const currencyPairs = useMemo(() => {
@@ -75,12 +75,12 @@ export function useFxMatrix(
 
   const fxKey =
     currencyPairs.length > 0
-      ? ["/api/fx", currencyPairs, selectedProvider]
+      ? [fxRatesUrl, currencyPairs, selectedProvider]
       : null
   const fxResponse = useSwr<FxResponse>(
     fxKey,
-    ([url, pairs]: [string, Array<{ from: string; to: string }>, string?]) =>
-      fxFetcher(url, pairs, selectedProvider),
+    ([, pairs]: [string, Array<{ from: string; to: string }>, string?]) =>
+      fxFetcher(pairs, selectedProvider),
   )
 
   const providers = providersResponse.data?.providers || []
@@ -89,26 +89,26 @@ export function useFxMatrix(
 
   const fxResponse1 = useSwr<FxResponse>(
     compareMode && currencyPairs.length > 0 && provider1
-      ? ["/api/fx", currencyPairs, provider1, "p1"]
+      ? [fxRatesUrl, currencyPairs, provider1, "p1"]
       : null,
-    ([url, pairs]: [
+    ([, pairs]: [
       string,
       Array<{ from: string; to: string }>,
       string,
       string,
-    ]) => fxFetcher(url, pairs, provider1),
+    ]) => fxFetcher(pairs, provider1),
   )
 
   const fxResponse2 = useSwr<FxResponse>(
     compareMode && currencyPairs.length > 0 && provider2
-      ? ["/api/fx", currencyPairs, provider2, "p2"]
+      ? [fxRatesUrl, currencyPairs, provider2, "p2"]
       : null,
-    ([url, pairs]: [
+    ([, pairs]: [
       string,
       Array<{ from: string; to: string }>,
       string,
       string,
-    ]) => fxFetcher(url, pairs, provider2),
+    ]) => fxFetcher(pairs, provider2),
   )
 
   const currencies = ccyResponse.data?.data || []

@@ -3,7 +3,7 @@ import {
   addWatchlistItem,
   removeWatchlistItem,
   updateWatchlistItem,
-} from "@lib/watchlists/watchlistApi"
+} from "@utils/api/client/watchlist"
 
 function response(status: number, text: string): Response {
   return {
@@ -18,7 +18,7 @@ function response(status: number, text: string): Response {
   } as unknown as Response
 }
 
-describe("watchlistApi", () => {
+describe("watchlist api client", () => {
   it("removes an item at /api/watchlist/items/{itemId}", async () => {
     const fetchMock = jest.fn().mockResolvedValue(response(204, ""))
     global.fetch = fetchMock as unknown as typeof fetch

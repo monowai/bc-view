@@ -8,6 +8,7 @@ import {
   type LifestyleSummaryModel,
 } from "@lib/independence/lifestyleSummary"
 import type { ProjectionResponse } from "types/independence"
+import { projectionKey } from "@utils/api/client/independence"
 
 /**
  * The lifestyle read for the end of onboarding.
@@ -27,7 +28,7 @@ export function useLifestyleOutlook(
   const { labels } = useExpenseCategories()
   const { catalog } = useLifestyleCatalog(currency)
 
-  const url = planId ? `/api/independence/projection/${planId}` : null
+  const url = planId ? projectionKey(planId) : null
   const { data, isLoading: projectionLoading } = useSwr<ProjectionResponse>(
     url ? [url, currency] : null,
     async () => {

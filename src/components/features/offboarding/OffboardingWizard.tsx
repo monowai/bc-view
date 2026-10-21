@@ -6,6 +6,12 @@ import WealthStep from "./steps/WealthStep"
 import PlanningStep from "./steps/PlanningStep"
 import ConfirmAccountStep from "./steps/ConfirmAccountStep"
 import CompleteStep from "./steps/CompleteStep"
+import { getPlans } from "@utils/api/client/independence"
+import { modelsKey } from "@utils/api/client/rebalance"
+import {
+  deleteOffboardData,
+  getOffboardSummary,
+} from "@utils/api/client/account"
 
 export default function OffboardingWizard(): React.ReactElement {
   const [currentStep, setCurrentStep] = useState(1)
@@ -30,9 +36,9 @@ export default function OffboardingWizard(): React.ReactElement {
 
       // Fetch data counts from all services in parallel
       const [summaryRes, plansRes, modelsRes] = await Promise.all([
-        fetch("/api/offboard/summary"),
-        fetch("/api/independence/plans").catch(() => null),
-        fetch("/api/rebalance/models").catch(() => null),
+        getOffboardSummary(),
+        getPlans().catch(() => null),
+        fetch(modelsKey).catch(() => null),
       ])
 
       if (summaryRes.ok) {
@@ -87,9 +93,7 @@ export default function OffboardingWizard(): React.ReactElement {
     try {
       // Delete in order: wealth, plans, models, account
       if (deleteWealth && !deleteAccount) {
-        const response = await fetch("/api/offboard/wealth", {
-          method: "DELETE",
-        })
+        const response = await deleteOffboardData("wealth")
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
@@ -104,9 +108,7 @@ export default function OffboardingWizard(): React.ReactElement {
       }
 
       if (deletePlans && !deleteAccount) {
-        const response = await fetch("/api/offboard/plans", {
-          method: "DELETE",
-        })
+        const response = await deleteOffboardData("plans")
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
@@ -121,9 +123,7 @@ export default function OffboardingWizard(): React.ReactElement {
       }
 
       if (deleteModels && !deleteAccount) {
-        const response = await fetch("/api/offboard/models", {
-          method: "DELETE",
-        })
+        const response = await deleteOffboardData("models")
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
@@ -146,13 +146,11 @@ export default function OffboardingWizard(): React.ReactElement {
         // AI chat history goes first, awaited: svc-agent resolves the owner
         // via svc-data /me, which fails once the account is gone. Best effort
         // — a failure here must not block closing the account.
-        await fetch("/api/offboard/conversations", { method: "DELETE" }).catch(
-          () => null,
-        )
+        await deleteOffboardData("conversations").catch(() => null)
         const [plansRes, modelsRes, accountRes] = await Promise.all([
-          fetch("/api/offboard/plans", { method: "DELETE" }).catch(() => null),
-          fetch("/api/offboard/models", { method: "DELETE" }).catch(() => null),
-          fetch("/api/offboard/account", { method: "DELETE" }),
+          deleteOffboardData("plans").catch(() => null),
+          deleteOffboardData("models").catch(() => null),
+          deleteOffboardData("account"),
         ])
 
         if (plansRes?.ok) {

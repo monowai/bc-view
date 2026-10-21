@@ -24,6 +24,10 @@ import { useIndependencePlanCurrency } from "@components/features/independence/u
 import MathInput from "@components/ui/MathInput"
 import Spinner from "@components/ui/Spinner"
 import LifestyleMoodBoard from "./LifestyleMoodBoard"
+import {
+  expenseCategoriesKey,
+  lifestyleCatalogKey,
+} from "@utils/api/client/independence"
 
 const msg = wizardMessages.steps.expenses
 
@@ -37,8 +41,8 @@ interface ExpensesStepProps {
 
 type ExpensesTab = "board" | "detailed"
 
-const categoriesKey = "/api/independence/categories"
-const lifestyleCatalogBaseKey = "/api/independence/lifestyle-catalog"
+const categoriesKey = expenseCategoriesKey
+const lifestyleCatalogBaseKey = lifestyleCatalogKey()
 
 export default function ExpensesStep({
   control,

@@ -3,6 +3,11 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
 import Alert from "@components/ui/Alert"
 import { TaxRate } from "types/beancounter"
+import {
+  deleteTaxRate,
+  getTaxRates,
+  saveTaxRate,
+} from "@utils/api/client/account"
 
 // Common country codes for tax rate configuration
 const COUNTRY_OPTIONS = [
@@ -27,7 +32,7 @@ function TaxRatesPage(): React.ReactElement {
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
-        const response = await fetch("/api/tax-rates")
+        const response = await getTaxRates()
         if (response.ok) {
           const data = await response.json()
           if (data.data) {
@@ -59,13 +64,9 @@ function TaxRatesPage(): React.ReactElement {
     setError(null)
 
     try {
-      const response = await fetch("/api/tax-rates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          countryCode: newTaxCountry,
-          rate,
-        }),
+      const response = await saveTaxRate({
+        countryCode: newTaxCountry,
+        rate,
       })
 
       if (response.ok) {
@@ -102,9 +103,7 @@ function TaxRatesPage(): React.ReactElement {
   const handleDeleteTaxRate = useCallback(
     async (countryCode: string): Promise<void> => {
       try {
-        const response = await fetch(`/api/tax-rates/${countryCode}`, {
-          method: "DELETE",
-        })
+        const response = await deleteTaxRate(countryCode)
 
         if (response.ok || response.status === 204) {
           setTaxRates((prev) =>

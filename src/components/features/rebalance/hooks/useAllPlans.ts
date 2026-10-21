@@ -1,6 +1,7 @@
 import useSwr, { KeyedMutator } from "swr"
 import { ModelDto, PlanDto, PlansResponse } from "types/rebalance"
 import { useModels } from "./useModels"
+import { modelPlansKey } from "@utils/api/client/rebalance"
 
 export interface UseAllPlansResult {
   plans: PlanDto[]
@@ -10,7 +11,7 @@ export interface UseAllPlansResult {
 }
 
 async function fetchPlansForModel(model: ModelDto): Promise<PlanDto[]> {
-  const response = await fetch(`/api/rebalance/models/${model.id}/plans`)
+  const response = await fetch(modelPlansKey(model.id))
   if (!response.ok) {
     throw new Error(`Failed to load plans for model ${model.id}`)
   }

@@ -20,14 +20,21 @@ import {
   AXIS_TICK,
   ACTIVE_DOT,
   TOOLTIP_STYLE,
-  formatCompact as formatCompactShared,
   formatFull as formatFullShared,
   formatAxisDate,
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
+import { formatCompactSymbol } from "@lib/formatters"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import Alert from "@components/ui/Alert"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { marketAssetsKey } from "@utils/api/client/assets"
+import {
+  benchmarkPerformanceKey,
+  performanceKey,
+  resetPerformanceCache,
+} from "@utils/api/client/holdings"
+import { backfillPrices } from "@utils/api/client/prices"
 
 type ChartTab = "gain" | "benchmark" | "guide"
 
@@ -60,7 +67,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const { preferences } = useUserPreferences()
   const { mutate } = useSWRConfig()
 
-  const apiUrl = `/api/performance/${portfolioCode}?months=${months}`
+  const apiUrl = performanceKey(portfolioCode, months)
   const { data, isLoading, error } = useSwr<PerformanceResponse>(
     apiUrl,
     simpleFetcher(apiUrl),
@@ -68,7 +75,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   // Lazy: only fetch index list when benchmark tab is active
   const indexListUrl =
-    activeChart === "benchmark" ? "/api/assets/market/INDEX" : null
+    activeChart === "benchmark" ? marketAssetsKey("INDEX") : null
   const { data: indexListData } = useSwr<AssetUpdateResponse>(
     indexListUrl,
     indexListUrl ? simpleFetcher(indexListUrl) : null,
@@ -77,9 +84,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   // Lazy: only fetch benchmark series once an index is picked
   const benchmarkUrl =
     activeChart === "benchmark" && selectedIndexId
-      ? `/api/performance/${portfolioCode}/benchmark?indexAssetId=${encodeURIComponent(
-          selectedIndexId,
-        )}&months=${months}`
+      ? benchmarkPerformanceKey(portfolioCode, selectedIndexId, months)
       : null
   const { data: benchmarkData, isLoading: benchmarkLoading } =
     useSwr<PerformanceResponse>(
@@ -90,9 +95,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const handleResetCache = useCallback(async () => {
     setResetState("resetting")
     try {
-      await fetch(`/api/performance/${portfolioCode}/reset`, {
-        method: "DELETE",
-      })
+      await resetPerformanceCache(portfolioCode)
       await mutate(apiUrl)
       setResetState("done")
       setTimeout(() => setResetState("idle"), 1500)
@@ -104,9 +107,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const handleBackfill = useCallback(async () => {
     setBackfillState("loading")
     try {
-      const res = await fetch(`/api/prices/backfill/${portfolioCode}`, {
-        method: "POST",
-      })
+      const res = await backfillPrices(portfolioCode)
       const result = await res.json()
       await mutate(apiUrl)
       setBackfillState("done")
@@ -221,7 +222,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   // Format helpers using shared functions with currency symbol
   const formatCompact = (value: number): string =>
-    formatCompactShared(value, sym)
+    formatCompactSymbol(value, sym, 1)
 
   const formatFull = (value: number): string => formatFullShared(value, sym)
 

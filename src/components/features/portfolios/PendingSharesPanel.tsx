@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { PendingSharesResponse, PortfolioShare } from "types/beancounter"
+import { acceptShare, revokeShare } from "@utils/api/client/shares"
 
 interface PendingSharesPanelProps {
   pending: PendingSharesResponse
@@ -73,7 +74,7 @@ function PendingShareRow({
   const handleAccept = async (): Promise<void> => {
     setIsLoading(true)
     try {
-      await fetch(`/api/shares/${share.id}/accept`, { method: "POST" })
+      await acceptShare(share.id)
       onAction()
     } catch {
       // error handled silently
@@ -85,7 +86,7 @@ function PendingShareRow({
   const handleDecline = async (): Promise<void> => {
     setIsLoading(true)
     try {
-      await fetch(`/api/shares/${share.id}`, { method: "DELETE" })
+      await revokeShare(share.id)
       onAction()
     } catch {
       // error handled silently

@@ -5,6 +5,8 @@ import DateInput from "@components/ui/DateInput"
 import { todayIso } from "@lib/formatters"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { BrokerHoldingPosition, BrokerProposalRequest } from "types/beancounter"
+import { proposeBrokerSells } from "@utils/api/client/trns"
+import { marketPriceUrl } from "@utils/api/client/prices"
 
 interface WeightedSellDialogProps {
   open: boolean
@@ -76,7 +78,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
       setIsFetchingPrice(true)
       try {
         const response = await fetch(
-          `/api/prices/${holding.market}/${holding.assetCode}`,
+          marketPriceUrl(holding.market, holding.assetCode),
         )
         if (!response.ok) return
         const data = await response.json()
@@ -152,11 +154,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
         price: priceNum,
         tradeDate,
       }
-      const response = await fetch(`/api/trns/broker/${brokerId}/propose`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
+      const response = await proposeBrokerSells(brokerId, body)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || "Failed to propose sells")

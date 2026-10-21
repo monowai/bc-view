@@ -1,7 +1,9 @@
 import {
   formatCompact,
   formatCompactBare,
+  formatCompactSymbol,
   formatDate,
+  formatQuantity,
   localIsoDate,
   todayIso,
 } from "./formatters"
@@ -113,11 +115,39 @@ describe("formatCompact", () => {
   })
 })
 
+describe("formatCompactSymbol", () => {
+  it("takes a display symbol as served, and the decimals at millions", () => {
+    expect(formatCompactSymbol(2_140_000, "RM", 1)).toBe("RM2.1M")
+    expect(formatCompactSymbol(2_140_000, "RM")).toBe("RM2.14M")
+    expect(formatCompactSymbol(65_000, "$", 1)).toBe("$65K")
+    expect(formatCompactSymbol(950, "$", 1)).toBe("$950")
+  })
+
+  it("puts the sign before the symbol (the chart copy printed $-5K)", () => {
+    expect(formatCompactSymbol(-4_500, "$", 1)).toBe("-$5K")
+    expect(formatCompactSymbol(-1_200_000, "$", 1)).toBe("-$1.2M")
+  })
+
+  it("never prints 1000K (the chart copy did at 999,999)", () => {
+    expect(formatCompactSymbol(999_999, "$", 1)).toBe("$1.0M")
+  })
+})
+
 describe("formatCompactBare", () => {
   it("drops the symbol — axis gridlines repeat it for nothing", () => {
     expect(formatCompactBare(2_140_000)).toBe("2.1M")
     expect(formatCompactBare(180_000)).toBe("180K")
     expect(formatCompactBare(950)).toBe("950")
     expect(formatCompactBare(-1_200_000)).toBe("-1.2M")
+  })
+})
+
+describe("formatQuantity", () => {
+  it("shows whole units bare and fractional units to at most 4dp", () => {
+    expect(formatQuantity(100)).toBe((100).toLocaleString())
+    expect(formatQuantity(1.5)).toBe((1.5).toLocaleString())
+    expect(formatQuantity(0.123456)).toBe(
+      (0.1235).toLocaleString(undefined, { maximumFractionDigits: 4 }),
+    )
   })
 })

@@ -24,6 +24,13 @@ import {
   PlanDto,
 } from "types/rebalance"
 import { BrokerWithAccounts } from "types/beancounter"
+import {
+  commitExecution,
+  createExecution,
+  modelPlanKey,
+  updateExecution,
+} from "@utils/api/client/rebalance"
+import { brokersWithAccountsKey } from "@utils/api/client/brokers"
 
 interface InvestCashDialogProps {
   modalOpen: boolean
@@ -90,8 +97,8 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   // Fetch brokers (with settlement accounts) + the account assets, so the
   // commit can route cash into the selected broker's own cash line.
   const { data: brokersData } = useSWR(
-    modalOpen ? "/api/brokers?includeAccounts=true" : null,
-    simpleFetcher("/api/brokers?includeAccounts=true"),
+    modalOpen ? brokersWithAccountsKey : null,
+    simpleFetcher(brokersWithAccountsKey),
   )
   const brokers: BrokerWithAccounts[] = brokersData?.data || []
   const { data: accountAssetsData } = useSWR(
@@ -124,10 +131,10 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   // Fetch plan details when a model is selected
   const { data: planData, isLoading: loadingPlan } = useSWR<{ data: PlanDto }>(
     selectedModel?.currentPlanId
-      ? `/api/rebalance/models/${selectedModel.id}/plans/${selectedModel.currentPlanId}`
+      ? modelPlanKey(selectedModel.id, selectedModel.currentPlanId)
       : null,
     simpleFetcher(
-      `/api/rebalance/models/${selectedModel?.id}/plans/${selectedModel?.currentPlanId}`,
+      modelPlanKey(`${selectedModel?.id}`, `${selectedModel?.currentPlanId}`),
     ),
   )
   const planAssets = planData?.data?.assets || []
@@ -206,15 +213,11 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     setError(null)
 
     try {
-      const response = await fetch("/api/rebalance/executions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: selectedModel.currentPlanId,
-          portfolioIds: [portfolioId],
-          mode: "INVEST_CASH",
-          investmentAmount: parseShorthandAmount(amount),
-        }),
+      const response = await createExecution({
+        planId: selectedModel.currentPlanId,
+        portfolioIds: [portfolioId],
+        mode: "INVEST_CASH",
+        investmentAmount: parseShorthandAmount(amount),
       })
 
       if (!response.ok) {
@@ -261,14 +264,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
             price: draftToNumber(itemEdits[item.assetId]?.price),
           }))
 
-        const updateResponse = await fetch(
-          `/api/rebalance/executions/${execution.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ itemUpdates }),
-          },
-        )
+        const updateResponse = await updateExecution(execution.id, {
+          itemUpdates,
+        })
 
         if (!updateResponse.ok) {
           const errorData = await updateResponse.json().catch(() => ({}))
@@ -295,14 +293,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         brokerId: selectedBrokerId,
         cashAssetId,
       }
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}/commit`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(commitRequest),
-        },
-      )
+      const response = await commitExecution(execution.id, commitRequest)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

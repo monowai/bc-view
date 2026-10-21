@@ -8,6 +8,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
+import { deleteExecution } from "@utils/api/client/rebalance"
 
 const ExecutionList: React.FC = () => {
   const router = useRouter()
@@ -45,10 +46,7 @@ const ExecutionList: React.FC = () => {
   const handleDeleteConfirm = async (): Promise<void> => {
     if (!deleteExecutionId) return
     try {
-      const response = await fetch(
-        `/api/rebalance/executions/${deleteExecutionId}`,
-        { method: "DELETE" },
-      )
+      const response = await deleteExecution(deleteExecutionId)
       if (response.ok) {
         mutate()
       }

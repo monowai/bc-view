@@ -9,6 +9,7 @@ import { holdingKey } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
+import { deleteTrn } from "@utils/api/client/trns"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter()
@@ -58,9 +59,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   const handleDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!deleteTarget) return
     try {
-      const response = await fetch(`/api/trns/trades/${deleteTarget.id}`, {
-        method: "DELETE",
-      })
+      const response = await deleteTrn(deleteTarget.id)
       if (response.ok) {
         setTimeout(() => {
           mutate(holdingKey(deleteTarget.portfolioCode, "today"))

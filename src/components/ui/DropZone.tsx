@@ -5,6 +5,8 @@ import { DelimitedImport } from "types/app"
 import Papa from "papaparse"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
+import { importTrnRow } from "@utils/api/client/trns"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 // Function to read and parse file
 function readFile(file: Blob): Promise<string[][]> {
@@ -30,19 +32,12 @@ export function postData(
   purge: boolean,
   row: string[],
 ): Promise<Response> {
-  return fetch(`/api/trns/import`, {
-    method: "POST",
-    mode: "cors",
-    headers: {
-      "content-type": "application/json;charset=UTF-8",
-    },
-    body: JSON.stringify({
-      hasHeader: true,
-      portfolio: portfolio,
-      purge: purge,
-      row,
-    } as unknown as DelimitedImport),
-  })
+  return importTrnRow({
+    hasHeader: true,
+    portfolio: portfolio,
+    purge: purge,
+    row,
+  } as unknown as DelimitedImport)
 }
 
 // DropZone component
@@ -100,7 +95,7 @@ export default function TrnDropZone({
       if (rows > 0) {
         setTimeout(() => {
           mutate(holdingKey(portfolio.code, "today"))
-          mutate("/api/holdings/aggregated?asAt=today")
+          mutate(aggregatedHoldingsTodayKey)
         }, 1500)
       }
     },

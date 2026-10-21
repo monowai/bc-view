@@ -60,6 +60,13 @@ import {
 } from "@lib/independence/planHelpers"
 import { buildCpfSubAccountRows } from "@lib/independence/cpfSubAccountTags"
 import { resolveDisplayAges } from "@lib/independence/age"
+import {
+  copyPlan,
+  exportPlan,
+  plansKey,
+  transferPlan,
+  updatePlan,
+} from "@utils/api/client/independence"
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -97,8 +104,8 @@ function PlanView(): React.ReactElement {
   // projection through svc-retire's M2M / ?systemUserId path so the
   // viewer's own holdings don't pollute the result.
   const { data: plansData } = useSwr<PlansResponse>(
-    "/api/independence/plans",
-    simpleFetcher("/api/independence/plans"),
+    plansKey,
+    simpleFetcher(plansKey),
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000,
@@ -646,7 +653,7 @@ function PlanView(): React.ReactElement {
     if (!plan) return
 
     try {
-      const response = await fetch(`/api/independence/plans/${plan.id}/export`)
+      const response = await exportPlan(plan.id)
       if (!response.ok) return
       const result = await response.json()
       const exportData = result.data
@@ -708,10 +715,7 @@ function PlanView(): React.ReactElement {
     setIsTransferring(true)
     setTransferError(null)
     try {
-      const response = await fetch(
-        `/api/independence/plans/${plan.id}/transfer`,
-        { method: "POST" },
-      )
+      const response = await transferPlan(plan.id)
       if (response.ok) {
         router.push("/independence")
       } else {
@@ -806,11 +810,7 @@ function PlanView(): React.ReactElement {
       )
 
       if (mode === "update") {
-        const response = await fetch(`/api/independence/plans/${plan.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        })
+        const response = await updatePlan(plan.id, updates)
         if (response.ok) {
           const updatedPlan = await response.json()
           await mutatePlan(updatedPlan, false)
@@ -821,25 +821,11 @@ function PlanView(): React.ReactElement {
         }
       } else {
         const copyName = newPlanName || `${plan.name} (Scenario)`
-        const copyResponse = await fetch(
-          `/api/independence/plans/${plan.id}/copy`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: copyName }),
-          },
-        )
+        const copyResponse = await copyPlan(plan.id, copyName)
         if (copyResponse.ok) {
           const copyResult = await copyResponse.json()
           const newPlanId = copyResult.data.id
-          const patchResponse = await fetch(
-            `/api/independence/plans/${newPlanId}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updates),
-            },
-          )
+          const patchResponse = await updatePlan(newPlanId, updates)
           if (!patchResponse.ok) {
             console.error("Failed to apply scenario overrides to copied plan")
           }

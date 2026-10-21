@@ -27,8 +27,17 @@ import {
 import { parseWeightsFromCsvText } from "@lib/rebalance/csvImport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
-import { todayIso } from "@lib/formatters"
+import { formatPercent, todayIso } from "@lib/formatters"
 import { getLocalValue, setLocalValue } from "@lib/storage/localState"
+import { createAssets } from "@utils/api/client/assets"
+import {
+  approveModelPlan,
+  createModelPlan,
+  deleteModelPlan,
+  modelPlanKey,
+  planPricesUrl,
+  updateModelPlan,
+} from "@utils/api/client/rebalance"
 
 const COPY_FIELDS_STORAGE_KEY = "rebalance-plan-copy-fields"
 
@@ -127,13 +136,10 @@ function PlanDetailPage(): React.ReactElement {
     setSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${planId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildPlanAssetsPayload(weights)),
-        },
+      const response = await updateModelPlan(
+        String(modelId),
+        String(planId),
+        buildPlanAssetsPayload(weights),
       )
       if (response.ok) {
         mutate()
@@ -162,10 +168,7 @@ function PlanDetailPage(): React.ReactElement {
 
     setApproving(true)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${planId}/approve`,
-        { method: "POST" },
-      )
+      const response = await approveModelPlan(String(modelId), String(planId))
       if (response.ok) {
         mutate()
       }
@@ -181,10 +184,7 @@ function PlanDetailPage(): React.ReactElement {
     setDeleting(true)
     setActionError(null)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${planId}`,
-        { method: "DELETE" },
-      )
+      const response = await deleteModelPlan(String(modelId), String(planId))
       if (response.ok) {
         router.push(`/rebalance/models/${modelId}`)
       } else {
@@ -204,10 +204,8 @@ function PlanDetailPage(): React.ReactElement {
   const handleCreateNewVersion = async (): Promise<void> => {
     setCreatingVersion(true)
     try {
-      const response = await fetch(`/api/rebalance/models/${modelId}/plans`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourcePlanId: planId }),
+      const response = await createModelPlan(String(modelId), {
+        sourcePlanId: planId,
       })
       if (response.ok) {
         const result = await response.json()
@@ -223,9 +221,7 @@ function PlanDetailPage(): React.ReactElement {
   const handleImportFromPlan = async (sourcePlanId: string): Promise<void> => {
     setShowImportDropdown(false)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${sourcePlanId}`,
-      )
+      const response = await fetch(modelPlanKey(String(modelId), sourcePlanId))
       if (response.ok) {
         const result = await response.json()
         const sourcePlan = result.data
@@ -304,11 +300,7 @@ function PlanDetailPage(): React.ReactElement {
           }
         }
 
-        const createResponse = await fetch("/api/assets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: assetInputs }),
-        })
+        const createResponse = await createAssets({ data: assetInputs })
 
         if (createResponse.ok) {
           const createData = await createResponse.json()
@@ -330,15 +322,15 @@ function PlanDetailPage(): React.ReactElement {
       // Silently save current weights so the backend has the full asset list
       // before fetching prices — newly added assets won't appear in prices
       // otherwise (backend reads from DB, not from the in-memory state).
-      await fetch(`/api/rebalance/models/${modelId}/plans/${planId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPlanAssetsPayload(updatedWeights)),
-      })
+      await updateModelPlan(
+        String(modelId),
+        String(planId),
+        buildPlanAssetsPayload(updatedWeights),
+      )
 
       // Now fetch prices for all assets
       const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${planId}/prices`,
+        planPricesUrl(String(modelId), String(planId)),
       )
       if (response.ok) {
         const data = await response.json()
@@ -388,10 +380,6 @@ function PlanDetailPage(): React.ReactElement {
       hour: "2-digit",
       minute: "2-digit",
     })
-  }
-
-  const formatWeight = (weight: number): string => {
-    return `${(weight * 100).toFixed(2)}%`
   }
 
   const ALL_FIELDS: CopyFields = {
@@ -850,7 +838,7 @@ function PlanDetailPage(): React.ReactElement {
                             </div>
                           </td>
                           <td className="px-3 sm:px-4 py-3 text-right text-sm text-gray-900 font-mono tabular-nums whitespace-nowrap">
-                            {formatWeight(asset.weight)}
+                            {formatPercent(asset.weight)}
                           </td>
                           <td className="hidden sm:table-cell px-4 py-3 text-right text-sm text-gray-500 font-mono tabular-nums whitespace-nowrap">
                             {asset.capturedPrice
@@ -869,7 +857,7 @@ function PlanDetailPage(): React.ReactElement {
                             </span>
                           </td>
                           <td className="px-3 sm:px-4 py-3 text-right text-sm text-gray-700 font-mono tabular-nums">
-                            {formatWeight(plan.cashWeight)}
+                            {formatPercent(plan.cashWeight)}
                           </td>
                           <td className="hidden sm:table-cell px-4 py-3 text-right text-sm text-gray-500">
                             -

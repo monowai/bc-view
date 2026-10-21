@@ -22,6 +22,7 @@ import {
 import { stepIdForSlug } from "@lib/independence/stepConfig"
 import { resolveReturnTo, returnToLabel } from "@lib/independence/editPhase"
 import Link from "next/link"
+import { planDetailsKey } from "@utils/api/client/independence"
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
@@ -37,8 +38,8 @@ function EditPlanWizard(): React.ReactElement {
 
   // Fetch plan with retirement expenses
   const { data, error, isLoading } = useSwr<PlanWithExpensesResponse>(
-    planId ? `/api/independence/plans/${planId}/details` : null,
-    planId ? simpleFetcher(`/api/independence/plans/${planId}/details`) : null,
+    planId ? planDetailsKey(String(planId)) : null,
+    planId ? simpleFetcher(planDetailsKey(String(planId))) : null,
     {
       // Always fetch fresh data when editing - avoid stale cache issues
       revalidateOnMount: true,

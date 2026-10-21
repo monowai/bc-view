@@ -59,13 +59,6 @@ export const TOOLTIP_STYLE = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
 }
 
-export function formatCompact(value: number, sym: string): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `${sym}${(value / 1_000_000).toFixed(1)}M`
-  if (Math.abs(value) >= 1_000) return `${sym}${(value / 1_000).toFixed(0)}K`
-  return `${sym}${value.toFixed(0)}`
-}
-
 export function formatFull(value: number, sym: string): string {
   return `${sym}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }

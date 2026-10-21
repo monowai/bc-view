@@ -1,5 +1,6 @@
 import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { assetValuesKey } from "@utils/api/client/assets"
 
 interface AssetValuesResponse {
   data: Record<string, number>
@@ -25,9 +26,7 @@ interface UseAssetValuesResult {
  * native currency is summed naively (avoid for mixed-currency users).
  */
 export function useAssetValues(targetCurrency?: string): UseAssetValuesResult {
-  const url = targetCurrency
-    ? `/api/assets/values?currency=${encodeURIComponent(targetCurrency)}`
-    : "/api/assets/values"
+  const url = assetValuesKey(targetCurrency)
 
   const { data, error, isLoading } = useSWR<AssetValuesResponse>(
     url,

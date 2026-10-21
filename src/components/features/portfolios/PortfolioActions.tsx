@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/router"
 import { fetchAndDownloadCsv } from "@lib/csvExport"
 import Spinner from "@components/ui/Spinner"
+import { portfoliosExportUrl } from "@utils/api/client/portfolios"
 
 interface PortfolioActionsProps {
   onImportClick: () => void
@@ -21,7 +22,7 @@ const PortfolioActions = ({
   const handleExport = async (): Promise<void> => {
     setIsExporting(true)
     try {
-      await fetchAndDownloadCsv("/api/portfolios/export", "portfolios.csv")
+      await fetchAndDownloadCsv(portfoliosExportUrl, "portfolios.csv")
     } catch (err) {
       console.error("Export failed:", err)
     } finally {

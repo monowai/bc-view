@@ -3,6 +3,12 @@ import useSWR from "swr"
 import { PlanContribution } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import PensionProjectionModal from "@components/features/independence/scenarios/PensionProjectionModal"
+import { assetConfigsKey } from "@utils/api/client/assets"
+import {
+  cpfContributionPreviewKey,
+  saveWorkScenarioContributions,
+  workScenarioContributionsKey,
+} from "@utils/api/client/independence"
 
 /**
  * Per-asset pension contribution editor for a Work Scenario.
@@ -82,14 +88,14 @@ export default function ScenarioContributions({
   monthlySalary,
   currentAge,
 }: ScenarioContributionsProps): React.ReactElement | null {
-  const configsKey = "/api/assets/config"
-  const contributionsKey = `/api/independence/work-scenarios/${scenarioId}/contributions`
+  const configsKey = assetConfigsKey
+  const contributionsKey = workScenarioContributionsKey(scenarioId)
   // Skip the preview fetch if we don't have both salary and age — there's
   // nothing useful to show. Reuse one preview for all CPF rows; salary
   // is at the scenario level, so the figure is the same for each asset.
   const previewKey =
     monthlySalary && monthlySalary > 0 && currentAge && currentAge > 0
-      ? `/api/independence/cpf/contribution-preview?monthlySalary=${monthlySalary}&age=${currentAge}`
+      ? cpfContributionPreviewKey(monthlySalary, currentAge)
       : null
   const { data: previewResp } = useSWR<CpfPreviewResponse>(
     previewKey,
@@ -171,20 +177,13 @@ export default function ScenarioContributions({
       setSavingAssetId(asset.assetId)
       setError(null)
       try {
-        const res = await fetch(
-          `/api/independence/work-scenarios/${scenarioId}/contributions`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              assetId: asset.assetId,
-              assetName: asset.assetName,
-              monthlyAmount: amount,
-              currency,
-              contributionType: "PENSION",
-            }),
-          },
-        )
+        const res = await saveWorkScenarioContributions(scenarioId, {
+          assetId: asset.assetId,
+          assetName: asset.assetName,
+          monthlyAmount: amount,
+          currency,
+          contributionType: "PENSION",
+        })
         if (!res.ok) throw new Error(`Save failed: ${res.status}`)
         await refreshContribs()
       } catch (err: unknown) {

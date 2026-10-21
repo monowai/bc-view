@@ -22,6 +22,7 @@ import {
   WITHDRAWAL_ORDER_OPTIONS,
   WRAPPER_POLICY_TYPES,
 } from "@lib/independence/withdrawalOrder"
+import { holdingsAllocationUrl } from "@utils/api/client/holdings"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -132,7 +133,7 @@ export default function AssumptionsStep({
     setIsLoadingAllocation(true)
     const ids = selectedPortfolioIds.join(",")
 
-    fetch(`/api/holdings/allocation?asAt=today&ids=${encodeURIComponent(ids)}`)
+    fetch(holdingsAllocationUrl(ids))
       .then((res) => res.json())
       .then((response: AllocationResponse) => {
         if (response.data) {
@@ -163,7 +164,7 @@ export default function AssumptionsStep({
     setIsLoadingAllocation(true)
     const ids = selectedPortfolioIds.join(",")
 
-    fetch(`/api/holdings/allocation?asAt=today&ids=${encodeURIComponent(ids)}`)
+    fetch(holdingsAllocationUrl(ids))
       .then((res) => res.json())
       .then((response: AllocationResponse) => {
         if (response.data) {

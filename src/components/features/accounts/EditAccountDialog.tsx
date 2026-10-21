@@ -12,6 +12,14 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { currentAgeFromSettings } from "@lib/independence/age"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import PensionProjectionPanel from "@components/features/independence/scenarios/PensionProjectionPanel"
+import {
+  assetPositionsKey,
+  getAssetConfig,
+  saveAssetConfig,
+} from "@utils/api/client/assets"
+import { getPlans, projectLumpSum } from "@utils/api/client/independence"
+import { getAssetClassification } from "@utils/api/client/classifications"
+import { getTaxRates } from "@utils/api/client/account"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -167,7 +175,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   // reused dialog auto-clears the prior balance.
   const balanceKey =
     asset.assetCategory?.id === "POLICY" && asset.id
-      ? `/api/assets/${asset.id}/positions?date=today`
+      ? assetPositionsKey(asset.id)
       : null
   const { data: positionsData } = useSWR<{
     data?: { balance?: number }[]
@@ -190,7 +198,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   useEffect(() => {
     async function fetchCountryTaxRates(): Promise<void> {
       try {
-        const response = await fetch("/api/tax-rates")
+        const response = await getTaxRates()
         if (response.ok) {
           const data = await response.json()
           if (data.data) {
@@ -224,7 +232,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     let cancelled = false
     async function deriveRetirementAge(): Promise<number> {
       try {
-        const res = await fetch("/api/independence/plans")
+        const res = await getPlans()
         if (!res.ok) return 65
         const body = await res.json()
         const firstPlan = (body?.data || [])[0]
@@ -250,7 +258,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   useEffect(() => {
     async function fetchCurrentSector(): Promise<void> {
       try {
-        const response = await fetch(`/api/classifications/${asset.id}`)
+        const response = await getAssetClassification(asset.id)
         if (response.ok) {
           const data = await response.json()
           // Response is { data: [{ level: "SECTOR", item: { name: "..." }, ... }] }
@@ -294,7 +302,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
       setConfigLoading(true)
       try {
-        const response = await fetch(`/api/assets/config/${asset.id}`)
+        const response = await getAssetConfig(asset.id)
         if (response.ok) {
           const data = await response.json()
           if (data.data) {
@@ -442,15 +450,11 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
       setProjectionLoading(true)
       setProjectionError(null)
       try {
-        const response = await fetch("/api/projection/lump-sum", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            monthlyContribution,
-            expectedReturnRate: expectedReturn,
-            currentAge,
-            payoutAge,
-          }),
+        const response = await projectLumpSum({
+          monthlyContribution,
+          expectedReturnRate: expectedReturn,
+          currentAge,
+          payoutAge,
         })
 
         if (response.ok) {
@@ -561,11 +565,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           }
         }
 
-        const configResponse = await fetch(`/api/assets/config/${asset.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(configPayload),
-        })
+        const configResponse = await saveAssetConfig(asset.id, configPayload)
         if (!configResponse.ok) {
           setError("Failed to save configuration")
           return

@@ -9,6 +9,7 @@ import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { tableBase, theadBase, thBase, tbodyBase } from "@utils/tableStyles"
 import Spinner from "@components/ui/Spinner"
+import { deleteModelPlan } from "@utils/api/client/rebalance"
 
 const RebalancePlanList: React.FC = () => {
   const router = useRouter()
@@ -20,9 +21,9 @@ const RebalancePlanList: React.FC = () => {
     if (!deleteTarget) return
     setDeletingId(deleteTarget.id)
     try {
-      const response = await fetch(
-        `/api/rebalance/models/${deleteTarget.modelId}/plans/${deleteTarget.id}`,
-        { method: "DELETE" },
+      const response = await deleteModelPlan(
+        deleteTarget.modelId,
+        deleteTarget.id,
       )
       if (response.ok || response.status === 204) {
         await mutate()

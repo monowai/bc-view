@@ -6,6 +6,11 @@ import {
   PropertyIncomesResponse,
   PropertyIncomeResponse,
 } from "types/independence"
+import {
+  createPlanProperty,
+  deletePlanProperty,
+  planPropertiesKey,
+} from "@utils/api/client/independence"
 
 interface UsePropertyIncomesResult {
   propertyIncomes: PlanPropertyIncome[]
@@ -29,7 +34,7 @@ interface UsePropertyIncomesResult {
 export function usePropertyIncomes(
   planId: string | undefined,
 ): UsePropertyIncomesResult {
-  const apiUrl = planId ? `/api/independence/plans/${planId}/properties` : null
+  const apiUrl = planId ? planPropertiesKey(planId) : null
 
   const { data, error, isLoading } = useSWR<PropertyIncomesResponse>(
     apiUrl,
@@ -45,14 +50,7 @@ export function usePropertyIncomes(
   ): Promise<PlanPropertyIncome | null> => {
     if (!planId) return null
 
-    const response = await fetch(
-      `/api/independence/plans/${planId}/properties`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      },
-    )
+    const response = await createPlanProperty(planId, request)
 
     if (!response.ok) {
       throw new Error("Failed to save property income")
@@ -72,12 +70,7 @@ export function usePropertyIncomes(
   const deletePropertyIncome = async (assetId: string): Promise<void> => {
     if (!planId) return
 
-    const response = await fetch(
-      `/api/independence/plans/${planId}/properties/${encodeURIComponent(assetId)}`,
-      {
-        method: "DELETE",
-      },
-    )
+    const response = await deletePlanProperty(planId, assetId)
 
     if (!response.ok) {
       throw new Error("Failed to delete property income")

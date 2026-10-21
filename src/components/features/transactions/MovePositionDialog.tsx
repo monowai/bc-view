@@ -4,6 +4,8 @@ import { Portfolio, MovePositionData } from "types/beancounter"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { moveTrns } from "@utils/api/client/trns"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 interface MovePositionDialogProps {
   modalOpen: boolean
@@ -50,15 +52,11 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
   const handleMove = async (): Promise<void> => {
     if (!selectedPortfolioId) return
     await handleSubmit(async () => {
-      const response = await fetch("/api/trns/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourcePortfolioId: sourceData.portfolioId,
-          targetPortfolioId: selectedPortfolioId,
-          assetId: sourceData.asset.id,
-          maintainCashBalances: maintainCash,
-        }),
+      const response = await moveTrns({
+        sourcePortfolioId: sourceData.portfolioId,
+        targetPortfolioId: selectedPortfolioId,
+        assetId: sourceData.asset.id,
+        maintainCashBalances: maintainCash,
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -67,7 +65,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
         )
       }
       mutate(holdingKey(sourceData.portfolioCode, "today"))
-      mutate("/api/holdings/aggregated?asAt=today")
+      mutate(aggregatedHoldingsTodayKey)
       const targetPortfolio = portfolios.find(
         (p) => p.id === selectedPortfolioId,
       )

@@ -16,11 +16,11 @@ import {
   AXIS_TICK,
   ACTIVE_DOT,
   TOOLTIP_STYLE,
-  formatCompact,
   formatFull,
   formatAxisDate,
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
+import { formatCompactSymbol } from "@lib/formatters"
 import { useAggregatedPerformance } from "@hooks/useAggregatedPerformance"
 import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
 
@@ -77,7 +77,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   const isAnnualised = months >= 12
   const headlinePct = xirrPct ?? stats?.twrPct ?? 0
   const isPositive = headlinePct >= 0
-  const fmtCompact = (v: number): string => formatCompact(v, sym)
+  const fmtCompact = (v: number): string => formatCompactSymbol(v, sym, 1)
   const fmtFull = (v: number): string => formatFull(v, sym)
 
   return (

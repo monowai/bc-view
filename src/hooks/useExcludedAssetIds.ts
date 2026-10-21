@@ -3,6 +3,7 @@ import useSwr from "swr"
 import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { Portfolio, PortfolioResponses } from "types/beancounter"
 import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
+import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
 interface HoldingsResponse {
   data?: {
@@ -44,7 +45,7 @@ export function useExcludedAssetIds(
   // Fetch holdings for excluded portfolios to get their asset IDs
   const holdingsKey =
     excludedCodes.length > 0
-      ? `/api/holdings/aggregated?asAt=today&codes=${excludedCodes.join(",")}`
+      ? `${aggregatedHoldingsTodayKey}&codes=${excludedCodes.join(",")}`
       : null
 
   const { data } = useSwr<HoldingsResponse>(

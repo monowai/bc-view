@@ -19,6 +19,7 @@ import { PortfolioResponses } from "types/beancounter"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { isPlanApproved } from "@components/features/rebalance/hooks/useApprovedModels"
+import { executionsKey, modelPlansKey } from "@utils/api/client/rebalance"
 
 interface RebalanceWizardContainerProps {
   preselectedPortfolioIds?: string[]
@@ -154,7 +155,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       route: (id: string) => string
     } = hasApprovedPlan
       ? {
-          url: "/api/rebalance/executions",
+          url: executionsKey,
           payload: {
             planId: currentPlanId!,
             portfolioIds: selectedPortfolioIds,
@@ -168,7 +169,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
           route: (id) => `/rebalance/execute?executionId=${id}`,
         }
       : {
-          url: `/api/rebalance/models/${modelId}/plans`,
+          url: modelPlansKey(modelId),
           payload: { description: planName.trim() },
           route: (id) => `/rebalance/models/${modelId}/plans/${id}`,
         }

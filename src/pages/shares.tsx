@@ -9,6 +9,12 @@ import type {
   ResourceShare,
   ShareStatus,
 } from "types/beancounter"
+import {
+  grantedResourceSharesKey,
+  revokeResourceShare as requestResourceShareRevoke,
+  revokeShare,
+  sharesGrantedKey,
+} from "@utils/api/client/shares"
 
 function statusBadge(status: ShareStatus): React.ReactElement {
   const styles: Record<ShareStatus, string> = {
@@ -37,16 +43,16 @@ function SharesPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null)
 
   const portfolios = useSwr<{ data: PortfolioShare[] }>(
-    "/api/shares/granted",
-    simpleFetcher("/api/shares/granted"),
+    sharesGrantedKey,
+    simpleFetcher(sharesGrantedKey),
   )
   const plans = useSwr<{ data: ResourceShare[] }>(
-    "/api/resource-shares/granted/INDEPENDENCE_PLAN",
-    simpleFetcher("/api/resource-shares/granted/INDEPENDENCE_PLAN"),
+    grantedResourceSharesKey("INDEPENDENCE_PLAN"),
+    simpleFetcher(grantedResourceSharesKey("INDEPENDENCE_PLAN")),
   )
   const models = useSwr<{ data: ResourceShare[] }>(
-    "/api/resource-shares/granted/REBALANCE_MODEL",
-    simpleFetcher("/api/resource-shares/granted/REBALANCE_MODEL"),
+    grantedResourceSharesKey("REBALANCE_MODEL"),
+    simpleFetcher(grantedResourceSharesKey("REBALANCE_MODEL")),
   )
 
   const revokePortfolioShare = async (id: string): Promise<void> => {
@@ -59,7 +65,7 @@ function SharesPage(): React.ReactElement {
     setBusyId(id)
     setError(null)
     try {
-      const res = await fetch(`/api/shares/${id}`, { method: "DELETE" })
+      const res = await revokeShare(id)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body?.error || `Revoke failed (${res.status})`)
@@ -85,9 +91,7 @@ function SharesPage(): React.ReactElement {
     setBusyId(id)
     setError(null)
     try {
-      const res = await fetch(`/api/resource-shares/${id}`, {
-        method: "DELETE",
-      })
+      const res = await requestResourceShareRevoke(id)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body?.error || `Revoke failed (${res.status})`)

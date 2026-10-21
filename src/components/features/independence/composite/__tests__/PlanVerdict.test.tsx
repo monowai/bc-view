@@ -2,6 +2,7 @@ import React from "react"
 import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { CompositeProjectionResult } from "types/independence"
+import { makeCompositeCtx } from "@test-fixtures/independence"
 import {
   CompositeProjectionProvider,
   type CompositeProjectionValue,
@@ -36,30 +37,15 @@ const projection = (
     ...overrides,
   }) as CompositeProjectionResult
 
-function makeCtx(
+const makeCtx = (
   overrides: Partial<CompositeProjectionValue> = {},
-): CompositeProjectionValue {
-  return {
-    plans: [],
-    phases: [],
-    setPhases: jest.fn(),
+): CompositeProjectionValue =>
+  makeCompositeCtx({
     displayCurrency: "SGD",
-    setDisplayCurrency: jest.fn(),
-    excludedPlanIds: new Set<string>(),
-    toggleExclusion: jest.fn(),
-    compositeWorkScenarioId: undefined,
-    setCompositeWorkScenarioId: jest.fn(),
-    refreshProjection: jest.fn(),
     currentAge: 59,
     projection: projection(),
-    scenarios: undefined,
-    isLoading: false,
-    isSettled: true,
-    error: null,
-    mc: { result: null, isRunning: false, error: null, run: jest.fn() },
     ...overrides,
-  }
-}
+  })
 
 function renderWithCtx(
   ctxOverrides: Partial<CompositeProjectionValue> = {},

@@ -1,6 +1,6 @@
 import { HoldingContract, Holdings, Position } from "types/beancounter"
-import { ValueIn } from "@components/features/holdings/GroupByOptions"
-import { getReportCategory } from "../categoryMapping"
+import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
+import { getGroupKey } from "../holdings/calculateHoldings"
 
 export type GroupingMode = "category" | "asset" | "market" | "sector"
 
@@ -43,38 +43,24 @@ function getColor(key: string, index: number): string {
   return CATEGORY_COLORS[key] || FALLBACK_COLORS[index % FALLBACK_COLORS.length]
 }
 
-function getGroupKey(
+/** Allocation modes that group exactly as the holdings table does. */
+const TABLE_GROUP_BY: Partial<Record<GroupingMode, GroupBy>> = {
+  category: GroupBy.ASSET_CLASS,
+  sector: GroupBy.SECTOR,
+  market: GroupBy.MARKET,
+}
+
+function allocationGroup(
   position: Position,
   groupBy: GroupingMode,
 ): { key: string; label: string } {
-  switch (groupBy) {
-    case "category": {
-      const reportCategory = getReportCategory(position.asset)
-      return {
-        key: reportCategory,
-        label: reportCategory,
-      }
-    }
-    case "sector": {
-      const sector = position.asset.sector || "Unclassified"
-      return {
-        key: sector,
-        label: sector,
-      }
-    }
-    case "asset":
-      return {
-        key: position.asset.code,
-        label: position.asset.name,
-      }
-    case "market":
-      return {
-        key: position.asset.market.code,
-        label: position.asset.market.code,
-      }
-    default:
-      return { key: "unknown", label: "Unknown" }
+  if (groupBy === "asset") {
+    return { key: position.asset.code, label: position.asset.name }
   }
+  const tableGroupBy = TABLE_GROUP_BY[groupBy]
+  if (!tableGroupBy) return { key: "unknown", label: "Unknown" }
+  const key = getGroupKey(tableGroupBy, position)
+  return { key, label: key }
 }
 
 interface AggregatedData {
@@ -107,7 +93,7 @@ export function transformToAllocationSlices(
 
     if (!moneyValues) continue
 
-    const { key, label } = getGroupKey(position, groupBy)
+    const { key, label } = allocationGroup(position, groupBy)
     const marketValue = moneyValues.marketValue || 0
     const gainOnDay = moneyValues.gainOnDay || 0
     const irr = moneyValues.irr || 0
@@ -181,7 +167,7 @@ export function transformFxAllocationSlices(
     const currency = moneyValues.currency?.code
     const rate = currency === undefined ? undefined : fxRates[currency]
     if (rate === undefined) continue
-    const { key, label } = getGroupKey(position, groupBy)
+    const { key, label } = allocationGroup(position, groupBy)
     const marketValue = (moneyValues.marketValue || 0) * rate
     const gainOnDay = (moneyValues.gainOnDay || 0) * rate
     const irr = moneyValues.irr || 0

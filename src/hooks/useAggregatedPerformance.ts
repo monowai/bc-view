@@ -1,5 +1,6 @@
 import useSwr from "swr"
 import { Portfolio } from "types/beancounter"
+import { aggregatePerformance } from "@utils/api/client/holdings"
 
 /**
  * Aggregated performance shape mirroring the backend
@@ -68,14 +69,10 @@ export function useAggregatedPerformance(
   }>(
     key,
     async () => {
-      const res = await fetch(`/api/performance/aggregate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          portfolioCodes,
-          months,
-          displayCurrency: displayCurrencyCode,
-        }),
+      const res = await aggregatePerformance({
+        portfolioCodes,
+        months,
+        displayCurrency: displayCurrencyCode,
       })
       if (!res.ok) {
         throw new Error(`Aggregate request failed: ${res.status}`)

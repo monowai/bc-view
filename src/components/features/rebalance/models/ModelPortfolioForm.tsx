@@ -8,6 +8,7 @@ import { Currency, PortfolioResponses } from "types/beancounter"
 import { ccyKey, portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import ClientSelector from "@components/features/shares/ClientSelector"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
+import { createModel, updateModel } from "@utils/api/client/rebalance"
 
 interface ModelPortfolioFormProps {
   model?: ModelDto
@@ -77,16 +78,9 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         risk,
       }
 
-      const url = isEditing
-        ? `/api/rebalance/models/${model.id}`
-        : "/api/rebalance/models"
-      const method = isEditing ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      const response = isEditing
+        ? await updateModel(model.id, payload)
+        : await createModel(payload)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

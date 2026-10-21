@@ -5,6 +5,11 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { formatDate } from "@lib/formatters"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
+import {
+  assetExposuresKey,
+  assetHoldingsClassificationKey,
+  refreshAssetClassification,
+} from "@utils/api/client/classifications"
 
 interface SectorWeightingsPopupProps {
   asset: Asset
@@ -65,8 +70,8 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>("sectors")
 
-  const exposuresKey = `/api/classifications/${asset.id}/exposures`
-  const holdingsKey = `/api/classifications/${asset.id}/holdings`
+  const exposuresKey = assetExposuresKey(asset.id)
+  const holdingsKey = assetHoldingsClassificationKey(asset.id)
 
   const {
     data: exposuresData,
@@ -93,9 +98,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
     setRefreshError(null)
 
     try {
-      const response = await fetch(`/api/classifications/${asset.id}/refresh`, {
-        method: "POST",
-      })
+      const response = await refreshAssetClassification(asset.id)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

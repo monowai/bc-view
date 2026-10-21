@@ -2,6 +2,7 @@ import useSwr from "swr"
 import { HoldingContract } from "types/beancounter"
 import { RetirementPlan, ProjectionResponse } from "types/independence"
 import { useAssetBreakdown } from "./useAssetBreakdown"
+import { projectionKey } from "@utils/api/client/independence"
 
 interface UseFiProjectionProps {
   /** The retirement plan (or just the ID and currency) */
@@ -53,9 +54,7 @@ export function useFiProjection({
   const assets = useAssetBreakdown(holdingsData)
 
   // Build projection URL
-  const projectionUrl = plan?.id
-    ? `/api/independence/projection/${plan.id}`
-    : null
+  const projectionUrl = plan?.id ? projectionKey(plan.id) : null
 
   // Fetch projection with asset values
   const { data, isLoading, error } = useSwr<ProjectionResponse>(

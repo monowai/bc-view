@@ -4,9 +4,10 @@ import type { RetirementPlan } from "types/independence"
 import { toPlanRequestPayload } from "@utils/independence/planHelpers"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
 import LeverRow, { LEVER_SELECT_CLASS } from "./LeverRow"
+import { plansKey, updatePlan } from "@utils/api/client/independence"
 
 /** Same SWR key the Independence page uses to list plans (src/pages/independence/index.tsx). */
-const PLANS_KEY = "/api/independence/plans"
+const PLANS_KEY = plansKey
 
 function getPlanName(plans: RetirementPlan[], planId: string): string {
   return plans.find((p) => p.id === planId)?.name ?? "Unknown Plan"
@@ -19,10 +20,9 @@ async function updateBenefitsStartAge(
   // Full-plan echo: svc-retire's PATCH replaces every field it receives and
   // defaults the ones it doesn't, so a {benefitsStartAge}-only body 400s
   // (name/monthlyExpenses required) or clobbers settings.
-  const response = await fetch(`/api/independence/plans/${plan.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...toPlanRequestPayload(plan), benefitsStartAge }),
+  const response = await updatePlan(plan.id, {
+    ...toPlanRequestPayload(plan),
+    benefitsStartAge,
   })
   if (!response.ok) {
     throw new Error("Failed to update benefits start age")

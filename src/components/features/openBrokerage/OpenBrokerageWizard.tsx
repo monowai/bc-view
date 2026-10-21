@@ -15,6 +15,8 @@ import {
 } from "@lib/user/zenMode"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
+import { activePortfoliosKey } from "@utils/api/client/portfolios"
+import { brokersKey } from "@utils/api/client/brokers"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
 
@@ -115,12 +117,12 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const [result, setResult] = useState<OpenBrokerageResult | null>(null)
 
   const { data: brokersData } = useSwr<{ data: Broker[] }>(
-    "/api/brokers",
-    simpleFetcher("/api/brokers"),
+    brokersKey,
+    simpleFetcher(brokersKey),
   )
   const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
-    "/api/portfolios",
-    simpleFetcher("/api/portfolios"),
+    activePortfoliosKey,
+    simpleFetcher(activePortfoliosKey),
   )
   const { data: currenciesData } = useSwr<{ data: Currency[] }>(
     ccyKey,
