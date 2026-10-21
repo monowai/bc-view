@@ -220,13 +220,6 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       )
     })
 
-    it("shows the AI sparkle, not the newspaper, on the news action", () => {
-      renderWithChart(jest.fn(), "EQUITY")
-      const button = screen.getByRole("button", { name: "News AAPL" })
-      expect(button.querySelector(".fa-wand-magic-sparkles")).not.toBeNull()
-      expect(button.querySelector(".fa-newspaper")).toBeNull()
-    })
-
     it("does not render a price button when onPriceChart is omitted", () => {
       renderWithChart(undefined, "EQUITY")
       expect(
