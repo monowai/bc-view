@@ -531,6 +531,28 @@ describe("PriceChartPopup", () => {
       expect(tooltip).not.toHaveTextContent("SMA 50:")
     })
 
+    it("shows how far the close has drifted from each SMA in the tooltip", () => {
+      // Far above the range, then a dip: SMA 200 sits over the last close
+      // (420) and SMA 20 under it.
+      const warmCloses = [
+        ...new Array(230).fill(2000),
+        ...new Array(20).fill(100),
+      ]
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          warmup: daysBefore("2026-03-21", warmCloses),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+
+      // SMA 20 = 146.5, SMA 200 = 1786.15.
+      const tooltip = screen.getByTestId("tooltip")
+      expect(tooltip).toHaveTextContent("(+186.7%)")
+      expect(tooltip).toHaveTextContent("(-76.5%)")
+    })
+
     it("keeps every selected SMA inside the price axis", () => {
       // A long run of high closes puts SMA 200 far above the displayed range.
       mockUseSwr.mockImplementation(
