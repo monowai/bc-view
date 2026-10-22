@@ -10,8 +10,8 @@ interface AssetReviewButtonProps {
 }
 
 /**
- * AI review sparkle beside an asset's label. Same gate as AssetNewsButton on
- * holdings: AI or preview access, and an asset the server says has news
+ * AI review sparkle beside an asset's label. Same gate as AssetNewsButton:
+ * AI or preview access, and an asset the server says has news
  * (`asset.hasNews`). Click stops propagation so it doesn't trigger the
  * surrounding row or link.
  */
