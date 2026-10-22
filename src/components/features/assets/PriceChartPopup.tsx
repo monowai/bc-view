@@ -553,6 +553,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       .filter(
         (trn): trn is Transaction =>
           (trn.trnType === "BUY" || trn.trnType === "SELL") &&
+          // A proposed trade has not happened, so it is not drawn.
+          trn.status !== "PROPOSED" &&
           !!trn.tradeDate &&
           trn.tradeDate >= from &&
           trn.tradeDate <= to,
