@@ -11,7 +11,8 @@ export function proxy(request: Request): Promise<Response> {
 
 // The exclusions are regex, not literals, so the dot in `favicon.ico` has to
 // be escaped — unescaped it matches any character and drops /faviconXico off
-// the auth path as well.
+// the auth path as well. `brand/` holds public images (public/brand) that
+// other sites link to; the trailing slash keeps /brandnew on the auth path.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|ping).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|ping|brand/).*)"],
 }

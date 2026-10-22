@@ -52,6 +52,7 @@ describe("proxy", () => {
       "/_next/image",
       "/favicon.ico",
       "/ping",
+      "/brand/beancounter-150.png",
     ]) {
       expect(runsThroughProxy(bypassed)).toBe(false)
     }
@@ -61,6 +62,10 @@ describe("proxy", () => {
     for (const guarded of ["/", "/portfolios", "/api/me", "/api/ping"]) {
       expect(runsThroughProxy(guarded)).toBe(true)
     }
+  })
+
+  it("keeps only the brand folder public, not paths that merely start with brand", () => {
+    expect(runsThroughProxy("/brandnew")).toBe(true)
   })
 
   it("does not let an unescaped dot widen the favicon exclusion", () => {
