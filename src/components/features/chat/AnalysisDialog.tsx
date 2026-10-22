@@ -218,7 +218,7 @@ export default function AnalysisDialog({
           {cancelButton}
         </div>
       )}
-      <AgentQuotaLine className="mt-4 text-right" />
+      {succeeded && <AgentQuotaLine className="mt-4 text-right" />}
       <div ref={threadEndRef} />
     </Dialog>
   )

@@ -55,6 +55,16 @@ describe("useAgentQuota", () => {
     expect(global.fetch).toHaveBeenCalledWith(AGENT_QUOTA_KEY)
   })
 
+  it("stays blank, not in error, when the request itself fails", async () => {
+    ;(global.fetch as jest.Mock).mockRejectedValue(new TypeError("offline"))
+
+    const { result } = renderHook(() => useAgentQuota(), { wrapper })
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.quota).toBeUndefined()
+    await expect(refreshAgentQuota()).resolves.toBeUndefined()
+  })
+
   it("does not ask when the user cannot use AI", () => {
     mockUsePermissions.mockReturnValue({
       ai: false,

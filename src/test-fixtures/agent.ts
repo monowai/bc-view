@@ -11,6 +11,7 @@ export function makeAgentQuota(
     contact: "help@example.com",
     override: false,
     unlimited: false,
+    verified: true,
     ...overrides,
   }
 }

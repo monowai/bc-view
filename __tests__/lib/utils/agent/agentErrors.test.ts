@@ -183,3 +183,23 @@ describe("describeAgentError: ai-quota", () => {
     expect(describeAgentError("provider-quota").code).toBe("provider-quota")
   })
 })
+
+describe("describeAgentError: email-unverified", () => {
+  it("asks the reader to confirm their email and points at cached reviews", () => {
+    const copy = describeAgentError(
+      {
+        error: "email-unverified",
+        message: "email-unverified",
+        code: "Forbidden",
+        path: "/api/agent/query",
+      },
+      403,
+    )
+
+    expect(copy.code).toBe("email-unverified")
+    expect(copy.tone).toBe("service")
+    expect(copy.retryable).toBe(false)
+    expect(copy.title).toMatch(/confirm your email/i)
+    expect(copy.message).toMatch(/Asset Reviews/)
+  })
+})

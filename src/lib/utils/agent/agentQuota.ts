@@ -2,11 +2,13 @@ import { AgentQuotaStatus } from "types/agent"
 
 /**
  * "7 of 10 AI questions left this week" for a metered user; null for an
- * unlimited one. Both numbers come from svc-agent as-is — `remaining` is
- * clamped server-side, so it is never recomputed here.
+ * unlimited one; a prompt to confirm their email for an unverified one. Both
+ * numbers come from svc-agent as-is — `remaining` is clamped server-side, so
+ * it is never recomputed here.
  */
 export function quotaRemainingText(quota: AgentQuotaStatus): string | null {
   if (quota.unlimited) return null
+  if (!quota.verified) return "Confirm your email address to ask the AI"
   return `${quota.remaining} of ${quota.limit} AI questions left this week`
 }
 

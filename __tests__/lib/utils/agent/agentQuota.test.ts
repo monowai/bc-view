@@ -15,6 +15,12 @@ describe("quotaRemainingText", () => {
     ).toBe("0 of 2 AI questions left this week")
   })
 
+  it("asks a user whose email is unconfirmed to confirm it", () => {
+    expect(quotaRemainingText(makeAgentQuota({ verified: false }))).toBe(
+      "Confirm your email address to ask the AI",
+    )
+  })
+
   it("says nothing for an unlimited user", () => {
     expect(quotaRemainingText(makeAgentQuota({ unlimited: true }))).toBeNull()
   })

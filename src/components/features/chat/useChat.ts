@@ -573,7 +573,10 @@ export function useChat(
           // same copy back.
           // The body's code wins over the status: 429 is both provider rate
           // limiting and an exhausted weekly quota (`ai-quota`).
-          const bodyFailure = describeAgentError(await errorBodyOf(res))
+          const bodyFailure = describeAgentError(
+            await errorBodyOf(res),
+            res.status,
+          )
           const failure =
             bodyFailure.code !== "unknown"
               ? bodyFailure

@@ -44,6 +44,8 @@ const CODES = [
   "not-held",
   // The caller's weekly AI allowance is used up (svc-agent TurnQuota).
   "ai-quota",
+  // The caller's email is unconfirmed: svc-agent serves cached Asset Reviews only.
+  "email-unverified",
   // Minted by the chat client, not svc-agent: the stream dropped and no
   // answer was found stored afterwards (see `useChat`'s recovery).
   "interrupted",
@@ -128,6 +130,14 @@ const COPY: Record<
       "You've used all of this week's AI questions. Each one frees up seven " +
       "days after it was asked.",
     // Asking again is refused until a question frees up or the limit rises.
+    retryable: false,
+  },
+  "email-unverified": {
+    tone: "service",
+    title: "Confirm your email to ask the AI",
+    message:
+      "Confirm your email address using the link we sent you, then sign in " +
+      "again. Until then, only Asset Reviews already prepared today are available.",
     retryable: false,
   },
   interrupted: {

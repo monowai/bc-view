@@ -103,6 +103,8 @@ export interface AgentQuotaStatus {
   /** True when an admin has set this user's limit. */
   override: boolean
   unlimited: boolean
+  /** False when the caller's email is unconfirmed: only cached Asset Reviews are served. */
+  verified: boolean
 }
 
 export interface ServiceStatus {
