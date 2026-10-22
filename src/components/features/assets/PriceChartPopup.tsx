@@ -311,6 +311,9 @@ function indexAsPercent(index: number): string {
 
 /** How far the close sits above (+) or below (-) an SMA, as a percent of the SMA. */
 function smaDrift(close: number, sma: number): string {
+  if (!Number.isFinite(close) || !Number.isFinite(sma) || sma === 0) {
+    return "—"
+  }
   const percent = ((close - sma) / sma) * 100
   return `${percent >= 0 ? "+" : ""}${percent.toFixed(1)}`
 }
