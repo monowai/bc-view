@@ -7,6 +7,7 @@ import Spinner from "@components/ui/Spinner"
 import { rootLoader } from "@components/ui/PageLoader"
 import { usePermissions } from "@hooks/usePermissions"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { readServerMessage } from "@utils/api/client/request"
 import { formatDate } from "@lib/formatters"
 import { AdminUser } from "types/admin"
 import { AgentQuotaOverview, AgentQuotaStatus } from "types/agent"
@@ -64,9 +65,15 @@ function parseLimit(text: string): number | null {
   return n >= 1 ? n : null
 }
 
-/** The request that applies an allowance, per the svc-agent contract. */
-function saveRequest(mode: AllowanceMode, limit: number): RequestInit {
+/**
+ * The request that applies an allowance, per the svc-agent contract. A custom
+ * mode needs its parsed limit; there is no fallback that could disable a user.
+ */
+function saveRequest(mode: AllowanceMode, limit: number | null): RequestInit {
   if (mode === "default") return { method: "DELETE" }
+  if (mode === "custom" && limit === null) {
+    throw new Error("A custom allowance needs a weekly limit")
+  }
   const body =
     mode === "unlimited"
       ? { unlimited: true }
@@ -79,11 +86,8 @@ function saveRequest(mode: AllowanceMode, limit: number): RequestInit {
 }
 
 async function errorText(response: Response): Promise<string> {
-  const body = await response.json().catch(() => ({}))
   return (
-    body.message ||
-    body.detail ||
-    body.error ||
+    (await readServerMessage(response)) ??
     `Failed to save (HTTP ${response.status})`
   )
 }
@@ -125,7 +129,7 @@ function QuotaRow({
     try {
       const response = await fetch(
         `/api/admin/ai-quota/${encodeURIComponent(user.id)}`,
-        saveRequest(mode, customLimit ?? 0),
+        saveRequest(mode, customLimit),
       )
       if (response.ok) {
         await onSaved()
@@ -189,6 +193,7 @@ function QuotaRow({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
+            aria-label={`Save allowance for ${user.email}`}
             className={`px-3 py-1 text-sm text-white rounded-lg transition-colors ${
               canSave
                 ? "bg-blue-500 hover:bg-blue-600"
@@ -301,7 +306,7 @@ export default withPageAuthRequired(
             <div className="p-8 text-center text-gray-500">
               <Spinner label={"Loading..."} size="lg" />
             </div>
-          ) : !quota || visibleUsers.length === 0 ? (
+          ) : loadError ? null : !quota || visibleUsers.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-users text-4xl mb-3"></i>
               <p>{"No users found"}</p>

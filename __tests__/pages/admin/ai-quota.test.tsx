@@ -165,11 +165,11 @@ describe("admin AI Reviews page", () => {
     renderPage()
     const r = await row("u-default")
 
-    expect(r.getByRole("button", { name: "Save" })).toBeDisabled()
+    expect(r.getByRole("button", { name: /^Save/ })).toBeDisabled()
     fireEvent.change(r.getByRole("combobox"), {
       target: { value: "unlimited" },
     })
-    expect(r.getByRole("button", { name: "Save" })).toBeEnabled()
+    expect(r.getByRole("button", { name: /^Save/ })).toBeEnabled()
   })
 
   it("Default sends a DELETE", async () => {
@@ -177,7 +177,7 @@ describe("admin AI Reviews page", () => {
     const r = await row("u-custom")
 
     fireEvent.change(r.getByRole("combobox"), { target: { value: "default" } })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     await waitFor(() => expect(saveCalls()).toHaveLength(1))
     const [url, init] = saveCalls()[0]
@@ -192,7 +192,7 @@ describe("admin AI Reviews page", () => {
 
     fireEvent.change(r.getByRole("combobox"), { target: { value: "custom" } })
     fireEvent.change(r.getByRole("spinbutton"), { target: { value: "42" } })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     await waitFor(() => expect(saveCalls()).toHaveLength(1))
     const [url, init] = saveCalls()[0]
@@ -208,7 +208,7 @@ describe("admin AI Reviews page", () => {
     fireEvent.change(r.getByRole("combobox"), { target: { value: "custom" } })
     fireEvent.change(r.getByRole("spinbutton"), { target: { value: "0" } })
 
-    expect(r.getByRole("button", { name: "Save" })).toBeDisabled()
+    expect(r.getByRole("button", { name: /^Save/ })).toBeDisabled()
   })
 
   it("Unlimited sends a PUT with unlimited true", async () => {
@@ -218,7 +218,7 @@ describe("admin AI Reviews page", () => {
     fireEvent.change(r.getByRole("combobox"), {
       target: { value: "unlimited" },
     })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     await waitFor(() => expect(saveCalls()).toHaveLength(1))
     const [url, init] = saveCalls()[0]
@@ -234,7 +234,7 @@ describe("admin AI Reviews page", () => {
     fireEvent.change(r.getByRole("combobox"), {
       target: { value: "disabled" },
     })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     await waitFor(() => expect(saveCalls()).toHaveLength(1))
     const [, init] = saveCalls()[0]
@@ -253,7 +253,7 @@ describe("admin AI Reviews page", () => {
     fireEvent.change(r.getByRole("combobox"), {
       target: { value: "unlimited" },
     })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     await waitFor(() => expect(overviewLoads()).toBeGreaterThan(before))
   })
@@ -266,11 +266,57 @@ describe("admin AI Reviews page", () => {
     fireEvent.change(r.getByRole("combobox"), {
       target: { value: "unlimited" },
     })
-    fireEvent.click(r.getByRole("button", { name: "Save" }))
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
 
     expect(await r.findByRole("alert")).toHaveTextContent(
       "svc-agent unavailable",
     )
+  })
+
+  it("names each Save button by the user it saves", async () => {
+    renderPage()
+    const r = await row("u-default")
+
+    expect(
+      r.getByRole("button", { name: "Save allowance for default@example.com" }),
+    ).toBeInTheDocument()
+  })
+
+  it("does not report a saved change as failed when the reload fails", async () => {
+    let overviewLoads = 0
+    const base = mockFetch.getMockImplementation()
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "/api/admin/ai-quota" && (init?.method ?? "GET") === "GET") {
+        overviewLoads += 1
+        if (overviewLoads > 1) return Promise.reject(new Error("offline"))
+      }
+      return base!(url, init)
+    })
+    renderPage()
+    const r = await row("u-default")
+
+    fireEvent.change(r.getByRole("combobox"), {
+      target: { value: "unlimited" },
+    })
+    fireEvent.click(r.getByRole("button", { name: /^Save/ }))
+
+    await waitFor(() => expect(overviewLoads).toBeGreaterThan(1))
+    expect(r.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
+  it("shows the load error, not an empty list, when users cannot be read", async () => {
+    const base = mockFetch.getMockImplementation()
+    mockFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/admin/users"
+        ? Promise.resolve(jsonResponse(500, { message: "down" }))
+        : base!(url, init),
+    )
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByText("No users found")).not.toBeInTheDocument()
   })
 
   it("filters rows by email", async () => {
