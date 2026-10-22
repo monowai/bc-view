@@ -999,6 +999,78 @@ describe("PriceChartPopup", () => {
     expect(screen.getByTestId("scatter-sellPrice")).toBeInTheDocument()
   })
 
+  describe("proposed trades", () => {
+    const tradesOf = (
+      trns: Record<string, unknown>[],
+    ): ReturnType<typeof useSwr> =>
+      ({
+        data: { data: trns },
+        isLoading: false,
+        error: undefined,
+      }) as unknown as ReturnType<typeof useSwr>
+
+    const rowOn = (
+      date: string,
+    ): Record<string, number | string | null | undefined> =>
+      (
+        JSON.parse(
+          screen.getByTestId("chart").getAttribute("data-series") as string,
+        ) as Array<Record<string, number | string | null | undefined>>
+      ).find((r) => r.priceDate === date) ?? {}
+
+    it("leaves a proposed trade off the chart", () => {
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          tradesResult: tradesOf([
+            {
+              id: "t1",
+              trnType: "SELL",
+              status: "PROPOSED",
+              tradeDate: "2026-04-20",
+              quantity: 2,
+              price: 418,
+            },
+          ]),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+
+      expect(rowOn("2026-04-20").sellPrice).toBeNull()
+      expect(screen.getByTestId("tooltip")).not.toHaveTextContent("Sell")
+    })
+
+    it("draws the settled trade when a proposed one shares its day", () => {
+      mockUseSwr.mockImplementation(
+        makeRouter({
+          tradesResult: tradesOf([
+            {
+              id: "t1",
+              trnType: "BUY",
+              status: "PROPOSED",
+              tradeDate: "2026-04-20",
+              quantity: 7,
+              price: 415,
+            },
+            {
+              id: "t2",
+              trnType: "BUY",
+              status: "SETTLED",
+              tradeDate: "2026-04-20",
+              quantity: 3,
+              price: 419,
+            },
+          ]),
+        }) as typeof useSwr,
+      )
+
+      renderPopup()
+
+      expect(rowOn("2026-04-20").buyPrice).toBe(419)
+      expect(screen.getByTestId("tooltip")).toHaveTextContent("Buy 3 @")
+    })
+  })
+
   it("anchors a non-trading-day trade to the next available price date", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
