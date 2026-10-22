@@ -309,6 +309,12 @@ function indexAsPercent(index: number): string {
   return percent.toFixed(Math.abs(percent) < 0.5 ? 2 : 1)
 }
 
+/** How far the close sits above (+) or below (-) an SMA, as a percent of the SMA. */
+function smaDrift(close: number, sma: number): string {
+  const percent = ((close - sma) / sma) * 100
+  return `${percent >= 0 ? "+" : ""}${percent.toFixed(1)}`
+}
+
 interface TooltipPayload {
   active?: boolean
   payload?: { dataKey: string; value: number; payload: ChartPoint }[]
@@ -358,6 +364,9 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
           >
             {opt.label}: {currencySymbol}
             <FormatValue value={value} />
+            <span className="ml-1 text-gray-400">
+              ({smaDrift(point.close, value)}%)
+            </span>
           </div>
         ) : null
       })}
