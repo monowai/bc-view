@@ -162,8 +162,7 @@ function AssetLookupPage(): React.ReactElement {
   const [resolvingAsset, setResolvingAsset] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const { popup: reviewPopup, showReview } = useAssetReview()
-  const { ai: canRunAi, preview: canPreview, admin: isAdmin } = usePermissions()
-  const canReviewAsset = canRunAi || canPreview
+  const { canUseAi: canReviewAsset, admin: isAdmin } = usePermissions()
   const [deleting, setDeleting] = useState(false)
   // Keyed by asset so a late delete response can only ever surface against
   // the asset it was for, never one the user picked while it was in flight.

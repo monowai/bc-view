@@ -19,8 +19,8 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
   onShow,
   iconClassName = "text-xs",
 }): ReactElement | null => {
-  const { ai: canRunAi, preview: canPreview } = usePermissions()
-  if (!canRunAi && !canPreview) return null
+  const { canUseAi } = usePermissions()
+  if (!canUseAi) return null
   if (!asset.hasNews) return null
   const ticker = asset.displayCode
   return (

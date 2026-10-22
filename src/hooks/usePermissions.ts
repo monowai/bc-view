@@ -8,6 +8,12 @@ export interface Permissions {
 }
 
 interface PermissionsResult extends Permissions {
+  /**
+   * May use the AI agent surfaces (chat, analyses, reviews, news): `ai` or
+   * `preview`. svc-agent meters preview-only users with a weekly quota, so
+   * the UI gates on this one flag and leaves the allowance to the server.
+   */
+  canUseAi: boolean
   isLoading: boolean
 }
 
@@ -37,8 +43,10 @@ async function fetchPermissions(url: string): Promise<Permissions> {
 
 /**
  * Reports the Beancounter permissions held by the current user.
- *  - `ai`      — can run any AI agent review.
- *  - `preview` — can run the Asset AI Review preview surfaces only.
+ *  - `ai`      — unlimited use of the AI agent.
+ *  - `preview` — the default role: every AI agent surface, metered by
+ *                svc-agent's weekly quota (see `useAgentQuota`).
+ *  - `canUseAi` — derived `ai || preview`; gate AI features on this.
  *  - `admin`   — administrative endpoints (also drives admin gating; the
  *                legacy `useIsAdmin` hook + `/api/auth/admin-check` route
  *                were removed in favour of this single source of truth).
@@ -54,8 +62,10 @@ export function usePermissions(): PermissionsResult {
     fetchPermissions,
     { revalidateOnFocus: false, dedupingInterval: 60_000 },
   )
+  const permissions = data ?? EMPTY
   return {
-    ...(data ?? EMPTY),
+    ...permissions,
+    canUseAi: permissions.ai || permissions.preview,
     isLoading: userLoading || (user?.sub ? isLoading : false),
   }
 }

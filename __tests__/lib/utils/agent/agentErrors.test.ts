@@ -147,3 +147,39 @@ describe("describeAgentError", () => {
     )
   })
 })
+
+describe("describeAgentError: ai-quota", () => {
+  it("says the reader has used this week's AI questions", () => {
+    const copy = describeAgentError("ai-quota")
+
+    expect(copy.code).toBe("ai-quota")
+    expect(copy.tone).toBe("service")
+    // Asking again cannot help until a turn frees up or the limit is raised.
+    expect(copy.retryable).toBe(false)
+    expect(copy.title).toMatch(/this week's AI questions/i)
+  })
+
+  it("reads ai-quota out of the 429 body /query returns, not provider-rate", () => {
+    // svc-agent answers an exhausted quota with 429 — the same status as
+    // provider rate limiting — so the code in the body must win.
+    const copy = describeAgentError(
+      {
+        error: "ai-quota",
+        message: "ai-quota",
+        code: "Too Many Requests",
+        path: "/api/agent/query",
+      },
+      429,
+    )
+
+    expect(copy.code).toBe("ai-quota")
+  })
+
+  it("reads ai-quota out of the SSE error payload", () => {
+    expect(describeAgentError("ai-quota").code).toBe("ai-quota")
+  })
+
+  it("is not confused with the provider's own quota", () => {
+    expect(describeAgentError("provider-quota").code).toBe("provider-quota")
+  })
+})

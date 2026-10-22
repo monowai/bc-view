@@ -7,6 +7,12 @@ import { setPageContext } from "../pageContextBus"
 import { requestChatOpen } from "../chatBus"
 import { ChatMessage } from "types/agent"
 import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
+import { usePermissions } from "@hooks/usePermissions"
+import { useAgentQuota } from "@hooks/useAgentQuota"
+import { makeAgentQuota } from "@test-fixtures/beancounter"
+
+const mockUseAgentQuota = useAgentQuota as jest.Mock
+const mockUsePermissions = usePermissions as jest.Mock
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -62,6 +68,61 @@ describe("ChatFab", () => {
   it("renders the FAB button", () => {
     renderFab()
     expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+  })
+
+  it("is available to a preview user, not only to ai users", () => {
+    const permissive = mockUsePermissions.getMockImplementation()
+    mockUsePermissions.mockImplementation(() => ({
+      ai: false,
+      preview: true,
+      admin: false,
+      canUseAi: true,
+      isLoading: false,
+    }))
+    try {
+      renderFab()
+      expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+    } finally {
+      mockUsePermissions.mockImplementation(permissive)
+    }
+  })
+
+  it("is hidden from a user without AI access", () => {
+    const permissive = mockUsePermissions.getMockImplementation()
+    mockUsePermissions.mockImplementation(() => ({
+      ai: false,
+      preview: false,
+      admin: false,
+      canUseAi: false,
+      isLoading: false,
+    }))
+    try {
+      renderFab()
+      expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
+    } finally {
+      mockUsePermissions.mockImplementation(permissive)
+    }
+  })
+
+  it("shows a metered user's remaining AI questions in the panel", () => {
+    mockUseAgentQuota.mockReturnValue({
+      quota: makeAgentQuota({ limit: 10, used: 3, remaining: 7 }),
+      isLoading: false,
+      refresh: jest.fn(),
+    })
+    try {
+      renderFab()
+      fireEvent.click(screen.getByLabelText("Chat"))
+      expect(
+        screen.getByText("7 of 10 AI questions left this week"),
+      ).toBeInTheDocument()
+    } finally {
+      mockUseAgentQuota.mockReturnValue({
+        quota: undefined,
+        isLoading: false,
+        refresh: jest.fn(),
+      })
+    }
   })
 
   it("opens panel when FAB is clicked", () => {

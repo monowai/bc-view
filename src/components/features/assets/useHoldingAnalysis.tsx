@@ -23,10 +23,9 @@ export interface UseHoldingAnalysisReturn {
  * permission gate as the news and review buttons.
  */
 export function useHoldingAnalysis(): UseHoldingAnalysisReturn {
-  const { ai, preview } = usePermissions()
+  const { canUseAi: enabled } = usePermissions()
   const [target, setTarget] = useState<AnalysisTarget | null>(null)
   const close = useCallback(() => setTarget(null), [])
-  const enabled = ai || preview
   const showAnalysis = useCallback(
     (asset: Asset, portfolioCode: string) => {
       if (!enabled) return

@@ -2,6 +2,8 @@ import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ChatBubble from "../ChatBubble"
 import { ChatMessage } from "types/agent"
+import { useAgentQuota } from "@hooks/useAgentQuota"
+import { makeAgentQuota } from "@test-fixtures/beancounter"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -105,5 +107,28 @@ describe("ChatBubble", () => {
     }
     render(<ChatBubble message={errorMessage} />)
     expect(screen.getByTestId("markdown")).toBeInTheDocument()
+  })
+
+  it("explains an exhausted AI quota with who to contact", () => {
+    ;(useAgentQuota as jest.Mock).mockReturnValue({
+      quota: makeAgentQuota({
+        remaining: 0,
+        used: 10,
+        resetAt: "2026-10-29T12:00:00Z",
+        contact: "help@example.com",
+      }),
+      isLoading: false,
+      refresh: jest.fn(),
+    })
+    render(
+      <ChatBubble
+        message={{ ...assistantMessage, content: "", error: "ai-quota" }}
+      />,
+    )
+
+    expect(screen.getByText(/The next one frees up/)).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: "help@example.com" }),
+    ).toHaveAttribute("href", "mailto:help@example.com")
   })
 })

@@ -4,8 +4,14 @@ import "@testing-library/jest-dom"
 import PortfoliosList from "../PortfoliosList"
 import { makePortfolio, NZD, USD } from "@test-fixtures/beancounter"
 
+let mockPermissions = {
+  ai: false,
+  preview: false,
+  admin: false,
+  canUseAi: false,
+}
 jest.mock("@hooks/usePermissions", () => ({
-  usePermissions: () => ({ ai: false, preview: false, admin: false }),
+  usePermissions: () => mockPermissions,
 }))
 jest.mock("@components/features/portfolios/usePortfolioReview", () => ({
   usePortfolioReview: () => ({ popup: null, showReview: jest.fn() }),
@@ -69,5 +75,29 @@ describe("PortfoliosList FX conversion", () => {
     renderList({})
 
     expect(screen.getAllByText("10,000.00").length).toBeGreaterThan(0)
+  })
+})
+
+describe("PortfoliosList AI access", () => {
+  afterEach(() => {
+    mockPermissions = {
+      ai: false,
+      preview: false,
+      admin: false,
+      canUseAi: false,
+    }
+  })
+
+  it("offers the AI Summary to a preview user", () => {
+    mockPermissions = { ai: false, preview: true, admin: false, canUseAi: true }
+    renderList({ USD: 1, NZD: 0.6 })
+
+    expect(screen.getAllByLabelText("AI Summary").length).toBeGreaterThan(0)
+  })
+
+  it("hides the AI Summary from a user without AI access", () => {
+    renderList({ USD: 1, NZD: 0.6 })
+
+    expect(screen.queryAllByLabelText("AI Summary")).toHaveLength(0)
   })
 })

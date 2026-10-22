@@ -3,6 +3,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { ChatMessage } from "types/agent"
 import { normalizeMarkdown } from "./normalizeMarkdown"
+import { AgentQuotaNotice } from "./AgentQuota"
 
 interface ChatBubbleProps {
   message: ChatMessage
@@ -58,6 +59,18 @@ export default function ChatBubble({
               <i className={`fas ${copied ? "fa-check" : "fa-copy"}`}></i>
             </button>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // An exhausted weekly allowance is a notice with a date and a contact,
+  // not a failed answer.
+  if (message.error === "ai-quota") {
+    return (
+      <div className="flex justify-start">
+        <div className="w-full max-w-full">
+          <AgentQuotaNotice />
         </div>
       </div>
     )

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { describeAgentError } from "@utils/agent/agentErrors"
+import { refreshAgentQuota } from "@hooks/useAgentQuota"
 import {
   ChatMessage,
   ChatTurn,
@@ -96,6 +97,15 @@ function toSeed(messages: ChatMessage[]): ConversationSeedTurn[] {
       }
       return turn
     })
+}
+
+/** A failed response's JSON body, or null when it has none. */
+async function errorBodyOf(res: Response): Promise<unknown> {
+  try {
+    return typeof res.json === "function" ? await res.json() : null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -561,7 +571,13 @@ export function useChat(
           // A classified status (402 / 429 / 504) keeps its code rather than
           // the bare "HTTP 402", so a consumer re-describing `error` gets the
           // same copy back.
-          const failure = describeAgentError(`HTTP ${res.status}`, res.status)
+          // The body's code wins over the status: 429 is both provider rate
+          // limiting and an exhausted weekly quota (`ai-quota`).
+          const bodyFailure = describeAgentError(await errorBodyOf(res))
+          const failure =
+            bodyFailure.code !== "unknown"
+              ? bodyFailure
+              : describeAgentError(`HTTP ${res.status}`, res.status)
           finalize(() => ({
             content: failure.message,
             error: failure.code === "unknown" ? failure.detail : failure.code,
@@ -672,6 +688,9 @@ export function useChat(
       } finally {
         if (abortRef.current === controller) abortRef.current = null
         setIsLoading(false)
+        // svc-agent counts answered turns; the server's tally is re-read
+        // rather than decremented here.
+        void refreshAgentQuota()
       }
     },
     [context, persist, saveOnFollowUp, setConversation, recoverTurn],

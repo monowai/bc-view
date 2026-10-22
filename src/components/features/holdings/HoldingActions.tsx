@@ -353,11 +353,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   onInvestCash,
 }) => {
   const router = useRouter()
-  const {
-    admin: isAdmin,
-    ai: canRunAi,
-    isLoading: permsLoading,
-  } = usePermissions()
+  const { admin: isAdmin, canUseAi, isLoading: permsLoading } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
@@ -529,7 +525,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
         {/* Right side: icon-only action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {!permsLoading && canRunAi && !emptyHoldings && (
+          {!permsLoading && canUseAi && !emptyHoldings && (
             <button
               type="button"
               className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
