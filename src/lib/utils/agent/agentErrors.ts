@@ -46,6 +46,8 @@ const CODES = [
   "ai-quota",
   // The caller's email is unconfirmed: svc-agent serves cached Asset Reviews only.
   "email-unverified",
+  // An admin has set the caller's weekly AI limit to zero.
+  "ai-disabled",
   // Minted by the chat client, not svc-agent: the stream dropped and no
   // answer was found stored afterwards (see `useChat`'s recovery).
   "interrupted",
@@ -138,6 +140,15 @@ const COPY: Record<
     message:
       "Confirm your email address using the link we sent you, then sign in " +
       "again. Until then, only Asset Reviews already prepared today are available.",
+    retryable: false,
+  },
+  "ai-disabled": {
+    tone: "service",
+    title: "AI is turned off for your account",
+    message:
+      "An administrator has turned off AI questions for your account. Contact " +
+      "the site administrator if you need them switched back on.",
+    // Refused until an admin changes the allowance.
     retryable: false,
   },
   interrupted: {
