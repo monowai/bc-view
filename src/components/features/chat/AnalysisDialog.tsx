@@ -6,6 +6,7 @@ import Spinner from "@components/ui/Spinner"
 import { usePermissions } from "@hooks/usePermissions"
 import { describeAgentError } from "@utils/agent/agentErrors"
 import ChatBubble from "./ChatBubble"
+import { AgentQuotaLine, AgentQuotaNotice } from "./AgentQuota"
 import { requestChatOpen } from "./chatBus"
 import {
   AnalysisRequest,
@@ -51,7 +52,7 @@ export default function AnalysisDialog({
 }: AnalysisDialogProps): React.ReactElement {
   const { messages, isLoading, sendMessage, cancel, conversationId } =
     useAnalysisChat(request)
-  const { ai: canChat } = usePermissions()
+  const { canUseAi: canChat } = usePermissions()
   const [question, setQuestion] = useState("")
   const threadEndRef = useRef<HTMLDivElement>(null)
 
@@ -192,11 +193,15 @@ export default function AnalysisDialog({
           <Markdown remarkPlugins={[remarkGfm]}>{report.content}</Markdown>
         </div>
       )}
-      <Dialog.ErrorAlert
-        title={failure?.title}
-        tone={failure?.tone}
-        message={failure?.message ?? null}
-      />
+      {failure?.code === "ai-quota" ? (
+        <AgentQuotaNotice />
+      ) : (
+        <Dialog.ErrorAlert
+          title={failure?.title}
+          tone={failure?.tone}
+          message={failure?.message ?? null}
+        />
+      )}
       {followUps.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-200 space-y-3">
           {followUps
@@ -213,6 +218,7 @@ export default function AnalysisDialog({
           {cancelButton}
         </div>
       )}
+      {succeeded && <AgentQuotaLine className="mt-4 text-right" />}
       <div ref={threadEndRef} />
     </Dialog>
   )

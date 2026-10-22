@@ -40,6 +40,8 @@ interface ChatPanelProps {
   corner?: ChatCorner
   /** Move callback — pairs with corner; opens a 2x2 picker in the header. */
   onMove?: (next: ChatCorner) => void
+  /** Small print under the input, e.g. the remaining weekly AI questions. */
+  footnote?: React.ReactNode
 }
 
 // How close to the bottom (in pixels) we still consider "stuck to bottom".
@@ -68,6 +70,7 @@ export default function ChatPanel({
   onClose,
   corner,
   onMove,
+  footnote,
 }: ChatPanelProps): React.ReactElement {
   const [input, setInput] = useState("")
   const [showPicker, setShowPicker] = useState(false)
@@ -301,6 +304,7 @@ export default function ChatPanel({
             </button>
           )}
         </div>
+        {footnote}
       </form>
     </div>
   )

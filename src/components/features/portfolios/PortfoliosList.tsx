@@ -179,7 +179,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   isInactiveTab = false,
 }) => {
   const router = useRouter()
-  const { ai: canRunAi } = usePermissions()
+  const { canUseAi } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -543,7 +543,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     className="flex items-center space-x-4"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {canRunAi && (
+                    {canUseAi && (
                       <button
                         onClick={() =>
                           showReview({
@@ -837,7 +837,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       </td>
                       <td className="px-4 py-3">
                         <div className="action-buttons flex items-center justify-center space-x-3">
-                          {canRunAi && (
+                          {canUseAi && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()

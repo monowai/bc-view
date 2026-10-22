@@ -1,12 +1,16 @@
 import React from "react"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import AnalysisDialog from "../AnalysisDialog"
 import { AnalysisRequest, clearAnalysisCache } from "../useAnalysisChat"
 import { onChatOpen, ChatOpenDetail } from "../chatBus"
 import { usePermissions } from "@hooks/usePermissions"
-import { sseAnswer } from "@test-fixtures/sse"
+import { sseAnswer, sseResponse } from "@test-fixtures/sse"
 import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
+import { useAgentQuota } from "@hooks/useAgentQuota"
+import { makeAgentQuota } from "@test-fixtures/beancounter"
+
+const mockUseAgentQuota = useAgentQuota as jest.Mock
 
 // react-markdown / remark-gfm are mocked globally in jest.setup.js
 
@@ -298,13 +302,34 @@ describe("AnalysisDialog", () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it("offers no chat hand-off to a user without AI chat access", async () => {
+  it("offers the chat hand-off to a preview user", async () => {
     const permissions = usePermissions as jest.Mock
     const permissive = permissions.getMockImplementation()
     permissions.mockImplementation(() => ({
       ai: false,
       preview: true,
       admin: false,
+      canUseAi: true,
+      isLoading: false,
+    }))
+    afterThis = () => permissions.mockImplementation(permissive)
+    answer(sseAnswer("AAPL looks Bullish"))
+    renderDialog()
+    await screen.findByText("AAPL looks Bullish")
+
+    expect(
+      await screen.findByRole("button", { name: /open in chat/i }),
+    ).toBeInTheDocument()
+  })
+
+  it("offers no chat hand-off to a user without AI access", async () => {
+    const permissions = usePermissions as jest.Mock
+    const permissive = permissions.getMockImplementation()
+    permissions.mockImplementation(() => ({
+      ai: false,
+      preview: false,
+      admin: false,
+      canUseAi: false,
       isLoading: false,
     }))
     afterThis = () => permissions.mockImplementation(permissive)
@@ -315,8 +340,52 @@ describe("AnalysisDialog", () => {
     expect(
       screen.queryByRole("button", { name: /open in chat/i }),
     ).not.toBeInTheDocument()
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText(/follow-up/i)).toBeInTheDocument(),
-    )
+  })
+
+  it("shows a metered user how many AI questions are left this week", async () => {
+    mockUseAgentQuota.mockReturnValue({
+      quota: makeAgentQuota({ limit: 10, used: 3, remaining: 7 }),
+      isLoading: false,
+      refresh: jest.fn(),
+    })
+    afterThis = () =>
+      mockUseAgentQuota.mockReturnValue({
+        quota: undefined,
+        isLoading: false,
+        refresh: jest.fn(),
+      })
+    answer(sseAnswer("AAPL looks Bullish"))
+    renderDialog()
+
+    expect(
+      await screen.findByText("7 of 10 AI questions left this week"),
+    ).toBeInTheDocument()
+  })
+
+  it("explains an exhausted quota with when it frees up and who to contact", async () => {
+    mockUseAgentQuota.mockReturnValue({
+      quota: makeAgentQuota({
+        limit: 10,
+        used: 10,
+        remaining: 0,
+        resetAt: "2026-10-29T12:00:00Z",
+        contact: "help@example.com",
+      }),
+      isLoading: false,
+      refresh: jest.fn(),
+    })
+    afterThis = () =>
+      mockUseAgentQuota.mockReturnValue({
+        quota: undefined,
+        isLoading: false,
+        refresh: jest.fn(),
+      })
+    answer(sseResponse([{ event: "error", data: "ai-quota" }]))
+    renderDialog()
+
+    expect(await screen.findByText(/The next one frees up/)).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: "help@example.com" }),
+    ).toHaveAttribute("href", "mailto:help@example.com")
   })
 })

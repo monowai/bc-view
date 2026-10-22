@@ -42,6 +42,10 @@ const CODES = [
   "agent-error",
   // Holding Analysis: the caller holds none of the asset in that portfolio.
   "not-held",
+  // The caller's weekly AI allowance is used up (svc-agent TurnQuota).
+  "ai-quota",
+  // The caller's email is unconfirmed: svc-agent serves cached Asset Reviews only.
+  "email-unverified",
   // Minted by the chat client, not svc-agent: the stream dropped and no
   // answer was found stored afterwards (see `useChat`'s recovery).
   "interrupted",
@@ -119,6 +123,23 @@ const COPY: Record<
       "holding to analyse. The Asset Review covers the asset itself.",
     retryable: false,
   },
+  "ai-quota": {
+    tone: "service",
+    title: "You've used this week's AI questions",
+    message:
+      "You've used all of this week's AI questions. Each one frees up seven " +
+      "days after it was asked.",
+    // Asking again is refused until a question frees up or the limit rises.
+    retryable: false,
+  },
+  "email-unverified": {
+    tone: "service",
+    title: "Confirm your email to ask the AI",
+    message:
+      "Confirm your email address using the link we sent you, then sign in " +
+      "again. Until then, only Asset Reviews already prepared today are available.",
+    retryable: false,
+  },
   interrupted: {
     tone: "error",
     title: "The connection dropped",
@@ -128,7 +149,11 @@ const COPY: Record<
   },
 }
 
-/** HTTP statuses svc-agent uses for a classified provider failure. */
+/**
+ * HTTP statuses svc-agent uses for a classified provider failure — only a
+ * fallback when the body carried no code. 429 is shared with `ai-quota`, so
+ * the body's code must always be read first (see `describeAgentError`).
+ */
 const STATUS_CODES: Record<number, (typeof CODES)[number]> = {
   402: "provider-quota",
   429: "provider-rate",

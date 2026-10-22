@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
 import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
+import { AgentQuotaLine } from "./AgentQuota"
 import { useSharedChat } from "./ChatProvider"
 import { getPageContext } from "./pageContext"
 import { buildChatContext } from "./chatContext"
@@ -124,12 +125,12 @@ export default function ChatFab(): React.ReactElement {
     [send, loadTranscript],
   )
 
-  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const { canUseAi, isLoading: permsLoading } = usePermissions()
 
   // Hide FAB on the /chat page — it's redundant there
   if (onChatPage) return <></>
   // Hide entirely until permissions resolve, then only render if user has AI access.
-  if (permsLoading || !canRunAi) return <></>
+  if (permsLoading || !canUseAi) return <></>
 
   return (
     <>
@@ -159,6 +160,7 @@ export default function ChatFab(): React.ReactElement {
           suggestions={pageContext.suggestions}
           corner={corner}
           onMove={setCorner}
+          footnote={<AgentQuotaLine className="mt-1.5 text-right" />}
           className="h-full"
         />
       </div>

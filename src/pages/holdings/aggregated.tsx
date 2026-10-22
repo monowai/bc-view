@@ -88,11 +88,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { preferences } = useUserPreferences()
-  const {
-    ai: canRunAi,
-    admin: isAdmin,
-    isLoading: permsLoading,
-  } = usePermissions()
+  const { canUseAi, admin: isAdmin, isLoading: permsLoading } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
@@ -559,7 +555,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
 
           {/* Right side: icon-only action buttons */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {!permsLoading && canRunAi && (
+            {!permsLoading && canUseAi && (
               <button
                 type="button"
                 className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"

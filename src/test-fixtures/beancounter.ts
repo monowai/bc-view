@@ -12,6 +12,7 @@
  *   const position = makePosition({ asset: makeAsset({ code: "MSFT" }) })
  *   const holdings = makeHoldings({ holdingGroups: { Equity: makeHoldingGroup([position]) } })
  */
+export * from "./agent"
 export * from "./asset"
 export * from "./holdings"
 export * from "./portfolio"

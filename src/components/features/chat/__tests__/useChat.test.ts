@@ -2,6 +2,7 @@ import { renderHook, act, waitFor } from "@testing-library/react"
 import { useChat, CONVERSATION_STORAGE_KEY } from "../useChat"
 import { describeAgentError } from "@utils/agent/agentErrors"
 import { ConversationDetail, ConversationTurn } from "types/agent"
+import { refreshAgentQuota } from "@hooks/useAgentQuota"
 
 // Mock fetch globally
 const mockFetch = jest.fn()
@@ -444,6 +445,57 @@ describe("useChat", () => {
 
     expect(result.current.messages[1].error).toBe("provider-quota")
     expect(result.current.messages[1].content).toContain("credit")
+  })
+
+  it("tells a quota-exhausted 429 apart from provider rate limiting", async () => {
+    // The stream proxy forwards svc-agent's code; 429 alone would read as
+    // provider-rate.
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      body: null,
+      json: () => Promise.resolve({ error: "ai-quota" }),
+    })
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].error).toBe("ai-quota")
+  })
+
+  it("surfaces ai-quota from the stream's error event", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "error", data: "ai-quota" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].error).toBe("ai-quota")
+    expect(result.current.messages[1].content).toMatch(
+      /this week's AI questions/i,
+    )
+  })
+
+  it("refreshes the AI quota once a turn has been answered", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([
+        { event: "token", data: "Hi" },
+        { event: "done", data: "{}" },
+      ]),
+    )
+    const { result } = renderHook(() => useChat())
+    ;(refreshAgentQuota as jest.Mock).mockClear()
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(refreshAgentQuota).toHaveBeenCalledTimes(1)
   })
 
   it("shows a label in place of the query while sending the full query", async () => {

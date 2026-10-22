@@ -105,8 +105,22 @@ jest.mock("@hooks/usePermissions", () => ({
     ai: true,
     preview: true,
     admin: true,
+    canUseAi: true,
     isLoading: false,
   })),
+}))
+
+// The weekly AI quota is a courtesy display that issues its own GET; keep it
+// out of tests that script fetch responses in order. Tests that exercise the
+// hook use `jest.unmock`, and display tests override the return value.
+jest.mock("@hooks/useAgentQuota", () => ({
+  AGENT_QUOTA_KEY: "/api/agent/quota",
+  useAgentQuota: jest.fn(() => ({
+    quota: undefined,
+    isLoading: false,
+    refresh: jest.fn(),
+  })),
+  refreshAgentQuota: jest.fn(() => Promise.resolve()),
 }))
 
 // Mock fetch globally for API calls. /api/auth/permissions returns a

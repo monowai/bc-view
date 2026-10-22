@@ -82,6 +82,40 @@ describe("usePermissions", () => {
     expect(result.current.ai).toBe(true)
   })
 
+  it.each([
+    [{ ai: true, preview: false }, true],
+    [{ ai: false, preview: true }, true],
+    [{ ai: false, preview: false }, false],
+  ])("derives canUseAi from %o", async (perms, expected) => {
+    mockUseUser.mockReturnValue({
+      user: fakeUser,
+      error: null,
+      isLoading: false,
+      invalidate: jest.fn(),
+    } as unknown as ReturnType<typeof useUser>)
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ ...perms, admin: false }),
+    })
+
+    const { result } = renderHook(() => usePermissions(), { wrapper })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.canUseAi).toBe(expected)
+  })
+
+  it("denies canUseAi without a user", async () => {
+    mockUseUser.mockReturnValue({
+      user: undefined,
+      error: undefined,
+      isLoading: false,
+      invalidate: jest.fn(),
+    } as unknown as ReturnType<typeof useUser>)
+
+    const { result } = renderHook(() => usePermissions(), { wrapper })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.canUseAi).toBe(false)
+  })
+
   it("treats 401 silently (no console.error)", async () => {
     mockUseUser.mockReturnValue({
       user: fakeUser,

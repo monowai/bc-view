@@ -94,13 +94,15 @@ jest.mock("@components/features/rebalance/execution/InvestCashDialog", () => {
   }
 })
 
-// Permissions: grant `ai` so the AI Summary button renders. Mobile-visibility
-// tests don't care about the chat bus side-effect, only the DOM placement.
-// `admin: false` keeps the admin paths gated.
+// Permissions: a preview-only user (no `ai`) still gets the AI Summary
+// button — preview users may use every agent page, metered by svc-agent.
+// Mobile-visibility tests don't care about the chat bus side-effect, only the
+// DOM placement. `admin: false` keeps the admin paths gated.
 jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => ({
-    ai: true,
+    ai: false,
     preview: true,
+    canUseAi: true,
     admin: false,
     isLoading: false,
   }),

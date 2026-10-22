@@ -359,7 +359,7 @@ function DesktopDropdown({
 function HeaderBrand(): React.ReactElement {
   const router = useRouter()
   const { user } = useUser()
-  const { admin: isAdmin, ai: canRunAi } = usePermissions()
+  const { admin: isAdmin, canUseAi: canRunAi } = usePermissions()
   const { portfolios } = usePortfolios()
   const { preferences } = useUserPreferences()
   // Zen mode (single portfolio) drops portfolio-list nav entries — nothing to

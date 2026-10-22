@@ -86,6 +86,27 @@ export interface AgentResponse {
   error: string | null
 }
 
+/**
+ * svc-agent's weekly AI allowance for the caller (`GET /agent/quota`).
+ * Preview-only users are metered over a rolling seven days; `beancounter:ai`
+ * users are `unlimited` and the other fields are zero/empty. The server owns
+ * every number here — the UI never derives `remaining` itself.
+ */
+export interface AgentQuotaStatus {
+  limit: number
+  used: number
+  remaining: number
+  /** When the oldest counted question frees up; null when nothing is counted. */
+  resetAt: string | null
+  /** Who to ask for a bigger allowance. */
+  contact: string
+  /** True when an admin has set this user's limit. */
+  override: boolean
+  unlimited: boolean
+  /** False when the caller's email is unconfirmed: only cached Asset Reviews are served. */
+  verified: boolean
+}
+
 export interface ServiceStatus {
   name: string
   status: string

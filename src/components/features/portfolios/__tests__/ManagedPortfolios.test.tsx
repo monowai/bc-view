@@ -19,8 +19,14 @@ jest.mock("@components/ui/PageLoader", () => ({
   rootLoader: (text: string) => <div data-testid="loading">{text}</div>,
 }))
 
+let mockPermissions = {
+  ai: false,
+  preview: false,
+  admin: false,
+  canUseAi: false,
+}
 jest.mock("@hooks/usePermissions", () => ({
-  usePermissions: () => ({ ai: false, preview: false, admin: false }),
+  usePermissions: () => mockPermissions,
 }))
 
 jest.mock("@components/features/portfolios/usePortfolioReview", () => ({
@@ -127,5 +133,33 @@ describe("ManagedPortfolios — group by owner", () => {
 
     expect(screen.getByText("No managed portfolios yet")).toBeInTheDocument()
     expect(screen.queryByTestId("owner-group")).not.toBeInTheDocument()
+  })
+})
+
+describe("ManagedPortfolios — AI access", () => {
+  afterEach(() => {
+    mockPermissions = {
+      ai: false,
+      preview: false,
+      admin: false,
+      canUseAi: false,
+    }
+  })
+
+  it("offers the AI Summary to a preview user", () => {
+    mockPermissions = { ai: false, preview: true, admin: false, canUseAi: true }
+    mockShares([makeShare("1", "alice@example.com", "AAA")])
+
+    render(<ManagedPortfolios />)
+
+    expect(screen.getByLabelText("AI Summary")).toBeInTheDocument()
+  })
+
+  it("hides the AI Summary from a user without AI access", () => {
+    mockShares([makeShare("1", "alice@example.com", "AAA")])
+
+    render(<ManagedPortfolios />)
+
+    expect(screen.queryByLabelText("AI Summary")).not.toBeInTheDocument()
   })
 })

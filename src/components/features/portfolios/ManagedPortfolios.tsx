@@ -32,7 +32,7 @@ export default function ManagedPortfolios({
   onCorporateActions,
 }: ManagedPortfoliosProps = {}): React.ReactElement {
   const router = useRouter()
-  const { ai: canRunAi } = usePermissions()
+  const { canUseAi } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
   const [showRequestDialog, setShowRequestDialog] = useState(false)
 
@@ -167,7 +167,7 @@ export default function ManagedPortfolios({
                       className="flex items-center space-x-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {canRunAi && share.portfolio && (
+                      {canUseAi && share.portfolio && (
                         <button
                           onClick={() =>
                             showReview({

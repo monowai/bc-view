@@ -4,6 +4,21 @@ import { auth0 } from "@lib/auth0"
 import { getAgentUrl } from "@utils/api/bcConfig"
 
 /**
+ * svc-agent's error code (`AgentResponse.error`, e.g. `ai-quota`) from a
+ * failed upstream response, so the client can tell it from a bare status.
+ */
+async function upstreamCode(upstream: Response): Promise<string | undefined> {
+  try {
+    const body = (await upstream.json()) as { error?: unknown }
+    return typeof body?.error === "string" && body.error.length > 0
+      ? body.error
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * SSE proxy to svc-agent's `/agent/query/stream` endpoint.
  *
  * The chat client (`useChat`) uses this when available so the browser sees a
@@ -81,7 +96,7 @@ export default async function handler(
 
     if (!upstream.ok || !upstream.body) {
       res.status(upstream.status).json({
-        error: "Upstream stream failed",
+        error: (await upstreamCode(upstream)) ?? "Upstream stream failed",
         status: upstream.status,
       })
       return

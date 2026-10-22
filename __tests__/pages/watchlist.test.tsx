@@ -48,6 +48,7 @@ jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => ({
     ai: mockCanRunAi,
     preview: false,
+    canUseAi: mockCanRunAi,
     admin: false,
     isLoading: false,
   }),

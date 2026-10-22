@@ -13,13 +13,15 @@ jest.mock("next/router", () => ({
   }),
 }))
 
+let mockPermissions = {
+  ai: false,
+  preview: false,
+  admin: false,
+  canUseAi: false,
+  isLoading: false,
+}
 jest.mock("@hooks/usePermissions", () => ({
-  usePermissions: () => ({
-    ai: false,
-    preview: false,
-    admin: false,
-    isLoading: false,
-  }),
+  usePermissions: () => mockPermissions,
 }))
 
 // Portfolio count drives zen mode (single portfolio hides portfolio-list nav).
@@ -91,6 +93,28 @@ describe("HeaderBrand", () => {
     expect(brokers).toHaveAttribute("href", "/brokers")
     expect(
       screen.queryByRole("link", { name: /Open Brokerage/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("Tools dropdown offers Chat to a preview user", () => {
+    mockPermissions = { ...mockPermissions, preview: true, canUseAi: true }
+    try {
+      render(<HeaderBrand />)
+      fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
+      expect(screen.getByRole("link", { name: /^Chat/i })).toHaveAttribute(
+        "href",
+        "/chat",
+      )
+    } finally {
+      mockPermissions = { ...mockPermissions, preview: false, canUseAi: false }
+    }
+  })
+
+  it("Tools dropdown hides Chat from a user without AI access", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
+    expect(
+      screen.queryByRole("link", { name: /^Chat/i }),
     ).not.toBeInTheDocument()
   })
 

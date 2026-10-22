@@ -36,6 +36,8 @@ function makeRes(): PassThrough {
   })
 }
 
+type MockRes = PassThrough & { status: jest.Mock; json: jest.Mock }
+
 /** Upstream SSE that emits one frame, then either stays open or ends. */
 function upstream(opts: { end: boolean }): {
   response: unknown
@@ -91,5 +93,37 @@ describe("/api/agent/query/stream", () => {
     res.emit("close")
 
     expect(signal()?.aborted).toBe(false)
+  })
+
+  it("forwards svc-agent's error code when the upstream refuses", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 429,
+      body: null,
+      json: () => Promise.resolve({ error: "ai-quota", response: "..." }),
+    })
+    const res = makeRes() as MockRes
+
+    await handler(makeReq() as never, res as never)
+
+    expect(res.status).toHaveBeenCalledWith(429)
+    expect(res.json).toHaveBeenCalledWith({ error: "ai-quota", status: 429 })
+  })
+
+  it("falls back to a generic error when the upstream body has no code", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 502,
+      body: null,
+      json: () => Promise.reject(new Error("not json")),
+    })
+    const res = makeRes() as MockRes
+
+    await handler(makeReq() as never, res as never)
+
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Upstream stream failed",
+      status: 502,
+    })
   })
 })
