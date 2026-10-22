@@ -39,6 +39,7 @@ import { localIsoDate } from "@lib/formatters"
 import { assetResolveKey } from "@utils/api/client/assets"
 import { tradeKey, trnsKey } from "@utils/api/client/trns"
 import { priceHistoryKey, repairSplits } from "@utils/api/client/prices"
+import { TRN_STATUS } from "types/constants"
 
 export interface PriceChartPopupProps {
   asset: Asset
@@ -566,7 +567,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         (trn): trn is Transaction =>
           (trn.trnType === "BUY" || trn.trnType === "SELL") &&
           // A proposed trade has not happened, so it is not drawn.
-          trn.status !== "PROPOSED" &&
+          trn.status !== TRN_STATUS.PROPOSED &&
           !!trn.tradeDate &&
           trn.tradeDate >= from &&
           trn.tradeDate <= to,
