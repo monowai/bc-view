@@ -1,4 +1,4 @@
-import { AgentQuotaStatus } from "types/agent"
+import { AgentQuotaOverview, AgentQuotaStatus } from "types/agent"
 
 export function makeAgentQuota(
   overrides: Partial<AgentQuotaStatus> = {},
@@ -12,6 +12,16 @@ export function makeAgentQuota(
     override: false,
     unlimited: false,
     verified: true,
+    ...overrides,
+  }
+}
+
+export function makeAgentQuotaOverview(
+  overrides: Partial<AgentQuotaOverview> = {},
+): AgentQuotaOverview {
+  return {
+    defaultLimit: 10,
+    users: {},
     ...overrides,
   }
 }

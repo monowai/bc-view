@@ -84,6 +84,13 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       icon: "fa-gauge-high",
     },
     {
+      title: "AI Reviews",
+      description:
+        "See each user's AI use this week and set their weekly allowance.",
+      href: "/admin/ai-quota",
+      icon: "fa-robot",
+    },
+    {
       title: "Loggers",
       description:
         "Browse and tweak log levels live across all backend services.",

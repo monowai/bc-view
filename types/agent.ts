@@ -107,6 +107,18 @@ export interface AgentQuotaStatus {
   verified: boolean
 }
 
+/**
+ * Every user's weekly AI allowance, for the admin page
+ * (`GET /agent/quota/overview`). Only users with use this week or an admin
+ * override appear in `users`; anyone absent is on `defaultLimit` with nothing
+ * used.
+ */
+export interface AgentQuotaOverview {
+  defaultLimit: number
+  /** Keyed by SystemUser id. */
+  users: Record<string, AgentQuotaStatus>
+}
+
 export interface ServiceStatus {
   name: string
   status: string

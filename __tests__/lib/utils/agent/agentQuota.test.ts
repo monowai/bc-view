@@ -24,6 +24,30 @@ describe("quotaRemainingText", () => {
   it("says nothing for an unlimited user", () => {
     expect(quotaRemainingText(makeAgentQuota({ unlimited: true }))).toBeNull()
   })
+
+  it("says AI is off when an admin has set the limit to zero", () => {
+    expect(
+      quotaRemainingText(
+        makeAgentQuota({ override: true, limit: 0, used: 0, remaining: 0 }),
+      ),
+    ).toBe("AI is turned off for your account")
+  })
+
+  it("asks an unverified user to confirm their email before the disabled note", () => {
+    expect(
+      quotaRemainingText(
+        makeAgentQuota({ override: true, limit: 0, verified: false }),
+      ),
+    ).toBe("Confirm your email address to ask the AI")
+  })
+
+  it("does not call a default-limit user with zero left disabled", () => {
+    expect(
+      quotaRemainingText(
+        makeAgentQuota({ override: false, limit: 10, remaining: 0 }),
+      ),
+    ).toBe("0 of 10 AI questions left this week")
+  })
 })
 
 describe("quotaResetText", () => {

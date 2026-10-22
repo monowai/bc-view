@@ -203,3 +203,27 @@ describe("describeAgentError: email-unverified", () => {
     expect(copy.message).toMatch(/Asset Reviews/)
   })
 })
+
+describe("describeAgentError: ai-disabled", () => {
+  it("says an admin turned AI off for this account and is not retryable", () => {
+    const copy = describeAgentError(
+      {
+        error: "ai-disabled",
+        message: "ai-disabled",
+        code: "Forbidden",
+        path: "/api/agent/query",
+      },
+      403,
+    )
+
+    expect(copy.code).toBe("ai-disabled")
+    expect(copy.tone).toBe("service")
+    expect(copy.retryable).toBe(false)
+    expect(copy.title).toMatch(/AI is turned off for your account/i)
+    expect(copy.message).toMatch(/contact/i)
+  })
+
+  it("is not confused with the weekly quota", () => {
+    expect(describeAgentError("ai-quota").code).toBe("ai-quota")
+  })
+})

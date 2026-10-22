@@ -52,3 +52,15 @@ export interface ServicesResponse {
   services: ServiceStatus[]
   timestamp: string
 }
+
+/** A Beancounter user as svc-data's `GET /admin/users` lists them. */
+export interface AdminUser {
+  /** SystemUser id. */
+  id: string
+  email: string
+  active: boolean
+  /** Date the account was created (yyyy-MM-dd). */
+  since: string
+  /** ISO instant of the last sign-in; null when never seen since tracking began. */
+  lastSeen: string | null
+}
