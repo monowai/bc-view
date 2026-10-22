@@ -13,9 +13,8 @@ export interface UseNewsAssetReturn {
 }
 
 /**
- * Manages news-popup state for a holding view (card or row). Centralizes the
- * `useState<NewsAssetRef | null>` + `<NewsSentimentPopup>` render that both
- * `CardView` and `Rows` were duplicating.
+ * Manages News & Sentiment popup state for an asset view (the watchlist).
+ * Holdings offer Asset Review instead.
  */
 export function useNewsAsset(): UseNewsAssetReturn {
   const [newsAsset, setNewsAsset] = useState<NewsAssetRef | null>(null)

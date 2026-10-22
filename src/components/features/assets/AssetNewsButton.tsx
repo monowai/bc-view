@@ -10,7 +10,7 @@ interface AssetNewsButtonProps {
 }
 
 /**
- * News icon button next to a holding's title. Hidden when the server says the
+ * News icon button next to an asset's label. Hidden when the server says the
  * asset has no news to fetch (`asset.hasNews`). Click stops propagation so it doesn't
  * trigger the surrounding row/card click handler.
  */

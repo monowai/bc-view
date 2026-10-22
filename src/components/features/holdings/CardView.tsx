@@ -36,8 +36,6 @@ import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import ChartIconButton from "@components/features/holdings/ChartIconButton"
 import { QuickTooltip } from "@components/ui/Tooltip"
-import AssetNewsButton from "@components/features/assets/AssetNewsButton"
-import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import { useHoldingAnalysis } from "@components/features/assets/useHoldingAnalysis"
@@ -218,7 +216,6 @@ interface PositionHeaderProps {
   hasDistinctName: boolean
   truncatedName: string
   changePercent: number | undefined
-  onShowNews: () => void
   onShowReview: () => void
   actionsMenu?: React.ReactNode
 }
@@ -229,7 +226,6 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
   hasDistinctName,
   truncatedName,
   changePercent,
-  onShowNews,
   onShowReview,
   actionsMenu,
 }) => (
@@ -237,7 +233,6 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
     <div className="flex-1 min-w-0">
       <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
         {displayName}
-        <AssetNewsButton asset={asset} onShow={onShowNews} />
         <AssetReviewButton asset={asset} onShow={onShowReview} />
       </h3>
       {hasDistinctName && (
@@ -329,7 +324,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
   onGoToPortfolio,
 }) => {
   const router = useRouter()
-  const { popup, showNews } = useNewsAsset()
   const { popup: reviewPopup, showAsset: openReview } = useAssetReview()
   const {
     popup: analysisPopup,
@@ -474,7 +468,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       onDoubleClick={handleDoubleClick}
       title="Double-click to open"
     >
-      {popup}
       {reviewPopup && (
         // Same portal bubbling as the analysis popup below.
         <div onDoubleClick={(e) => e.stopPropagation()}>{reviewPopup}</div>
@@ -490,7 +483,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         hasDistinctName={hasDistinctName}
         truncatedName={truncatedName}
         changePercent={values.priceData?.changePercent}
-        onShowNews={() => showNews(asset)}
         onShowReview={() => openReview(asset)}
         actionsMenu={actionsNode}
       />

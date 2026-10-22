@@ -22,8 +22,8 @@ export interface UseAssetReviewReturn {
 
 /**
  * Manages Asset Review popup state. The lookup screen opens it from an
- * AssetOption; holding rows and cards open it from a full Asset, built the
- * same way as their News popup.
+ * AssetOption; holding rows and cards open it from a full Asset, built with
+ * buildNewsAsset like the watchlist's News popup.
  */
 export function useAssetReview(): UseAssetReviewReturn {
   const [target, setTarget] = useState<ReviewTarget | null>(null)

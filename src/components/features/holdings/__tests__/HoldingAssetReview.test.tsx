@@ -97,13 +97,15 @@ describe.each([
   ["rows", renderRow],
   ["cards", renderCard],
 ])("holding %s AI review", (_view, renderView) => {
-  it("shows the AI review sparkle beside News for an equity", () => {
+  it("offers the AI review sparkle, and no News, for an equity", () => {
     renderView(makeAsset({ code: "AAPL", name: "Apple Inc" }))
 
     const review = screen.getByRole("button", { name: "AI review AAPL" })
     expect(review.querySelector(".fa-wand-magic-sparkles")).not.toBeNull()
-    const news = screen.getByRole("button", { name: "News AAPL" })
-    expect(news.querySelector(".fa-newspaper")).not.toBeNull()
+    expect(
+      screen.queryByRole("button", { name: /^News / }),
+    ).not.toBeInTheDocument()
+    expect(document.querySelector(".fa-newspaper")).toBeNull()
   })
 
   it("opens the asset review for the holding's asset", () => {

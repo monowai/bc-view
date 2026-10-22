@@ -30,8 +30,6 @@ import {
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
-import AssetNewsButton from "@components/features/assets/AssetNewsButton"
-import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import { useHoldingAnalysis } from "@components/features/assets/useHoldingAnalysis"
@@ -108,7 +106,6 @@ export default function Rows({
   onGoToPortfolio,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
-  const { popup: newsPopup, showNews } = useNewsAsset()
   const { popup: reviewPopup, showAsset: openReview } = useAssetReview()
   const {
     popup: analysisPopup,
@@ -197,11 +194,6 @@ export default function Rows({
                     title={asset.displayCode}
                   >
                     {getPositionDisplayName(asset)}
-                    <AssetNewsButton
-                      asset={asset}
-                      onShow={() => showNews(asset)}
-                      iconClassName="text-[10px]"
-                    />
                     <AssetReviewButton
                       asset={asset}
                       onShow={() => openReview(asset)}
@@ -602,11 +594,6 @@ export default function Rows({
             </td>
           </tr>
         ),
-      )}
-      {newsPopup && (
-        <tr>
-          <td>{newsPopup}</td>
-        </tr>
       )}
       {reviewPopup && (
         <tr>
