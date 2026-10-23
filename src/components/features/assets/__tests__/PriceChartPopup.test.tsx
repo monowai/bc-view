@@ -438,6 +438,18 @@ describe("PriceChartPopup", () => {
       )
     })
 
+    it("falls back to the default SMA when no kept window is still offered", () => {
+      window.localStorage.setItem("bc:priceChart.sma", "[100]")
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+
+      expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      )
+    })
+
     it("falls back to the defaults for a kept choice the chart no longer offers", () => {
       window.localStorage.setItem("bc:priceChart.months", "7")
       window.localStorage.setItem("bc:priceChart.sma", '"50"')

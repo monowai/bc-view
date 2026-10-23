@@ -211,7 +211,8 @@ const DEFAULT_OVERLAY =
 
 // The user's last range, SMAs and ratio, kept in local storage so the next
 // chart opens as they left this one. A kept value the chart no longer offers
-// falls back to the default.
+// falls back to the default. Read in `useState` initializers: every caller
+// mounts the popup only once a user opens it, so it never renders on the server.
 const MONTHS_KEY = "priceChart.months"
 const SMA_KEY = "priceChart.sma"
 const RATIO_KEY = "priceChart.ratio"
@@ -226,7 +227,12 @@ function keptMonths(): number {
 function keptSmas(): number[] {
   const kept = getLocalValue<unknown>(SMA_KEY, null)
   if (!Array.isArray(kept)) return DEFAULT_SMAS
-  return SMA_OPTIONS.map((o) => o.window).filter((w) => kept.includes(w))
+  const picked = SMA_OPTIONS.map((o) => o.window).filter((w) =>
+    kept.includes(w),
+  )
+  // An empty list is "all off"; one that filters to nothing names windows the
+  // chart no longer offers.
+  return kept.length > 0 && picked.length === 0 ? DEFAULT_SMAS : picked
 }
 
 function keptRatio(): string {
