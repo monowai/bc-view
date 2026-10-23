@@ -6,7 +6,7 @@
  * three states, so a ribbon under the plot can carry the turn. It knows nothing
  * about which ratio that is — what "rising" means in words is the caller's to
  * name, because it differs per overlay: for `vs SPY` a rise is the asset
- * outperforming, for RSP/SPY it is market breadth widening.
+ * outperforming.
  *
  * Deliberately never Buy/Sell. The chart already renders ▲ Buy / ▼ Sell markers
  * for actual trades; a state that borrowed those words (or red/green) would
@@ -213,7 +213,7 @@ export function trendRuns(
 /**
  * Ribbon colours: direction only. Blue/red rather than green/red — green is the
  * price fill, and red/green here would read as good/bad, which a falling ratio
- * is not (RSP/SPY falling is narrowing breadth, not a loss). The words beside
+ * is not (an asset lagging SPY can still be up). The words beside
  * the swatch carry the meaning.
  */
 export const TREND_COLOR: Record<RatioTrend, string> = {

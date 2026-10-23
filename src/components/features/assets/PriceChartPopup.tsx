@@ -21,6 +21,7 @@ import {
   Transaction,
   TrnType,
 } from "types/beancounter"
+import { getLocalValue, setLocalValue } from "@lib/storage/localState"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { buildRatioSeries, indexedAxisDomain } from "@utils/chart/ratioSeries"
 import {
@@ -172,17 +173,6 @@ const SELF = "SELF"
 const OVERLAYS: OverlayOption[] = [
   { label: "None", numerator: null, denominator: null },
   {
-    label: "RSP/SPY",
-    numerator: "US:RSP",
-    denominator: "US:SPY",
-    hint: "The average S&P 500 company against the biggest few — rising means gains are spreading out",
-    trendLabels: {
-      rising: "Broadening",
-      falling: "Narrowing",
-      flat: "Steady",
-    },
-  },
-  {
     label: "vs SPY",
     numerator: SELF,
     denominator: "US:SPY",
@@ -212,12 +202,39 @@ const DEFAULT_MONTHS = pickDefault(
   6,
 )
 const DEFAULT_SMAS = parseDefaultSmas(process.env.NEXT_PUBLIC_CHART_DEFAULT_SMA)
-// Off by default: the overlay costs two more asset lookups plus two price
-// histories, and most holdings are opened to read price, not breadth.
+// Off by default: the overlay costs another asset lookup and price history,
+// and most holdings are opened to read price, not relative strength.
 const DEFAULT_OVERLAY =
   OVERLAYS.find(
     (o) => o.label === process.env.NEXT_PUBLIC_CHART_DEFAULT_OVERLAY,
   )?.label ?? OVERLAYS[0].label
+
+// The user's last range, SMAs and ratio, kept in local storage so the next
+// chart opens as they left this one. A kept value the chart no longer offers
+// falls back to the default.
+const MONTHS_KEY = "priceChart.months"
+const SMA_KEY = "priceChart.sma"
+const RATIO_KEY = "priceChart.ratio"
+
+function keptMonths(): number {
+  const kept = getLocalValue<unknown>(MONTHS_KEY, null)
+  return RANGES.some((r) => r.months === kept)
+    ? (kept as number)
+    : DEFAULT_MONTHS
+}
+
+function keptSmas(): number[] {
+  const kept = getLocalValue<unknown>(SMA_KEY, null)
+  if (!Array.isArray(kept)) return DEFAULT_SMAS
+  return SMA_OPTIONS.map((o) => o.window).filter((w) => kept.includes(w))
+}
+
+function keptRatio(): string {
+  const kept = getLocalValue<unknown>(RATIO_KEY, null)
+  return OVERLAYS.some((o) => o.label === kept)
+    ? (kept as string)
+    : DEFAULT_OVERLAY
+}
 
 function subtractMonths(date: Date, months: number): Date {
   const d = new Date(date)
@@ -271,7 +288,7 @@ function computeSma(values: number[], window: number): (number | undefined)[] {
  * parks both requests on a null SWR key so nothing is fetched.
  *
  * svc-data creates the asset on first lookup and backfills its price history
- * on first chart, so RSP/SPY resolve even though nobody holds them. Both
+ * on first chart, so SPY resolves even though nobody holds it. Both
  * requests are keyed by URL, so every popup at the same range shares one fetch.
  */
 function useOverlayLeg(
@@ -439,18 +456,27 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   limitLabel = "Limit",
   onClose,
 }) => {
-  const [months, setMonths] = useState(DEFAULT_MONTHS)
-  const [smaWindows, setSmaWindows] = useState<number[]>(DEFAULT_SMAS)
-  const toggleSma = (window: number): void =>
-    setSmaWindows((current) =>
-      current.includes(window)
-        ? current.filter((w) => w !== window)
-        : SMA_OPTIONS.map((o) => o.window).filter(
-            (w) => w === window || current.includes(w),
-          ),
-    )
+  const [months, setMonths] = useState(keptMonths)
+  const [smaWindows, setSmaWindows] = useState<number[]>(keptSmas)
+  const chooseMonths = (chosen: number): void => {
+    setMonths(chosen)
+    setLocalValue(MONTHS_KEY, chosen)
+  }
+  const toggleSma = (window: number): void => {
+    const next = smaWindows.includes(window)
+      ? smaWindows.filter((w) => w !== window)
+      : SMA_OPTIONS.map((o) => o.window).filter(
+          (w) => w === window || smaWindows.includes(w),
+        )
+    setSmaWindows(next)
+    setLocalValue(SMA_KEY, next)
+  }
   const longestSma = smaWindows.length > 0 ? Math.max(...smaWindows) : 0
-  const [overlayLabel, setOverlayLabel] = useState(DEFAULT_OVERLAY)
+  const [overlayLabel, setOverlayLabel] = useState(keptRatio)
+  const chooseOverlay = (label: string): void => {
+    setOverlayLabel(label)
+    setLocalValue(RATIO_KEY, label)
+  }
   const { admin: isAdmin } = usePermissions()
   const [repairState, setRepairState] = useState<{
     busy: boolean
@@ -848,7 +874,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
             {RANGES.map((r) => (
               <button
                 key={r.label}
-                onClick={() => setMonths(r.months)}
+                onClick={() => chooseMonths(r.months)}
                 className={`px-3 py-1 rounded text-xs font-medium tracking-wide transition-colors ${
                   months === r.months
                     ? "bg-wealth-600 text-white"
@@ -889,7 +915,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
             {OVERLAYS.map((opt) => (
               <button
                 key={opt.label}
-                onClick={() => setOverlayLabel(opt.label)}
+                onClick={() => chooseOverlay(opt.label)}
                 title={opt.hint}
                 className={`px-2 py-0.5 rounded font-medium transition-colors ${
                   overlayLabel === opt.label

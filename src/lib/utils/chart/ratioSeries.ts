@@ -1,10 +1,10 @@
 /**
  * Relative-strength overlays for the price chart.
  *
- * A ratio overlay divides one price series by another — RSP/SPY (equal-weight
- * vs cap-weight S&P 500, a market-breadth read) being the canonical example.
- * The raw quotient is meaningless on a price axis (RSP/SPY sits near 0.28), so
- * the series is rebased to 1.0 at the first date both legs cover. Every point
+ * A ratio overlay divides one price series by another — the charted asset
+ * against SPY, a relative-strength read. The raw quotient is meaningless on a
+ * price axis (a $40 stock against SPY sits near 0.06), so the series is
+ * rebased to 1.0 at the first date both legs cover. Every point
  * then reads as "where the ratio stands against where it started this range" —
  * the same index the chart puts price on when an overlay is showing, which is
  * what lets one axis carry both.

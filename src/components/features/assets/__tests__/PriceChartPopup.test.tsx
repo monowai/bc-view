@@ -155,7 +155,7 @@ function makeRouter(options: {
     if (key.includes("/api/trns/trades/")) {
       return trades as ReturnType<typeof useSwr>
     }
-    // Overlay legs resolve "US:RSP" to an asset id before their history is
+    // Overlay legs resolve "US:SPY" to an asset id before their history is
     // fetched; the stub mints a predictable "<code>-id" so the follow-on
     // history key can be routed back to the right leg fixture.
     if (key.startsWith("/api/assets/resolve")) {
@@ -313,6 +313,7 @@ describe("PriceChartPopup", () => {
 
   beforeEach(() => {
     mockUseSwr.mockReset()
+    window.localStorage.clear()
     mockUsePermissions.mockReturnValue({
       ai: false,
       preview: false,
@@ -389,6 +390,74 @@ describe("PriceChartPopup", () => {
     expect(screen.getByTestId("line-sma20")).toBeInTheDocument()
     expect(screen.queryByTestId("line-sma50")).not.toBeInTheDocument()
     expect(screen.queryByTestId("line-sma200")).not.toBeInTheDocument()
+  })
+
+  describe("remembered choices", () => {
+    it("opens the next chart with the range, SMAs and ratio last chosen", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+      const first = renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "12m" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
+      fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+      first.unmount()
+
+      renderPopup()
+
+      expect(screen.getByRole("button", { name: "12m" })).toHaveClass(
+        "bg-wealth-600",
+      )
+      expect(screen.getByRole("button", { name: "6m" })).not.toHaveClass(
+        "bg-wealth-600",
+      )
+      expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      )
+      expect(screen.getByRole("button", { name: "SMA 200" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      )
+      expect(screen.getByRole("button", { name: "vs SPY" })).toHaveClass(
+        "bg-sky-600",
+      )
+    })
+
+    it("remembers turning every SMA off", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+      const first = renderPopup()
+      fireEvent.click(screen.getByRole("button", { name: "SMA 20" }))
+      first.unmount()
+
+      renderPopup()
+
+      expect(screen.queryByTestId("line-sma20")).not.toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      )
+    })
+
+    it("falls back to the defaults for a kept choice the chart no longer offers", () => {
+      window.localStorage.setItem("bc:priceChart.months", "7")
+      window.localStorage.setItem("bc:priceChart.sma", '"50"')
+      window.localStorage.setItem("bc:priceChart.ratio", '"RSP/SPY"')
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      renderPopup()
+
+      expect(screen.getByRole("button", { name: "6m" })).toHaveClass(
+        "bg-wealth-600",
+      )
+      expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      )
+      expect(screen.getByRole("button", { name: "None" })).toHaveClass(
+        "bg-sky-600",
+      )
+      expect(resolveKeys()).toHaveLength(0)
+    })
   })
 
   it("refetches prices with a new range when a period tab is clicked", () => {
@@ -711,33 +780,34 @@ describe("PriceChartPopup", () => {
     expect(resolveKeys()).toHaveLength(0)
   })
 
-  it("plots price and RSP/SPY on one scale, both indexed to 1.0", () => {
+  it("offers no RSP/SPY overlay", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+    renderPopup()
+
+    expect(
+      screen.queryByRole("button", { name: "RSP/SPY" }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "vs SPY" })).toBeInTheDocument()
+  })
+
+  it("plots price and vs SPY on one scale, both indexed to 1.0", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
         overlayLegs: {
-          "rsp-id": [
-            { priceDate: "2026-03-21", close: 180 },
-            { priceDate: "2026-04-01", close: 183.6 },
-            { priceDate: "2026-04-20", close: 176.4 },
-          ],
           "spy-id": [
             { priceDate: "2026-03-21", close: 600 },
             { priceDate: "2026-04-01", close: 600 },
-            { priceDate: "2026-04-20", close: 630 },
+            { priceDate: "2026-04-20", close: 675 },
           ],
         },
       }) as typeof useSwr,
     )
 
     renderPopup()
-    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
-    expect(resolveKeys()).toEqual(
-      expect.arrayContaining([
-        "/api/assets/resolve?code=US%3ARSP",
-        "/api/assets/resolve?code=US%3ASPY",
-      ]),
-    )
+    expect(resolveKeys()).toEqual(["/api/assets/resolve?code=US%3ASPY"])
     expect(screen.getByTestId("line-ratio")).toBeInTheDocument()
     // One scale, not two. A second axis lets the eye read crossings between
     // price and ratio that only exist because the scales were chosen that way.
@@ -752,9 +822,10 @@ describe("PriceChartPopup", () => {
     const rows = JSON.parse(
       screen.getByTestId("chart").getAttribute("data-series") as string,
     ) as Array<{ ratio?: number; close: number; closeIndex?: number }>
+    // MSFT 400→410→420 against SPY 600→600→675.
     expect(rows.map((r) => r.ratio)).toEqual([
       1,
-      expect.closeTo(1.02, 6),
+      expect.closeTo(1.025, 6),
       expect.closeTo(0.9333, 4),
     ])
     // Price is indexed against its own first close, and keeps the money value
@@ -920,26 +991,23 @@ describe("PriceChartPopup", () => {
     mockUseSwr.mockImplementation(
       makeRouter({
         overlayLegs: {
-          "rsp-id": [
-            { priceDate: "2026-04-01", close: 180 },
-            { priceDate: "2026-04-20", close: 189 },
-          ],
           "spy-id": [
-            { priceDate: "2026-04-01", close: 600 },
-            { priceDate: "2026-04-20", close: 600 },
+            { priceDate: "2026-04-01", close: 410 },
+            { priceDate: "2026-04-20", close: 400 },
           ],
         },
       }) as typeof useSwr,
     )
 
     renderPopup()
-    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
     const rows = JSON.parse(
       screen.getByTestId("chart").getAttribute("data-series") as string,
     ) as Array<{ ratio?: number }>
     expect(rows[0].ratio).toBeUndefined()
     expect(rows[1].ratio).toBe(1)
+    // MSFT 410→420 against SPY 410→400.
     expect(rows[2]).toEqual(
       expect.objectContaining({ ratio: expect.closeTo(1.05, 6) }),
     )
@@ -959,11 +1027,11 @@ describe("PriceChartPopup", () => {
     }) as unknown as typeof useSwr)
 
     renderPopup()
-    fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
     // Without this the toggle stays lit while nothing is drawn, which reads
-    // as "this asset has no breadth data" rather than "the fetch failed".
-    expect(screen.getByText(/RSP\/SPY unavailable/)).toBeInTheDocument()
+    // as "this asset has no benchmark data" rather than "the fetch failed".
+    expect(screen.getByText(/vs SPY unavailable/)).toBeInTheDocument()
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
   })
 
@@ -1341,43 +1409,23 @@ describe("PriceChartPopup", () => {
       expect(screen.getAllByText(/vs SPY:/).length).toBeGreaterThan(0)
     })
 
-    it("describes the market — not the asset — when the overlay is RSP/SPY", () => {
-      // Same asset, different ratio: the ribbon must not keep talking about the
-      // asset's own performance when the line on screen is a market read.
-      renderWithLegs({
-        "rsp-id": legHistory(12, 0.01),
-        "spy-id": legHistory(12, 0),
-      })
-
-      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
-
-      expect(screen.getAllByText("Broadening").length).toBeGreaterThan(0)
-      expect(screen.queryByText("Outperforming")).not.toBeInTheDocument()
-    })
-
     it("reports how the range split, in the overlay's own words", () => {
-      renderWithLegs({
-        "rsp-id": legHistory(12, -0.01),
-        "spy-id": legHistory(12, 0),
-      })
+      renderWithLegs({ "spy-id": legHistory(12, 0.02) })
 
-      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
       expect(
-        screen.getByText(/% broadening · \d+% narrowing/),
+        screen.getByText(/% outperforming · \d+% lagging/),
       ).toBeInTheDocument()
     })
 
     it("names the trend on hover, in the overlay's words", () => {
-      renderWithLegs({
-        "rsp-id": legHistory(12, 0.01),
-        "spy-id": legHistory(12, 0),
-      })
+      renderWithLegs({ "spy-id": legHistory(12, 0) })
 
-      fireEvent.click(screen.getByRole("button", { name: "RSP/SPY" }))
+      fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
 
       const tooltip = screen.getByTestId("tooltip")
-      expect(tooltip).toHaveTextContent("Broadening")
+      expect(tooltip).toHaveTextContent("Outperforming")
     })
 
     it("draws one band per run of state, not one per trading day", () => {
