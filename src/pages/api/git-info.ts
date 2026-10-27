@@ -1,4 +1,4 @@
-import simpleGit from "simple-git"
+import { simpleGit } from "simple-git"
 import { NextApiRequest, NextApiResponse } from "next"
 
 const git = simpleGit()
