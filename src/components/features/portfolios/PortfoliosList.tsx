@@ -659,7 +659,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     />
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-700"
                     onClick={() => handleSort("code")}
                   >
                     <div className="flex items-center">
@@ -668,7 +668,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-700"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center">
@@ -677,7 +677,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
                     onClick={() => handleSort("marketValue")}
                   >
                     <div className="flex items-center justify-end">
@@ -686,7 +686,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
                     onClick={() => handleSort("gainOnDayPercent")}
                   >
                     <div className="flex items-center justify-end">
@@ -695,7 +695,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
                     onClick={() => handleSort("irr")}
                   >
                     <div className="flex items-center justify-end">
@@ -704,7 +704,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors hidden xl:table-cell"
+                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-wealth-700 hidden xl:table-cell"
                     onClick={() => handleSort("valuedAt")}
                   >
                     <div className="flex items-center justify-center">
