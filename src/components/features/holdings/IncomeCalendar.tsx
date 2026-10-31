@@ -20,6 +20,11 @@ function wholeAmount(value: number): string {
   return rounded === 0 ? "<1" : rounded.toLocaleString()
 }
 
+function cellText(value: number, strength: number): string {
+  if (strength > WHITE_TEXT_FROM) return "text-white"
+  return value === 0 ? "text-gray-400" : "text-gray-900"
+}
+
 // Groups by months; each cell is tinted by its size within the whole grid
 const IncomeCalendar: React.FC<IncomeCalendarProps> = ({
   data,
@@ -28,10 +33,11 @@ const IncomeCalendar: React.FC<IncomeCalendarProps> = ({
   selectedGroup,
   onSelectGroup,
 }) => {
-  const largest = Math.max(
-    ...data.groups.flatMap((group) => monthlyIncome(group, data)),
-    0,
-  )
+  const rows = data.groups.map((group) => ({
+    group,
+    values: monthlyIncome(group, data),
+  }))
+  const largest = Math.max(...rows.flatMap((row) => row.values), 0)
 
   return (
     <div className="overflow-x-auto">
@@ -53,7 +59,7 @@ const IncomeCalendar: React.FC<IncomeCalendarProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {data.groups.map((group) => {
+          {rows.map(({ group, values }) => {
             const expanded = selectedGroup === group.groupKey
             return (
               <React.Fragment key={group.groupKey}>
@@ -68,18 +74,12 @@ const IncomeCalendar: React.FC<IncomeCalendarProps> = ({
                       onToggle={onSelectGroup}
                     />
                   </th>
-                  {monthlyIncome(group, data).map((value, index) => {
+                  {values.map((value, index) => {
                     const strength = largest > 0 ? value / largest : 0
                     return (
                       <td
                         key={data.months[index].yearMonth}
-                        className={`px-2 py-2 text-right tabular-nums ${
-                          strength > WHITE_TEXT_FROM
-                            ? "text-white"
-                            : value === 0
-                              ? "text-gray-400"
-                              : "text-gray-900"
-                        }`}
+                        className={`px-2 py-2 text-right tabular-nums ${cellText(value, strength)}`}
                         style={{
                           backgroundColor: `rgba(37, 99, 235, ${(strength * MAX_TINT).toFixed(2)})`,
                         }}
