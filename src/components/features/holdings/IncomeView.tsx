@@ -16,7 +16,7 @@ import { GROUP_BY_OPTIONS } from "types/constants"
 import { incomeMonthlyKey } from "@utils/api/client/trns"
 
 interface IncomeViewProps {
-  portfolio?: Portfolio
+  portfolio: Portfolio
   portfolioIds?: string[]
   isAggregated?: boolean
 }
@@ -117,7 +117,8 @@ const IncomeView: React.FC<IncomeViewProps> = ({
   const params = new URLSearchParams()
   params.append("months", months.toString())
   params.append("groupBy", apiGroupBy)
-  if (portfolio && !isAggregated) {
+  params.append("currency", portfolio.currency.code)
+  if (!isAggregated) {
     params.append("portfolioIds", portfolio.id)
   } else if (portfolioIds && portfolioIds.length > 0) {
     params.append("portfolioIds", portfolioIds.join(","))
@@ -129,7 +130,7 @@ const IncomeView: React.FC<IncomeViewProps> = ({
     simpleFetcher(apiUrl),
   )
 
-  const currencySymbol = portfolio?.currency?.symbol || "$"
+  const currencySymbol = portfolio.currency.symbol || "$"
 
   const handleSelectGroup = useCallback((groupKey: string) => {
     setSelectedGroup((current) => (current === groupKey ? null : groupKey))

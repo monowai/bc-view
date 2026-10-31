@@ -52,6 +52,7 @@ function incomeResponse(
   return {
     startMonth: "2026-08",
     endMonth: "2026-10",
+    currency: "USD",
     totalIncome,
     groupBy: "assetClass",
     months: MONTHS.map((yearMonth, i) => ({
@@ -76,6 +77,15 @@ describe("IncomeView", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHoldingState.incomeLayout = "chart"
+  })
+
+  it("asks the backend for income in the portfolio's currency", () => {
+    renderWith(TWO_GROUPS)
+
+    const url = (useSwr as jest.Mock).mock.calls[0][0] as string
+    expect(new URLSearchParams(url.split("?")[1]).get("currency")).toBe(
+      makePortfolio().currency.code,
+    )
   })
 
   it("leads with the total, monthly average and a month-named range", () => {
