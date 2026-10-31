@@ -63,6 +63,9 @@ export function analysisSucceeded(messages: ChatMessage[]): boolean {
  * opening prompt and the report, without becoming the app's current chat; a
  * reopened thread keeps appending to it. If it can't be saved the follow-up
  * still runs, statelessly.
+ *
+ * With a `conversationSubject` the opening turn is saved straight away, into
+ * the one conversation about that subject.
  */
 export function useAnalysisChat(request: AnalysisRequest): UseChatReturn {
   const { cacheKey, query, label, context, ttlMs, conversationSubject } =
