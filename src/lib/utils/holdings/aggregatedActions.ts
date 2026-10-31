@@ -1,4 +1,4 @@
-import { PortfolioBreakdown, QuickSellData } from "types/beancounter"
+import { Portfolio, PortfolioBreakdown, QuickSellData } from "types/beancounter"
 
 /**
  * Minimal shape of the aggregated holdings groups needed to find, per asset,
@@ -98,4 +98,16 @@ export function resolveTarget(
   if (!breakdown || breakdown.length === 0) return { kind: "none" }
   if (breakdown.length === 1) return { kind: "direct", target: breakdown[0] }
   return { kind: "choose", options: breakdown }
+}
+
+/**
+ * The ids of the portfolios named by `codes`, in `codes` order. The aggregated
+ * page is addressed by code while the income API filters by id.
+ */
+export function portfolioIdsForCodes(
+  codes: string[],
+  portfolios: Portfolio[],
+): string[] {
+  const idByCode = new Map(portfolios.map((p) => [p.code, p.id]))
+  return [...new Set(codes.flatMap((code) => idByCode.get(code) ?? []))]
 }

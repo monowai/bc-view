@@ -34,6 +34,7 @@ import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
+  portfolioIdsForCodes,
   resolveTarget,
   tradeSeedForRow,
 } from "@lib/holdings/aggregatedActions"
@@ -69,6 +70,7 @@ import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import CopyPopup from "@components/features/holdings/CopyPopup"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import IncomeView from "@components/features/holdings/IncomeView"
+import Alert from "@components/ui/Alert"
 import { VIEW_MODES } from "@components/features/holdings/ViewToggle"
 import {
   ViewModeIcon,
@@ -82,6 +84,53 @@ import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
 
 const viewModes = VIEW_MODES
+
+interface AggregatedIncomeProps {
+  portfolio: Portfolio
+  routerReady: boolean
+  codes: string[]
+  portfolios?: Portfolio[]
+  portfoliosFailed: boolean
+}
+
+// Income for the selected portfolios. An unscoped request means every portfolio
+// the user owns, so it is only sent when nothing was selected.
+function AggregatedIncome({
+  portfolio,
+  routerReady,
+  codes,
+  portfolios,
+  portfoliosFailed,
+}: AggregatedIncomeProps): React.ReactElement {
+  if (!routerReady) return <TableSkeletonLoader rows={5} />
+  if (codes.length === 0) {
+    return <IncomeView portfolio={portfolio} isAggregated={true} />
+  }
+  if (portfoliosFailed) {
+    return (
+      <Alert variant="error">
+        Failed to load income data. Please try again later.
+      </Alert>
+    )
+  }
+  if (!portfolios) return <TableSkeletonLoader rows={5} />
+
+  const portfolioIds = portfolioIdsForCodes(codes, portfolios)
+  if (portfolioIds.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-8 text-center text-sm text-gray-500">
+        None of the selected portfolios were found
+      </div>
+    )
+  }
+  return (
+    <IncomeView
+      portfolio={portfolio}
+      portfolioIds={portfolioIds}
+      isAggregated={true}
+    />
+  )
+}
 
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -278,10 +327,9 @@ function AggregatedHoldingsPage(): React.ReactElement {
   // The aggregated context portfolio is synthetic, so actions must target a
   // real portfolio. We resolve it from each asset's portfolioBreakdown: act
   // directly when held in one, prompt to choose when held in several.
-  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  )
+  const { data: portfoliosData, error: portfoliosError } = useSwr<{
+    data: Portfolio[]
+  }>(portfoliosKey, simpleFetcher(portfoliosKey))
   const portfolioById = useMemo(() => {
     const map = new Map<string, Portfolio>()
     for (const p of portfoliosData?.data ?? []) map.set(p.id, p)
@@ -734,10 +782,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
-            <IncomeView
+            <AggregatedIncome
               portfolio={holdingResults.portfolio}
-              portfolioIds={portfolioCodes.length > 0 ? undefined : undefined}
-              isAggregated={true}
+              routerReady={router.isReady}
+              codes={portfolioCodes}
+              portfolios={portfoliosData?.data}
+              portfoliosFailed={!!portfoliosError}
             />
           </div>
         ) : (

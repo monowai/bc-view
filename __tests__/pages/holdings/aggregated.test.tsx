@@ -9,6 +9,18 @@ import {
   makePosition,
 } from "@test-fixtures/beancounter"
 
+const mockRouterQuery: Record<string, string> = {}
+let mockRouterReady = true
+
+jest.mock("next/router", () => ({
+  useRouter: (): Record<string, unknown> => ({
+    query: mockRouterQuery,
+    isReady: mockRouterReady,
+    push: jest.fn(),
+    events: { on: jest.fn(), off: jest.fn() },
+  }),
+}))
+
 jest.mock("swr", () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -183,5 +195,110 @@ describe("Aggregated holdings — trade a new asset", () => {
     )
     // No seed — TradeInputForm opens its blank new-trade (BUY) form.
     expect(capturedTradeProps?.initialValues).toBeUndefined()
+  })
+})
+
+describe("Aggregated holdings — income scope", () => {
+  const growth = makePortfolio({ id: "pf-growth", code: "GROWTH" })
+  const yieldPf = makePortfolio({ id: "pf-yield", code: "YIELD" })
+  const other = makePortfolio({ id: "pf-other", code: "OTHER" })
+
+  function respond(portfolios: unknown, portfoliosError?: Error): void {
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => {
+      const isPortfolios =
+        typeof key === "string" && key.startsWith("/api/portfolios")
+      const data =
+        typeof key === "string" && key.startsWith("/api/holdings/aggregated")
+          ? { data: holdingContract }
+          : isPortfolios
+            ? portfolios
+            : undefined
+      return {
+        data,
+        error: isPortfolios ? portfoliosError : undefined,
+        isLoading: false,
+        mutate: jest.fn(),
+      }
+    })
+  }
+
+  function incomeRequests(): URLSearchParams[] {
+    return (useSwr as unknown as jest.Mock).mock.calls
+      .map(([key]) => key as unknown)
+      .filter(
+        (key): key is string =>
+          typeof key === "string" && key.includes("/income/monthly"),
+      )
+      .map((key) => new URLSearchParams(key.split("?")[1]))
+  }
+
+  beforeEach(() => {
+    mockViewMode = "income"
+  })
+
+  afterEach(() => {
+    mockViewMode = "table"
+    mockRouterReady = true
+    delete mockRouterQuery.codes
+    jest.clearAllMocks()
+  })
+
+  it("asks for income from the selected portfolios only", () => {
+    mockRouterQuery.codes = "GROWTH,YIELD"
+    respond({ data: [growth, yieldPf, other] })
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests().at(-1)?.get("portfolioIds")).toBe(
+      "pf-growth,pf-yield",
+    )
+  })
+
+  it("sends no unscoped request while portfolios are loading", () => {
+    mockRouterQuery.codes = "GROWTH"
+    respond(undefined)
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+  })
+
+  it("sends nothing until the router knows the selected codes", () => {
+    mockRouterReady = false
+    respond({ data: [growth] })
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+  })
+
+  it("reports a failed portfolio lookup instead of loading forever", () => {
+    mockRouterQuery.codes = "GROWTH"
+    respond(undefined, new Error("portfolios unavailable"))
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+    expect(screen.getByText(/Failed to load income data/)).toBeInTheDocument()
+  })
+
+  it("shows no income rather than everything when no selected code resolves", () => {
+    mockRouterQuery.codes = "MISSING"
+    respond({ data: [growth] })
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+    expect(
+      screen.getByText("None of the selected portfolios were found"),
+    ).toBeInTheDocument()
+  })
+
+  it("leaves income unscoped when no portfolios were selected", () => {
+    respond({ data: [growth] })
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests().at(-1)?.has("portfolioIds")).toBe(false)
   })
 })
