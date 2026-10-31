@@ -111,3 +111,63 @@ export function portfolioIdsForCodes(
   const idByCode = new Map(portfolios.map((p) => [p.code, p.id]))
   return [...new Set(codes.flatMap((code) => idByCode.get(code) ?? []))]
 }
+
+export interface PortfolioWeight {
+  portfolioId: string
+  portfolioCode: string
+  portfolioName: string
+  /** Percentage of the view's market value */
+  weight: number
+}
+
+interface WeightedPosition {
+  moneyValues: { PORTFOLIO?: { marketValue: number } }
+  quantityValues: { total: number }
+  portfolioBreakdown?: PortfolioBreakdown[]
+}
+
+/**
+ * Each portfolio's share of an aggregated view, heaviest first. A position's
+ * value is split by the quantity each portfolio holds. Uses the PORTFOLIO
+ * bucket, the only one in a single currency across every position.
+ * `selected` portfolios that hold nothing are listed at zero.
+ */
+export function portfolioWeights(
+  positions: Record<string, WeightedPosition>,
+  selected: Portfolio[] = [],
+): PortfolioWeight[] {
+  const values = new Map<string, PortfolioWeight>()
+  const entry = (
+    portfolioId: string,
+    portfolioCode: string,
+    portfolioName: string,
+  ): PortfolioWeight => {
+    const existing = values.get(portfolioId)
+    if (existing) return existing
+    const created = { portfolioId, portfolioCode, portfolioName, weight: 0 }
+    values.set(portfolioId, created)
+    return created
+  }
+
+  for (const position of Object.values(positions)) {
+    const total = position.quantityValues.total
+    if (total === 0) continue
+    const marketValue = position.moneyValues.PORTFOLIO?.marketValue ?? 0
+    for (const row of position.portfolioBreakdown ?? []) {
+      entry(row.portfolioId, row.portfolioCode, row.portfolioName).weight +=
+        marketValue * (row.quantity / total)
+    }
+  }
+  for (const portfolio of selected) {
+    entry(portfolio.id, portfolio.code, portfolio.name)
+  }
+
+  const rows = [...values.values()]
+  const viewTotal = rows.reduce((sum, row) => sum + row.weight, 0)
+  return rows
+    .map((row) => ({
+      ...row,
+      weight: viewTotal === 0 ? 0 : (row.weight / viewTotal) * 100,
+    }))
+    .sort((a, b) => b.weight - a.weight)
+}
