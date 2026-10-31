@@ -10,10 +10,12 @@ import {
 } from "@test-fixtures/beancounter"
 
 const mockRouterQuery: Record<string, string> = {}
+let mockRouterReady = true
 
 jest.mock("next/router", () => ({
   useRouter: (): Record<string, unknown> => ({
     query: mockRouterQuery,
+    isReady: mockRouterReady,
     push: jest.fn(),
     events: { on: jest.fn(), off: jest.fn() },
   }),
@@ -201,15 +203,22 @@ describe("Aggregated holdings — income scope", () => {
   const yieldPf = makePortfolio({ id: "pf-yield", code: "YIELD" })
   const other = makePortfolio({ id: "pf-other", code: "OTHER" })
 
-  function respond(portfolios: unknown): void {
+  function respond(portfolios: unknown, portfoliosError?: Error): void {
     ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => {
+      const isPortfolios =
+        typeof key === "string" && key.startsWith("/api/portfolios")
       const data =
         typeof key === "string" && key.startsWith("/api/holdings/aggregated")
           ? { data: holdingContract }
-          : typeof key === "string" && key.startsWith("/api/portfolios")
+          : isPortfolios
             ? portfolios
             : undefined
-      return { data, error: undefined, isLoading: false, mutate: jest.fn() }
+      return {
+        data,
+        error: isPortfolios ? portfoliosError : undefined,
+        isLoading: false,
+        mutate: jest.fn(),
+      }
     })
   }
 
@@ -229,6 +238,7 @@ describe("Aggregated holdings — income scope", () => {
 
   afterEach(() => {
     mockViewMode = "table"
+    mockRouterReady = true
     delete mockRouterQuery.codes
     jest.clearAllMocks()
   })
@@ -253,6 +263,25 @@ describe("Aggregated holdings — income scope", () => {
     expect(incomeRequests()).toHaveLength(0)
   })
 
+  it("sends nothing until the router knows the selected codes", () => {
+    mockRouterReady = false
+    respond({ data: [growth] })
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+  })
+
+  it("reports a failed portfolio lookup instead of loading forever", () => {
+    mockRouterQuery.codes = "GROWTH"
+    respond(undefined, new Error("portfolios unavailable"))
+
+    render(<AggregatedHoldingsPage />)
+
+    expect(incomeRequests()).toHaveLength(0)
+    expect(screen.getByText(/Failed to load income data/)).toBeInTheDocument()
+  })
+
   it("shows no income rather than everything when no selected code resolves", () => {
     mockRouterQuery.codes = "MISSING"
     respond({ data: [growth] })
@@ -260,7 +289,9 @@ describe("Aggregated holdings — income scope", () => {
     render(<AggregatedHoldingsPage />)
 
     expect(incomeRequests()).toHaveLength(0)
-    expect(screen.getByText("No income in this period")).toBeInTheDocument()
+    expect(
+      screen.getByText("None of the selected portfolios were found"),
+    ).toBeInTheDocument()
   })
 
   it("leaves income unscoped when no portfolios were selected", () => {

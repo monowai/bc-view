@@ -164,6 +164,10 @@ describe("portfolioIdsForCodes", () => {
     ])
   })
 
+  it("names each portfolio once when a code repeats", () => {
+    expect(portfolioIdsForCodes(["A", "A"], portfolios)).toEqual(["pf-a"])
+  })
+
   it("drops codes the user does not hold", () => {
     expect(portfolioIdsForCodes(["A", "MISSING"], portfolios)).toEqual(["pf-a"])
   })

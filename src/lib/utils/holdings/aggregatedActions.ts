@@ -109,5 +109,5 @@ export function portfolioIdsForCodes(
   portfolios: Portfolio[],
 ): string[] {
   const idByCode = new Map(portfolios.map((p) => [p.code, p.id]))
-  return codes.flatMap((code) => idByCode.get(code) ?? [])
+  return [...new Set(codes.flatMap((code) => idByCode.get(code) ?? []))]
 }
