@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts"
 import { MonthlyIncomeResponse, IncomeGroupData } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -15,6 +14,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 interface MonthlyIncomeChartProps {
   data: MonthlyIncomeResponse
   currencySymbol?: string
+  selectedGroup?: string | null
 }
 
 // Color palette for chart bars
@@ -31,8 +31,60 @@ const COLORS = [
   "#6366F1", // indigo-500
 ]
 
-export function getColorForIndex(index: number): string {
+export const OTHER_COLOR = "#9CA3AF" // gray-400
+
+// Beyond this many groups the chart shows the top few plus Other
+const MAX_SERIES = 6
+const TOP_SERIES = 5
+
+export function groupColor(index: number, groupCount: number): string {
+  if (groupCount > MAX_SERIES && index >= TOP_SERIES) return OTHER_COLOR
   return COLORS[index % COLORS.length]
+}
+
+export interface IncomeSeries {
+  key: string
+  color: string
+  monthly: number[]
+  members: string[]
+}
+
+export function monthlyIncome(
+  group: IncomeGroupData,
+  data: MonthlyIncomeResponse,
+): number[] {
+  return data.months.map(
+    (month) =>
+      group.monthlyData.find((m) => m.yearMonth === month.yearMonth)?.income ||
+      0,
+  )
+}
+
+// Chart series in income order, with a long tail folded into one grey Other
+export function incomeSeries(data: MonthlyIncomeResponse): IncomeSeries[] {
+  const count = data.groups.length
+  const shown =
+    count > MAX_SERIES ? data.groups.slice(0, TOP_SERIES) : data.groups
+  const series = shown.map((group, index) => ({
+    key: group.groupKey,
+    color: groupColor(index, count),
+    monthly: monthlyIncome(group, data),
+    members: [group.groupKey],
+  }))
+  if (count <= MAX_SERIES) return series
+
+  const tail = data.groups.slice(TOP_SERIES)
+  return [
+    ...series,
+    {
+      key: `Other (${tail.length})`,
+      color: OTHER_COLOR,
+      monthly: data.months.map((_, i) =>
+        tail.reduce((sum, group) => sum + monthlyIncome(group, data)[i], 0),
+      ),
+      members: tail.map((group) => group.groupKey),
+    },
+  ]
 }
 
 interface ChartDataPoint {
@@ -101,81 +153,81 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 const MonthlyIncomeChart: React.FC<MonthlyIncomeChartProps> = ({
   data,
   currencySymbol = "$",
+  selectedGroup = null,
 }) => {
+  const series = incomeSeries(data)
+
   // Transform data for stacked bar chart
-  const chartData: ChartDataPoint[] = data.months.map((month) => {
+  const chartData: ChartDataPoint[] = data.months.map((month, monthIndex) => {
     const point: ChartDataPoint = {
       month: formatMonth(month.yearMonth),
     }
 
-    data.groups.forEach((group) => {
-      const monthData = group.monthlyData.find(
-        (m) => m.yearMonth === month.yearMonth,
-      )
-      point[group.groupKey] = monthData?.income || 0
+    series.forEach((s) => {
+      point[s.key] = s.monthly[monthIndex]
     })
 
     return point
   })
 
-  // Get keys for the bars (group keys)
-  const barKeys: string[] = data.groups.map((g) => g.groupKey)
-
-  if (chartData.length === 0 || barKeys.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        No income data available
-      </div>
-    )
-  }
-
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-          <XAxis
-            dataKey="month"
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={{ stroke: "#E5E7EB" }}
-          />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={{ stroke: "#E5E7EB" }}
-            tickFormatter={(value) =>
-              `${currencySymbol}${value.toLocaleString()}`
-            }
-          />
-          <Tooltip
-            content={<CustomTooltip currencySymbol={currencySymbol} />}
-          />
-          <Legend
-            wrapperStyle={{ paddingTop: "10px" }}
-            iconType="square"
-            iconSize={10}
-          />
-          {barKeys.map((key, index) => (
-            <Bar
-              key={key}
-              dataKey={key}
-              stackId="income"
-              fill={COLORS[index % COLORS.length]}
-              name={key}
+    <div>
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E5E7EB" }}
             />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+            <YAxis
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E5E7EB" }}
+              tickFormatter={(value) =>
+                `${currencySymbol}${value.toLocaleString()}`
+              }
+            />
+            <Tooltip
+              content={<CustomTooltip currencySymbol={currencySymbol} />}
+            />
+            {series.map((s) => (
+              <Bar
+                key={s.key}
+                dataKey={s.key}
+                stackId="income"
+                fill={s.color}
+                fillOpacity={
+                  selectedGroup && !s.members.includes(selectedGroup) ? 0.25 : 1
+                }
+                name={s.key}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-700">
+        {series.map((s) => (
+          <li key={s.key} className="flex items-center">
+            <span
+              className="w-2.5 h-2.5 rounded-sm mr-1.5"
+              style={{ backgroundColor: s.color }}
+            />
+            {s.key}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
 
 // Helper to format month string (YYYY-MM to short format like "Jan 24")
-function formatMonth(yearMonth: string): string {
+export function formatMonth(yearMonth: string): string {
   const [year, month] = yearMonth.split("-")
   const monthNames = [
     "Jan",
@@ -195,115 +247,145 @@ function formatMonth(yearMonth: string): string {
   return `${monthNames[monthIndex]} ${year.slice(2)}`
 }
 
-// Income breakdown table component with click handling
+// Toggle naming a group, shared by the ledger and the calendar
+export const GroupToggle: React.FC<{
+  groupKey: string
+  expanded: boolean
+  onToggle: (groupKey: string) => void
+  children?: React.ReactNode
+}> = ({ groupKey, expanded, onToggle, children }) => (
+  <button
+    type="button"
+    aria-expanded={expanded}
+    onClick={() => onToggle(groupKey)}
+    className="flex items-center w-full text-left rounded-sm focus-visible:outline-2 focus-visible:outline-blue-600"
+  >
+    {children}
+    <span className="truncate max-w-[200px]">{groupKey}</span>
+  </button>
+)
+
+// Ranked ledger of groups; a row expands to its top contributors
 interface IncomeBreakdownTableProps {
   data: MonthlyIncomeResponse
   currencySymbol: string
   groupByLabel: string
-  onRowClick?: (item: IncomeGroupData) => void
+  selectedGroup: string | null
+  onSelectGroup: (groupKey: string) => void
 }
 
 export const IncomeBreakdownTable: React.FC<IncomeBreakdownTableProps> = ({
   data,
   currencySymbol,
   groupByLabel,
-  onRowClick,
+  selectedGroup,
+  onSelectGroup,
 }) => {
-  if (data.groups.length === 0) {
-    return null
-  }
+  const share = (income: number, total: number): number =>
+    total > 0 ? (income / total) * 100 : 0
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {groupByLabel}
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Total Income
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              % of Total
-            </th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Top Contributors
-            </th>
+      <table
+        aria-label={`Income by ${groupByLabel}`}
+        className="min-w-full text-sm"
+      >
+        <thead>
+          <tr className="border-b border-gray-200 text-xs font-medium text-gray-500">
+            <th className="px-4 py-2 text-left font-medium">{groupByLabel}</th>
+            <th className="px-4 py-2 text-right font-medium">Income</th>
+            <th className="px-4 py-2 text-right font-medium">Share</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y divide-gray-100">
           {data.groups.map((item, index) => {
-            const percentage =
-              data.totalIncome > 0
-                ? (item.totalIncome / data.totalIncome) * 100
-                : 0
+            const percentage = share(item.totalIncome, data.totalIncome)
+            const color = groupColor(index, data.groups.length)
+            const expanded = selectedGroup === item.groupKey
 
             return (
-              <tr
-                key={item.groupKey}
-                className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} ${onRowClick ? "cursor-pointer hover:bg-blue-50 transition-colors" : ""}`}
-                onClick={() => onRowClick?.(item)}
-              >
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  <div className="flex items-center">
-                    <div
-                      className="w-3 h-3 rounded-sm mr-2 flex-shrink-0"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
-                    <span className="truncate max-w-[200px]">
-                      {item.groupKey}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900 tabular-nums">
-                  {currencySymbol}
-                  <FormatValue value={item.totalIncome} />
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-500 tabular-nums">
-                  {percentage.toFixed(1)}%
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-blue-600">
-                  <button
-                    className="inline-flex items-center hover:text-blue-800"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onRowClick?.(item)
-                    }}
+              <React.Fragment key={item.groupKey}>
+                <tr
+                  className={`cursor-pointer hover:bg-blue-50 transition-colors ${expanded ? "bg-blue-50" : ""}`}
+                  onClick={() => onSelectGroup(item.groupKey)}
+                >
+                  <th
+                    scope="row"
+                    className="px-4 py-2 whitespace-nowrap font-normal text-gray-900"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <span className="mr-1">{item.topContributors.length}</span>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                    <GroupToggle
+                      groupKey={item.groupKey}
+                      expanded={expanded}
+                      onToggle={onSelectGroup}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
+                      <span
+                        className="w-3 h-3 rounded-sm mr-2 flex-shrink-0"
+                        style={{ backgroundColor: color }}
                       />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
+                    </GroupToggle>
+                  </th>
+                  <td className="px-4 py-2 whitespace-nowrap text-right font-medium text-gray-900 tabular-nums">
+                    {currencySymbol}
+                    <FormatValue value={item.totalIncome} />
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-gray-500 tabular-nums">
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {percentage.toFixed(1)}%
+                      <span className="hidden sm:block w-14 h-1.5 bg-gray-100 rounded-sm overflow-hidden">
+                        <span
+                          className="block h-full"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </span>
+                    </span>
+                  </td>
+                </tr>
+                {expanded &&
+                  item.topContributors.map((contributor) => (
+                    <tr key={contributor.assetId} className="bg-gray-50">
+                      <td className="pl-9 pr-4 py-1.5 text-xs">
+                        <span className="font-medium text-gray-900">
+                          {contributor.assetCode}
+                        </span>
+                        {contributor.assetName && (
+                          <span className="block text-gray-500 truncate max-w-[200px]">
+                            {contributor.assetName}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-1.5 text-xs text-right text-gray-900 tabular-nums">
+                        {currencySymbol}
+                        <FormatValue value={contributor.totalIncome} />
+                      </td>
+                      <td className="px-4 py-1.5 text-xs text-right text-gray-500 tabular-nums">
+                        {share(
+                          contributor.totalIncome,
+                          item.totalIncome,
+                        ).toFixed(1)}
+                        %
+                      </td>
+                    </tr>
+                  ))}
+              </React.Fragment>
             )
           })}
         </tbody>
-        <tfoot className="bg-gray-100">
-          <tr>
-            <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+        <tfoot>
+          <tr className="border-t border-gray-200">
+            <th scope="row" className="px-4 py-2 text-left font-semibold">
               Total
-            </td>
-            <td className="px-4 py-3 text-sm text-right font-bold text-gray-900 tabular-nums">
+            </th>
+            <td className="px-4 py-2 text-right font-bold text-gray-900 tabular-nums">
               {currencySymbol}
               <FormatValue value={data.totalIncome} />
             </td>
-            <td className="px-4 py-3 text-sm text-right text-gray-500 tabular-nums">
+            <td className="px-4 py-2 text-right text-gray-500 tabular-nums">
               100%
             </td>
-            <td></td>
           </tr>
         </tfoot>
       </table>

@@ -36,6 +36,7 @@ export interface IncomeGroupData {
 export interface MonthlyIncomeResponse {
   startMonth: string
   endMonth: string
+  currency: string
   totalIncome: number
   groupBy: string
   months: MonthlyIncomeData[]

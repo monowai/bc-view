@@ -4,6 +4,7 @@ import {
   DisplayCurrencyOption,
   GroupOption,
   HoldingDefaults,
+  IncomeLayout,
   ValuationOption,
 } from "types/app"
 import { useValuationOptions } from "@components/features/holdings/ValueIn"
@@ -44,10 +45,12 @@ const holdingDefaults = hookstate(
     groupBy: persistedState?.groupBy ?? null,
     displayCurrency: persistedState?.displayCurrency ?? null,
     incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
+    incomeLayout: (persistedState?.incomeLayout ?? "chart") as IncomeLayout,
   } as HoldingDefaults & {
     hasInitialized: boolean
     viewMode: ViewMode
     incomePeriod: number
+    incomeLayout: IncomeLayout
   },
   devtools({ key: "holdings" }),
 )
@@ -101,6 +104,8 @@ export function useHoldingState(): HoldingDefaults {
             )
           if (newState.incomePeriod !== undefined)
             state.incomePeriod.set(newState.incomePeriod as number)
+          if (newState.incomeLayout !== undefined)
+            state.incomeLayout.set(newState.incomeLayout as IncomeLayout)
         } catch {
           // Ignore parse errors
         }
@@ -125,6 +130,7 @@ export function useHoldingState(): HoldingDefaults {
       groupBy: state.groupBy.get(),
       displayCurrency: state.displayCurrency.get(),
       incomePeriod: state.incomePeriod.get(),
+      incomeLayout: state.incomeLayout.get(),
     })
   }
 
@@ -195,6 +201,13 @@ export function useHoldingState(): HoldingDefaults {
     },
     setIncomePeriod(value: number): void {
       state.incomePeriod.set(value)
+      saveState()
+    },
+    get incomeLayout(): IncomeLayout {
+      return state.incomeLayout.get() || "chart"
+    },
+    setIncomeLayout(value: IncomeLayout): void {
+      state.incomeLayout.set(value)
       saveState()
     },
   }
