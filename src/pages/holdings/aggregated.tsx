@@ -35,6 +35,7 @@ import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
   portfolioIdsForCodes,
+  portfolioWeights,
   resolveTarget,
   tradeSeedForRow,
 } from "@lib/holdings/aggregatedActions"
@@ -44,6 +45,7 @@ import Rows, { SectorWeightingsData } from "@components/features/holdings/Rows"
 import SectorWeightingsPopup from "@components/features/portfolios/SectorWeightingsPopup"
 import AssetChart from "@components/features/assets/AssetChart"
 import PortfolioBreakdownPopup from "@components/features/portfolios/PortfolioBreakdownPopup"
+import AggregatedPortfoliosPopup from "@components/features/portfolios/AggregatedPortfoliosPopup"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import {
@@ -201,6 +203,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const [priceChartData, setPriceChartData] = useState<
     PriceChartData | undefined
   >(undefined)
+  const [showPortfolios, setShowPortfolios] = useState(false)
   const [portfolioBreakdownData, setPortfolioBreakdownData] = useState<
     PortfolioBreakdownData | undefined
   >(undefined)
@@ -504,17 +507,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
     setCashPortfolio(undefined)
   }, [])
 
-  // Determine the subtitle based on selected portfolios
-  const subtitle = useMemo(() => {
-    if (portfolioCodes.length === 0) {
-      return "Showing holdings across all portfolios"
-    }
-    if (portfolioCodes.length === 1) {
-      return `Showing holdings for ${portfolioCodes[0]}`
-    }
-    return `Showing holdings for ${portfolioCodes.length} portfolios`
-  }, [portfolioCodes])
-
   if (error) {
     return errorOut("Failed to load aggregated holdings", error)
   }
@@ -551,7 +543,25 @@ function AggregatedHoldingsPage(): React.ReactElement {
           <h1 className="text-2xl font-bold text-gray-900">
             {"Aggregated Holdings"}
           </h1>
-          <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {portfolioCodes.length === 1 ? (
+              `Showing holdings for ${portfolioCodes[0]}`
+            ) : (
+              <>
+                Showing holdings{" "}
+                {portfolioCodes.length > 1 ? "for " : "across "}
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                  onClick={() => setShowPortfolios(true)}
+                >
+                  {portfolioCodes.length > 1
+                    ? `${portfolioCodes.length} portfolios`
+                    : "all portfolios"}
+                </button>
+              </>
+            )}
+          </p>
         </div>
         {/* Single-row icon ribbon - matches HoldingActions toolbar */}
         <div className="flex items-center justify-between py-1 mb-1 gap-1.5 overflow-x-auto">
@@ -832,6 +842,17 @@ function AggregatedHoldingsPage(): React.ReactElement {
             asset={sectorWeightingsAsset}
             modalOpen={!!sectorWeightingsAsset}
             onClose={handleSectorWeightingsClose}
+          />
+        )}
+        {showPortfolios && (
+          <AggregatedPortfoliosPopup
+            weights={portfolioWeights(
+              holdingResults.positions,
+              (portfoliosData?.data ?? []).filter((p) =>
+                portfolioCodes.includes(p.code),
+              ),
+            )}
+            onClose={() => setShowPortfolios(false)}
           />
         )}
         {portfolioBreakdownData && (

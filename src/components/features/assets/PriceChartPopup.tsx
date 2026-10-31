@@ -962,7 +962,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     }`}
                   >
                     {limitGapPct >= 0 ? "+" : ""}
-                    {limitGapPct.toFixed(2)}% vs limit
+                    {limitGapPct.toFixed(2)}% vs {limitLabel.toLowerCase()}
                   </span>
                 )}
               </div>

@@ -302,3 +302,93 @@ describe("Aggregated holdings — income scope", () => {
     expect(incomeRequests().at(-1)?.has("portfolioIds")).toBe(false)
   })
 })
+
+describe("Aggregated holdings — portfolios in the view", () => {
+  const breakdown = (code: string, quantity: number): object => ({
+    portfolioId: `pf-${code}`,
+    portfolioCode: code,
+    portfolioName: `${code} name`,
+    quantity,
+    held: {},
+  })
+  const contract = {
+    ...holdingContract,
+    positions: {
+      shared: {
+        ...makePosition({ asset: makeAsset({ id: "a1", code: "AAA" }) }),
+        moneyValues: { PORTFOLIO: { marketValue: 1000 } },
+        quantityValues: { total: 4 },
+        portfolioBreakdown: [breakdown("GROWTH", 3), breakdown("YIELD", 1)],
+      },
+    },
+  }
+
+  beforeEach(() => {
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => ({
+      data:
+        typeof key === "string" && key.startsWith("/api/holdings/aggregated")
+          ? { data: contract }
+          : undefined,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    }))
+  })
+
+  afterEach(() => {
+    delete mockRouterQuery.codes
+    jest.clearAllMocks()
+  })
+
+  it("lists each portfolio with its weight and links to its holdings", () => {
+    mockRouterQuery.codes = "GROWTH,YIELD"
+    render(<AggregatedHoldingsPage />)
+
+    expect(
+      screen.queryByRole("link", { name: /GROWTH/ }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "2 portfolios" }))
+
+    const growth = screen.getByRole("link", { name: /GROWTH/ })
+    expect(growth).toHaveAttribute("href", "/holdings/GROWTH")
+    expect(growth).toHaveTextContent("75.0%")
+    expect(screen.getByRole("link", { name: /YIELD/ })).toHaveTextContent(
+      "25.0%",
+    )
+  })
+
+  it("offers the same list when viewing all portfolios", () => {
+    render(<AggregatedHoldingsPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: "all portfolios" }))
+
+    expect(screen.getByRole("link", { name: /GROWTH/ })).toBeInTheDocument()
+  })
+
+  it("says so when the view holds no portfolios", () => {
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => ({
+      data:
+        typeof key === "string" && key.startsWith("/api/holdings/aggregated")
+          ? { data: { ...holdingContract, positions: {} } }
+          : undefined,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    }))
+    render(<AggregatedHoldingsPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: "all portfolios" }))
+
+    expect(screen.getByText("No portfolios in this view")).toBeInTheDocument()
+  })
+
+  it("names a single portfolio without a list to open", () => {
+    mockRouterQuery.codes = "GROWTH"
+    render(<AggregatedHoldingsPage />)
+
+    expect(screen.getByText("Showing holdings for GROWTH")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /portfolios$/ }),
+    ).not.toBeInTheDocument()
+  })
+})

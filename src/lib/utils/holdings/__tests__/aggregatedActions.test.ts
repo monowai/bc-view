@@ -1,6 +1,7 @@
 import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
+  portfolioWeights,
   portfolioIdsForCodes,
   resolveTarget,
   tradeSeedForRow,
@@ -170,5 +171,83 @@ describe("portfolioIdsForCodes", () => {
 
   it("drops codes the user does not hold", () => {
     expect(portfolioIdsForCodes(["A", "MISSING"], portfolios)).toEqual(["pf-a"])
+  })
+})
+
+describe("portfolioWeights", () => {
+  const held = (
+    marketValue: number,
+    total: number,
+    holders: [string, number][],
+  ): Parameters<typeof portfolioWeights>[0][string] => ({
+    moneyValues: { PORTFOLIO: { marketValue } },
+    quantityValues: { total },
+    portfolioBreakdown: holders.map(([code, quantity]) =>
+      makePortfolioBreakdown({
+        portfolioId: `pf-${code}`,
+        portfolioCode: code,
+        portfolioName: `${code} name`,
+        quantity,
+      }),
+    ),
+  })
+
+  it("splits each position by quantity and ranks by weight", () => {
+    const weights = portfolioWeights({
+      shared: held(600, 30, [
+        ["A", 10],
+        ["B", 20],
+      ]),
+      solo: held(400, 5, [["B", 5]]),
+    })
+
+    expect(weights.map((w) => [w.portfolioCode, w.weight])).toEqual([
+      ["B", 80],
+      ["A", 20],
+    ])
+  })
+
+  it("keeps a selected portfolio that holds nothing, at zero", () => {
+    const weights = portfolioWeights({ solo: held(100, 1, [["A", 1]]) }, [
+      makePortfolio({ id: "pf-Z", code: "Z", name: "Z name" }),
+    ])
+
+    expect(weights.at(-1)).toEqual({
+      portfolioId: "pf-Z",
+      portfolioCode: "Z",
+      portfolioName: "Z name",
+      weight: 0,
+    })
+  })
+
+  it("reports zero rather than dividing by an empty view", () => {
+    expect(portfolioWeights({ flat: held(0, 1, [["A", 1]]) })[0].weight).toBe(0)
+  })
+
+  it("keeps shares signed when the view nets negative", () => {
+    const weights = portfolioWeights({
+      asset: held(100, 1, [["A", 1]]),
+      overdraft: held(-300, 1, [["B", 1]]),
+    })
+
+    expect(weights.map((w) => [w.portfolioCode, w.weight])).toEqual([
+      ["A", 50],
+      ["B", -150],
+    ])
+  })
+
+  it("orders ties by code so the list is stable", () => {
+    const weights = portfolioWeights({
+      shared: held(100, 2, [
+        ["B", 1],
+        ["A", 1],
+      ]),
+    })
+
+    expect(weights.map((w) => w.portfolioCode)).toEqual(["A", "B"])
+  })
+
+  it("ignores positions with no quantity to split", () => {
+    expect(portfolioWeights({ sold: held(50, 0, [["A", 1]]) })).toHaveLength(0)
   })
 })
