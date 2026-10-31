@@ -18,6 +18,11 @@ const AggregatedPortfoliosPopup: React.FC<AggregatedPortfoliosPopupProps> = ({
     maxWidth="md"
     scrollable
   >
+    {weights.length === 0 && (
+      <p className="px-2 py-3 text-sm text-gray-500">
+        No portfolios in this view
+      </p>
+    )}
     <ul className="divide-y divide-gray-100">
       {weights.map((row) => (
         <li key={row.portfolioId}>

@@ -163,11 +163,14 @@ export function portfolioWeights(
   }
 
   const rows = [...values.values()]
-  const viewTotal = rows.reduce((sum, row) => sum + row.weight, 0)
+  const viewTotal = Math.abs(rows.reduce((sum, row) => sum + row.weight, 0))
   return rows
     .map((row) => ({
       ...row,
       weight: viewTotal === 0 ? 0 : (row.weight / viewTotal) * 100,
     }))
-    .sort((a, b) => b.weight - a.weight)
+    .sort(
+      (a, b) =>
+        b.weight - a.weight || a.portfolioCode.localeCompare(b.portfolioCode),
+    )
 }

@@ -224,6 +224,29 @@ describe("portfolioWeights", () => {
     expect(portfolioWeights({ flat: held(0, 1, [["A", 1]]) })[0].weight).toBe(0)
   })
 
+  it("keeps shares signed when the view nets negative", () => {
+    const weights = portfolioWeights({
+      asset: held(100, 1, [["A", 1]]),
+      overdraft: held(-300, 1, [["B", 1]]),
+    })
+
+    expect(weights.map((w) => [w.portfolioCode, w.weight])).toEqual([
+      ["A", 50],
+      ["B", -150],
+    ])
+  })
+
+  it("orders ties by code so the list is stable", () => {
+    const weights = portfolioWeights({
+      shared: held(100, 2, [
+        ["B", 1],
+        ["A", 1],
+      ]),
+    })
+
+    expect(weights.map((w) => w.portfolioCode)).toEqual(["A", "B"])
+  })
+
   it("ignores positions with no quantity to split", () => {
     expect(portfolioWeights({ sold: held(50, 0, [["A", 1]]) })).toHaveLength(0)
   })

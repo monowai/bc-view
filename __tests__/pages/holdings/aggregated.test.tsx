@@ -365,6 +365,23 @@ describe("Aggregated holdings — portfolios in the view", () => {
     expect(screen.getByRole("link", { name: /GROWTH/ })).toBeInTheDocument()
   })
 
+  it("says so when the view holds no portfolios", () => {
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => ({
+      data:
+        typeof key === "string" && key.startsWith("/api/holdings/aggregated")
+          ? { data: { ...holdingContract, positions: {} } }
+          : undefined,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    }))
+    render(<AggregatedHoldingsPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: "all portfolios" }))
+
+    expect(screen.getByText("No portfolios in this view")).toBeInTheDocument()
+  })
+
   it("names a single portfolio without a list to open", () => {
     mockRouterQuery.codes = "GROWTH"
     render(<AggregatedHoldingsPage />)
