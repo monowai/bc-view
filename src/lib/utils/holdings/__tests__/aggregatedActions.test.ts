@@ -1,10 +1,14 @@
 import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
+  portfolioIdsForCodes,
   resolveTarget,
   tradeSeedForRow,
 } from "../aggregatedActions"
-import { makePortfolioBreakdown } from "@test-fixtures/beancounter"
+import {
+  makePortfolio,
+  makePortfolioBreakdown,
+} from "@test-fixtures/beancounter"
 import { QuickSellData } from "types/beancounter"
 
 describe("indexBreakdownByAssetId", () => {
@@ -144,5 +148,23 @@ describe("tradeSeedForRow", () => {
     const row = makePortfolioBreakdown({ portfolioId: "p1", quantity: 255 })
     const seed = tradeSeedForRow(data, row, "SELL")
     expect(seed.held).toEqual({ DBS: 200, SCB: 80 })
+  })
+})
+
+describe("portfolioIdsForCodes", () => {
+  const portfolios = [
+    makePortfolio({ id: "pf-a", code: "A" }),
+    makePortfolio({ id: "pf-b", code: "B" }),
+  ]
+
+  it("maps codes to ids in the order requested", () => {
+    expect(portfolioIdsForCodes(["B", "A"], portfolios)).toEqual([
+      "pf-b",
+      "pf-a",
+    ])
+  })
+
+  it("drops codes the user does not hold", () => {
+    expect(portfolioIdsForCodes(["A", "MISSING"], portfolios)).toEqual(["pf-a"])
   })
 })

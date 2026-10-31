@@ -34,6 +34,7 @@ import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import {
   buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
+  portfolioIdsForCodes,
   resolveTarget,
   tradeSeedForRow,
 } from "@lib/holdings/aggregatedActions"
@@ -287,6 +288,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
     for (const p of portfoliosData?.data ?? []) map.set(p.id, p)
     return map
   }, [portfoliosData])
+  const incomePortfolioIds = useMemo(
+    () => portfolioIdsForCodes(portfolioCodes, portfoliosData?.data ?? []),
+    [portfolioCodes, portfoliosData],
+  )
 
   // Toolbar "Trade" buys an asset the aggregate may not hold yet. Default the
   // form to the first active portfolio in scope; its own picker can change it.
@@ -734,11 +739,19 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
-            <IncomeView
-              portfolio={holdingResults.portfolio}
-              portfolioIds={portfolioCodes.length > 0 ? undefined : undefined}
-              isAggregated={true}
-            />
+            {portfolioCodes.length > 0 && !portfoliosData ? (
+              <TableSkeletonLoader rows={5} />
+            ) : portfolioCodes.length > 0 && incomePortfolioIds.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center text-sm text-gray-500">
+                No income in this period
+              </div>
+            ) : (
+              <IncomeView
+                portfolio={holdingResults.portfolio}
+                portfolioIds={incomePortfolioIds}
+                isAggregated={true}
+              />
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
