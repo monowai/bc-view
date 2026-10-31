@@ -18,6 +18,12 @@ function targetKey(target: PortfolioReviewTarget): string {
   return `A|${[...target.codes].sort().join(",")}`
 }
 
+function conversationLabel(target: PortfolioReviewTarget): string {
+  if (target.kind === "portfolio") return target.name
+  if (target.codes.length === 0) return "Aggregated Holdings"
+  return [...target.codes].sort().join(", ")
+}
+
 function targetTitle(target: PortfolioReviewTarget): string {
   if (target.kind === "portfolio") return target.name
   if (target.codes.length === 0) return "Aggregated Holdings"
@@ -26,11 +32,13 @@ function targetTitle(target: PortfolioReviewTarget): string {
 }
 
 function buildRequest(target: PortfolioReviewTarget): AnalysisRequest {
+  const cacheKey = `portfolio-review|${targetKey(target)}`
   const common = {
-    cacheKey: `portfolio-review|${targetKey(target)}`,
+    cacheKey,
+    conversationSubject: cacheKey,
     // Blank: svc-agent asks its canned daily-briefing question for this page.
     query: "",
-    label: `AI Summary — ${targetTitle(target)}`,
+    label: `AI Summary — ${conversationLabel(target)}`,
     ttlMs: CACHE_TTL_MS,
   }
   if (target.kind === "portfolio") {

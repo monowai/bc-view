@@ -115,12 +115,14 @@ async function errorBodyOf(res: Response): Promise<unknown> {
 async function createConversation(
   signal: AbortSignal,
   seed: ConversationSeedTurn[] = [],
+  subject?: string,
 ): Promise<string | null> {
+  const payload = subject ? { subject } : seed.length > 0 ? { turns: seed } : {}
   try {
     const res = await fetch(CONVERSATIONS_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: seed.length > 0 ? JSON.stringify({ turns: seed }) : "{}",
+      body: JSON.stringify(payload),
       signal,
     })
     if (!res.ok) return null
@@ -225,6 +227,11 @@ interface UseChatOptions {
    * saved on the first follow-up, seeded with the transcript so far.
    */
   saveOnFollowUp?: boolean
+  /**
+   * With `persist`, join the one stored conversation about this subject
+   * instead of starting a new one. svc-agent finds or starts it.
+   */
+  conversationSubject?: string
 }
 
 export interface UseChatReturn {
@@ -289,6 +296,7 @@ export function useChat(
   const [isLoading, setIsLoading] = useState(false)
   const persist = options.persist ?? false
   const saveOnFollowUp = options.saveOnFollowUp ?? false
+  const conversationSubject = options.conversationSubject
   const remember = persist && (options.remember ?? true)
   const [conversationId, setConversationIdState] = useState<string | null>(
     () => (persist ? (options.initialConversationId ?? null) : null),
@@ -533,7 +541,11 @@ export function useChat(
         activeId = persist ? conversationIdRef.current : null
         if (persist && activeId === null && startConversation) {
           // Can't create one (agent down, etc.)? Still answer — statelessly.
-          activeId = await createConversation(controller.signal, toSeed(prior))
+          activeId = await createConversation(
+            controller.signal,
+            toSeed(prior),
+            conversationSubject,
+          )
           if (activeId !== null && !controller.signal.aborted) {
             setConversation(activeId)
           }
@@ -696,7 +708,14 @@ export function useChat(
         void refreshAgentQuota()
       }
     },
-    [context, persist, saveOnFollowUp, setConversation, recoverTurn],
+    [
+      context,
+      persist,
+      saveOnFollowUp,
+      conversationSubject,
+      setConversation,
+      recoverTurn,
+    ],
   )
 
   const newChat = useCallback(() => {

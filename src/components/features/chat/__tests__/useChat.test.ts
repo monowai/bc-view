@@ -960,6 +960,31 @@ describe("useChat with persisted conversations", () => {
     ])
   })
 
+  it("with a conversationSubject, the opening send joins that subject's conversation", async () => {
+    route({
+      [`POST ${CONVERSATIONS}`]: () => json(201, { data: { id: "c-subject" } }),
+      [`POST ${STREAM}`]: () => answer(),
+    })
+    const { result } = renderHook(() =>
+      useChat(undefined, {
+        persist: true,
+        remember: false,
+        conversationSubject: "portfolio-review|A|ALPHA,BETA",
+      }),
+    )
+
+    await act(async () => {
+      await result.current.sendMessage("", false, false, "AI Summary — ALPHA")
+    })
+
+    expect(createBodies()).toEqual([
+      { subject: "portfolio-review|A|ALPHA,BETA" },
+    ])
+    expect(streamBodies()[0].conversationId).toBe("c-subject")
+    expect(result.current.conversationId).toBe("c-subject")
+    expect(localStorage.getItem(CONVERSATION_STORAGE_KEY)).toBeNull()
+  })
+
   it("with saveOnFollowUp, the opening send is stateless: no conversation is created and no label is sent", async () => {
     route({ [`POST ${STREAM}`]: () => answer() })
     const { result } = renderHook(() =>

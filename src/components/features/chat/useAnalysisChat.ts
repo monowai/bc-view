@@ -18,6 +18,11 @@ export interface AnalysisRequest {
   context: Record<string, unknown>
   /** How long a completed thread is reused when the popup is reopened. */
   ttlMs: number
+  /**
+   * Keep every run in the one saved conversation about this subject, opening
+   * turn included. Without it, a thread is saved on its first follow-up.
+   */
+  conversationSubject?: string
 }
 
 interface CachedThread {
@@ -60,13 +65,15 @@ export function analysisSucceeded(messages: ChatMessage[]): boolean {
  * still runs, statelessly.
  */
 export function useAnalysisChat(request: AnalysisRequest): UseChatReturn {
-  const { cacheKey, query, label, context, ttlMs } = request
+  const { cacheKey, query, label, context, ttlMs, conversationSubject } =
+    request
   const [cached] = useState(() => readThread(cacheKey, ttlMs))
   const chat = useChat(context, {
     initialMessages: cached?.messages,
     persist: true,
     remember: false,
-    saveOnFollowUp: true,
+    saveOnFollowUp: !conversationSubject,
+    conversationSubject,
     initialConversationId: cached?.conversationId ?? undefined,
   })
   const { messages, isLoading, sendMessage, conversationId } = chat

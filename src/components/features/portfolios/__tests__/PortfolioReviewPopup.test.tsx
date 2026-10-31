@@ -22,6 +22,7 @@ function bodyOf(call: number): Record<string, unknown> & {
 describe("PortfolioReviewPopup", () => {
   beforeEach(() => {
     mockFetch.mockReset()
+    global.fetch = withUnsavedAnalyses(mockFetch)
     clearAnalysisCache()
   })
 
@@ -51,6 +52,42 @@ describe("PortfolioReviewPopup", () => {
     expect(body.context.portfolioName).toBe("Test Portfolio")
     // svc-agent owns the daily-briefing question.
     expect(body.query).toBe("")
+  })
+
+  function conversationSubjects(): string[] {
+    return mockFetch.mock.calls
+      .filter(([url]) => url === "/api/agent/conversations")
+      .map(([, init]) => JSON.parse(init.body as string).subject)
+  }
+
+  it("keeps a review in the conversation for its exact portfolios", async () => {
+    global.fetch = mockFetch as unknown as typeof fetch
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url === "/api/agent/conversations"
+          ? {
+              ok: true,
+              status: 201,
+              json: () => Promise.resolve({ data: { id: "c-review" } }),
+            }
+          : sseAnswer("Hi"),
+      ),
+    )
+    render(
+      <PortfolioReviewPopup
+        target={{ kind: "aggregated", codes: ["BETA", "ALPHA"] }}
+        onClose={jest.fn()}
+      />,
+    )
+    await screen.findByText("Hi")
+
+    expect(conversationSubjects()).toEqual(["portfolio-review|A|ALPHA,BETA"])
+    const stream = mockFetch.mock.calls.find(
+      ([url]) => url === "/api/agent/query/stream",
+    )
+    expect(JSON.parse(stream?.[1].body as string).conversationId).toBe(
+      "c-review",
+    )
   })
 
   it("titles the dialog with the portfolio name", async () => {
