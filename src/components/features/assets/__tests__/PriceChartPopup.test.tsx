@@ -345,6 +345,14 @@ describe("PriceChartPopup", () => {
     expect(screen.getByText(/\+1\.20% vs limit/)).toBeInTheDocument()
   })
 
+  it("names the gap after the line it is measured against", () => {
+    mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+    renderPopup({ limitPrice: 100, limitLabel: "Watch" })
+
+    expect(screen.getByText(/% vs watch$/)).toBeInTheDocument()
+    expect(screen.queryByText(/vs limit/)).not.toBeInTheDocument()
+  })
+
   it("omits the limit reference line when no limit is supplied", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
