@@ -6,7 +6,7 @@ const DIGITS = /^\d+$/
 /**
  * svc-agent chat history for the caller.
  * GET: newest-active conversations (`?page=&size=` forwarded when numeric).
- * POST: start an empty conversation.
+ * POST: start a conversation, or find the one for a `subject`.
  * DELETE: remove all of the caller's conversations.
  */
 export default createApiHandler({
