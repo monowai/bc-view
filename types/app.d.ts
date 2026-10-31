@@ -61,6 +61,8 @@ export interface TradeDefaults {
   readonly trnInput: TrnInput
   setTrnInput(value: TrnInput): void
 }
+export type IncomeLayout = "chart" | "calendar"
+
 export interface HoldingDefaults {
   toggleHideEmpty(): void
   readonly valueIn: ValuationOption
@@ -86,4 +88,6 @@ export interface HoldingDefaults {
   ): void
   readonly incomePeriod: number
   setIncomePeriod(value: number): void
+  readonly incomeLayout: IncomeLayout
+  setIncomeLayout(value: IncomeLayout): void
 }

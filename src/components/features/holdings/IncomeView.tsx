@@ -1,20 +1,17 @@
-import React, { useState, useCallback, useMemo } from "react"
+import React, { useState, useCallback } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import {
-  MonthlyIncomeResponse,
-  Portfolio,
-  IncomeGroupData,
-} from "types/beancounter"
+import { MonthlyIncomeResponse, Portfolio } from "types/beancounter"
+import { IncomeLayout } from "types/app"
 import MonthlyIncomeChart, {
   IncomeBreakdownTable,
-  getColorForIndex,
+  formatMonth,
 } from "./MonthlyIncomeChart"
+import IncomeCalendar from "./IncomeCalendar"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import Alert from "@components/ui/Alert"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import { useHoldingState } from "@lib/holdings/holdingState"
-import Dialog from "@components/ui/Dialog"
 import { GROUP_BY_OPTIONS } from "types/constants"
 import { incomeMonthlyKey } from "@utils/api/client/trns"
 
@@ -56,113 +53,48 @@ function getGroupByLabel(groupByPath: string): string {
   }
 }
 
-// Popup component for showing top 10 contributors
-interface ContributorsPopupProps {
-  item: IncomeGroupData
-  groupByLabel: string
-  currencySymbol: string
-  totalIncome: number
-  colorIndex: number
-  onClose: () => void
+const PERIODS = [6, 12, 24, 36]
+
+const LAYOUTS: { value: IncomeLayout; label: string }[] = [
+  { value: "chart", label: "Chart" },
+  { value: "calendar", label: "Calendar" },
+]
+
+interface SegmentedProps<T> {
+  label: string
+  options: { value: T; label: string }[]
+  value: T
+  onChange: (value: T) => void
 }
 
-const ContributorsPopup: React.FC<ContributorsPopupProps> = ({
-  item,
-  groupByLabel,
-  currencySymbol,
-  totalIncome,
-  colorIndex,
-  onClose,
-}) => {
+function Segmented<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+}: SegmentedProps<T>): React.ReactElement {
   return (
-    <Dialog
-      title={
-        <div className="flex items-center">
-          <div
-            className="w-4 h-4 rounded-sm mr-3"
-            style={{ backgroundColor: getColorForIndex(colorIndex) }}
-          />
-          <div>
-            <div>{item.groupKey}</div>
-            <p className="text-sm text-gray-500 font-normal">
-              Top 10 Contributors by Income
-            </p>
-          </div>
-        </div>
-      }
-      onClose={onClose}
-      maxWidth="lg"
-      scrollable
-      footer={<Dialog.CancelButton onClick={onClose} label="Close" />}
+    <div
+      role="group"
+      aria-label={label}
+      className="inline-flex border border-gray-200 rounded-md overflow-hidden divide-x divide-gray-200"
     >
-      {/* Summary */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">{groupByLabel} Total</span>
-          <span className="text-lg font-bold text-gray-900 tabular-nums">
-            {currencySymbol}
-            <FormatValue value={item.totalIncome} />
-          </span>
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          {totalIncome > 0
-            ? ((item.totalIncome / totalIncome) * 100).toFixed(1)
-            : 0}
-          % of total income
-        </div>
-      </div>
-
-      {/* Contributors List */}
-      <div className="overflow-y-auto max-h-96">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Asset
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Income
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                % of {groupByLabel}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {item.topContributors.map((contributor, index) => {
-              const percentage =
-                item.totalIncome > 0
-                  ? (contributor.totalIncome / item.totalIncome) * 100
-                  : 0
-              return (
-                <tr
-                  key={contributor.assetId}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                >
-                  <td className="px-6 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {contributor.assetCode}
-                    </div>
-                    {contributor.assetName && (
-                      <div className="text-xs text-gray-500 truncate max-w-[200px]">
-                        {contributor.assetName}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900 tabular-nums">
-                    {currencySymbol}
-                    <FormatValue value={contributor.totalIncome} />
-                  </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-right text-gray-500 tabular-nums">
-                    {percentage.toFixed(1)}%
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Dialog>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={option.value === value}
+          onClick={() => onChange(option.value)}
+          className={`px-2.5 py-1 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${
+            option.value === value
+              ? "bg-blue-50 text-blue-700 font-semibold"
+              : "bg-white text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -173,10 +105,8 @@ const IncomeView: React.FC<IncomeViewProps> = ({
 }) => {
   const holdingState = useHoldingState()
   const months = holdingState.incomePeriod
-  const [selectedItem, setSelectedItem] = useState<{
-    item: IncomeGroupData
-    colorIndex: number
-  } | null>(null)
+  const layout = holdingState.incomeLayout
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
 
   // Get groupBy from holding state and map to API value
   const groupByPath = holdingState.groupBy.value
@@ -201,29 +131,9 @@ const IncomeView: React.FC<IncomeViewProps> = ({
 
   const currencySymbol = portfolio?.currency?.symbol || "$"
 
-  // Handle row click to show contributors popup
-  const handleRowClick = useCallback(
-    (item: IncomeGroupData) => {
-      const index =
-        data?.groups.findIndex((g) => g.groupKey === item.groupKey) ?? 0
-      setSelectedItem({ item, colorIndex: index })
-    },
-    [data],
-  )
-
-  const handleClosePopup = useCallback(() => {
-    setSelectedItem(null)
+  const handleSelectGroup = useCallback((groupKey: string) => {
+    setSelectedGroup((current) => (current === groupKey ? null : groupKey))
   }, [])
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    if (!data) return { avgMonthlyIncome: 0, groupCount: 0 }
-    return {
-      avgMonthlyIncome:
-        data.months.length > 0 ? data.totalIncome / data.months.length : 0,
-      groupCount: data.groups.length,
-    }
-  }, [data])
 
   if (error) {
     return (
@@ -241,103 +151,80 @@ const IncomeView: React.FC<IncomeViewProps> = ({
     )
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Controls - just period selector, groupBy comes from toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          {/* Month Range Selector */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Period:</span>
-            <select
-              value={months}
-              onChange={(e) =>
-                holdingState.setIncomePeriod(parseInt(e.target.value, 10))
-              }
-              className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value={6}>6 months</option>
-              <option value={12}>12 months</option>
-              <option value={24}>24 months</option>
-              <option value={36}>36 months</option>
-            </select>
-          </div>
-        </div>
-        <div className="text-sm text-gray-500">
-          Grouped by:{" "}
-          <span className="font-medium text-gray-700">{groupByLabel}</span>
-        </div>
-      </div>
+  const avgMonthlyIncome =
+    data.months.length > 0 ? data.totalIncome / data.months.length : 0
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-600">Total Income</div>
-          <div className="text-2xl font-bold text-gray-900 tabular-nums">
+  return (
+    <div className="space-y-3">
+      <div
+        data-testid="income-headline"
+        className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
+      >
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <span className="text-3xl font-bold tracking-tight text-gray-900 tabular-nums">
             {currencySymbol}
             <FormatValue value={data.totalIncome} />
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {data.startMonth} to {data.endMonth}
-          </div>
+          </span>
+          <span className="text-sm text-gray-500">
+            <span className="font-medium text-gray-900 tabular-nums">
+              {currencySymbol}
+              <FormatValue value={avgMonthlyIncome} />
+            </span>{" "}
+            a month
+          </span>
+          <span className="text-sm text-gray-500">
+            {formatMonth(data.startMonth)} to {formatMonth(data.endMonth)}
+          </span>
         </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-600">Monthly Average</div>
-          <div className="text-2xl font-bold text-gray-900 tabular-nums">
-            {currencySymbol}
-            <FormatValue value={stats.avgMonthlyIncome} />
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Over {data.months.length} months
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-600">{groupByLabel}s</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {stats.groupCount}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">Paying dividends</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            label="Period"
+            options={PERIODS.map((value) => ({ value, label: `${value}m` }))}
+            value={months}
+            onChange={holdingState.setIncomePeriod}
+          />
+          <Segmented
+            label="Layout"
+            options={LAYOUTS}
+            value={layout}
+            onChange={holdingState.setIncomeLayout}
+          />
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Monthly Income by {groupByLabel}
-        </h3>
-        <MonthlyIncomeChart data={data} currencySymbol={currencySymbol} />
-      </div>
-
-      {/* Breakdown Table */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-medium text-gray-900">
-            Income Breakdown by {groupByLabel}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Click on a row to see top 10 contributors
-          </p>
+      {data.groups.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center text-sm text-gray-500">
+          No income in this period
         </div>
-        <IncomeBreakdownTable
-          data={data}
-          currencySymbol={currencySymbol}
-          groupByLabel={groupByLabel}
-          onRowClick={handleRowClick}
-        />
-      </div>
-
-      {/* Contributors Popup */}
-      {selectedItem && (
-        <ContributorsPopup
-          item={selectedItem.item}
-          groupByLabel={groupByLabel}
-          currencySymbol={currencySymbol}
-          totalIncome={data.totalIncome}
-          colorIndex={selectedItem.colorIndex}
-          onClose={handleClosePopup}
-        />
+      ) : layout === "calendar" ? (
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <IncomeCalendar
+            data={data}
+            currencySymbol={currencySymbol}
+            groupByLabel={groupByLabel}
+            selectedGroup={selectedGroup}
+            onSelectGroup={handleSelectGroup}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-start">
+          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4">
+            <MonthlyIncomeChart
+              data={data}
+              currencySymbol={currencySymbol}
+              selectedGroup={selectedGroup}
+            />
+          </div>
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
+            <IncomeBreakdownTable
+              data={data}
+              currencySymbol={currencySymbol}
+              groupByLabel={groupByLabel}
+              selectedGroup={selectedGroup}
+              onSelectGroup={handleSelectGroup}
+            />
+          </div>
+        </div>
       )}
     </div>
   )
