@@ -77,9 +77,16 @@ jest.mock("@components/features/assets/PriceChartPopup", () => {
   return function PriceChartPopup(props: {
     asset: { code: string }
     currencySymbol?: string
+    limitPrice?: number
+    limitLabel?: string
   }) {
     return (
-      <div>{`price chart ${props.asset.code} in ${props.currencySymbol}`}</div>
+      <div>
+        <div>{`price chart ${props.asset.code} in ${props.currencySymbol}`}</div>
+        {props.limitPrice !== undefined && (
+          <div>{`line ${props.limitLabel} ${props.limitPrice}`}</div>
+        )}
+      </div>
     )
   }
 })
@@ -593,6 +600,30 @@ describe("Watchlist page", () => {
 
       expect(screen.getByText("price chart AAA in $")).toBeInTheDocument()
       expect(screen.queryByText(/rate chart/)).not.toBeInTheDocument()
+    })
+
+    it("draws the watch price on the chart", async () => {
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: /price chart/i }),
+      )
+
+      expect(screen.getByText("line Watch 99")).toBeInTheDocument()
+    })
+
+    it("draws no line for an item with no watch price", async () => {
+      watchlist = makeWatchlist({ items: [{ ...priced, targetPrice: null }] })
+      renderPage()
+      await screen.findByTestId("watchlist-item-wi-1")
+
+      fireEvent.click(
+        within(row("wi-1")).getByRole("button", { name: /price chart/i }),
+      )
+
+      expect(screen.getByText(/^price chart/)).toBeInTheDocument()
+      expect(screen.queryByText(/^line /)).not.toBeInTheDocument()
     })
 
     it("offers no chart for a category that cannot be charted", async () => {
