@@ -20,7 +20,7 @@ const TIME_RANGES = [
 ]
 
 // Rate History Chart Modal Component
-export interface RateChartModalProps {
+interface RateChartModalProps {
   from: string
   to: string
   onClose: () => void

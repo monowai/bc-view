@@ -6,7 +6,7 @@ import { MilestoneDefinition } from "./types"
  */
 
 // ── Foundation ──────────────────────────────────────────────
-export const FOUNDATION_MILESTONES: MilestoneDefinition[] = [
+const FOUNDATION_MILESTONES: MilestoneDefinition[] = [
   {
     id: "portfolio-builder",
     category: "foundation",
@@ -140,7 +140,7 @@ export const FOUNDATION_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Consistency ─────────────────────────────────────────────
-export const CONSISTENCY_MILESTONES: MilestoneDefinition[] = [
+const CONSISTENCY_MILESTONES: MilestoneDefinition[] = [
   {
     id: "monthly-investor",
     category: "consistency",
@@ -196,7 +196,7 @@ export const CONSISTENCY_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Diversification ─────────────────────────────────────────
-export const DIVERSIFICATION_MILESTONES: MilestoneDefinition[] = [
+const DIVERSIFICATION_MILESTONES: MilestoneDefinition[] = [
   {
     id: "diversified",
     category: "diversification",
@@ -304,7 +304,7 @@ export const DIVERSIFICATION_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Independence Journey ────────────────────────────────────
-export const INDEPENDENCE_MILESTONES: MilestoneDefinition[] = [
+const INDEPENDENCE_MILESTONES: MilestoneDefinition[] = [
   {
     id: "fi-progress",
     category: "independence",
@@ -360,7 +360,7 @@ export const INDEPENDENCE_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Patience ────────────────────────────────────────────────
-export const PATIENCE_MILESTONES: MilestoneDefinition[] = [
+const PATIENCE_MILESTONES: MilestoneDefinition[] = [
   {
     id: "hodler",
     category: "patience",
@@ -442,7 +442,7 @@ export const PATIENCE_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Net Worth ───────────────────────────────────────────────
-export const NET_WORTH_MILESTONES: MilestoneDefinition[] = [
+const NET_WORTH_MILESTONES: MilestoneDefinition[] = [
   {
     id: "net-worth",
     category: "netWorth",
@@ -472,7 +472,7 @@ export const NET_WORTH_MILESTONES: MilestoneDefinition[] = [
 ]
 
 // ── Explorer ────────────────────────────────────────────────
-export const EXPLORER_MILESTONES: MilestoneDefinition[] = [
+const EXPLORER_MILESTONES: MilestoneDefinition[] = [
   {
     id: "view-switcher",
     category: "explorer",
@@ -577,10 +577,6 @@ export const ALL_MILESTONES: MilestoneDefinition[] = [
   ...NET_WORTH_MILESTONES,
   ...EXPLORER_MILESTONES,
 ]
-
-/** Lookup map by milestone ID */
-export const MILESTONE_BY_ID: Record<string, MilestoneDefinition> =
-  Object.fromEntries(ALL_MILESTONES.map((m) => [m.id, m]))
 
 /** Category display names */
 export const CATEGORY_LABELS: Record<string, string> = {

@@ -8,8 +8,8 @@ import {
 } from "types/constants"
 
 // Re-export for backward compatibility
-export const ValueIn = VALUE_IN_OPTIONS
-export type ValueIn = ValueInOptionType
+const ValueIn = VALUE_IN_OPTIONS
+type ValueIn = ValueInOptionType
 
 export function useValuationOptions(): ValuationOptions {
   return {

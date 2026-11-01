@@ -1,11 +1,11 @@
 import * as yup from "yup"
 
-export const CurrencyOptionSchema = yup.object().shape({
+const CurrencyOptionSchema = yup.object().shape({
   label: yup.string().required(),
   value: yup.string().required(),
 })
 
-export const CategoryOptionSchema = yup.object().shape({
+const CategoryOptionSchema = yup.object().shape({
   label: yup.string().required(),
   value: yup.string().required(),
 })

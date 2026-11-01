@@ -37,7 +37,7 @@ export interface BuildJourneyReportInput {
   seed?: number
 }
 
-export interface JourneyStageRow {
+interface JourneyStageRow {
   planId: string
   name: string
   /** "60–69" */
@@ -66,7 +66,7 @@ export interface JourneyReportModel {
   footer: ReportModel["footer"]
 }
 
-export interface JourneyAges {
+interface JourneyAges {
   currentAge?: number
   /** First stage's starting age. */
   independenceAge: number
@@ -74,9 +74,7 @@ export interface JourneyAges {
   lifeExpectancy: number
 }
 
-export function journeyAges(
-  projection: CompositeProjectionResult,
-): JourneyAges {
+function journeyAges(projection: CompositeProjectionResult): JourneyAges {
   const phases = projection.phases
   const first = phases[0]
   const last = phases[phases.length - 1]

@@ -35,7 +35,7 @@ export function calculateGapToFi(
  * @param annualExpenses Annual expenses (net of income sources)
  * @returns FI Number
  */
-export function calculateFiNumber(annualExpenses: number): number {
+function calculateFiNumber(annualExpenses: number): number {
   return annualExpenses * 25
 }
 
@@ -55,15 +55,6 @@ export function calculateFiNumberFromMonthly(monthlyExpenses: number): number {
  */
 export function isFinanciallyIndependent(fiProgress: number): boolean {
   return fiProgress >= 100
-}
-
-/**
- * Clamp FI Progress to 100% for display purposes (progress bars).
- * @param fiProgress Raw FI progress percentage
- * @returns Clamped progress (0-100)
- */
-export function clampFiProgress(fiProgress: number): number {
-  return Math.min(Math.max(fiProgress, 0), 100)
 }
 
 /**

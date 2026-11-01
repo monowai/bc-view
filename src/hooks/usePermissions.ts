@@ -1,7 +1,7 @@
 import useSWR from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
 
-export interface Permissions {
+interface Permissions {
   ai: boolean
   preview: boolean
   admin: boolean

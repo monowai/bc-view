@@ -1,8 +1,8 @@
 import React from "react"
 import Link from "next/link"
 
-export const MIN_TARGET_AGE = 18
-export const MAX_TARGET_AGE = 100
+const MIN_TARGET_AGE = 18
+const MAX_TARGET_AGE = 100
 export const TARGET_AGE_RANGE_MESSAGE = `Enter a target age between ${MIN_TARGET_AGE} and ${MAX_TARGET_AGE}.`
 
 /**

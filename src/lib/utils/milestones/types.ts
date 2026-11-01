@@ -26,7 +26,7 @@ export interface MilestoneDefinition {
 }
 
 /** A tier within a milestone */
-export interface TierDefinition {
+interface TierDefinition {
   tier: MilestoneTier
   label: string // e.g., "Seed", "Growth", "Canopy"
   description: string // What the user needs to do

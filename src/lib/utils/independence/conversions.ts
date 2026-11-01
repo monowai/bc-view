@@ -36,5 +36,3 @@ export const PERCENTAGE_FIELDS = [
   "housingAllocation",
   "investmentAllocationPercent",
 ] as const
-
-export type PercentageField = (typeof PERCENTAGE_FIELDS)[number]

@@ -23,7 +23,7 @@ import type { CompositeMonteCarloRunArgs } from "@components/features/independen
  * each with its own iteration picker, so the same plan could show 87% in one
  * place and 74% in another depending on which tab you had last visited.
  */
-export interface CompositeMonteCarloState {
+interface CompositeMonteCarloState {
   result: MonteCarloResult | null
   isRunning: boolean
   error: Error | null

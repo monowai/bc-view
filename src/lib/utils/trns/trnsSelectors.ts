@@ -6,7 +6,6 @@ import type {
   Transaction,
   TrnDto,
   TrnPayload,
-  TrnResponse,
 } from "types/beancounter"
 
 /**
@@ -26,20 +25,6 @@ export function denormalizeTrnPayload(
   return trns.map((dto) =>
     denormalizeTrn(dto, assets, portfolios, currencies, brokers),
   )
-}
-
-/**
- * Unwrap the outer `{ data: TrnPayload }` envelope and denormalize in one
- * step. Convenient at fetch boundaries:
- *
- * ```ts
- * const trns = denormalizeTrnResponse(await res.json())
- * ```
- */
-export function denormalizeTrnResponse(
-  response: TrnResponse | null | undefined,
-): Transaction[] {
-  return denormalizeTrnPayload(response?.data)
 }
 
 /**

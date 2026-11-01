@@ -37,7 +37,7 @@ export const OTHER_COLOR = "#9CA3AF" // gray-400
 const MAX_SERIES = 6
 const TOP_SERIES = 5
 
-export function groupColor(index: number, groupCount: number): string {
+function groupColor(index: number, groupCount: number): string {
   if (groupCount > MAX_SERIES && index >= TOP_SERIES) return OTHER_COLOR
   return COLORS[index % COLORS.length]
 }

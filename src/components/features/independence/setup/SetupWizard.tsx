@@ -26,7 +26,7 @@ import {
   updateWorkScenario,
 } from "@utils/api/client/independence"
 
-export const SETUP_STEPS = [
+const SETUP_STEPS = [
   { id: 1, label: "Spending" },
   { id: 2, label: "Work" },
   { id: 3, label: "Target" },

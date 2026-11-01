@@ -130,10 +130,3 @@ export const SummarySkeletonLoader: React.FC = () => (
     </div>
   </div>
 )
-
-export const SkeletonBar: React.FC<{ width?: string; height?: string }> = ({
-  width = "w-full",
-  height = "h-4",
-}) => (
-  <div className={`${width} ${height} bg-gray-200 rounded animate-pulse`}></div>
-)

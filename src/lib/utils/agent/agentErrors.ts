@@ -14,7 +14,7 @@
  */
 
 /** `service` = the AI backend is unavailable for an operational reason. */
-export type AgentErrorTone = "error" | "service"
+type AgentErrorTone = "error" | "service"
 
 export interface AgentErrorCopy {
   /** The svc-agent code, or `"unknown"` when nothing recognisable was found. */

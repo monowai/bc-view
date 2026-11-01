@@ -48,7 +48,7 @@ export const toSettlementAccountOptions = (
 }
 
 // Convert currencies to select options
-export const toCurrencyOptions = (
+const toCurrencyOptions = (
   currencies: Currency[],
 ): SettlementAccountOption[] => {
   return currencies.map((currency) => ({
@@ -72,7 +72,7 @@ export const toCashAssetOptions = (
 }
 
 // Check if the transaction type requires no cash settlement
-export const isNoCashImpact = (trnType: string): boolean => {
+const isNoCashImpact = (trnType: string): boolean => {
   return NO_CASH_IMPACT_TYPES.includes(
     trnType as (typeof NO_CASH_IMPACT_TYPES)[number],
   )

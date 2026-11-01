@@ -29,10 +29,6 @@ export function setPageContext(text: string | null): void {
   window.dispatchEvent(new CustomEvent<string | null>(EVENT, { detail: text }))
 }
 
-export function getPageContext(): string | null {
-  return current
-}
-
 /** Subscribes to page-context changes, immediately delivering the current
  * value (see module doc for why). Returns an unsubscribe function. */
 export function onPageContextChange(

@@ -8,8 +8,8 @@ import { deriveSurvivalCurve } from "@lib/independence/survivalCurve"
 // Ribbon left pad = left margin (20) + YAxis width (60) = 80px.
 // Ribbon right pad = right margin (30).
 // These constants mirror FanChart.tsx — update both if margins change.
-export const RIBBON_PAD_LEFT = 80
-export const RIBBON_PAD_RIGHT = 30
+const RIBBON_PAD_LEFT = 80
+const RIBBON_PAD_RIGHT = 30
 
 // ── Color buckets ─────────────────────────────────────────────────────────────
 interface ColorBucket {

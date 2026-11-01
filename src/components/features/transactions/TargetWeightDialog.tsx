@@ -4,8 +4,6 @@ import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
 import { calculateQuantityFromTargetWeight } from "@lib/trns/tradeFormHelpers"
 
-export type { RebalanceData }
-
 interface TargetWeightDialogProps {
   modalOpen: boolean
   onClose: () => void

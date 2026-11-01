@@ -42,7 +42,7 @@ function KindBadge({
 }
 
 /** svc-agent clips titles to this length; stop the input there too. */
-export const TITLE_MAX_LENGTH = 60
+const TITLE_MAX_LENGTH = 60
 
 function without(
   titles: Record<string, string>,

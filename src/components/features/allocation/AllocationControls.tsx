@@ -10,7 +10,7 @@ interface AllocationControlsProps {
   hideValueIn?: boolean
 }
 
-export const AllocationControls: React.FC<AllocationControlsProps> = ({
+const AllocationControls: React.FC<AllocationControlsProps> = ({
   groupBy,
   onGroupByChange,
   valueIn,

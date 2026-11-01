@@ -151,5 +151,3 @@ export const phrases = {
     `${s.planName} · as of ${s.asOfDate} · report v${s.templateVersion}`,
   DISCLAIMER: () => "Projections are estimates, not advice.",
 } as const
-
-export type PhraseKey = keyof typeof phrases

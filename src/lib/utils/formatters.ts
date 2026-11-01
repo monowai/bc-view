@@ -86,21 +86,6 @@ export const formatDate = (
 }
 
 /**
- * Format a date string with time.
- * @param dateString - ISO date string
- * @returns Formatted date/time string (e.g., "Jan 15, 2024, 3:45 PM")
- */
-export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
-}
-
-/**
  * Format a number as currency with a symbol prefix using locale-aware formatting.
  * Identical contract to the former independence/formatters formatCurrency.
  * @param value - Numeric value to format

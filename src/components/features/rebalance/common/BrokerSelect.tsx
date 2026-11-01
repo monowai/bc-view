@@ -4,7 +4,7 @@ import React from "react"
  *  call sites fetch brokers via different endpoints (one with settlement
  *  accounts, one without), but the select only ever needs id/name/account
  *  number. */
-export interface SelectableBroker {
+interface SelectableBroker {
   id: string
   name: string
   accountNumber?: string

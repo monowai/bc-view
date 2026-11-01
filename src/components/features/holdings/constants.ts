@@ -55,11 +55,6 @@ export const RESPONSIVE_BREAKPOINTS = {
   DESKTOP_WIDTH: 1400, // 1200px+
 } as const
 
-export const MULTIPLIERS = {
-  PERCENTAGE: 100, // For IRR and Weight display (0.15 -> 15.00%)
-  DEFAULT: 1, // For currency values
-} as const
-
 export const TEST_VALUES = {
   // Expected values from mock data
   GAIN_ON_DAY: "72.76",

@@ -9,7 +9,7 @@ import { ViewMode } from "./ViewToggle"
 import DateInput from "@components/ui/DateInput"
 import { useRouter } from "next/router"
 
-export const headers = [
+const headers = [
   {
     key: "summary.currency",
     label: "Currency",

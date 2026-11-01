@@ -10,7 +10,7 @@ export type ChatCorner = "BR" | "BL" | "TR" | "TL"
 
 const STORAGE_KEY = "bc-chat-corner"
 
-export function isChatCorner(value: unknown): value is ChatCorner {
+function isChatCorner(value: unknown): value is ChatCorner {
   return value === "BR" || value === "BL" || value === "TR" || value === "TL"
 }
 

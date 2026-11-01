@@ -34,10 +34,6 @@ export function getRebalanceUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE}${path}`
 }
 
-// Independence settings
-export const getIndependenceSettingsUrl = (): string =>
-  getRetireUrl("/settings")
-
 // Composite projection
 export const getCompositeProjectionUrl = (): string =>
   getRetireUrl("/composite/projection")
@@ -69,24 +65,8 @@ export function getWaharoaPublicUrl(): string | undefined {
   return process.env.BC_WAHAROA_PUBLIC?.trim() || undefined
 }
 
-export function getTrnTopic(): string {
-  return `${process.env.KAFKA_TOPIC_TRN}`
-}
-
-export function getKafkaHosts(): string[] {
-  return [`${process.env.KAFKA_URL}`]
-}
-
-export function getKafkaClient(): string {
-  return `${process.env.KAFKA_CLIENT}`
-}
-
 export function getSentryDsn(): string {
   return process.env.SENTRY_DSN || ""
-}
-
-export function getSentryDebug(): boolean {
-  return process.env.SENTRY_DEBUG === "true"
 }
 
 export function getSentryEnabled(): boolean {

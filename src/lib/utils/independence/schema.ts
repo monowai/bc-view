@@ -56,7 +56,7 @@ export const expenseSchema = yup.object({
     .min(0, "Must be positive"),
 })
 
-export const workingExpensesStepSchema = yup.object({
+const workingExpensesStepSchema = yup.object({
   workingExpenses: yup.array().of(expenseSchema),
 })
 
@@ -64,7 +64,7 @@ export const expensesStepSchema = yup.object({
   expenses: yup.array().of(expenseSchema),
 })
 
-export const contributionSchema = yup.object({
+const contributionSchema = yup.object({
   assetId: yup.string().required("Asset is required"),
   assetName: yup.string().required(),
   monthlyAmount: yup
@@ -77,12 +77,12 @@ export const contributionSchema = yup.object({
     .required("Type is required"),
 })
 
-export const contributionsStepSchema = yup.object({
+const contributionsStepSchema = yup.object({
   contributions: yup.array().of(contributionSchema),
 })
 
 // Schema for manual asset entry (when no portfolios)
-export const manualAssetsSchema = yup.object({
+const manualAssetsSchema = yup.object({
   CASH: yup.number().min(0, "Must be positive").default(0),
   EQUITY: yup.number().min(0, "Must be positive").default(0),
   ETF: yup.number().min(0, "Must be positive").default(0),
@@ -147,7 +147,7 @@ export const wizardSchema = yup.object({
   ...goalsSchema.fields,
 })
 
-export const defaultManualAssets = {
+const defaultManualAssets = {
   CASH: 0,
   EQUITY: 0,
   ETF: 0,

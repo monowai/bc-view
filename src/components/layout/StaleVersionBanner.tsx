@@ -2,7 +2,7 @@ import React from "react"
 import { useBuildVersion } from "@hooks/useBuildVersion"
 
 // Indirected so tests can mock without redefining window.location.
-export const reloadPage = (): void => {
+const reloadPage = (): void => {
   window.location.reload()
 }
 

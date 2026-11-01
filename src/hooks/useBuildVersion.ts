@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 
-export interface BuildVersionInfo {
+interface BuildVersionInfo {
   branch: string
   commit: string
   build: string

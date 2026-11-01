@@ -30,7 +30,7 @@ const MONTHS = [
  */
 export type ExistingPlanCheck = "loading" | "error" | "found" | "none"
 
-export interface IndependencePlanStepProps {
+interface IndependencePlanStepProps {
   enabled: boolean
   hideToggle?: boolean
   /**

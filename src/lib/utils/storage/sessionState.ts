@@ -14,7 +14,7 @@
 export const BC_STORAGE_PREFIX = "bc:"
 
 /** Event name prefix for cross-tab/micro-frontend sync */
-export const BC_EVENT_PREFIX = "bc:storage:"
+const BC_EVENT_PREFIX = "bc:storage:"
 
 /**
  * Get a value from session storage
@@ -60,7 +60,7 @@ export function setSessionValue<T>(key: string, value: T): void {
  * Subscribe to changes for a specific key.
  * Returns an unsubscribe function.
  */
-export function subscribeToSessionValue(
+function subscribeToSessionValue(
   key: string,
   callback: (value: unknown) => void,
 ): () => void {

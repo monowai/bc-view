@@ -29,7 +29,7 @@ export function isAccount(asset: Asset): boolean {
   return asset.assetCategory.id === "ACCOUNT"
 }
 
-export function isPolicy(asset: Asset): boolean {
+function isPolicy(asset: Asset): boolean {
   return asset.assetCategory.id === "POLICY"
 }
 
@@ -138,14 +138,6 @@ export function resolveAssetId(assetId: string): Promise<string> {
     return Promise.resolve(assetId)
   }
   return resolveCashAssetId(assetId.substring(5))
-}
-
-export function displayName(asset: Asset): string {
-  if (isCash(asset)) {
-    return asset.name
-  }
-  const displayCode = getDisplayCode(asset)
-  return `${displayCode}: ${asset.name}`
 }
 
 /**

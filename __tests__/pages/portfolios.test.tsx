@@ -72,7 +72,7 @@ describe("Portfolios Page", () => {
     // Base currency symbols appear in both mobile and desktop layouts
     // (Report currency column was removed - we only show base currency now)
     expect(
-      screen.getAllByText((content, element) => {
+      screen.getAllByText((_content, element) => {
         return (
           element?.textContent === "$USD" || element?.textContent === "$ USD"
         )

@@ -78,7 +78,6 @@ const apiRoot = "/api"
 export {
   accountsKey,
   assetKey,
-  assetsKey,
   tradeAccountsKey,
 } from "@utils/api/client/assets"
 export const ccyKey = `${apiRoot}/currencies`
@@ -93,7 +92,6 @@ export {
   tradeKey,
   tradeKeyMulti,
   trnKey,
-  trnsKey,
 } from "@utils/api/client/trns"
 
 export const newsKey = (symbol: string, market?: string): string => {
@@ -107,12 +105,7 @@ export { holdingByIdKey, holdingKey } from "@utils/api/client/holdings"
 export { corporateEventsKey } from "@utils/api/client/corporateEvents"
 
 // Rebalance API keys
-export {
-  executionKey,
-  executionsKey,
-  modelKey,
-  modelsKey,
-} from "@utils/api/client/rebalance"
+export { executionsKey, modelKey, modelsKey } from "@utils/api/client/rebalance"
 
 // Watchlist (svc-data) — one per user
 export const watchlistKey = `${apiRoot}/watchlist`

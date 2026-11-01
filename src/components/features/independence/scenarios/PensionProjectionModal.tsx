@@ -8,7 +8,7 @@ import PensionProjectionPanel from "@components/features/independence/scenarios/
  * is also reused inline as a tab in EditAccountDialog.
  */
 
-export interface PensionProjectionAsset {
+interface PensionProjectionAsset {
   assetId: string
   assetName: string
   policyType?: string

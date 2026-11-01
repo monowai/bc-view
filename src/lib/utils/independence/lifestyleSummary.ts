@@ -43,7 +43,7 @@ export const ROLLUP_LABEL = "Everything else"
  * because scoring them as zero would drag every plan down for the crime of
  * having a category we haven't described.
  */
-export const COMFORT_STEPS = [
+const COMFORT_STEPS = [
   "challenging",
   "tight",
   "comfortable",
@@ -51,7 +51,7 @@ export const COMFORT_STEPS = [
   "luxury",
 ] as const
 
-export type ComfortKey = (typeof COMFORT_STEPS)[number]
+type ComfortKey = (typeof COMFORT_STEPS)[number]
 
 export const COMFORT_SCALE_MAX = 10
 
@@ -88,7 +88,7 @@ interface Weighted {
  * Weighted by spend: what a plan mostly pays for should mostly decide how it
  * reads. An extravagant pet budget shouldn't outvote modest housing.
  */
-export function comfortFromBreakdown(entries: Weighted[]): ComfortBand | null {
+function comfortFromBreakdown(entries: Weighted[]): ComfortBand | null {
   const scored = entries.filter((e) => e.level && e.amount > 0)
   const weight = scored.reduce((sum, e) => sum + e.amount, 0)
   if (scored.length === 0 || weight <= 0) return null
@@ -224,7 +224,7 @@ export interface LifestyleCategory {
   isRollup: boolean
 }
 
-export type LifestyleDirection = "headroom" | "shortfall" | "level"
+type LifestyleDirection = "headroom" | "shortfall" | "level"
 
 /**
  * What the figures mean.
@@ -236,7 +236,7 @@ export type LifestyleDirection = "headroom" | "shortfall" | "level"
  *   figure to give (composite/phased projections), so that the absence of an
  *   answer never gets rendered as one.
  */
-export type LifestyleBasis = "supported" | "described"
+type LifestyleBasis = "supported" | "described"
 
 export interface LifestyleSummaryModel {
   basis: LifestyleBasis

@@ -18,7 +18,7 @@ const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
  * the caller's own holding in `portfolioCode`. The client names the holding
  * and nothing more — svc-agent fetches weight, cost and the rest itself.
  */
-export function buildHoldingAnalysisRequest(
+function buildHoldingAnalysisRequest(
   ticker: string,
   market: string,
   portfolioCode: string,

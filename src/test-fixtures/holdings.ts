@@ -16,7 +16,7 @@ import { makePortfolio } from "./portfolio"
 // `Money` is a position's per-bucket MoneyValues, in the shape svc-position sends.
 type Money = MoneyValues
 
-export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
+function makeMoneyValues(overrides: Partial<Money> = {}): Money {
   const { priceData: priceOverrides, ...rest } = overrides
   return {
     currency: USD,
@@ -50,7 +50,7 @@ export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
 }
 
 /** Client-computed group subtotal / view total, as calculateHoldings builds it. */
-export function makeSubTotalValues(
+function makeSubTotalValues(
   overrides: Partial<SubTotalValues> = {},
 ): SubTotalValues {
   return {
@@ -70,7 +70,7 @@ export function makeSubTotalValues(
   }
 }
 
-export function makeQuantityValues(
+function makeQuantityValues(
   overrides: Partial<QuantityValues> = {},
 ): QuantityValues {
   return {
