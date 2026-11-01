@@ -45,7 +45,6 @@ test.describe("Private Cash Income", () => {
                   name: "E2E SGD Savings Account",
                   currency: "SGD",
                   category: "ACCOUNT",
-                  owner: "e2e-test",
                 },
               },
             }),

@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test"
+import {
+  createCpfAccount,
+  deleteIndependencePlans,
+} from "../../fixtures/test-data"
 
 /**
  * E2E test: Create an independence plan with a CPF asset configured
@@ -25,19 +29,7 @@ test.describe("CPF LIFE Projection Flow", () => {
       await page.goto("/")
       await page.waitForLoadState("domcontentloaded")
 
-      // Delete all independence plans
-      const plans = await page.evaluate(async () => {
-        const res = await fetch("/api/independence/plans")
-        if (!res.ok) return []
-        const json = await res.json()
-        return (json.data || []).map((p: { id: string }) => p.id)
-      })
-      for (const planId of plans) {
-        await page.evaluate(
-          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
-          planId,
-        )
-      }
+      await deleteIndependencePlans(page)
 
       // Delete all user-owned assets
       await page.evaluate(async () => {
@@ -134,6 +126,14 @@ test.describe("CPF LIFE Projection Flow", () => {
 
     // ─── Phase 3: Independence Wizard - Create CPF with CPF LIFE ─
 
+    await test.step("Create CPF account", async () => {
+      await createCpfAccount(page, {
+        name: "CPF LIFE Test Account",
+        portfolio: "SGD",
+        balances: { OA: 50000, SA: 80000, MA: 20000, RA: 0 },
+      })
+    })
+
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
@@ -152,100 +152,26 @@ test.describe("CPF LIFE Projection Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 2 - Assets: create CPF with CPF LIFE Standard", async () => {
-      const addButton = page.getByRole("button", {
-        name: /add retirement account/i,
-      })
-      await expect(addButton).toBeVisible({ timeout: 10_000 })
-      await addButton.click()
-
-      // Fill account code and name
-      await page
-        .locator('input[placeholder*="short unique identifier"]')
-        .fill("CPF")
-      await page
-        .locator('input[placeholder*="descriptive name"]')
-        .fill("CPF LIFE Test Account")
-
-      // Select CPF policy type
-      const policySelect = page
-        .locator("select")
-        .filter({ hasText: /none.*simple/i })
-      await policySelect.selectOption("CPF")
-
-      // CPF template auto-applies when the CPF policy type is selected —
-      // sub-account rows render immediately with labelled balance inputs.
-      await expect(page.getByLabel("OA balance")).toBeVisible({
-        timeout: 5_000,
-      })
-
-      // Set CPF LIFE Plan to Standard
-      const cpfLifeSection = page.getByText("CPF LIFE Settings")
-      await expect(cpfLifeSection).toBeVisible({ timeout: 5_000 })
-
-      // Find the CPF LIFE Plan dropdown (inside the CPF LIFE Settings section)
-      const cpfLifePlanSelect = page
-        .locator("select")
-        .filter({ hasText: /not set/i })
-      await cpfLifePlanSelect.selectOption("STANDARD")
-
-      // Fill sub-account balances: OA=50000, SA=80000, MA=20000, RA=0
-      // Use higher SA balance to get meaningful RA at 55 and visible payouts
-      const balances: Array<[string, number]> = [
-        ["OA balance", 50000],
-        ["SA balance", 80000],
-        ["MA balance", 20000],
-        ["RA balance", 0],
-      ]
-      for (const [label, value] of balances) {
-        const input = page.getByLabel(label)
-        if ((await input.count()) > 0) {
-          await input.fill(String(value))
-        }
-      }
-
-      // Select portfolio for balance transaction
-      const portfolioLabel = page.getByText("Portfolio for Balance")
-      await expect(portfolioLabel).toBeVisible({ timeout: 5_000 })
-      const portfolioDropdown = portfolioLabel.locator("..").locator("select")
-      await expect(portfolioDropdown).toBeVisible()
-      const options = await portfolioDropdown
-        .locator("option")
-        .allTextContents()
-      const sgdOption = options.find((o) => o.includes("SGD"))
-      if (sgdOption) {
-        await portfolioDropdown.selectOption({ label: sgdOption })
-      }
-
-      // Create the account
-      const createBtn = page.getByRole("button", {
-        name: /create retirement account/i,
-      })
-      await expect(createBtn).toBeVisible()
-      await createBtn.click()
-      await expect(createBtn).not.toBeVisible({ timeout: 30_000 })
-
-      await page.getByRole("button", { name: "Next", exact: true }).click()
-    })
-
-    await test.step("Steps 3-4: Assumptions and Income", async () => {
-      // Step 3 - Assumptions
+    await test.step("Steps 2-3: Assumptions and Income", async () => {
+      // Step 2 - Assumptions
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
 
-      // Step 4 - Income
+      // Step 3 - Income
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 5 - Retirement Expenses", async () => {
+    await test.step("Step 4 - Retirement Expenses", async () => {
+      // Expenses opens on the Mood Board; category inputs sit under Detailed
+      await page.getByRole("button", { name: "Detailed", exact: true }).click()
       const expenseInputs = page.locator('input[min="0"][step="50"]')
       await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
       await expenseInputs.nth(0).fill("1500")
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 6 - Save plan", async () => {
+    await test.step("Step 5 - Save plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -260,13 +186,10 @@ test.describe("CPF LIFE Projection Flow", () => {
       planId = page.url().split("/").pop()!
       expect(planId).toBeTruthy()
 
-      // Wait for the plan view to fully load
-      await expect(page.getByRole("button", { name: /my path/i })).toBeVisible({
-        timeout: 15_000,
-      })
-
-      // Click the "My Path" tab (Timeline)
-      await page.getByRole("button", { name: /my path/i }).click()
+      // Wait for the plan view to fully load; the tab enables once assets do
+      const yourPath = page.getByRole("button", { name: /your path/i })
+      await expect(yourPath).toBeEnabled({ timeout: 15_000 })
+      await yourPath.click()
 
       // Wait for the timeline content to render
       await expect(page.getByText("Wealth Journey")).toBeVisible({
@@ -333,9 +256,9 @@ test.describe("CPF LIFE Projection Flow", () => {
       // There should be at least one row with a Private Pension value
       expect(privatePensionValues.length).toBeGreaterThan(0)
 
-      // Verify values are dollar amounts (start with $)
+      // Verify values are dollar amounts ($ or S$)
       for (const entry of privatePensionValues) {
-        expect(entry.value).toMatch(/^\$[\d,]+$/)
+        expect(entry.value).toMatch(/^S?\$[\d,]+$/)
       }
 
       // Verify payouts start at or after age 65 (CPF LIFE payout start age)

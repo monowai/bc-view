@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test"
+import {
+  createCpfAccount,
+  deleteIndependencePlans,
+} from "../../fixtures/test-data"
 
 /**
  * E2E test: Onboard a new user, create a CPF retirement account
@@ -25,19 +29,7 @@ test.describe("CPF Onboarding Flow", () => {
       await page.goto("/")
       await page.waitForLoadState("domcontentloaded")
 
-      // Delete all independence plans
-      const plans = await page.evaluate(async () => {
-        const res = await fetch("/api/independence/plans")
-        if (!res.ok) return []
-        const json = await res.json()
-        return (json.data || []).map((p: { id: string }) => p.id)
-      })
-      for (const planId of plans) {
-        await page.evaluate(
-          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
-          planId,
-        )
-      }
+      await deleteIndependencePlans(page)
 
       // Delete all user-owned assets (offboard endpoint removes assets + configs + transactions)
       await page.evaluate(async () => {
@@ -149,6 +141,14 @@ test.describe("CPF Onboarding Flow", () => {
 
     // ─── Phase 2: Independence Wizard - Create CPF Asset ──────────
 
+    await test.step("Create CPF account", async () => {
+      await createCpfAccount(page, {
+        name: "Central Provident Fund",
+        portfolio: "SGD",
+        balances: { OA: 50000, SA: 30000, MA: 20000, RA: 10000 },
+      })
+    })
+
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
@@ -166,88 +166,19 @@ test.describe("CPF Onboarding Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 2 - Assets: create CPF account", async () => {
-      // Wait for Assets step to load
-      const addButton = page.getByRole("button", {
-        name: /add retirement account/i,
-      })
-      await expect(addButton).toBeVisible({ timeout: 10_000 })
-      await addButton.click()
-
-      // Fill account code
-      await page
-        .locator('input[placeholder*="short unique identifier"]')
-        .fill("CPF")
-
-      // Fill account name
-      await page
-        .locator('input[placeholder*="descriptive name"]')
-        .fill("Central Provident Fund")
-
-      // Select CPF policy type in the CompositeAssetEditor
-      const policySelect = page
-        .locator("select")
-        .filter({ hasText: /none.*simple/i })
-      await policySelect.selectOption("CPF")
-
-      // CPF template auto-applies when the CPF policy type is selected —
-      // sub-account rows render immediately with labelled balance inputs.
-      await expect(page.getByLabel("OA balance")).toBeVisible({
-        timeout: 5_000,
-      })
-      const balances: Array<[string, number]> = [
-        ["OA balance", 50000],
-        ["SA balance", 30000],
-        ["MA balance", 20000],
-        ["RA balance", 10000],
-      ]
-      for (const [label, value] of balances) {
-        const input = page.getByLabel(label)
-        if ((await input.count()) > 0) {
-          await input.fill(String(value))
-        }
-      }
-
-      // Select portfolio for balance transaction
-      // Target the "Portfolio for Balance" dropdown specifically (last select on the form)
-      const portfolioLabel = page.getByText("Portfolio for Balance")
-      await expect(portfolioLabel).toBeVisible({ timeout: 5_000 })
-      const portfolioDropdown = portfolioLabel.locator("..").locator("select")
-      await expect(portfolioDropdown).toBeVisible()
-      // Select the SGD portfolio option
-      const options = await portfolioDropdown
-        .locator("option")
-        .allTextContents()
-      const sgdOption = options.find((o) => o.includes("SGD"))
-      if (sgdOption) {
-        await portfolioDropdown.selectOption({ label: sgdOption })
-      }
-
-      // Click Create Retirement Account
-      const createBtn = page.getByRole("button", {
-        name: /create retirement account/i,
-      })
-      await expect(createBtn).toBeVisible()
-      await createBtn.click()
-
-      // Wait for creation to complete (spinner goes away)
-      await expect(createBtn).not.toBeVisible({ timeout: 30_000 })
-
-      // Proceed to next step
-      await page.getByRole("button", { name: "Next", exact: true }).click()
-    })
-
-    await test.step("Independence Steps 3-4: advance through", async () => {
-      // Step 3 - Assumptions
+    await test.step("Independence Steps 2-3: advance through", async () => {
+      // Step 2 - Assumptions
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
 
-      // Step 4 - Income
+      // Step 3 - Income
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 5 - Retirement Expenses: enter values", async () => {
+    await test.step("Independence Step 4 - Retirement Expenses: enter values", async () => {
+      // Expenses opens on the Mood Board; category inputs sit under Detailed
+      await page.getByRole("button", { name: "Detailed", exact: true }).click()
       // Wait for system categories to load
       const expenseInputs = page.locator('input[min="0"][step="50"]')
       await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
@@ -261,7 +192,7 @@ test.describe("CPF Onboarding Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 6 - Life Events: save plan", async () => {
+    await test.step("Independence Step 5 - Life Events: save plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -283,8 +214,14 @@ test.describe("CPF Onboarding Flow", () => {
       await newPage.goto("/holdings/SGD")
       await newPage.waitForLoadState("domcontentloaded")
 
-      // Verify holdings loaded with the correct total and currency is SGD
-      await expect(newPage.getByText("110,000.00").first()).toBeVisible({
+      // Verify holdings loaded with the correct total and currency is SGD.
+      // Mobile drops the decimals.
+      await expect(
+        newPage
+          .getByText(/110,000(\.00)?/)
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible({
         timeout: 15_000,
       })
       await expect(newPage.getByText("SGD").first()).toBeVisible()
@@ -322,12 +259,14 @@ test.describe("CPF Onboarding Flow", () => {
       ).toBeVisible({ timeout: 15_000 })
 
       // In edit mode, step indicators are clickable buttons.
-      // Navigate to Step 5 (Expenses) — 0-indexed: nth(4).
+      // Navigate to Step 4 (Expenses) — 0-indexed: nth(3).
       const stepButtons = page.locator(
         'nav[aria-label="Progress"] li [role="button"]',
       )
-      await stepButtons.nth(4).click()
+      await stepButtons.nth(3).click()
 
+      // Expenses opens on the Mood Board; category inputs sit under Detailed
+      await page.getByRole("button", { name: "Detailed", exact: true }).click()
       // Wait for expense category inputs to appear.
       const retExpInputs = page.locator('input[min="0"][step="50"]')
       await expect(retExpInputs.first()).toBeVisible({ timeout: 10_000 })

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import fs from "fs"
+import { deleteIndependencePlans } from "../../fixtures/test-data"
 
 /**
  * E2E test: Create an independence plan via the wizard, export it as JSON,
@@ -37,18 +38,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
       await page.goto("/")
       await page.waitForLoadState("domcontentloaded")
 
-      const plans = await page.evaluate(async () => {
-        const res = await fetch("/api/independence/plans")
-        if (!res.ok) return []
-        const json = await res.json()
-        return (json.data || []).map((p: { id: string }) => p.id)
-      })
-      for (const planId of plans) {
-        await page.evaluate(
-          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
-          planId,
-        )
-      }
+      await deleteIndependencePlans(page)
 
       // Seed Independence settings (moved out of the plan wizard).
       // The wizard derives planningHorizonYears from these settings.
@@ -78,9 +68,9 @@ test.describe("Plan Export / Import Round-Trip", () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
 
-      // Header link is labelled "Create Phase"; the empty state has its own
-      // wizard CTA — match by target so either works.
-      const createLink = page.locator('a[href="/independence/wizard"]')
+      // The wizard link carries ?plan=<journey> once a journey exists, so
+      // match the path alone.
+      const createLink = page.locator('a[href^="/independence/wizard"]')
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
@@ -93,14 +83,14 @@ test.describe("Plan Export / Import Round-Trip", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Steps 2-5 - Advance through defaults", async () => {
-      for (let step = 2; step <= 5; step++) {
+    await test.step("Steps 2-4 - Advance through defaults", async () => {
+      for (let step = 2; step <= 4; step++) {
         await page.waitForTimeout(500)
         await page.getByRole("button", { name: "Next", exact: true }).click()
       }
     })
 
-    await test.step("Step 6 - Save Plan", async () => {
+    await test.step("Step 5 - Save Plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -110,8 +100,9 @@ test.describe("Plan Export / Import Round-Trip", () => {
     // ─── Phase 3: Export the plan ────────────────────────────────
 
     await test.step("Export the plan as JSON", async () => {
-      // Wait for plan header to render
-      await expect(page.getByText(planName)).toBeVisible({ timeout: 10_000 })
+      // Wait for plan header to render. Phasing renames the first stage, so
+      // the plan keeps no name of ours to look for.
+      await expect(page.locator("h1")).toBeVisible({ timeout: 10_000 })
 
       // Wait for the export button to be ready
       await expect(
@@ -141,7 +132,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
       // not the plan itself — plan carries planningHorizonYears instead.
       const content = fs.readFileSync(downloadedFilePath, "utf-8")
       exportedJson = JSON.parse(content)
-      expect(exportedJson.name).toBe(planName)
+      expect(exportedJson.name).toBeTruthy()
       expect(exportedJson.planningHorizonYears).toBe(expectedHorizon)
       expect(exportedJson.expensesCurrency).toBe(currency)
     })
@@ -158,19 +149,22 @@ test.describe("Plan Export / Import Round-Trip", () => {
         planId,
       )
 
-      // Navigate to plans list and verify it's gone
+      const deleted = await page.evaluate(async (id) => {
+        const res = await fetch(`/api/independence/plans/${id}`)
+        return res.status
+      }, planId)
+      expect(deleted).toBe(404)
+
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
-      await expect(page.getByText(planName)).not.toBeVisible({
-        timeout: 10_000,
-      })
     })
 
     // ─── Phase 5: Import the plan ────────────────────────────────
 
     await test.step("Import the exported JSON file", async () => {
       const fileChooserPromise = page.waitForEvent("filechooser")
-      await page.getByRole("button", { name: /import/i }).click()
+      await page.getByRole("button", { name: "Plan options" }).click()
+      await page.getByRole("menuitem", { name: /import/i }).click()
       const fileChooser = await fileChooserPromise
       await fileChooser.setFiles(downloadedFilePath)
 
@@ -181,7 +175,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
     // ─── Phase 6: Verify the imported plan ───────────────────────
 
     await test.step("Verify imported plan data in the UI", async () => {
-      await expect(page.getByText(planName)).toBeVisible({ timeout: 10_000 })
+      await expect(page.locator("h1")).toBeVisible({ timeout: 10_000 })
       await expect(
         page.getByText(`${expectedHorizon} year horizon`),
       ).toBeVisible({ timeout: 5_000 })
@@ -200,7 +194,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
 
       // yearOfBirth / lifeExpectancy now live on user Independence settings,
       // not the plan itself.
-      expect(planData.name).toBe(planName)
+      expect(planData.name).toBe(exportedJson.name)
       expect(planData.planningHorizonYears).toBe(expectedHorizon)
       expect(planData.expensesCurrency).toBe(currency)
     })
