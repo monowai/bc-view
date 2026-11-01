@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test"
 import {
+  createCpfAccount,
+  deleteIndependencePlans,
+} from "../../fixtures/test-data"
+import {
   SG_POSITIONS,
   US_POSITIONS,
   DemoPosition,
@@ -30,19 +34,7 @@ test.describe("Demo User Setup", () => {
       await page.goto("/")
       await page.waitForLoadState("domcontentloaded")
 
-      // Delete all independence plans
-      const plans = await page.evaluate(async () => {
-        const res = await fetch("/api/independence/plans")
-        if (!res.ok) return []
-        const json = await res.json()
-        return (json.data || []).map((p: { id: string }) => p.id)
-      })
-      for (const planId of plans) {
-        await page.evaluate(
-          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
-          planId,
-        )
-      }
+      await deleteIndependencePlans(page)
 
       // Delete all user-owned assets
       await page.evaluate(async () => {
@@ -299,6 +291,14 @@ test.describe("Demo User Setup", () => {
 
     // ─── Phase 5: Independence Plan (UI wizard — visual) ─────────
 
+    await test.step("Create CPF account", async () => {
+      await createCpfAccount(page, {
+        name: "Central Provident Fund",
+        portfolio: "SGD",
+        balances: { OA: 80000, SA: 50000, MA: 30000, RA: 15000 },
+      })
+    })
+
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
@@ -315,76 +315,12 @@ test.describe("Demo User Setup", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 2 - Assets: create CPF account", async () => {
-      const addButton = page.getByRole("button", {
-        name: /add retirement account/i,
-      })
-      await expect(addButton).toBeVisible({ timeout: 10_000 })
-      await addButton.click()
-
-      // Fill account code and name
-      await page
-        .locator('input[placeholder*="short unique identifier"]')
-        .fill("CPF")
-      await page
-        .locator('input[placeholder*="descriptive name"]')
-        .fill("Central Provident Fund")
-
-      // Select CPF policy type
-      const policySelect = page
-        .locator("select")
-        .filter({ hasText: /none.*simple/i })
-      await policySelect.selectOption("CPF")
-
-      // CPF template auto-applies when the CPF policy type is selected —
-      // sub-account rows render immediately with labelled balance inputs.
-      await expect(page.getByLabel("OA balance")).toBeVisible({
-        timeout: 5_000,
-      })
-      const balances: Array<[string, number]> = [
-        ["OA balance", 80000],
-        ["SA balance", 50000],
-        ["MA balance", 30000],
-        ["RA balance", 15000],
-      ]
-      for (const [label, value] of balances) {
-        const input = page.getByLabel(label)
-        if ((await input.count()) > 0) {
-          await input.fill(String(value))
-        }
-      }
-
-      // Select SGD portfolio for balance transaction
-      const portfolioLabel = page.getByText("Portfolio for Balance")
-      await expect(portfolioLabel).toBeVisible({ timeout: 5_000 })
-      const portfolioDropdown = portfolioLabel.locator("..").locator("select")
-      await expect(portfolioDropdown).toBeVisible()
-      const options = await portfolioDropdown
-        .locator("option")
-        .allTextContents()
-      const sgdOption = options.find((o) => o.includes("SGD"))
-      if (sgdOption) {
-        await portfolioDropdown.selectOption({ label: sgdOption })
-      }
-
-      // Create the retirement account
-      const createBtn = page.getByRole("button", {
-        name: /create retirement account/i,
-      })
-      await expect(createBtn).toBeVisible()
-      await createBtn.click()
-      await expect(createBtn).not.toBeVisible({ timeout: 30_000 })
-
-      // Proceed to next step
-      await page.getByRole("button", { name: "Next", exact: true }).click()
-    })
-
-    await test.step("Independence Step 3 - Assumptions: accept defaults", async () => {
+    await test.step("Independence Step 2 - Assumptions: accept defaults", async () => {
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 4 - Income Sources", async () => {
+    await test.step("Independence Step 3 - Income Sources", async () => {
       // Wait for income sources form
       const otherInput = page.locator("#otherIncomeMonthly")
       await expect(otherInput).toBeVisible({ timeout: 10_000 })
@@ -396,7 +332,9 @@ test.describe("Demo User Setup", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 5 - Retirement Expenses", async () => {
+    await test.step("Independence Step 4 - Retirement Expenses", async () => {
+      // Expenses opens on the Mood Board; category inputs sit under Detailed
+      await page.getByRole("button", { name: "Detailed", exact: true }).click()
       // Wait for expense category rows to load from API
       const firstCategory = page.locator(".font-medium.text-gray-900").first()
       await expect(firstCategory).toBeVisible({ timeout: 15_000 })
@@ -415,7 +353,7 @@ test.describe("Demo User Setup", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 6 - Life Events: save plan", async () => {
+    await test.step("Independence Step 5 - Life Events: save plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -470,13 +408,10 @@ test.describe("Demo User Setup", () => {
       await page.goto("/independence")
       await page.waitForLoadState("domcontentloaded")
 
-      // Landing page now defaults to Work Scenarios — switch to Phases
-      // (tab formerly labelled "Plans")
-      await page.getByRole("button", { name: "Phases", exact: true }).click()
-
+      // Phasing renames the plan into stages; each stage has an edit link.
       await expect(
-        page.getByText("Financial Independence").first(),
-      ).toBeVisible({ timeout: 10_000 })
+        page.getByRole("link", { name: /^Edit / }).first(),
+      ).toBeVisible({ timeout: 15_000 })
     })
   })
 })

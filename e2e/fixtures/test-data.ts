@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test"
+import { expect, Page } from "@playwright/test"
 
 // Unique prefix for E2E test data to enable cleanup
 const E2E_PREFIX = "E2E"
@@ -49,6 +49,82 @@ async function ensureAppDomain(page: Page): Promise<void> {
     await page.goto("/")
     await page.waitForLoadState("domcontentloaded")
   }
+}
+
+/**
+ * Delete every independence plan the user owns: stages, then the journeys that
+ * hold them. A journey left behind reads as an existing plan, and onboarding
+ * refuses to start another over it.
+ */
+export async function deleteIndependencePlans(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    for (const collection of ["plans", "independence-plans"]) {
+      const res = await fetch(`/api/independence/${collection}`)
+      if (!res.ok) throw new Error(`GET ${collection}: ${res.status}`)
+      const json = await res.json()
+      for (const { id } of json.data || []) {
+        const del = await fetch(`/api/independence/${collection}/${id}`, {
+          method: "DELETE",
+        })
+        if (!del.ok) throw new Error(`DELETE ${collection}: ${del.status}`)
+      }
+    }
+  })
+}
+
+/**
+ * Create a CPF policy on the account form and link it to a portfolio. CPF
+ * LIFE defaults to Standard. Linking prompts only when the user holds more
+ * than one portfolio.
+ */
+export async function createCpfAccount(
+  page: Page,
+  account: {
+    name: string
+    portfolio: string
+    balances: Record<"OA" | "SA" | "MA" | "RA", number>
+  },
+): Promise<void> {
+  await page.goto("/assets/account?category=POLICY")
+  await page.waitForLoadState("domcontentloaded")
+
+  const policySelect = page
+    .locator("select")
+    .filter({ hasText: /none.*simple/i })
+  await expect(policySelect).toBeVisible({ timeout: 15000 })
+
+  await page.locator('input[name="code"]').fill("CPF")
+  await page.locator('input[name="name"]').fill(account.name)
+  // Currency defaults to the base chosen during onboarding
+  await expect(page.getByText("SGD", { exact: true }).first()).toBeVisible()
+
+  await policySelect.selectOption("CPF")
+  for (const [subAccount, balance] of Object.entries(account.balances)) {
+    await page.getByLabel(`${subAccount} balance`).fill(String(balance))
+  }
+
+  await page.getByRole("button", { name: "Submit", exact: true }).click()
+
+  const accountsUrl = /\/accounts/
+  const prompt = page.getByText("Which portfolio do you want to add this to?")
+  await expect(
+    prompt.or(page.getByRole("heading", { name: /account/i })).first(),
+  ).toBeVisible({ timeout: 30000 })
+  if (await prompt.isVisible()) {
+    await page
+      .getByRole("button", { name: new RegExp(account.portfolio) })
+      .first()
+      .click()
+  }
+  await page.waitForURL(accountsUrl, { timeout: 30000 })
+}
+
+/**
+ * The page rendered something a user can read. Asserts structure, not wording,
+ * so copy changes and the empty/populated variants of a page both pass.
+ */
+export async function expectPageContent(page: Page): Promise<void> {
+  await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 })
 }
 
 /**

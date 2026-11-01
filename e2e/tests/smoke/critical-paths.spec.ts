@@ -1,24 +1,23 @@
 import { test, expect } from "@playwright/test"
-import { createTestHelpers, PAGES } from "../../fixtures/test-data"
+import {
+  createTestHelpers,
+  expectPageContent,
+  PAGES,
+} from "../../fixtures/test-data"
 
 /**
  * Smoke tests covering critical user journeys.
  * Run these with: yarn e2e:smoke
  */
 test.describe("Critical User Journeys @smoke", () => {
-  test("should complete new user onboarding flow", async ({ page }) => {
+  test("should render the home page", async ({ page }) => {
     await page.goto(PAGES.home)
     await page.waitForLoadState("domcontentloaded")
 
-    // User should see welcome message
-    await expect(page.locator("h1")).toContainText("Welcome")
-
-    // Should see the three main sections: Wealth, Invest, Independence (h2 headings)
-    await expect(page.locator("h2").filter({ hasText: "Wealth" })).toBeVisible()
-    await expect(page.locator("h2").filter({ hasText: "Invest" })).toBeVisible()
-    await expect(
-      page.locator("h2").filter({ hasText: "Independence" }),
-    ).toBeVisible()
+    // The page title, plus a section: "get started" with no data, the
+    // Wealth / Independence / Strategy cards with it.
+    await expect(page.locator("h1")).toBeVisible()
+    await expect(page.locator("h2").first()).toBeVisible()
   })
 
   test("should create portfolio and view holdings", async ({ page }) => {
@@ -44,8 +43,7 @@ test.describe("Critical User Journeys @smoke", () => {
       await page.goto(PAGES.holdings(portfolio.code))
       await page.waitForLoadState("domcontentloaded")
 
-      // Page should load without errors
-      await expect(page.locator("body")).toBeVisible()
+      await expectPageContent(page)
 
       // No critical errors visible
       const criticalError = page.locator('[data-testid="critical-error"]')
@@ -62,8 +60,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.wealth)
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show wealth page
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
 
     // Should not redirect to login
     await expect(page).not.toHaveURL(/auth0\.com/)
@@ -73,8 +70,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.independence)
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show independence page
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
 
     // Should not redirect to login
     await expect(page).not.toHaveURL(/auth0\.com/)
@@ -84,8 +80,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.rebalance)
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show rebalance page
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
 
     // Should not redirect to login
     await expect(page).not.toHaveURL(/auth0\.com/)
@@ -95,14 +90,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.portfolios)
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show portfolios page
-    await expect(page.locator("body")).toBeVisible()
-
-    // Should have some content (either portfolios or empty state)
-    const content = page.locator(
-      '[data-testid="portfolio-list"], :text("portfolio"), :text("Create")',
-    )
-    await expect(content.first()).toBeVisible({ timeout: 10000 })
+    await expectPageContent(page)
   })
 
   test("should maintain responsive layout on mobile", async ({ page }) => {
@@ -112,8 +100,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.home)
     await page.waitForLoadState("domcontentloaded")
 
-    // Page should be visible and not broken
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
 
     // Check for horizontal scroll (indicates layout issues)
     const hasHorizontalScroll = await page.evaluate(() => {
@@ -132,25 +119,15 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto("/non-existent-page-12345")
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show 404 or redirect to home, not crash
-    const is404 = page.locator(':text("404"), :text("Not Found")')
-    const isHome = page.locator('h1:has-text("Welcome")')
-    const isRedirected = page.url().includes("/")
-
-    const handled =
-      (await is404.isVisible({ timeout: 3000 }).catch(() => false)) ||
-      (await isHome.isVisible({ timeout: 3000 }).catch(() => false)) ||
-      isRedirected
-
-    expect(handled).toBe(true)
+    // Should show the 404 page or redirect, not crash
+    await expectPageContent(page)
   })
 
   test("should display user preferences correctly", async ({ page }) => {
     await page.goto("/settings")
     await page.waitForLoadState("domcontentloaded")
 
-    // Should show settings page or redirect - page loads without crashing
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
   })
 
   test("should handle concurrent navigation", async ({ page }) => {
@@ -163,7 +140,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.waitForLoadState("domcontentloaded")
 
     // Should end up on a valid page without errors
-    await expect(page.locator("body")).toBeVisible()
+    await expectPageContent(page)
     const criticalError = page.locator(
       '.critical-error, [role="alert"]:has-text("critical")',
     )

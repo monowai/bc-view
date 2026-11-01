@@ -392,7 +392,6 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
       // --- INVEST cash ladder ---
       // User drills down on the USD Balance row in the invest portfolio.
       await page.goto(`/trns/cash-ladder/${invest.id}/${cashAssetId}`)
-      await page.waitForLoadState("networkidle")
 
       // Both legs should be present: BUY (debit) and auto-emitted DEPOSIT (credit).
       const investRows = page.locator("tbody tr")
@@ -419,7 +418,6 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
       // --- MASTER cash ladder ---
       // User switches portfolios and drills the same cash asset there.
       await page.goto(`/trns/cash-ladder/${master.id}/${cashAssetId}`)
-      await page.waitForLoadState("networkidle")
 
       const masterRows = page.locator("tbody tr")
       await expect(masterRows).toHaveCount(2, { timeout: 10000 })
