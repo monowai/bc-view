@@ -5,7 +5,16 @@ import useSwr from "swr"
 import { Currency, FxRequest, FxResponse } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
+import CurrencySelect from "@components/features/fx/CurrencySelect"
 import { fxKey as fxRatesUrl, postFxRates } from "@utils/api/client/fx"
+import { getLocalValue, setLocalValue } from "@lib/storage/localState"
+
+const PAIR_STORAGE_KEY = "fx-calculator:pair"
+
+interface FxPair {
+  from: string
+  to: string
+}
 
 const fxFetcher = async (from: string, to: string): Promise<FxResponse> => {
   const body: FxRequest = { pairs: [{ from, to }] }
@@ -55,12 +64,15 @@ export default withPageAuthRequired(
     useEffect(() => {
       if (currencies.length > 0 && !from) {
         const codes = currencies.map((c) => c.code)
+        const stored = getLocalValue<FxPair | null>(PAIR_STORAGE_KEY, null)
         const defaultFrom = codes.includes("USD") ? "USD" : codes[0]
         const defaultTo = codes.includes("EUR")
           ? "EUR"
           : codes.find((c) => c !== defaultFrom) || codes[0]
-        setFrom(defaultFrom)
-        setTo(defaultTo)
+        setFrom(
+          stored && codes.includes(stored.from) ? stored.from : defaultFrom,
+        )
+        setTo(stored && codes.includes(stored.to) ? stored.to : defaultTo)
       }
     }, [currencies, from])
 
@@ -75,9 +87,14 @@ export default withPageAuthRequired(
 
     const [amount, setAmount] = useState<number>(0)
 
+    const selectPair = (pair: FxPair): void => {
+      setFrom(pair.from)
+      setTo(pair.to)
+      setLocalValue(PAIR_STORAGE_KEY, pair)
+    }
+
     const handleSwap = (): void => {
-      setFrom(to)
-      setTo(from)
+      selectPair({ from: to, to: from })
     }
 
     const result =
@@ -139,20 +156,12 @@ export default withPageAuthRequired(
                 {/* Currency pair row */}
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <label className="mb-1 block text-xs font-medium text-slate-500">
-                      From
-                    </label>
-                    <select
+                    <CurrencySelect
+                      label="From"
                       value={from}
-                      onChange={(e) => setFrom(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    >
-                      {currencies.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code} - {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      currencies={currencies}
+                      onChange={(code) => selectPair({ from: code, to })}
+                    />
                   </div>
 
                   <button
@@ -178,20 +187,12 @@ export default withPageAuthRequired(
                   </button>
 
                   <div className="flex-1">
-                    <label className="mb-1 block text-xs font-medium text-slate-500">
-                      To
-                    </label>
-                    <select
+                    <CurrencySelect
+                      label="To"
                       value={to}
-                      onChange={(e) => setTo(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    >
-                      {currencies.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code} - {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      currencies={currencies}
+                      onChange={(code) => selectPair({ from, to: code })}
+                    />
                   </div>
                 </div>
 
