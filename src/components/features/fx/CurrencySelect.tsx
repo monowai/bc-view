@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useId, useMemo, useState } from "react"
 import Select from "react-select"
 import { Currency } from "types/beancounter"
 
@@ -16,7 +16,7 @@ export default function CurrencySelect({
   onChange,
 }: CurrencySelectProps): React.ReactElement {
   const [menuOpen, setMenuOpen] = useState(false)
-  const inputId = `fx-currency-${label.toLowerCase()}`
+  const inputId = useId()
 
   const options = useMemo(
     () =>
