@@ -7,7 +7,7 @@ describe("GrandTotal Column Positioning Tests", () => {
     it("verifies correct data mapping to header indices", () => {
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2) // Skip ValueTitle + Empty columns
 
@@ -34,7 +34,7 @@ describe("GrandTotal Column Positioning Tests", () => {
     it("ensures totalGain is not in IRR position", () => {
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
@@ -52,7 +52,7 @@ describe("GrandTotal Column Positioning Tests", () => {
     it("verifies mobile-specific visibility classes", () => {
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
@@ -100,7 +100,7 @@ describe("GrandTotal Column Positioning Tests", () => {
     it("verifies data array structure matches expected positions", () => {
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
 
       // Should have ValueTitle(1) + Spacer(1) + Data(12) = 14 total cells
@@ -123,7 +123,7 @@ describe("GrandTotal Column Positioning Tests", () => {
     it("verifies percentage multipliers are applied correctly", () => {
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
@@ -156,7 +156,7 @@ describe("GrandTotal Column Positioning Tests", () => {
 
       const { container } = renderGrandTotal({ holdings: holdingsWithNullGain })
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const gainOnDayCell = cells?.[2] // First data cell
 

@@ -19,7 +19,7 @@ import { ConversationSummary } from "types/agent"
 const CONVERSATIONS_KEY = "/api/agent/conversations?page=0&size=30"
 
 function ChatPage(): React.ReactElement {
-  // Same chat as the FAB — a conversation started there continues here.
+  // Same chat as the dock — a conversation started there continues here.
   const {
     messages,
     isLoading,
@@ -37,7 +37,7 @@ function ChatPage(): React.ReactElement {
   // null until mounted: the server can't know the viewport or the stored
   // choice, so the first render leans on CSS breakpoints alone.
   const [collapsed, setCollapsed] = useState<boolean | null>(null)
-  // Hydrate post-mount to avoid an SSR/CSR mismatch (same as ChatFab's corner).
+  // Hydrate post-mount to avoid an SSR/CSR mismatch (same as ChatDock's corner).
   useEffect(
     // eslint-disable-next-line react-hooks/set-state-in-effect
     () => setCollapsed(loadSidebarCollapsed() ?? isNarrowViewport()),

@@ -61,7 +61,7 @@ describe("GrandTotal Snapshot Tests", () => {
 
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
 
       // Should have all cells: label + spacer + data cells
@@ -102,7 +102,7 @@ describe("GrandTotal Snapshot Tests", () => {
 
       const { container } = renderGrandTotal()
 
-      const dataRow = container.querySelector("tbody tr:last-child")
+      const dataRow = container.querySelector("tfoot tr:last-child")
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 

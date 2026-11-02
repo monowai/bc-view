@@ -56,7 +56,7 @@ export const renderGrandTotal = (
 }
 
 export const getDataCells = (container: HTMLElement): Element[] => {
-  const dataRow = container.querySelector("tbody tr:last-child")
+  const dataRow = container.querySelector("tfoot tr:last-child")
   const cells = dataRow?.querySelectorAll("td")
   return Array.from(cells!).slice(2) // Skip label and spacer cells
 }

@@ -74,7 +74,7 @@ const navSections: NavSection[] = [
   {
     title: "Tools",
     items: [
-      { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
+      { href: "/chat", label: "Chat", icon: "fa-comments", aiOnly: true },
       {
         href: "#enter-payslip",
         label: "Enter Payslip",

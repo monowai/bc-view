@@ -1,5 +1,6 @@
 import React from "react"
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -8,7 +9,8 @@ import {
 } from "@testing-library/react"
 import { SWRConfig } from "swr"
 import ChatPage from "@pages/chat"
-import ChatFab from "@components/features/chat/ChatFab"
+import ChatDock from "@components/features/chat/ChatDock"
+import { requestChatOpen } from "@components/features/chat/chatBus"
 import { ChatProvider } from "@components/features/chat/ChatProvider"
 import { CONVERSATION_STORAGE_KEY } from "@components/features/chat/useChat"
 import { SIDEBAR_COLLAPSED_KEY } from "@components/features/chat/chatSidebar"
@@ -22,7 +24,7 @@ jest.mock("@components/features/chat/chatSidebar", () => ({
 }))
 
 // next/router, next/link, react-markdown and the Auth0 client are mocked
-// globally in jest.setup.js (pathname "" — so the FAB is visible too).
+// globally in jest.setup.js (pathname "" — so the dock is visible too).
 
 const LIST = "/api/agent/conversations?page=0&size=30"
 const STREAM = "/api/agent/query/stream"
@@ -144,11 +146,11 @@ const callsTo = (method: string, url: string): number =>
     ([u, init]) => u === url && (init?.method ?? "GET") === method,
   ).length
 
-function renderPage(withFab = false): void {
+function renderPage(withDock = false): void {
   render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
       <ChatProvider>
-        {withFab && <ChatFab />}
+        {withDock && <ChatDock />}
         <ChatPage />
       </ChatProvider>
     </SWRConfig>,
@@ -536,20 +538,20 @@ describe("/chat page", () => {
     )
   })
 
-  it("shares one conversation with the Chat FAB", async () => {
+  it("shares one conversation with the chat dock", async () => {
     renderPage(true)
     await within(sidebar()).findByText("NZD exposure")
 
-    fireEvent.click(screen.getByLabelText("Chat"))
+    act(() => requestChatOpen())
     const fab = screen.getByTestId("chat-panel-container")
     fireEvent.change(within(fab).getByRole("textbox"), {
-      target: { value: "Asked in the FAB" },
+      target: { value: "Asked in the dock" },
     })
     fireEvent.submit(within(fab).getByRole("textbox").closest("form")!)
 
-    // Shown in both the FAB panel and the /chat page panel.
+    // Shown in both the dock panel and the /chat page panel.
     await waitFor(() =>
-      expect(screen.getAllByText("Asked in the FAB")).toHaveLength(2),
+      expect(screen.getAllByText("Asked in the dock")).toHaveLength(2),
     )
     await waitFor(() =>
       expect(screen.getAllByText("Here you go")).toHaveLength(2),

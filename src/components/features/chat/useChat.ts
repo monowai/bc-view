@@ -241,7 +241,7 @@ export interface UseChatReturn {
    * Send a query to svc-agent. `deepThink` (default `false`) escalates the
    * agent to its DEEP tier — see `AgentQuery.deepThink`. `think` (default
    * `false`) enables DeepSeek thinking mode — pre-canned / suggested prompts
-   * leave it `false` for the fastest response; the free-text Chat FAB passes
+   * leave it `false` for the fastest response; the free-text Chat dock passes
    * `true` (`AgentQuery.think`). Persisted on the user message via `deepThink`
    * so chat history can render a badge. `label`, when set, is displayed in
    * place of `query` on the user message (see `ChatMessage.label`).
@@ -258,7 +258,7 @@ export interface UseChatReturn {
   /** Starts over: clears the transcript and forgets the conversation. */
   newChat: () => void
   /**
-   * Replaces the transcript, e.g. with a thread handed over to the FAB. With
+   * Replaces the transcript, e.g. with a thread handed over to the dock. With
    * `conversationId` (a saved Quick Analysis) the chat adopts that stored
    * conversation as its current one; without, the next send saves it as a new
    * conversation, seeded with this transcript.
@@ -790,7 +790,7 @@ export function useChat(
 
   // Resume the stored conversation. Post-mount, because localStorage doesn't
   // exist during SSR — reading it in render would mismatch hydration. Same
-  // post-mount hydration pattern as ChatFab's corner; state only changes after
+  // post-mount hydration pattern as ChatDock's corner; state only changes after
   // the fetch resolves, the compiler just can't see past the await.
   useEffect(() => {
     if (!remember) return

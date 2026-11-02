@@ -139,3 +139,12 @@ global.fetch = jest.fn((input) => {
     json: () => Promise.resolve({ data: [] }),
   })
 })
+
+// jsdom has no ResizeObserver; layout measuring hooks need it to mount.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = jest.fn(() => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+  }))
+}

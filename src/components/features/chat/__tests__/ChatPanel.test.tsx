@@ -40,7 +40,7 @@ describe("ChatPanel", () => {
     const input = screen.getByRole("textbox")
     fireEvent.change(input, { target: { value: "show portfolios" } })
     fireEvent.submit(input.closest("form")!)
-    // Free-text Chat FAB query → think=true (thinking mode).
+    // Free-text chat dock query → think=true (thinking mode).
     expect(defaultProps.onSend).toHaveBeenCalledWith(
       "show portfolios",
       false,

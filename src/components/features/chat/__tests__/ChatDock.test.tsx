@@ -1,6 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import ChatFab from "../ChatFab"
+import ChatDock from "../ChatDock"
+import HeaderChatButton from "@components/layout/HeaderChatButton"
 import { ChatProvider } from "../ChatProvider"
 import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
@@ -32,12 +33,16 @@ global.fetch = jest.fn()
 
 const STREAM = "/api/agent/query/stream"
 
-function renderFab(): ReturnType<typeof render> {
+function renderDock(): ReturnType<typeof render> {
   return render(
     <ChatProvider>
-      <ChatFab />
+      <ChatDock />
     </ChatProvider>,
   )
+}
+
+function openChat(): void {
+  act(() => requestChatOpen())
 }
 
 /** Body of the latest stream request, once the (async) send has issued it. */
@@ -53,7 +58,7 @@ async function lastStreamBody(): Promise<Record<string, any>> {
   return body!
 }
 
-describe("ChatFab", () => {
+describe("ChatDock", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockPathname = "/wealth"
@@ -65,9 +70,24 @@ describe("ChatFab", () => {
     setPageContext(null)
   })
 
-  it("renders the FAB button", () => {
-    renderFab()
-    expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+  it("opens from the header button", () => {
+    render(
+      <ChatProvider>
+        <HeaderChatButton />
+        <ChatDock />
+      </ChatProvider>,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Open chat" }))
+    expect(screen.getByTestId("chat-panel-container").className).not.toContain(
+      "pointer-events-none",
+    )
+  })
+
+  it("mounts the panel closed, with no floating button", () => {
+    renderDock()
+    const panel = screen.getByTestId("chat-panel-container")
+    expect(panel.className).toContain("pointer-events-none")
+    expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
   })
 
   it("is available to a preview user, not only to ai users", () => {
@@ -80,8 +100,8 @@ describe("ChatFab", () => {
       isLoading: false,
     }))
     try {
-      renderFab()
-      expect(screen.getByLabelText("Chat")).toBeInTheDocument()
+      renderDock()
+      expect(screen.getByTestId("chat-panel-container")).toBeInTheDocument()
     } finally {
       mockUsePermissions.mockImplementation(permissive)
     }
@@ -97,8 +117,10 @@ describe("ChatFab", () => {
       isLoading: false,
     }))
     try {
-      renderFab()
-      expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
+      renderDock()
+      expect(
+        screen.queryByTestId("chat-panel-container"),
+      ).not.toBeInTheDocument()
     } finally {
       mockUsePermissions.mockImplementation(permissive)
     }
@@ -111,8 +133,8 @@ describe("ChatFab", () => {
       refresh: jest.fn(),
     })
     try {
-      renderFab()
-      fireEvent.click(screen.getByLabelText("Chat"))
+      renderDock()
+      openChat()
       expect(
         screen.getByText("7 of 10 AI questions left this week"),
       ).toBeInTheDocument()
@@ -125,28 +147,26 @@ describe("ChatFab", () => {
     }
   })
 
-  it("opens panel when FAB is clicked", () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+  it("opens the panel on a chat-open request", () => {
+    renderDock()
+    openChat()
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
   })
 
-  it("FAB unmounts while the panel is open and the header Close X dismisses it", () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+  it("dismisses the panel from its header Close X", () => {
+    renderDock()
+    openChat()
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
-    expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText("Close chat"))
     const panel = screen.getByTestId("chat-panel-container")
     expect(panel.className).toContain("translate-x-[calc(100%+1.5rem)]")
     expect(panel.className).toContain("pointer-events-none")
-    expect(screen.getByLabelText("Chat")).toBeInTheDocument()
   })
 
   it("closes panel on Escape key", () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
     fireEvent.keyDown(document, { key: "Escape" })
     const panel = screen.getByTestId("chat-panel-container")
@@ -155,8 +175,8 @@ describe("ChatFab", () => {
   })
 
   it("expand button toggles expanded panel size", () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
     const panel = screen.getByTestId("chat-panel-container")
     expect(panel.className).toContain("w-[60vw]")
 
@@ -170,8 +190,8 @@ describe("ChatFab", () => {
   })
 
   it("links to the full chat history", () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
     expect(screen.getByRole("link", { name: /history/i })).toHaveAttribute(
       "href",
       "/chat",
@@ -182,8 +202,8 @@ describe("ChatFab", () => {
 
   it("includes a page's published context as context.currentState in the outgoing query payload", async () => {
     setPageContext("DRAFT rebalance: AAPL 20% -> 30%")
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "does this trade make sense?" },
@@ -195,8 +215,8 @@ describe("ChatFab", () => {
   })
 
   it("omits context.currentState from the outgoing payload when nothing has been published", async () => {
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "show my portfolios" },
@@ -210,8 +230,8 @@ describe("ChatFab", () => {
   it("sends the viewed phase as context.phaseId from a single-phase page", async () => {
     mockPathname = "/independence/plans/[id]"
     mockQuery = { id: "p1" }
-    renderFab()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    renderDock()
+    openChat()
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "what are this phase's expenses?" },
@@ -225,10 +245,10 @@ describe("ChatFab", () => {
   })
 
   it("picks up a context published AFTER mount (subscribe delivers the retained current value, and later updates arrive live)", async () => {
-    renderFab()
-    // Published after ChatFab has already mounted/subscribed.
+    renderDock()
+    // Published after ChatDock has already mounted/subscribed.
     setPageContext("DRAFT rebalance: cash short by 200.00")
-    fireEvent.click(screen.getByLabelText("Chat"))
+    openChat()
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "what's the cash situation?" },
@@ -276,13 +296,13 @@ describe("ChatFab", () => {
       return (await lastStreamBody()) as QueryBody
     }
 
-    it("closes when /chat takes over, so leaving /chat shows only the FAB with the conversation intact", () => {
-      const fab = (): React.ReactElement => (
+    it("closes when /chat takes over, so leaving /chat keeps the panel closed with the conversation intact", () => {
+      const dock = (): React.ReactElement => (
         <ChatProvider>
-          <ChatFab />
+          <ChatDock />
         </ChatProvider>
       )
-      const { rerender } = render(fab())
+      const { rerender } = render(dock())
       handOff()
       fireEvent.click(screen.getByLabelText("Expand chat"))
       expect(screen.getByTestId("chat-panel-container").className).toContain(
@@ -290,24 +310,23 @@ describe("ChatFab", () => {
       )
 
       mockPathname = "/chat"
-      rerender(fab())
+      rerender(dock())
       expect(
         screen.queryByTestId("chat-panel-container"),
       ).not.toBeInTheDocument()
 
       mockPathname = "/wealth"
-      rerender(fab())
+      rerender(dock())
       const panel = screen.getByTestId("chat-panel-container")
       expect(panel.className).toContain("pointer-events-none")
       expect(panel.className).toContain("w-[60vw]")
-      expect(screen.getByLabelText("Chat")).toBeInTheDocument()
 
-      fireEvent.click(screen.getByLabelText("Chat"))
+      openChat()
       expect(screen.getByText("AAPL looks Bullish")).toBeInTheDocument()
     })
 
     it("opens with the handed-off thread, showing the label instead of the canned prompt", () => {
-      renderFab()
+      renderDock()
       handOff()
 
       expect(screen.getByText("Asset Review — AAPL")).toBeInTheDocument()
@@ -318,7 +337,7 @@ describe("ChatFab", () => {
     })
 
     it("sends follow-ups with the analysis context and the thread as history", async () => {
-      renderFab()
+      renderDock()
       handOff()
 
       const body = await ask("How exposed is it to China?")
@@ -331,7 +350,7 @@ describe("ChatFab", () => {
     })
 
     it("continues a saved analysis as the current conversation instead of replaying it", async () => {
-      renderFab()
+      renderDock()
       act(() =>
         requestChatOpen({
           transcript,
@@ -353,7 +372,7 @@ describe("ChatFab", () => {
     })
 
     it("returns to the page's own context once a new chat is started", async () => {
-      renderFab()
+      renderDock()
       handOff()
 
       fireEvent.click(screen.getByRole("button", { name: /new chat/i }))

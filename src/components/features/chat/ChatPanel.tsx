@@ -16,7 +16,7 @@ interface ChatPanelProps {
    * the preference across mounts.
    */
   /**
-   * `think` enables DeepSeek thinking mode. Free-text Chat FAB queries pass
+   * `think` enables DeepSeek thinking mode. Free-text chat dock queries pass
    * `true`; suggested/pre-canned prompts pass `false` for the fastest response.
    */
   onSend: (query: string, deepThink: boolean, think: boolean) => void
@@ -36,7 +36,7 @@ interface ChatPanelProps {
   onExpand?: () => void
   /** When provided, the header shows a small blue X next to New chat that calls this. */
   onClose?: () => void
-  /** Current FAB corner; pass with onMove to enable the picker. */
+  /** Current panel corner; pass with onMove to enable the picker. */
   corner?: ChatCorner
   /** Move callback — pairs with corner; opens a 2x2 picker in the header. */
   onMove?: (next: ChatCorner) => void
@@ -106,7 +106,7 @@ export default function ChatPanel({
     // the streaming answer immediately, even if they were scrolled up
     // reading earlier output.
     stickToBottomRef.current = true
-    // Free-text Chat FAB query → thinking mode on.
+    // Free-text chat dock query → thinking mode on.
     onSend(trimmed, deepThink, true)
     setInput("")
   }
@@ -118,7 +118,7 @@ export default function ChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2">
-          <i className="fas fa-robot text-blue-600"></i>
+          <i className="fas fa-comments text-blue-600"></i>
           <span className="text-sm font-semibold text-gray-700">
             Holdsworth Assistant
           </span>

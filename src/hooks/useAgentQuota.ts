@@ -22,7 +22,7 @@ async function fetchQuota(url: string): Promise<AgentQuotaStatus | undefined> {
 
 /**
  * The caller's weekly AI allowance from svc-agent. Only asked for when the
- * user can use AI at all; shared through SWR so the chat FAB and an open
+ * user can use AI at all; shared through SWR so the chat dock and an open
  * analysis dialog read one copy.
  */
 export function useAgentQuota(): AgentQuotaResult {

@@ -5,7 +5,7 @@ describe("GrandTotal Structure Validation", () => {
   it("validates table structure and cell count", () => {
     const { container } = renderGrandTotal()
 
-    const dataRow = container.querySelector("tbody tr:last-child")
+    const dataRow = container.querySelector("tfoot tr:last-child")
     const cells = dataRow?.querySelectorAll("td")
 
     // Validate basic structure

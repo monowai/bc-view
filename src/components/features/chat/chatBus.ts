@@ -1,10 +1,10 @@
 /**
- * Tiny window-event bus to let any component pop open the global ChatFab
+ * Tiny window-event bus to let any component pop open the global ChatDock
  * with a pre-seeded prompt and (optionally) the expanded layout — without
- * having to lift ChatFab's open/expanded/messages state into a context
+ * having to lift ChatDock's open/expanded/messages state into a context
  * shared by every page.
  *
- * ChatFab subscribes via `useEffect`; callers fire `requestChatOpen({...})`.
+ * ChatDock subscribes via `useEffect`; callers fire `requestChatOpen({...})`.
  */
 import { ChatMessage } from "types/agent"
 
@@ -15,7 +15,7 @@ interface ChatOpenBase {
   expanded?: boolean
 }
 
-/** Open the FAB, optionally submitting `prompt` as a new user message. */
+/** Open the dock, optionally submitting `prompt` as a new user message. */
 interface ChatOpenPrompt extends ChatOpenBase {
   prompt?: string
   transcript?: never
@@ -25,11 +25,11 @@ interface ChatOpenPrompt extends ChatOpenBase {
 
 /**
  * Continue an existing thread (a Quick Analysis popup handing over to the
- * FAB). Replaces the FAB's conversation; `context` is the agent context the
+ * dock). Replaces the dock's conversation; `context` is the agent context the
  * thread was started with, used instead of the route's context until the
  * conversation is cleared. `conversationId` is the chat-history
- * conversation the thread is saved as; the FAB continues it as its current
- * chat, and without one the FAB saves the thread, seeded, on its next send.
+ * conversation the thread is saved as; the dock continues it as its current
+ * chat, and without one the dock saves the thread, seeded, on its next send.
  * Never combined with `prompt`: a prompt sent in the same tick would read
  * the pre-handover history and context.
  */

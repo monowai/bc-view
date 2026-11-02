@@ -2,12 +2,12 @@
 
 exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] = `
 <table>
-  <tbody
-    class="grand-totals"
+  <tfoot
+    class="grand-totals sticky bottom-0 z-30 bg-blue-50"
   >
     <tr>
       <td
-        class="border-t border-blue-200"
+        class="h-px p-0 bg-blue-200"
         colspan="14"
       />
     </tr>
@@ -210,18 +210,18 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
     </tr>
-  </tbody>
+  </tfoot>
 </table>
 `;
 
 exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = `
 <table>
-  <tbody
-    class="grand-totals"
+  <tfoot
+    class="grand-totals sticky bottom-0 z-30 bg-blue-50"
   >
     <tr>
       <td
-        class="border-t border-blue-200"
+        class="h-px p-0 bg-blue-200"
         colspan="14"
       />
     </tr>
@@ -424,18 +424,18 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
     </tr>
-  </tbody>
+  </tfoot>
 </table>
 `;
 
 exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = `
 <table>
-  <tbody
-    class="grand-totals"
+  <tfoot
+    class="grand-totals sticky bottom-0 z-30 bg-blue-50"
   >
     <tr>
       <td
-        class="border-t border-blue-200"
+        class="h-px p-0 bg-blue-200"
         colspan="14"
       />
     </tr>
@@ -638,6 +638,6 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
     </tr>
-  </tbody>
+  </tfoot>
 </table>
 `;

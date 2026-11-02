@@ -14,6 +14,14 @@ describe("GrandTotal Component", () => {
     })
   })
 
+  it("is a table footer frozen above the holdings header's layer", () => {
+    renderGrandTotal()
+
+    const footer = screen.getByRole("rowgroup")
+    expect(footer.tagName).toBe("TFOOT")
+    expect(footer).toHaveClass("sticky", "bottom-0", "z-30", "bg-blue-50")
+  })
+
   describe("Desktop Layout (xl screens)", () => {
     beforeEach(() => {
       // Set desktop viewport

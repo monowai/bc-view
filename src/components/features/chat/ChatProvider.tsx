@@ -5,12 +5,12 @@ import { useChat, UseChatReturn } from "@components/features/chat/useChat"
 const ChatContext = createContext<UseChatReturn | null>(null)
 
 /**
- * One persisted chat for the whole app, shared by the Chat FAB and the /chat
+ * One persisted chat for the whole app, shared by the Chat dock and the /chat
  * page — a question asked in one continues in the other, in-flight stream
- * included. Mounted in `_app` beside ChatFab so it outlives navigation.
+ * included. Mounted in `_app` beside ChatDock so it outlives navigation.
  *
  * The hook holds no page context: each consumer passes its own per send
- * (`sendMessage(..., context)`), so the FAB always speaks for the current page.
+ * (`sendMessage(..., context)`), so the dock always speaks for the current page.
  * Persistence waits for a signed-in user, so an anonymous page never asks
  * svc-agent for a conversation.
  */

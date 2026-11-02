@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
-import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
 import { AgentQuotaLine } from "./AgentQuota"
 import { useSharedChat } from "./ChatProvider"
@@ -14,8 +13,12 @@ import {
 } from "@components/features/chat/chatPosition"
 import { onChatOpen } from "@components/features/chat/chatBus"
 import { onPageContextChange } from "@components/features/chat/pageContextBus"
+import {
+  CHAT_PATH,
+  useChatAvailable,
+} from "@components/features/chat/useChatAvailable"
 
-export default function ChatFab(): React.ReactElement {
+export default function ChatDock(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [corner, setCornerState] = useState<ChatCorner>("BR")
@@ -36,11 +39,11 @@ export default function ChatFab(): React.ReactElement {
   const pageContext = getPageContext(router.pathname)
   const routeParams = router.query
 
-  // /chat takes over the conversation, and the FAB hides there. Close it on
-  // arrival so leaving /chat shows the button, not a panel left open.
+  // /chat takes over the conversation, and the dock hides there. Close it on
+  // arrival so leaving /chat does not show a panel left open.
   // Adjusting state while rendering on a prop change (React's documented
   // alternative to a setState-in-effect); the shared chat is untouched.
-  const onChatPage = router.pathname === "/chat"
+  const onChatPage = router.pathname === CHAT_PATH
   const [wasOnChatPage, setWasOnChatPage] = useState(onChatPage)
   if (onChatPage !== wasOnChatPage) {
     setWasOnChatPage(onChatPage)
@@ -75,7 +78,7 @@ export default function ChatFab(): React.ReactElement {
   )
   const context = threadContext ?? routeContext
   // The chat itself is app-wide (shared with /chat); the page context is
-  // this FAB's, so it rides along on each send rather than living in the hook.
+  // this dock's, so it rides along on each send rather than living in the hook.
   const { messages, isLoading, sendMessage, newChat, loadTranscript, cancel } =
     useSharedChat()
   const send = useCallback(
@@ -125,56 +128,39 @@ export default function ChatFab(): React.ReactElement {
     [send, loadTranscript],
   )
 
-  const { canUseAi, isLoading: permsLoading } = usePermissions()
+  const available = useChatAvailable()
 
-  // Hide FAB on the /chat page — it's redundant there
-  if (onChatPage) return <></>
-  // Hide entirely until permissions resolve, then only render if user has AI access.
-  if (permsLoading || !canUseAi) return <></>
+  if (!available) return <></>
 
   return (
-    <>
-      {/* Slide-out panel */}
-      <div
-        data-testid="chat-panel-container"
-        className={`fixed z-40 transition-all duration-300 ease-in-out ${
-          isExpanded
-            ? `${layout.panelExpanded} w-[80vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]`
-            : `${layout.panel} w-[60vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]`
-        } ${
-          isOpen
-            ? "translate-x-0"
-            : `${layout.hiddenTransform} pointer-events-none`
-        }`}
-      >
-        <ChatPanel
-          messages={messages}
-          isLoading={isLoading}
-          onSend={send}
-          onNewChat={startNewChat}
-          historyHref="/chat"
-          onCancel={cancel}
-          onExpand={expand}
-          onClose={close}
-          placeholder={pageContext.placeholder}
-          suggestions={pageContext.suggestions}
-          corner={corner}
-          onMove={setCorner}
-          footnote={<AgentQuotaLine className="mt-1.5 text-right" />}
-          className="h-full"
-        />
-      </div>
-
-      {/* FAB button — only when closed; the in-panel header X handles closing. */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          aria-label="Chat"
-          className={`fixed ${layout.fab} z-40 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-colors`}
-        >
-          <i className="fas fa-robot text-xl"></i>
-        </button>
-      )}
-    </>
+    <div
+      data-testid="chat-panel-container"
+      className={`fixed z-40 transition-all duration-300 ease-in-out ${
+        isExpanded
+          ? `${layout.panelExpanded} w-[80vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]`
+          : `${layout.panel} w-[60vw] min-w-[24rem] max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]`
+      } ${
+        isOpen
+          ? "translate-x-0"
+          : `${layout.hiddenTransform} pointer-events-none`
+      }`}
+    >
+      <ChatPanel
+        messages={messages}
+        isLoading={isLoading}
+        onSend={send}
+        onNewChat={startNewChat}
+        historyHref={CHAT_PATH}
+        onCancel={cancel}
+        onExpand={expand}
+        onClose={close}
+        placeholder={pageContext.placeholder}
+        suggestions={pageContext.suggestions}
+        corner={corner}
+        onMove={setCorner}
+        footnote={<AgentQuotaLine className="mt-1.5 text-right" />}
+        className="h-full"
+      />
+    </div>
   )
 }

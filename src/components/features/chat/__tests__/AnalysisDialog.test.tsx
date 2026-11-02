@@ -277,7 +277,7 @@ describe("AnalysisDialog", () => {
     expect(streamCalls()).toHaveLength(2)
   })
 
-  it("hands the unsaved thread and its context to the chat FAB, then closes", async () => {
+  it("hands the unsaved thread and its context to the chat dock, then closes", async () => {
     answer(sseAnswer("AAPL looks Bullish"))
     const opened: ChatOpenDetail[] = []
     const unsubscribe = onChatOpen((d) => opened.push(d))
@@ -292,7 +292,7 @@ describe("AnalysisDialog", () => {
     expect(opened).toHaveLength(1)
     expect(opened[0].context).toEqual(request.context)
     // Nothing was asked beyond the analysis, so there is nothing saved yet;
-    // the FAB saves the thread, seeded, on its next send.
+    // the dock saves the thread, seeded, on its next send.
     expect(opened[0].conversationId).toBeUndefined()
     expect(createCalls()).toHaveLength(0)
     expect(opened[0].transcript?.map((m) => m.content)).toEqual([

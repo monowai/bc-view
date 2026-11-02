@@ -1,6 +1,7 @@
 import React from "react"
 import HeaderAssetSearch from "@components/layout/HeaderAssetSearch"
 import HeaderBrand from "@components/layout/HeaderBrand"
+import HeaderChatButton from "@components/layout/HeaderChatButton"
 import HeaderUserControls from "@components/layout/HeaderUserControls"
 import ProposedBadge from "@components/layout/ProposedBadge"
 import SharesBadge from "@components/layout/SharesBadge"
@@ -27,6 +28,7 @@ export default function Header(): React.ReactElement {
           <SharesBadge />
           <WatchlistAlertsBadge />
           <ProposedBadge />
+          <HeaderChatButton />
           <HeaderUserControls />
         </div>
       </nav>
