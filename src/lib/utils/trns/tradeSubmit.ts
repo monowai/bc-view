@@ -114,7 +114,7 @@ export async function submitEditMode(
   }
 }
 
-export interface SubmitExpenseParams {
+export interface SubmitCashFlowParams {
   data: TradeFormValues
   portfolio: Portfolio
   mutate: MutateFn
@@ -128,13 +128,11 @@ export interface SubmitExpenseParams {
   setSubmitWarnings?: (warnings: string[]) => void
 }
 
-export type SubmitIncomeParams = SubmitExpenseParams
-
 /**
  * Direct REST POST of a cash-flow trn (synchronous, bypasses message broker).
  */
 async function submitCashFlow(
-  params: SubmitExpenseParams,
+  params: SubmitCashFlowParams,
   trnType: "EXPENSE" | "INCOME",
   buildPayload: (data: TradeFormValues, portfolioId: string) => unknown,
 ): Promise<void> {
@@ -189,7 +187,7 @@ async function submitCashFlow(
  * Submit handler for EXPENSE: direct REST POST (synchronous, bypasses message broker).
  */
 export async function submitExpense(
-  params: SubmitExpenseParams,
+  params: SubmitCashFlowParams,
 ): Promise<void> {
   await submitCashFlow(params, "EXPENSE", buildExpensePayload)
 }
@@ -197,7 +195,9 @@ export async function submitExpense(
 /**
  * Submit handler for INCOME: direct REST POST (synchronous, bypasses message broker).
  */
-export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
+export async function submitIncome(
+  params: SubmitCashFlowParams,
+): Promise<void> {
   await submitCashFlow(params, "INCOME", buildIncomePayload)
 }
 

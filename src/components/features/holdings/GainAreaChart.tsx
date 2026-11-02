@@ -19,7 +19,7 @@ import {
 } from "@lib/chart/performanceConstants"
 
 interface GainAreaChartProps {
-  data: object[]
+  data: Array<{ date: string; investmentGain: number }>
   /** SVG gradient id; unique per chart, both can share a page. */
   gradientId: string
   formatTick: (value: number) => string
