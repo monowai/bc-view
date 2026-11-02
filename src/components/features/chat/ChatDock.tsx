@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
-import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
 import { AgentQuotaLine } from "./AgentQuota"
 import { useSharedChat } from "./ChatProvider"
@@ -14,6 +13,10 @@ import {
 } from "@components/features/chat/chatPosition"
 import { onChatOpen } from "@components/features/chat/chatBus"
 import { onPageContextChange } from "@components/features/chat/pageContextBus"
+import {
+  CHAT_PATH,
+  useChatAvailable,
+} from "@components/features/chat/useChatAvailable"
 
 export default function ChatDock(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
@@ -40,7 +43,7 @@ export default function ChatDock(): React.ReactElement {
   // arrival so leaving /chat does not show a panel left open.
   // Adjusting state while rendering on a prop change (React's documented
   // alternative to a setState-in-effect); the shared chat is untouched.
-  const onChatPage = router.pathname === "/chat"
+  const onChatPage = router.pathname === CHAT_PATH
   const [wasOnChatPage, setWasOnChatPage] = useState(onChatPage)
   if (onChatPage !== wasOnChatPage) {
     setWasOnChatPage(onChatPage)
@@ -125,12 +128,9 @@ export default function ChatDock(): React.ReactElement {
     [send, loadTranscript],
   )
 
-  const { canUseAi, isLoading: permsLoading } = usePermissions()
+  const available = useChatAvailable()
 
-  // Redundant on the /chat page.
-  if (onChatPage) return <></>
-  // Render nothing until permissions resolve, then only with AI access.
-  if (permsLoading || !canUseAi) return <></>
+  if (!available) return <></>
 
   return (
     <div
@@ -150,7 +150,7 @@ export default function ChatDock(): React.ReactElement {
         isLoading={isLoading}
         onSend={send}
         onNewChat={startNewChat}
-        historyHref="/chat"
+        historyHref={CHAT_PATH}
         onCancel={cancel}
         onExpand={expand}
         onClose={close}

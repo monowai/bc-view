@@ -1,6 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ChatDock from "../ChatDock"
+import HeaderChatButton from "@components/layout/HeaderChatButton"
 import { ChatProvider } from "../ChatProvider"
 import { act } from "@testing-library/react"
 import { setPageContext } from "../pageContextBus"
@@ -67,6 +68,19 @@ describe("ChatDock", () => {
     // design — see its module doc) so a leftover from another test/page
     // would otherwise leak in here.
     setPageContext(null)
+  })
+
+  it("opens from the header button", () => {
+    render(
+      <ChatProvider>
+        <HeaderChatButton />
+        <ChatDock />
+      </ChatProvider>,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Open chat" }))
+    expect(screen.getByTestId("chat-panel-container").className).not.toContain(
+      "pointer-events-none",
+    )
   })
 
   it("mounts the panel closed, with no floating button", () => {

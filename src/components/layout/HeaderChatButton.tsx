@@ -1,17 +1,13 @@
 import React from "react"
-import { useRouter } from "next/router"
 import { requestChatOpen } from "@components/features/chat/chatBus"
-import { usePermissions } from "@hooks/usePermissions"
+import { useChatAvailable } from "@components/features/chat/useChatAvailable"
 
 /**
  * Opens the chat panel from the header. Comments, not the robot: the robot marks
  * one-shot AI analysis such as AI Portfolio Overview, and this is a conversation.
  */
 export default function HeaderChatButton(): React.ReactElement | null {
-  const { canUseAi, isLoading } = usePermissions()
-  const { pathname } = useRouter()
-
-  if (isLoading || !canUseAi || pathname === "/chat") return null
+  if (!useChatAvailable()) return null
 
   return (
     <button

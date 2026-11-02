@@ -33,11 +33,12 @@ export function useViewportFillHeight<T extends HTMLElement>(
     }
     measure()
     window.addEventListener("resize", measure)
-    const observer = new ResizeObserver(measure)
-    observer.observe(document.body)
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null
+    observer?.observe(document.body)
     return () => {
       window.removeEventListener("resize", measure)
-      observer.disconnect()
+      observer?.disconnect()
     }
   }, [element, bottomGapPx])
 

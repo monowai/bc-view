@@ -65,6 +65,13 @@ describe("useViewportFillHeight", () => {
     expect(screen.getByTestId("region")).toHaveStyle({ maxHeight: "616px" })
   })
 
+  it("still measures where the browser has no ResizeObserver", () => {
+    Reflect.deleteProperty(global, "ResizeObserver")
+    place(300, 1000)
+    render(<Region />)
+    expect(screen.getByTestId("region")).toHaveStyle({ maxHeight: "676px" })
+  })
+
   it("keeps a usable height in a short window", () => {
     place(300, 400)
     render(<Region />)
