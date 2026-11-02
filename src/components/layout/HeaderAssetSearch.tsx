@@ -35,7 +35,7 @@ function HeaderAssetSearchInner({
   // A starred result with no price to stamp: ask for one. Held here, since the menu closes.
   const [pricing, setPricing] = useState<WatchlistAssetRef | null>(null)
   // Read recents post-mount to avoid SSR/CSR hydration mismatch
-  // (localStorage is undefined on the server). Same pattern as ChatFab.
+  // (localStorage is undefined on the server). Same pattern as ChatDock.
   useEffect(
     // eslint-disable-next-line react-hooks/set-state-in-effect
     () => setRecents(getRecentAssets()),

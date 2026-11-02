@@ -84,6 +84,10 @@ import SelectPlanDialog from "@components/features/rebalance/execution/SelectPla
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
 import { usePermissions } from "@hooks/usePermissions"
+import {
+  useViewportFillHeight,
+  HOLDINGS_GRID_BOTTOM_GAP_PX,
+} from "@hooks/useViewportFillHeight"
 import { assetsKey, updateAsset } from "@utils/api/client/assets"
 import { createTrns } from "@utils/api/client/trns"
 import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
@@ -182,6 +186,8 @@ function HoldingsPage(): React.ReactElement {
     })
   }, [])
   // Measure the sticky column header so per-group bars pin just beneath it.
+  const { ref: gridRef, maxHeight: gridMaxHeight } =
+    useViewportFillHeight<HTMLDivElement>(HOLDINGS_GRID_BOTTOM_GAP_PX)
   const { ref: columnHeaderRef, offset: headerOffset } =
     useStickyHeaderOffset<HTMLTableSectionElement>()
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
@@ -681,7 +687,11 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] [@media(max-height:500px)_and_(orientation:landscape)]:max-h-[calc(100vh-140px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+          <div
+            ref={gridRef}
+            style={{ maxHeight: gridMaxHeight }}
+            className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+          >
             <table className="min-w-full bg-white">
               <ColumnHeader
                 ref={columnHeaderRef}

@@ -41,7 +41,7 @@ const REPORT_PROSE = `prose prose-sm sm:prose-base max-w-none
 /**
  * Dialog shell shared by the Quick Analysis popups. Streams the canned
  * analysis as a report, then lets the reader ask follow-ups in place — or
- * carry the whole thread into the chat FAB with "Open in chat".
+ * carry the whole thread into the chat dock with "Open in chat".
  */
 export default function AnalysisDialog({
   title,

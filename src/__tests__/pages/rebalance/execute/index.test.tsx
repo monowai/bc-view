@@ -880,9 +880,9 @@ describe("ExecuteRebalancePage", () => {
     expect(within(row).queryByText("+5.0")).not.toBeInTheDocument()
   })
 
-  // --- Live draft context published to the Chat FAB (Change 5) ---
+  // --- Live draft context published to the chat dock (Change 5) ---
 
-  describe("draft context published to the Chat FAB", () => {
+  describe("draft context published to the chat dock", () => {
     it("publishes a summary mentioning changed rows and cash summary, and clears it on unmount", () => {
       mockHookResult([
         makeItem({

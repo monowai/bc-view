@@ -7,7 +7,7 @@ import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
-import ChatFab from "@components/features/chat/ChatFab"
+import ChatDock from "@components/features/chat/ChatDock"
 import { ChatProvider } from "@components/features/chat/ChatProvider"
 import MilestoneToast from "@components/features/milestones/MilestoneToast"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
@@ -40,7 +40,7 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
   return (
     <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
-      {/* One chat shared by the FAB and the /chat page. */}
+      {/* One chat shared by the dock and the /chat page. */}
       <ChatProvider>
         <div className="bg-gray-100 min-h-screen">
           <StaleVersionBanner />
@@ -49,7 +49,7 @@ const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
             <Component {...pageProps} />
           </div>
         </div>
-        <ChatFab />
+        <ChatDock />
       </ChatProvider>
       <GitInfo />
     </div>

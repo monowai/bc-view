@@ -203,7 +203,7 @@ Style: Clear, direct, evidence-based. No filler.`
 /** A row counts as "changed" for the draft-context summary when it's been
  * excluded, or its target has moved off the row's current weight by more
  * than float noise. Mirrors the epsilon rule the table itself uses for
- * delta-label coloring, so the FAB's notion of "changed" matches what's
+ * delta-label coloring, so the dock's notion of "changed" matches what's
  * visually tinted on screen. */
 function isRowChanged(item: DisplayItem): boolean {
   if (item.isCash) return false
@@ -216,7 +216,7 @@ function isRowChanged(item: DisplayItem): boolean {
 
 /**
  * Compact plain-text summary of the current (client-only, unsaved-included)
- * draft rebalance state — published to the global Chat FAB via
+ * draft rebalance state — published to the global chat dock via
  * `pageContextBus` so "what am I looking at" / "does this make sense"
  * questions are answered against what's actually on screen, not the
  * last-saved server snapshot. Only *changed* rows are itemised (unchanged
@@ -451,7 +451,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     }
   }, [someIncluded, allIncluded])
 
-  // --- Live draft context for the global Chat FAB (pageContextBus) ---
+  // --- Live draft context for the global chat dock (pageContextBus) ---
   const draftContext = useMemo(
     () =>
       execution
@@ -462,7 +462,7 @@ function ExecuteRebalancePage(): React.ReactElement {
   useEffect(() => {
     setPageContext(draftContext)
   }, [draftContext])
-  // Clear on unmount only — ChatFab persists across navigation in `_app`,
+  // Clear on unmount only — ChatDock persists across navigation in `_app`,
   // so a page that never clears leaks its context into the next page.
   useEffect(() => {
     return () => setPageContext(null)
