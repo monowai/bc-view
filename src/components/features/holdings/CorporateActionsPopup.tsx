@@ -15,6 +15,8 @@ import {
   getMissingProcessableEvents,
   filterEventsForOpenPosition,
   sortEventsByRecordDateDesc,
+  getEventTypeIcon,
+  getEventTypeLabel,
 } from "@lib/corporate-events"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
@@ -296,28 +298,6 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
   if (!modalOpen) {
     return null
-  }
-
-  const getEventTypeLabel = (trnType: string): string => {
-    switch (trnType) {
-      case "DIVI":
-        return "Dividend"
-      case "SPLIT":
-        return "Split"
-      default:
-        return trnType
-    }
-  }
-
-  const getEventTypeIcon = (trnType: string): string => {
-    switch (trnType) {
-      case "DIVI":
-        return "fa-money-bill-wave"
-      case "SPLIT":
-        return "fa-code-branch"
-      default:
-        return "fa-calendar"
-    }
   }
 
   return (

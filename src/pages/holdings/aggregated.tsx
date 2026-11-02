@@ -5,30 +5,9 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import useSwr, { mutate as globalMutate } from "swr"
-import dynamic from "next/dynamic"
-import {
-  simpleFetcher,
-  portfoliosKey,
-  ccyKey,
-  categoriesKey,
-} from "@utils/api/fetchHelper"
-import {
-  USER_ASSET_CATEGORIES,
-  type CategoryOption,
-  type SectorInfo,
-  type SectorOption,
-} from "@components/features/accounts/accountTypes"
-import { currencyOptions } from "@lib/currency"
+import useSwr from "swr"
+import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
-const EditAccountDialog = dynamic(
-  () => import("@components/features/accounts/EditAccountDialog"),
-  { ssr: false },
-)
-const AdminAssetEditDialog = dynamic(
-  () => import("@components/features/admin/AdminAssetEditDialog"),
-  { ssr: false },
-)
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import {
@@ -41,7 +20,12 @@ import {
 } from "@lib/holdings/aggregatedActions"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import Rows, { SectorWeightingsData } from "@components/features/holdings/Rows"
+import { SectorWeightingsData } from "@components/features/holdings/Rows"
+import HoldingsTable, {
+  useHoldingsGrid,
+} from "@components/features/holdings/HoldingsTable"
+import HoldingsViewControls from "@components/features/holdings/HoldingsViewControls"
+import { useAssetEditor } from "@components/features/holdings/useAssetEditor"
 import SectorWeightingsPopup from "@components/features/portfolios/SectorWeightingsPopup"
 import AssetChart from "@components/features/assets/AssetChart"
 import PortfolioBreakdownPopup from "@components/features/portfolios/PortfolioBreakdownPopup"
@@ -50,7 +34,6 @@ import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDi
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import {
   Asset,
-  AssetCategory,
   Portfolio,
   PortfolioBreakdown,
   PortfolioBreakdownData,
@@ -58,38 +41,18 @@ import {
   QuickSellData,
   SetCashBalanceData,
 } from "types/beancounter"
-import SubTotal from "@components/features/holdings/SubTotal"
-import ColumnHeader from "@components/features/holdings/Header"
-import GroupBar from "@components/features/holdings/GroupBar"
-import GrandTotal from "@components/features/holdings/GrandTotal"
-import { useStickyHeaderOffset } from "@lib/holdings/useStickyHeaderOffset"
 import PerformanceHeatmap from "@components/features/holdings/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
-import { getGroupComparator } from "@lib/categoryMapping"
-import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import CopyPopup from "@components/features/holdings/CopyPopup"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import IncomeView from "@components/features/holdings/IncomeView"
 import Alert from "@components/ui/Alert"
-import { VIEW_MODES } from "@components/features/holdings/ViewToggle"
-import {
-  ViewModeIcon,
-  GroupByIcon,
-} from "@components/features/holdings/HoldingActions"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
-import {
-  useViewportFillHeight,
-  HOLDINGS_GRID_BOTTOM_GAP_PX,
-} from "@hooks/useViewportFillHeight"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { assetsKey, updateAsset } from "@utils/api/client/assets"
-import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
-
-const viewModes = VIEW_MODES
 
 interface AggregatedIncomeProps {
   portfolio: Portfolio
@@ -141,9 +104,8 @@ function AggregatedIncome({
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
-  const groupOptions = useGroupOptions()
   const { preferences } = useUserPreferences()
-  const { canUseAi, admin: isAdmin, isLoading: permsLoading } = usePermissions()
+  const { canUseAi, isLoading: permsLoading } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
@@ -185,26 +147,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const [columns, setColumns] = useState<string[]>([
     ...COPYABLE_HOLDING_COLUMNS,
   ])
-  // Collapsed table sections (by groupKey). Default: all expanded.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set<string>(),
-  )
-  const toggleGroup = useCallback((groupKey: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev)
-      if (next.has(groupKey)) {
-        next.delete(groupKey)
-      } else {
-        next.add(groupKey)
-      }
-      return next
-    })
-  }, [])
-  // Measure the sticky column header so per-group bars pin just beneath it.
-  const { ref: gridRef, maxHeight: gridMaxHeight } =
-    useViewportFillHeight<HTMLDivElement>(HOLDINGS_GRID_BOTTOM_GAP_PX)
-  const { ref: columnHeaderRef, offset: headerOffset } =
-    useStickyHeaderOffset<HTMLTableSectionElement>()
+  const grid = useHoldingsGrid()
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [priceChartData, setPriceChartData] = useState<
     PriceChartData | undefined
@@ -243,94 +186,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
     setSectorWeightingsAsset(undefined)
   }, [])
 
-  // Edit-asset state. Asset metadata is global (not portfolio-scoped), so
-  // editing works the same in the aggregate view as on a single portfolio —
-  // no target-portfolio resolution needed.
-  const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
-  const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
-    undefined,
-  )
-
-  // Lazy-fetch the same reference data as the accounts page — only after the
-  // user opens the edit dialog. Holdings is a hot path; editing is incidental.
-  const { data: ccyData } = useSwr(
-    editAsset ? ccyKey : null,
-    simpleFetcher(ccyKey),
-  )
-  const { data: categoriesData } = useSwr(
-    editAsset ? categoriesKey : null,
-    simpleFetcher(categoriesKey),
-  )
-  const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    editAsset ? sectorsKey : null,
-    simpleFetcher(sectorsKey),
-  )
-  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
-  const categoryOptions: CategoryOption[] = categoriesData?.data
-    ? categoriesData.data
-        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
-        .map((cat: AssetCategory) => ({ value: cat.id, label: cat.name }))
-    : []
-  const sectorOptions: SectorOption[] = sectorsData?.data
-    ? sectorsData.data.map((sector: SectorInfo) => ({
-        value: sector.name,
-        label: sector.name,
-      }))
-    : []
-
-  const handleEditAsset = useCallback(
-    (asset: Asset) => {
-      // PRIVATE assets are user-owned → use the existing owner-scoped dialog.
-      // Non-PRIVATE assets are public; only admins can edit those, and they
-      // go through the slim admin dialog (category / name / sector only).
-      if (asset.market?.code === "PRIVATE") {
-        setEditAsset(asset)
-      } else if (isAdmin) {
-        setAdminEditAsset(asset)
-      }
-    },
-    [isAdmin],
-  )
-
-  const handleEditAssetClose = useCallback(() => {
-    setEditAsset(undefined)
-  }, [])
-
-  const handleEditAssetSave = useCallback(
-    async (
-      assetId: string,
-      code: string,
-      name: string,
-      currency: string,
-      category: string,
-      sector?: string,
-      expectedReturnRate?: number,
-    ): Promise<void> => {
-      const response = await updateAsset(assetId, {
-        market: "PRIVATE",
-        code,
-        name,
-        currency,
-        category,
-        expectedReturnRate,
-      })
-      if (!response.ok) {
-        throw new Error("Failed to update asset")
-      }
-      if (sector) {
-        try {
-          await setAssetSector(assetId, sector)
-        } catch (err) {
-          console.error("Failed to update sector classification:", err)
-        }
-      }
-      // Refresh aggregated holdings + the assets list (accounts page cache)
-      await mutate()
-      await globalMutate(assetsKey)
-      setEditAsset(undefined)
-    },
-    [mutate],
-  )
+  const { handleEditAsset, assetEditDialogs } = useAssetEditor(mutate)
 
   // --- Aggregated trading -------------------------------------------------
   // The aggregated context portfolio is synthetic, so actions must target a
@@ -571,51 +427,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
         </div>
         {/* Single-row icon ribbon - matches HoldingActions toolbar */}
         <div className="flex items-center justify-between py-1 mb-1 gap-1.5 overflow-x-auto">
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* View Mode section */}
-            <div className="flex items-center gap-0.5 bg-slate-100/80 backdrop-blur-sm rounded-lg p-0.5 border border-slate-200/60 shadow-sm">
-              {viewModes.map((mode) => (
-                <button
-                  key={mode.value}
-                  onClick={() => setViewMode(mode.value)}
-                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200 ${
-                    viewMode === mode.value
-                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
-                      : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
-                  }`}
-                  aria-label={`${mode.label} view`}
-                  title={mode.label}
-                >
-                  <ViewModeIcon
-                    mode={mode.value}
-                    className={`w-3.5 h-3.5 ${viewMode === mode.value ? "text-blue-500" : ""}`}
-                  />
-                </button>
-              ))}
-            </div>
-
-            {/* GroupBy section */}
-            <div className="flex items-center gap-0.5 bg-amber-50/80 backdrop-blur-sm rounded-lg p-0.5 border border-amber-200/60 shadow-sm">
-              {groupOptions.values.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => holdingState.setGroupBy(option)}
-                  className={`flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200 ${
-                    holdingState.groupBy.value === option.value
-                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-amber-200/50"
-                      : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
-                  }`}
-                  aria-label={option.label}
-                  title={option.label}
-                >
-                  <GroupByIcon
-                    groupBy={option.value}
-                    className={`w-3.5 h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-500" : ""}`}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
+          <HoldingsViewControls
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
 
           {/* Right side: icon-only action buttons */}
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -688,72 +503,28 @@ function AggregatedHoldingsPage(): React.ReactElement {
               />
             </div>
             {/* Scrollable table container */}
-            <div
-              ref={gridRef}
-              style={{ maxHeight: gridMaxHeight }}
-              className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
-            >
-              <table className="min-w-full bg-white">
-                <ColumnHeader
-                  ref={columnHeaderRef}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-                {Object.keys(holdings.holdingGroups)
-                  .sort(getGroupComparator(holdingState.groupBy.value))
-                  .map((groupKey) => {
-                    const isCollapsed = collapsedGroups.has(groupKey)
-                    return (
-                      <React.Fragment key={groupKey}>
-                        <GroupBar
-                          groupBy={groupKey}
-                          subTotals={holdings.holdingGroups[groupKey].subTotals}
-                          valueIn={holdingState.valueIn.value}
-                          isCollapsed={isCollapsed}
-                          onToggleCollapse={() => toggleGroup(groupKey)}
-                          stickyTop={headerOffset}
-                        />
-                        {!isCollapsed && (
-                          <>
-                            <Rows
-                              portfolio={holdingResults.portfolio}
-                              groupBy={groupKey}
-                              holdingGroup={holdings.holdingGroups[groupKey]}
-                              valueIn={holdingState.valueIn.value}
-                              onColumnsChange={setColumns}
-                              onPriceChart={handlePriceChart}
-                              onPortfolioBreakdown={handlePortfolioBreakdown}
-                              onTrade={handleTrade}
-                              onQuickSell={handleQuickSell}
-                              onRecordIncome={handleRecordIncome}
-                              onRecordExpense={handleRecordExpense}
-                              onSetCashBalance={handleSetCashBalance}
-                              onSectorWeightings={handleSectorWeightings}
-                              onGoToPortfolio={handleGoToPortfolio}
-                              onEditAsset={handleEditAsset}
-                            />
-                            <SubTotal
-                              groupBy={groupKey}
-                              subTotals={
-                                holdings.holdingGroups[groupKey].subTotals
-                              }
-                              valueIn={holdingState.valueIn.value}
-                              positionCount={
-                                holdings.holdingGroups[groupKey].positions
-                                  .length
-                              }
-                            />
-                          </>
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
-                <GrandTotal
-                  holdings={holdings}
-                  valueIn={holdingState.valueIn.value}
-                />
-              </table>
-            </div>
+            <HoldingsTable
+              {...grid}
+              holdings={holdings}
+              portfolio={holdingResults.portfolio}
+              valueIn={holdingState.valueIn.value}
+              groupBy={holdingState.groupBy.value}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              rowActions={{
+                onColumnsChange: setColumns,
+                onPriceChart: handlePriceChart,
+                onPortfolioBreakdown: handlePortfolioBreakdown,
+                onTrade: handleTrade,
+                onQuickSell: handleQuickSell,
+                onRecordIncome: handleRecordIncome,
+                onRecordExpense: handleRecordExpense,
+                onSetCashBalance: handleSetCashBalance,
+                onSectorWeightings: handleSectorWeightings,
+                onGoToPortfolio: handleGoToPortfolio,
+                onEditAsset: handleEditAsset,
+              }}
+            />
           </div>
         ) : viewMode === "cards" ? (
           <div className="grid grid-cols-1 gap-3">
@@ -916,27 +687,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             assetId={cashBalanceData.assetId}
           />
         )}
-        {editAsset && (
-          <EditAccountDialog
-            asset={editAsset}
-            currencies={ccyOptions}
-            categories={categoryOptions}
-            sectors={sectorOptions}
-            onClose={handleEditAssetClose}
-            onSave={handleEditAssetSave}
-          />
-        )}
-        {adminEditAsset && (
-          <AdminAssetEditDialog
-            asset={adminEditAsset}
-            onClose={() => setAdminEditAsset(undefined)}
-            onSaved={async () => {
-              setAdminEditAsset(undefined)
-              await mutate()
-              await globalMutate(assetsKey)
-            }}
-          />
-        )}
+        {assetEditDialogs}
         {reviewPopup}
       </div>
     </>

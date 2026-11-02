@@ -1,15 +1,37 @@
-import React, { useCallback, useState } from "react"
-import { NumericFormat } from "react-number-format"
+import React, { useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { Transaction } from "types/beancounter"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
-import useSwr, { mutate } from "swr"
-import { holdingKey } from "@utils/api/fetchHelper"
+import useSwr from "swr"
 import { errorOut } from "@components/errors/ErrorOut"
 import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { deleteTrn } from "@utils/api/client/trns"
+import {
+  TrnCardValue,
+  TrnColumn,
+  TrnDeleteConfirm,
+  TrnDetailTabs,
+  TrnEmptyState,
+  TrnNumberCell,
+  TrnPageNav,
+  TrnRowActions,
+  TrnStatusBadge,
+  TrnTableHead,
+} from "@components/features/transactions/TrnListParts"
+import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+
+const COLUMNS: TrnColumn[] = [
+  { label: "Type" },
+  { label: "Currency" },
+  { label: "Trade Date" },
+  { label: "Amount", align: "right" },
+  { label: "Tax", align: "right" },
+  { label: "Affected Quantity", align: "right" },
+  { label: "Per Unit", align: "right" },
+  { label: "Settlement Account" },
+  { label: "Status" },
+  { label: "Actions", align: "center" },
+]
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter()
@@ -32,10 +54,8 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       : null,
   )
 
-  const [deleteTarget, setDeleteTarget] = useState<{
-    id: string
-    portfolioCode: string
-  } | null>(null)
+  const { deletePending, requestDelete, cancelDelete, confirmDelete } =
+    useTrnListDelete(events.mutate)
 
   // Copy row data to clipboard as tab-separated values
   const copyRowToClipboard = useCallback(
@@ -54,24 +74,6 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
     },
     [],
   )
-
-  // Delete transaction
-  const handleDeleteConfirm = useCallback(async (): Promise<void> => {
-    if (!deleteTarget) return
-    try {
-      const response = await deleteTrn(deleteTarget.id)
-      if (response.ok) {
-        setTimeout(() => {
-          mutate(holdingKey(deleteTarget.portfolioCode, "today"))
-          events.mutate()
-        }, 1500)
-      }
-    } catch (err) {
-      console.error("Error deleting transaction:", err)
-    } finally {
-      setDeleteTarget(null)
-    }
-  }, [deleteTarget, events])
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
@@ -101,63 +103,21 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   return (
     <div className="min-h-screen bg-gray-50 text-sm">
       {/* Header with back button */}
-      <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{"Back"}</span>
-            </button>
-            <div className="flex-1 text-lg font-semibold text-center truncate">
-              {asset.data.data.name}
-              <span className="text-gray-500 text-sm ml-2">
-                {asset.data.data.market.code}
-              </span>
-            </div>
-            <div className="w-16"></div>
-          </div>
-        </div>
-      </nav>
+      <TrnPageNav
+        title={asset.data.data.name}
+        subtitle={asset.data.data.market.code}
+      />
 
       {/* Tabs for switching between Trades and Events */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex">
-            <button
-              className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
-              onClick={() =>
-                router.replace(`/trns/trades/${portfolioId}/${assetId}`)
-              }
-            >
-              {"Trades"}
-            </button>
-            <button
-              className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
-              onClick={() =>
-                router.replace(`/trns/events/${portfolioId}/${assetId}`)
-              }
-            >
-              {"Events"}
-            </button>
-          </div>
-        </div>
-      </div>
+      <TrnDetailTabs
+        active="events"
+        portfolioId={portfolioId}
+        assetId={assetId}
+      />
 
       <div className="container mx-auto px-4 py-4">
         {!hasEvents ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">{"No transactions found"}</p>
-            <button
-              onClick={() => router.back()}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
-            >
-              <i className="fa fa-arrow-left mr-2"></i>
-              {"Back"}
-            </button>
-          </div>
+          <TrnEmptyState />
         ) : (
           <>
             {/* Mobile: Card layout */}
@@ -183,70 +143,36 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                          trn.status === "SETTLED"
-                            ? "bg-green-100 text-green-800"
-                            : trn.status === "PROPOSED"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {trn.status}
-                      </span>
+                      <TrnStatusBadge status={trn.status} />
                       <span className="text-sm text-gray-500">
                         {trn.tradeDate}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-500">{"Amount"}:</span>
-                      <span className="ml-1 font-medium">
-                        <NumericFormat
-                          value={trn.tradeAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">
-                        {"Affected Quantity"}:
-                      </span>
-                      <span className="ml-1 font-medium">
-                        <NumericFormat
-                          value={trn.quantity}
-                          displayType={"text"}
-                          decimalScale={0}
-                          thousandSeparator={true}
-                        />
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">{"Per Unit"}:</span>
-                      <span className="ml-1 font-medium">
-                        <NumericFormat
-                          value={trn.price}
-                          displayType={"text"}
-                          decimalScale={2}
-                          thousandSeparator={true}
-                        />
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">{"Tax"}:</span>
-                      <span className="ml-1 font-medium">
-                        <NumericFormat
-                          value={trn.tax}
-                          displayType={"text"}
-                          decimalScale={2}
-                          thousandSeparator={true}
-                        />
-                      </span>
-                    </div>
+                    <TrnCardValue
+                      label={"Amount"}
+                      value={trn.tradeAmount}
+                      scale={2}
+                    />
+                    <TrnCardValue
+                      label={"Affected Quantity"}
+                      value={trn.quantity}
+                      scale={0}
+                      fixed={false}
+                    />
+                    <TrnCardValue
+                      label={"Per Unit"}
+                      value={trn.price}
+                      scale={2}
+                      fixed={false}
+                    />
+                    <TrnCardValue
+                      label={"Tax"}
+                      value={trn.tax}
+                      scale={2}
+                      fixed={false}
+                    />
                   </div>
                 </div>
               ))}
@@ -255,40 +181,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
             {/* Desktop: Table layout */}
             <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Type"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Currency"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Trade Date"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Amount"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Tax"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Affected Quantity"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Per Unit"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Settlement Account"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Status"}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      {"Actions"}
-                    </th>
-                  </tr>
-                </thead>
+                <TrnTableHead columns={COLUMNS} />
                 <tbody className="divide-y divide-gray-200">
                   {trnResults.map((trn: Transaction) => (
                     <tr
@@ -310,42 +203,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {trn.tradeDate}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <NumericFormat
-                          value={trn.tradeAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <NumericFormat
-                          value={trn.tax}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <NumericFormat
-                          value={trn.quantity}
-                          displayType={"text"}
-                          decimalScale={0}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <NumericFormat
-                          value={trn.price}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
+                      <TrnNumberCell value={trn.tradeAmount} scale={2} />
+                      <TrnNumberCell value={trn.tax} scale={2} />
+                      <TrnNumberCell value={trn.quantity} scale={0} />
+                      <TrnNumberCell value={trn.price} scale={2} />
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                         {["ADD", "REDUCE", "SPLIT"].includes(trn.trnType)
                           ? "-"
@@ -357,56 +218,18 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                               `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            trn.status === "SETTLED"
-                              ? "bg-green-100 text-green-800"
-                              : trn.status === "PROPOSED"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {trn.status}
-                        </span>
+                        <TrnStatusBadge status={trn.status} />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(
-                                `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                              )
-                            }}
-                            className="text-gray-400 hover:text-blue-600 p-1"
-                            title={"Edit"}
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => copyRowToClipboard(trn, e)}
-                            className="text-gray-400 hover:text-gray-600 p-1"
-                            title={"Copy"}
-                          >
-                            <i className="fas fa-copy"></i>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteTarget({
-                                id: trn.id,
-                                portfolioCode: trn.portfolio.code,
-                              })
-                            }}
-                            className="text-gray-400 hover:text-red-600 p-1"
-                            title={"Delete"}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
-                        </div>
+                        <TrnRowActions
+                          onEdit={() =>
+                            router.push(
+                              `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
+                            )
+                          }
+                          onCopy={(e) => copyRowToClipboard(trn, e)}
+                          onDelete={() => requestDelete(trn)}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -416,16 +239,8 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
           </>
         )}
       </div>
-      {deleteTarget && (
-        <ConfirmDialog
-          title={"Delete Transaction"}
-          message={"Permanently delete this transaction?"}
-          confirmLabel={"Delete"}
-          cancelLabel={"Cancel"}
-          variant="red"
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
+      {deletePending && (
+        <TrnDeleteConfirm onConfirm={confirmDelete} onCancel={cancelDelete} />
       )}
     </div>
   )

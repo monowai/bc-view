@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react"
-import { useRebalanceExecution } from "../useRebalanceExecution"
+import { DisplayItem, useRebalanceExecution } from "../useRebalanceExecution"
 import useSwr from "swr"
 import { ExecutionDto, ExecutionItemDto } from "types/rebalance"
 
@@ -693,6 +693,45 @@ describe("useRebalanceExecution", () => {
       "/api/rebalance/executions/exec-1/refresh",
       { method: "POST" },
     )
+  })
+
+  it("handleRefresh re-seeds local state from the refreshed execution", async () => {
+    const exec = makeExecution()
+    const refreshed = makeExecution({
+      items: [
+        makeItem({
+          assetId: "asset-1",
+          hasOverride: true,
+          effectiveTarget: 0.7,
+        }),
+        makeItem({
+          id: "item-2",
+          assetId: "asset-2",
+          excluded: true,
+          effectiveTarget: 0.2,
+        }),
+      ],
+    })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      { ok: true, data: { data: refreshed } },
+    )
+
+    await act(async () => {
+      await result.current.handlers.refresh()
+    })
+
+    expect(result.current.execution).toEqual(refreshed)
+    const row = (assetId: string): DisplayItem =>
+      result.current.displayItems.find(
+        (i) => i.assetId === assetId,
+      ) as DisplayItem
+    expect(row("asset-1").effectiveTarget).toBe(0.7)
+    expect(row("asset-1").originalTarget).toBe(0.7)
+    expect(row("asset-2").isExcluded).toBe(true)
+    expect(row("asset-2").originalTarget).toBe(0.2)
+    expect(result.current.states.hasChanges).toBe(false)
   })
 
   // --- Commit ---

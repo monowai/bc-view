@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper"
@@ -9,7 +8,20 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
 import { deleteTrn } from "@utils/api/client/trns"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
+import {
+  TrnDeleteConfirm,
+  TrnNumber,
+} from "@components/features/transactions/TrnListParts"
+
+function NumericCell(
+  props: React.ComponentProps<typeof TrnNumber>,
+): React.ReactElement {
+  return (
+    <td align={"right"}>
+      <TrnNumber {...props} />
+    </td>
+  )
+}
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const [deleteTrnId, setDeleteTrnId] = useState<string | null>(null)
@@ -70,89 +82,17 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                   <td>{trn.trnType}</td>
                   <td>{trn.tradeCurrency.code}</td>
                   <td>{trn.tradeDate}</td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.quantity}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.price}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.tradeAmount}
-                      displayType={"text"}
-                      decimalScale={0}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.tradeBaseRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.tradeCashRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.tradePortfolioRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
+                  <NumericCell value={trn.quantity} scale={2} />
+                  <NumericCell value={trn.price} scale={2} />
+                  <NumericCell value={trn.tradeAmount} scale={0} />
+                  <NumericCell value={trn.tradeBaseRate} scale={4} />
+                  <NumericCell value={trn.tradeCashRate} scale={4} />
+                  <NumericCell value={trn.tradePortfolioRate} scale={4} />
 
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.cashAmount}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
+                  <NumericCell value={trn.cashAmount} scale={2} />
 
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.tax}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td align={"right"}>
-                    <NumericFormat
-                      value={trn.fees}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
+                  <NumericCell value={trn.tax} scale={2} />
+                  <NumericCell value={trn.fees} scale={2} />
                   <td align={"left"}>
                     <Link
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
@@ -170,12 +110,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
         </div>
       </div>
       {deleteTrnId && (
-        <ConfirmDialog
-          title={"Delete Transaction"}
-          message={"Permanently delete this transaction?"}
-          confirmLabel={"Delete"}
-          cancelLabel={"Cancel"}
-          variant="red"
+        <TrnDeleteConfirm
           onConfirm={async () => {
             await deleteTrn(deleteTrnId)
             setDeleteTrnId(null)

@@ -18,6 +18,8 @@ import {
   canProcessEvent,
   isEventReconciled,
   isPositionClosedBeforeEvent,
+  getEventTypeIcon,
+  getEventTypeLabel,
 } from "@lib/corporate-events"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
@@ -185,28 +187,6 @@ const PortfolioCorporateActionsPopup: React.FC<
 
   if (!modalOpen) {
     return null
-  }
-
-  const getEventTypeLabel = (trnType: string): string => {
-    switch (trnType) {
-      case "DIVI":
-        return "Dividend"
-      case "SPLIT":
-        return "Split"
-      default:
-        return trnType
-    }
-  }
-
-  const getEventTypeIcon = (trnType: string): string => {
-    switch (trnType) {
-      case "DIVI":
-        return "fa-money-bill-wave"
-      case "SPLIT":
-        return "fa-code-branch"
-      default:
-        return "fa-calendar"
-    }
   }
 
   const unprocessedCount = missingEvents.filter(

@@ -3,8 +3,10 @@ import Link from "next/link"
 import type {
   ReportFinding,
   ReportKpi,
+  ReportModel,
   ReportRow,
 } from "@lib/independence/report/buildReport"
+import type { MonteCarloResult } from "types/independence"
 
 /**
  * Building blocks shared by the plan report and the journey report, so the
@@ -220,5 +222,193 @@ export function ReportToolbar({
         Print / Save PDF
       </button>
     </div>
+  )
+}
+
+/** Cover band. `children` is the last line of the right-hand block. */
+export function ReportCover({
+  cover,
+  name,
+  currencyNote,
+  children,
+}: {
+  cover: Pick<
+    ReportModel["cover"],
+    "title" | "ageLine" | "asOfDate" | "currency"
+  >
+  name: string
+  currencyNote?: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <header
+      data-testid="report-cover"
+      className="report-cover report-keep grid grid-cols-[1fr_auto] gap-3 border-b-2 border-gray-900 pb-3"
+    >
+      <div>
+        <h1 className="text-2xl font-bold">{cover.title}</h1>
+        <div className="text-base text-gray-600">{name}</div>
+        <div className="mt-1 text-gray-600">{cover.ageLine}</div>
+      </div>
+      <div className="text-right text-xs leading-6 text-gray-600">
+        As of <b className="text-gray-900">{cover.asOfDate}</b>
+        <br />
+        <b className="text-gray-900">{cover.currency}</b>
+        {currencyNote && <> · {currencyNote}</>}
+        <br />
+        {children}
+      </div>
+    </header>
+  )
+}
+
+/** Stress-test section in its three states: ran, failed, not run. */
+export function StressTestSection({
+  stress,
+  mc,
+  mcError,
+  notRunMessage,
+  mask,
+  symbol,
+  hide,
+  renderResult,
+}: {
+  stress: ReportModel["stress"]
+  mc: MonteCarloResult | null
+  mcError: string | null
+  notRunMessage: string
+  mask: (text: string) => string
+  symbol: string
+  hide: boolean
+  renderResult: (result: MonteCarloResult) => React.ReactNode
+}): React.ReactElement {
+  const body = (): React.ReactNode => {
+    if (stress && mc) {
+      return (
+        <>
+          <p className="mb-3">{mask(stress.sentence)}</p>
+          {stress.depletionLine && (
+            <p className="mb-3 text-gray-700">{stress.depletionLine}</p>
+          )}
+          {renderResult(mc)}
+          <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Parameters
+          </h3>
+          <Rows rows={stress.parameters} symbol={symbol} hide={hide} />
+        </>
+      )
+    }
+    if (mcError) {
+      return (
+        <p className="text-red-700">
+          Stress test failed: {mcError}. Reload the report to retry.
+        </p>
+      )
+    }
+    return <p className="text-gray-600">{notRunMessage}</p>
+  }
+  return (
+    <Section id="stress" title="5. Stress test" breakBefore>
+      {body()}
+    </Section>
+  )
+}
+
+/** Projection warnings. Renders nothing when there are none. */
+export function DataNotes({
+  warnings,
+}: {
+  warnings: string[]
+}): React.ReactElement | null {
+  if (warnings.length === 0) return null
+  return (
+    <>
+      <h3 className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        Data notes
+      </h3>
+      <ul className="list-disc pl-5 text-gray-600">
+        {warnings.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+export interface YearTableRow {
+  key: string
+  age: React.ReactNode
+  stage?: string
+  starting: number
+  growth: number
+  income: number
+  expenses: number
+  ending: number
+  total: number
+}
+
+/** Appendix year-by-year table. */
+export function YearByYearTable({
+  rows,
+  showStage = false,
+  money,
+}: {
+  rows: YearTableRow[]
+  showStage?: boolean
+  money: (value: number) => string
+}): React.ReactElement {
+  return (
+    <>
+      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        Year by year
+      </h3>
+      <table className="w-full text-xs tabular-nums">
+        <thead>
+          <tr className="border-b border-gray-300 text-left text-[10px] uppercase text-gray-500">
+            <th className="py-1">Age</th>
+            {showStage && <th className="py-1">Stage</th>}
+            <th className="py-1 text-right">Starting</th>
+            <th className="py-1 text-right">Growth</th>
+            <th className="py-1 text-right">Income</th>
+            <th className="py-1 text-right">Expenses</th>
+            <th className="py-1 text-right">Ending</th>
+            <th className="py-1 text-right">Total wealth</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr
+              key={r.key}
+              className="border-b border-gray-100 even:bg-gray-50"
+            >
+              <td className="py-0.5">{r.age}</td>
+              {showStage && <td className="py-0.5">{r.stage}</td>}
+              <td className="py-0.5 text-right">{money(r.starting)}</td>
+              <td className="py-0.5 text-right">{money(r.growth)}</td>
+              <td className="py-0.5 text-right">{money(r.income)}</td>
+              <td className="py-0.5 text-right">{money(r.expenses)}</td>
+              <td className="py-0.5 text-right">{money(r.ending)}</td>
+              <td className="py-0.5 text-right">{money(r.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )
+}
+
+export function ReportFooter({
+  footer,
+}: {
+  footer: ReportModel["footer"]
+}): React.ReactElement {
+  return (
+    <footer
+      data-testid="report-footer"
+      className="mt-4 flex justify-between border-t border-gray-200 pt-2 text-[10px] text-gray-500"
+    >
+      <span>{footer.line}</span>
+      <span>{footer.disclaimer}</span>
+    </footer>
   )
 }

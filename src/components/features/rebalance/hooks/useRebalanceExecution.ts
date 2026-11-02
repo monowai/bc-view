@@ -195,6 +195,31 @@ export function useRebalanceExecution(
   // across those invocations, so the second one bails out immediately.
   const createInFlightRef = useRef(false)
 
+  // Local edit state as the server's items state it: a loaded execution, or a
+  // refreshed one. Fresh creates seed differently (return-adjusted targets).
+  const seedLocalState = useCallback((items: ExecutionItemDto[]): void => {
+    const overrides: Record<string, number | undefined> = {}
+    const exclusions: Record<string, boolean> = {}
+    const original: Record<string, number> = {}
+    items.forEach((item) => {
+      if (item.hasOverride) {
+        overrides[item.assetId] = item.effectiveTarget
+      }
+      if (item.excluded) {
+        exclusions[item.assetId] = true
+      }
+      original[item.assetId] = item.effectiveTarget
+    })
+    setLocalOverrides(overrides)
+    setLocalExclusions(exclusions)
+    setOriginalTargets(original)
+    setInitialExcluded(
+      new Set(
+        items.filter((item) => item.excluded).map((item) => item.assetId),
+      ),
+    )
+  }, [])
+
   // --- SWR data ---
 
   const { data: brokersData } = useSwr(
@@ -253,29 +278,7 @@ export function useRebalanceExecution(
         }
         const data = await response.json()
         setExecution(data.data)
-        // Initialize local state from execution items
-        const overrides: Record<string, number | undefined> = {}
-        const exclusions: Record<string, boolean> = {}
-        const original: Record<string, number> = {}
-        data.data.items.forEach((item: ExecutionItemDto) => {
-          if (item.hasOverride) {
-            overrides[item.assetId] = item.effectiveTarget
-          }
-          if (item.excluded) {
-            exclusions[item.assetId] = true
-          }
-          original[item.assetId] = item.effectiveTarget
-        })
-        setLocalOverrides(overrides)
-        setLocalExclusions(exclusions)
-        setOriginalTargets(original)
-        setInitialExcluded(
-          new Set(
-            data.data.items
-              .filter((item: ExecutionItemDto) => item.excluded)
-              .map((item: ExecutionItemDto) => item.assetId),
-          ),
-        )
+        seedLocalState(data.data.items)
       } catch (err) {
         console.error("Failed to load execution:", err)
         setError(toErrorMessage(err, "Failed to load execution"))
@@ -350,7 +353,15 @@ export function useRebalanceExecution(
         setLoading(false)
       }
     }
-  }, [executionId, planId, portfolioIds, filterByModel, adhoc, currency])
+  }, [
+    executionId,
+    planId,
+    portfolioIds,
+    filterByModel,
+    adhoc,
+    currency,
+    seedLocalState,
+  ])
 
   // Initialize on mount (skip if already loaded, loading, or errored)
   useEffect(() => {
@@ -440,29 +451,7 @@ export function useRebalanceExecution(
 
       const data = await response.json()
       setExecution(data.data)
-      // Re-initialize local state
-      const overrides: Record<string, number | undefined> = {}
-      const exclusions: Record<string, boolean> = {}
-      const original: Record<string, number> = {}
-      data.data.items.forEach((item: ExecutionItemDto) => {
-        if (item.hasOverride) {
-          overrides[item.assetId] = item.effectiveTarget
-        }
-        if (item.excluded) {
-          exclusions[item.assetId] = true
-        }
-        original[item.assetId] = item.effectiveTarget
-      })
-      setLocalOverrides(overrides)
-      setLocalExclusions(exclusions)
-      setOriginalTargets(original)
-      setInitialExcluded(
-        new Set(
-          data.data.items
-            .filter((item: ExecutionItemDto) => item.excluded)
-            .map((item: ExecutionItemDto) => item.assetId),
-        ),
-      )
+      seedLocalState(data.data.items)
       setHasChanges(false)
     } catch (err) {
       console.error("Failed to refresh:", err)
@@ -470,7 +459,7 @@ export function useRebalanceExecution(
     } finally {
       setRefreshing(false)
     }
-  }, [execution, hasChanges, handleSave])
+  }, [execution, hasChanges, handleSave, seedLocalState])
 
   // --- Target change handlers ---
 

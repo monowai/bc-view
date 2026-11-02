@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useState } from "react"
+import { FxResponse } from "types/beancounter"
 import { calculateFxBuyAmount } from "@lib/trns/cashFormHelpers"
+import { postFxRates } from "@utils/api/client/fx"
+
+// Fetcher for FX rates
+export const fxFetcher = async (
+  from: string,
+  to: string,
+): Promise<FxResponse | null> => {
+  if (!from || !to || from === to) return null
+  const response = await postFxRates({ pairs: [{ from, to }] })
+  if (!response.ok) return null
+  return response.json()
+}
 
 interface UseFxBuyAmountOptions {
   sellAmount: number

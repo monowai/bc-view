@@ -1,28 +1,11 @@
 import React, { useState, useMemo } from "react"
 import Alert from "@components/ui/Alert"
 import { Portfolio, Currency } from "types/beancounter"
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts"
-import {
-  TIME_RANGES,
-  CHART_COLORS,
-  AXIS_TICK,
-  ACTIVE_DOT,
-  TOOLTIP_STYLE,
-  formatFull,
-  formatAxisDate,
-  formatTooltipDate,
-} from "@lib/chart/performanceConstants"
+import { TIME_RANGES, formatFull } from "@lib/chart/performanceConstants"
 import { formatCompactSymbol } from "@lib/formatters"
 import { useAggregatedPerformance } from "@hooks/useAggregatedPerformance"
 import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
+import GainAreaChart from "@components/features/holdings/GainAreaChart"
 
 interface WealthPerformanceChartProps {
   portfolios: Portfolio[]
@@ -239,77 +222,12 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
               </div>
 
               {/* Chart */}
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={series}>
-                    <defs>
-                      <linearGradient
-                        id="wealthGainFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={CHART_COLORS.accent}
-                          stopOpacity={0.15}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={CHART_COLORS.accent}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={AXIS_TICK}
-                      tickFormatter={formatAxisDate}
-                      interval="preserveStartEnd"
-                      dy={4}
-                    />
-                    <YAxis
-                      domain={["auto", "auto"]}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={AXIS_TICK}
-                      tickFormatter={fmtCompact}
-                      width={55}
-                    />
-                    <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
-                      labelFormatter={(label) =>
-                        formatTooltipDate(String(label))
-                      }
-                      formatter={(value) => [fmtFull(Number(value)), "Gain"]}
-                    />
-                    <ReferenceLine
-                      y={0}
-                      stroke={CHART_COLORS.axis}
-                      strokeDasharray="2 4"
-                      label={{
-                        value: "Break-even",
-                        position: "insideTopLeft",
-                        fill: CHART_COLORS.axis,
-                        fontSize: 10,
-                        fontFamily: "var(--font-dm-sans)",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="investmentGain"
-                      stroke={CHART_COLORS.accent}
-                      strokeWidth={2}
-                      fill="url(#wealthGainFill)"
-                      dot={false}
-                      activeDot={ACTIVE_DOT}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              <GainAreaChart
+                data={series}
+                gradientId="wealthGainFill"
+                formatTick={fmtCompact}
+                formatTooltipValue={fmtFull}
+              />
             </>
           )}
         </>

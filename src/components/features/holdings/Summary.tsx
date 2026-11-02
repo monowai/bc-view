@@ -1,7 +1,7 @@
 import React, { ReactElement, useCallback } from "react"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { Controller, useForm } from "react-hook-form"
+import { Control, Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
@@ -68,26 +68,18 @@ const headers = [
   },
 ]
 
-interface SummaryHeaderProps {
-  portfolio: Portfolio
-  portfolioSummary?: PortfolioSummary
-  viewMode?: ViewMode
-  onViewModeChange?: (mode: ViewMode) => void
-  /** If true, display "Aggregated" instead of portfolio name */
-  isAggregated?: boolean
-}
-
-// Mobile/Tablet header - must be rendered OUTSIDE the table element
-export function SummaryHeaderMobile({
-  portfolio,
-  isAggregated = false,
-}: SummaryHeaderProps): ReactElement {
+/**
+ * The as-at date behind the header. One form instance per header, so the
+ * inputs a header renders per breakpoint stay on the same field.
+ */
+function useAsAtForm(): {
+  control: Control
+  submit: () => void
+  handleDateChange: (field: any) => (dateValue: string) => void
+  asAt: string
+} {
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
-  const router = useRouter()
-
-  // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
-  const displayName = isAggregated ? "Aggregated" : portfolio.name
 
   const onSubmit = useCallback(
     (data: any): void => {
@@ -106,6 +98,74 @@ export function SummaryHeaderMobile({
     },
     [handleSubmit, onSubmit],
   )
+
+  return {
+    control,
+    submit: handleSubmit(onSubmit),
+    handleDateChange,
+    asAt: holdingState.asAt,
+  }
+}
+
+function AsAtDateForm({
+  form,
+  className,
+}: {
+  form: ReturnType<typeof useAsAtForm>
+  className: string
+}): ReactElement {
+  return (
+    <form onSubmit={form.submit}>
+      <Controller
+        name="date"
+        control={form.control}
+        render={({ field }) => (
+          <DateInput
+            value={field.value || getTodayDate(form.asAt)}
+            onChange={form.handleDateChange(field)}
+            className={className}
+          />
+        )}
+      />
+    </form>
+  )
+}
+
+/** Gain-or-loss colour for a signed value. */
+function signColorClass(value: number): string {
+  if (value > 0) return "text-emerald-600"
+  if (value < 0) return "text-red-600"
+  return "text-slate-700"
+}
+
+/** The display breakpoint a summary column starts showing from. */
+function columnVisibility(column: {
+  mobile: boolean
+  medium: boolean
+}): string {
+  if (column.mobile) return ""
+  return column.medium ? "hidden md:table-cell" : "hidden xl:table-cell"
+}
+
+interface SummaryHeaderProps {
+  portfolio: Portfolio
+  portfolioSummary?: PortfolioSummary
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
+  /** If true, display "Aggregated" instead of portfolio name */
+  isAggregated?: boolean
+}
+
+// Mobile/Tablet header - must be rendered OUTSIDE the table element
+export function SummaryHeaderMobile({
+  portfolio,
+  isAggregated = false,
+}: SummaryHeaderProps): ReactElement {
+  const asAtForm = useAsAtForm()
+  const router = useRouter()
+
+  // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
+  const displayName = isAggregated ? "Aggregated" : portfolio.name
 
   return (
     <>
@@ -141,19 +201,7 @@ export function SummaryHeaderMobile({
                   <i className="fas fa-exchange-alt text-sm"></i>
                 </button>
               )}
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <Controller
-                  name="date"
-                  control={control}
-                  render={({ field }) => (
-                    <DateInput
-                      value={field.value || getTodayDate(holdingState.asAt)}
-                      onChange={handleDateChange(field)}
-                      className="input text-xs w-28"
-                    />
-                  )}
-                />
-              </form>
+              <AsAtDateForm form={asAtForm} className="input text-xs w-28" />
             </div>
           </div>
         </div>
@@ -172,19 +220,7 @@ export function SummaryHeaderMobile({
                 />
               )}
             </h3>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <DateInput
-                    value={field.value || getTodayDate(holdingState.asAt)}
-                    onChange={handleDateChange(field)}
-                    className="input text-sm"
-                  />
-                )}
-              />
-            </form>
+            <AsAtDateForm form={asAtForm} className="input text-sm" />
           </div>
         </div>
       </div>
@@ -198,7 +234,7 @@ export default function SummaryHeader({
   portfolioSummary,
   isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
-  const { control, handleSubmit } = useForm()
+  const asAtForm = useAsAtForm()
   const holdingState = useHoldingState()
   const displayCurrencyOption = holdingState.displayCurrency
 
@@ -298,41 +334,8 @@ export default function SummaryHeader({
     }, // summary.gain
   ]
 
-  const onSubmit = useCallback(
-    (data: any): void => {
-      holdingState.setAsAt(data.date)
-    },
-    [holdingState],
-  )
-
-  const handleDateChange = useCallback(
-    (field: any) => (dateValue: string) => {
-      field.onChange(dateValue)
-      const date = new Date(dateValue)
-      if (!isNaN(date.getTime())) {
-        handleSubmit(onSubmit)()
-      }
-    },
-    [handleSubmit, onSubmit],
-  )
-
-  // Determine IRR color
-  const irrValue = totals?.irr || 0
-  const irrColorClass =
-    irrValue > 0
-      ? "text-emerald-600"
-      : irrValue < 0
-        ? "text-red-600"
-        : "text-slate-700"
-
-  // Determine gain color
-  const gainValue = totals?.gain || 0
-  const gainColorClass =
-    gainValue > 0
-      ? "text-emerald-600"
-      : gainValue < 0
-        ? "text-red-600"
-        : "text-slate-700"
+  const irrColorClass = signColorClass(totals?.irr || 0)
+  const gainColorClass = signColorClass(totals?.gain || 0)
 
   return (
     <thead className="hidden xl:table-header-group">
@@ -347,54 +350,22 @@ export default function SummaryHeader({
             />
           )}
         </th>
-        {headers.map((header) => {
-          let visibility
-          if (header.mobile) {
-            visibility = ""
-          } else if (header.medium) {
-            visibility = "hidden md:table-cell"
-          } else {
-            visibility = "hidden xl:table-cell"
-          }
-
-          return (
-            <th
-              key={header.key}
-              className={`px-2 py-2.5 text-xs font-medium uppercase tracking-wide text-slate-500 text-${header.align} ${visibility}`}
-            >
-              {header.label}
-            </th>
-          )
-        })}
+        {headers.map((header) => (
+          <th
+            key={header.key}
+            className={`px-2 py-2.5 text-xs font-medium uppercase tracking-wide text-slate-500 text-${header.align} ${columnVisibility(header)}`}
+          >
+            {header.label}
+          </th>
+        ))}
       </tr>
       {/* Values row with refined styling */}
       <tr className="bg-gradient-to-br from-slate-50 via-white to-wealth-50/20 border-b border-slate-200/60">
         <td className="px-3 py-3 text-sm font-medium text-slate-700">
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <DateInput
-                  value={field.value || getTodayDate(holdingState.asAt)}
-                  onChange={handleDateChange(field)}
-                  className="input text-sm font-medium"
-                />
-              )}
-            />
-          </form>
+          <AsAtDateForm form={asAtForm} className="input text-sm font-medium" />
         </td>
         {/* Summary values with enhanced styling */}
         {dataWithVisibility.map((item, index) => {
-          let visibility
-          if (item.mobile) {
-            visibility = ""
-          } else if (item.medium) {
-            visibility = "hidden md:table-cell"
-          } else {
-            visibility = "hidden xl:table-cell"
-          }
-
           // Get alignment from headers array
           const alignment = headers[index]?.align || "right"
 
@@ -406,7 +377,7 @@ export default function SummaryHeader({
           return (
             <td
               key={index}
-              className={`px-2 py-3 text-sm font-semibold tabular-nums text-${alignment} ${visibility} ${colorClass}`}
+              className={`px-2 py-3 text-sm font-semibold tabular-nums text-${alignment} ${columnVisibility(item)} ${colorClass}`}
             >
               {item.content}
             </td>
@@ -433,23 +404,8 @@ export function SummaryRowMobile({
       ? displayCurrencyOption.customCode
       : currency?.code
 
-  // Determine IRR color
-  const irrValue = totals?.irr || 0
-  const irrColorClass =
-    irrValue > 0
-      ? "text-emerald-600"
-      : irrValue < 0
-        ? "text-red-600"
-        : "text-slate-700"
-
-  // Determine gain color
-  const gainValue = totals?.gain || 0
-  const gainColorClass =
-    gainValue > 0
-      ? "text-emerald-600"
-      : gainValue < 0
-        ? "text-red-600"
-        : "text-slate-700"
+  const irrColorClass = signColorClass(totals?.irr || 0)
+  const gainColorClass = signColorClass(totals?.gain || 0)
 
   return (
     <div className="xl:hidden [@media(max-height:500px)_and_(orientation:landscape)]:hidden mx-2 my-3 relative">

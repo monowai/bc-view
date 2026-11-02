@@ -75,6 +75,32 @@ interface EditFormData {
   withdrawalOrder?: WithdrawalOrder
 }
 
+type PercentField =
+  | "equityReturnRate"
+  | "cashReturnRate"
+  | "housingReturnRate"
+  | "equityAllocation"
+  | "cashAllocation"
+  | "housingAllocation"
+
+interface PercentFieldSpec {
+  label: string
+  field: PercentField
+  max: number
+}
+
+const RETURN_RATE_FIELDS: PercentFieldSpec[] = [
+  { label: "Equity", field: "equityReturnRate", max: 30 },
+  { label: "Cash", field: "cashReturnRate", max: 20 },
+  { label: "Housing", field: "housingReturnRate", max: 20 },
+]
+
+const ALLOCATION_FIELDS: PercentFieldSpec[] = [
+  { label: "Equity", field: "equityAllocation", max: 100 },
+  { label: "Cash", field: "cashAllocation", max: 100 },
+  { label: "Housing", field: "housingAllocation", max: 100 },
+]
+
 interface EditPlanDetailsModalProps {
   onClose: () => void
   onApply: (overrides: EditedOverrides) => void
@@ -125,6 +151,42 @@ function PrivacyMoneyInput({
         step={step}
         placeholder={placeholder}
       />
+    </div>
+  )
+}
+
+/** A labelled grid of percentage inputs that all edit the plan's form data. */
+function PercentFields({
+  fields,
+  step,
+  formData,
+  setFormData,
+}: {
+  fields: PercentFieldSpec[]
+  step: number
+  formData: EditFormData
+  setFormData: React.Dispatch<React.SetStateAction<EditFormData>>
+}): React.ReactElement {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {fields.map(({ label, field, max }) => (
+        <div key={field}>
+          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <div className="relative">
+            <MathInput
+              value={formData[field]}
+              onChange={(v) => setFormData((prev) => ({ ...prev, [field]: v }))}
+              className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              min={0}
+              max={max}
+              step={step}
+            />
+            <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+              %
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -356,62 +418,12 @@ export default function EditPlanDetailsModal({
       {/* Return Rates */}
       <div className="border-t pt-4 mt-4">
         <h3 className="text-sm font-medium text-gray-700 mb-3">Return Rates</h3>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Equity</label>
-            <div className="relative">
-              <MathInput
-                value={formData.equityReturnRate}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, equityReturnRate: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={30}
-                step={0.5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Cash</label>
-            <div className="relative">
-              <MathInput
-                value={formData.cashReturnRate}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, cashReturnRate: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={20}
-                step={0.5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Housing</label>
-            <div className="relative">
-              <MathInput
-                value={formData.housingReturnRate}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, housingReturnRate: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={20}
-                step={0.5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-        </div>
+        <PercentFields
+          fields={RETURN_RATE_FIELDS}
+          step={0.5}
+          formData={formData}
+          setFormData={setFormData}
+        />
       </div>
 
       {/* Asset Allocations */}
@@ -432,62 +444,12 @@ export default function EditPlanDetailsModal({
             </button>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Equity</label>
-            <div className="relative">
-              <MathInput
-                value={formData.equityAllocation}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, equityAllocation: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={100}
-                step={5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Cash</label>
-            <div className="relative">
-              <MathInput
-                value={formData.cashAllocation}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, cashAllocation: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={100}
-                step={5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Housing</label>
-            <div className="relative">
-              <MathInput
-                value={formData.housingAllocation}
-                onChange={(v) =>
-                  setFormData((prev) => ({ ...prev, housingAllocation: v }))
-                }
-                className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                min={0}
-                max={100}
-                step={5}
-              />
-              <span className="absolute right-2 top-2.5 text-xs text-gray-500">
-                %
-              </span>
-            </div>
-          </div>
-        </div>
+        <PercentFields
+          fields={ALLOCATION_FIELDS}
+          step={5}
+          formData={formData}
+          setFormData={setFormData}
+        />
         <p className="text-xs text-gray-500 mt-2">
           Total:{" "}
           {formData.equityAllocation +

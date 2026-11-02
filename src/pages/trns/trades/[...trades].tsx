@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import Link from "next/link"
@@ -24,16 +23,73 @@ import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
 import { buildTradeGroups } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import {
+  TrnCardValue,
+  TrnColumn,
+  TrnDeleteConfirm,
+  TrnDetailTabs,
+  TrnEmptyState,
+  TrnNumber,
+  TrnNumberCell,
+  TrnPageNav,
+  TrnRowActions,
+  TrnStatusBadge,
+  TrnTableHead,
+} from "@components/features/transactions/TrnListParts"
+import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+
+const COLUMNS: TrnColumn[] = [
+  { label: "Type" },
+  { label: "Asset" },
+  { label: "Currency" },
+  { label: "Trade Date" },
+  { label: "Qty", align: "right" },
+  { label: "Price", align: "right" },
+  { label: "Amount", align: "right" },
+  { label: "Settlement Account" },
+  { label: "Cash", align: "right" },
+  { label: "Tax", align: "right" },
+  { label: "Fees", align: "right" },
+  { label: "Status" },
+  { label: "Comments" },
+  { label: "Actions", align: "center" },
+]
+
+function TradeCount({ count }: { count: number }): React.ReactElement {
+  return (
+    <span className="text-sm text-indigo-600">
+      {count} {count === 1 ? "Trade" : "Trades"}
+    </span>
+  )
+}
+
+function GroupTotalValue(
+  props: React.ComponentProps<typeof TrnCardValue>,
+): React.ReactElement {
+  return (
+    <TrnCardValue
+      labelClassName="text-indigo-600"
+      valueClassName="ml-1 font-semibold text-indigo-900"
+      {...props}
+    />
+  )
+}
+
+function GroupTotalCell({
+  value,
+}: {
+  value: number | undefined
+}): React.ReactElement {
+  return (
+    <TrnNumberCell value={value} scale={2} className="px-4 py-3 text-right" />
+  )
+}
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [unsettleError, setUnsettleError] = useState<string | null>(null)
-  const [listDeleteTarget, setListDeleteTarget] = useState<{
-    id: string
-    portfolioCode: string
-  } | null>(null)
 
   // Extract query params - safe to access even before router is ready (will be undefined)
   const tradesParam = router.query.trades as string[] | undefined
@@ -113,6 +169,8 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           : null
       : null
   const trades = useSwr(tradesUrl, tradesUrl ? simpleFetcher(tradesUrl) : null)
+  const { deletePending, requestDelete, cancelDelete, confirmDelete } =
+    useTrnListDelete(trades.mutate)
 
   // Group transactions by broker (must be called before any early returns for hooks rules)
   const trnResults = useMemo(
@@ -207,23 +265,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     [],
   )
 
-  // Delete transaction from list mode
-  const handleListDeleteConfirm = useCallback(async (): Promise<void> => {
-    if (!listDeleteTarget) return
-    try {
-      const response = await deleteTrn(listDeleteTarget.id)
-      if (response.ok) {
-        setTimeout(() => {
-          mutate(holdingKey(listDeleteTarget.portfolioCode, "today"))
-          trades.mutate()
-        }, 1500)
-      }
-    } catch (err) {
-      console.error("Error deleting transaction:", err)
-    } finally {
-      setListDeleteTarget(null)
-    }
-  }, [listDeleteTarget, trades])
+  const editTrn = (trn: Transaction): void => {
+    router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
+  }
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
@@ -244,18 +288,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       : singleTrn.data?.data
 
     if (!transaction) {
-      return (
-        <div id="root" className="text-center py-8">
-          <p className="text-gray-500 mb-4">{"No transactions found"}</p>
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
-          >
-            <i className="fa fa-arrow-left mr-2"></i>
-            {"Back"}
-          </button>
-        </div>
-      )
+      return <TrnEmptyState id="root" />
     }
 
     const handleClose = (): void => {
@@ -351,12 +384,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           )
         ) : null}
         {showDeleteConfirm && (
-          <ConfirmDialog
-            title={"Delete Transaction"}
-            message={"Permanently delete this transaction?"}
-            confirmLabel={"Delete"}
-            cancelLabel={"Cancel"}
-            variant="red"
+          <TrnDeleteConfirm
             onConfirm={handleDeleteConfirm}
             onCancel={() => setShowDeleteConfirm(false)}
           />
@@ -388,69 +416,25 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   }
 
   if (!trnResults || trnResults.length === 0) {
-    return (
-      <div id="root" className="text-center py-8">
-        <p className="text-gray-500 mb-4">{"No transactions found"}</p>
-        <button
-          onClick={() => router.back()}
-          className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
-        >
-          <i className="fa fa-arrow-left mr-2"></i>
-          {"Back"}
-        </button>
-      </div>
-    )
+    return <TrnEmptyState id="root" />
   }
   return (
     <div className="min-h-screen bg-gray-50 text-sm">
       {/* Header with back button */}
-      <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{"Back"}</span>
-            </button>
-            <div className="flex-1 text-lg font-semibold text-center truncate">
-              {asset.data.data.name}
-              <span className="text-gray-500 text-sm ml-2">
-                {asset.data.data.market.code}
-              </span>
-            </div>
-            <div className="w-16"></div>
-          </div>
-        </div>
-      </nav>
+      <TrnPageNav
+        title={asset.data.data.name}
+        subtitle={asset.data.data.market.code}
+      />
 
       {/* Tabs for switching between Trades and Events.
           Events are per-portfolio, so they are hidden in the aggregated
           (multi-portfolio) drill-down. */}
       {!isMulti && (
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4">
-            <div className="flex">
-              <button
-                className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
-                onClick={() =>
-                  router.replace(`/trns/trades/${portfolioId}/${assetId}`)
-                }
-              >
-                {"Trades"}
-              </button>
-              <button
-                className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
-                onClick={() =>
-                  router.replace(`/trns/events/${portfolioId}/${assetId}`)
-                }
-              >
-                {"Events"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <TrnDetailTabs
+          active="trades"
+          portfolioId={portfolioId}
+          assetId={assetId}
+        />
       )}
 
       <div className="container mx-auto px-4 py-4">
@@ -461,10 +445,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               {/* Group Header (broker, or portfolio in the aggregated view) */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-t-lg px-4 py-2 flex justify-between items-center">
                 {renderGroupLabel(group)}
-                <span className="text-sm text-indigo-600">
-                  {group.transactions.length}{" "}
-                  {group.transactions.length === 1 ? "Trade" : "Trades"}
-                </span>
+                <TradeCount count={group.transactions.length} />
               </div>
               {/* Transactions */}
               <div className="space-y-2 border-l border-r border-indigo-200 bg-white">
@@ -472,11 +453,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   <div
                     key={trn.id}
                     className="p-4 space-y-2 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
-                    onDoubleClick={() =>
-                      router.push(
-                        `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                      )
-                    }
+                    onDoubleClick={() => editTrn(trn)}
                     title={"Double-click to edit"}
                   >
                     <div className="flex justify-between items-start">
@@ -509,17 +486,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            trn.status === "SETTLED"
-                              ? "bg-green-100 text-green-800"
-                              : trn.status === "PROPOSED"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {trn.status}
-                        </span>
+                        <TrnStatusBadge status={trn.status} />
                         <span className="text-sm text-gray-500">
                           {trn.tradeDate}
                         </span>
@@ -529,53 +496,31 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       {trn.trnType !== "INCOME" &&
                         trn.trnType !== "EXPENSE" && (
                           <>
-                            <div>
-                              <span className="text-gray-500">{"Qty"}:</span>
-                              <span className="ml-1 font-medium">
-                                <NumericFormat
-                                  value={trn.quantity}
-                                  displayType={"text"}
-                                  decimalScale={2}
-                                  thousandSeparator={true}
-                                />
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">{"Price"}:</span>
-                              <span className="ml-1 font-medium">
-                                <NumericFormat
-                                  value={trn.price}
-                                  displayType={"text"}
-                                  decimalScale={2}
-                                  thousandSeparator={true}
-                                />
-                              </span>
-                            </div>
+                            <TrnCardValue
+                              label={"Qty"}
+                              value={trn.quantity}
+                              scale={2}
+                              fixed={false}
+                            />
+                            <TrnCardValue
+                              label={"Price"}
+                              value={trn.price}
+                              scale={2}
+                              fixed={false}
+                            />
                           </>
                         )}
-                      <div>
-                        <span className="text-gray-500">{"Amount"}:</span>
-                        <span className="ml-1 font-medium">
-                          <NumericFormat
-                            value={trn.tradeAmount}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">{"Cash"}:</span>
-                        <span className="ml-1 font-medium">
-                          <NumericFormat
-                            value={trn.cashAmount}
-                            displayType={"text"}
-                            decimalScale={2}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
+                      <TrnCardValue
+                        label={"Amount"}
+                        value={trn.tradeAmount}
+                        scale={2}
+                      />
+                      <TrnCardValue
+                        label={"Cash"}
+                        value={trn.cashAmount}
+                        scale={2}
+                        fixed={false}
+                      />
                     </div>
                   </div>
                 ))}
@@ -583,66 +528,35 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               {/* Group Totals */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-b-lg px-4 py-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-indigo-600">{"Qty"}:</span>
-                    <span className="ml-1 font-semibold text-indigo-900">
-                      <NumericFormat
-                        value={group.totals.quantity}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale={true}
-                        thousandSeparator={true}
-                      />
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-indigo-600">{"Amount"}:</span>
-                    <span className="ml-1 font-semibold text-indigo-900">
-                      <NumericFormat
-                        value={group.totals.tradeAmount}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale={true}
-                        thousandSeparator={true}
-                      />
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-indigo-600">{"Cash"}:</span>
-                    <span className="ml-1 font-semibold text-indigo-900">
-                      <NumericFormat
-                        value={group.totals.cashAmount}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale={true}
-                        thousandSeparator={true}
-                      />
-                    </span>
-                  </div>
+                  <GroupTotalValue
+                    label={"Qty"}
+                    value={group.totals.quantity}
+                    scale={2}
+                  />
+                  <GroupTotalValue
+                    label={"Amount"}
+                    value={group.totals.tradeAmount}
+                    scale={2}
+                  />
+                  <GroupTotalValue
+                    label={"Cash"}
+                    value={group.totals.cashAmount}
+                    scale={2}
+                  />
                   {(group.totals.fees > 0 || group.totals.tax > 0) && (
                     <>
-                      <div>
-                        <span className="text-indigo-600">{"Fees"}:</span>
-                        <span className="ml-1 font-semibold text-indigo-900">
-                          <NumericFormat
-                            value={group.totals.fees}
-                            displayType={"text"}
-                            decimalScale={2}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-indigo-600">{"Tax"}:</span>
-                        <span className="ml-1 font-semibold text-indigo-900">
-                          <NumericFormat
-                            value={group.totals.tax}
-                            displayType={"text"}
-                            decimalScale={2}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
+                      <GroupTotalValue
+                        label={"Fees"}
+                        value={group.totals.fees}
+                        scale={2}
+                        fixed={false}
+                      />
+                      <GroupTotalValue
+                        label={"Tax"}
+                        value={group.totals.tax}
+                        scale={2}
+                        fixed={false}
+                      />
                     </>
                   )}
                 </div>
@@ -661,70 +575,18 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               {/* Group Header (broker, or portfolio in the aggregated view) */}
               <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
                 {renderGroupLabel(group)}
-                <span className="text-sm text-indigo-600">
-                  {group.transactions.length}{" "}
-                  {group.transactions.length === 1 ? "Trade" : "Trades"}
-                </span>
+                <TradeCount count={group.transactions.length} />
               </div>
               {/* Table */}
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Type"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Asset"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Currency"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Trade Date"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Qty"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Price"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Amount"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Settlement Account"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Cash"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Tax"}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Fees"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Status"}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Comments"}
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                        {"Actions"}
-                      </th>
-                    </tr>
-                  </thead>
+                  <TrnTableHead columns={COLUMNS} />
                   <tbody className="divide-y divide-gray-200">
                     {group.transactions.map((trn: Transaction) => (
                       <tr
                         key={trn.id}
                         className="hover:bg-gray-50 cursor-pointer"
-                        onDoubleClick={() =>
-                          router.push(
-                            `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                          )
-                        }
+                        onDoubleClick={() => editTrn(trn)}
                         title={"Double-click to edit"}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -749,13 +611,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           trn.trnType === "EXPENSE" ? (
                             <span className="text-gray-400">-</span>
                           ) : (
-                            <NumericFormat
-                              value={trn.quantity}
-                              displayType={"text"}
-                              decimalScale={2}
-                              fixedDecimalScale={true}
-                              thousandSeparator={true}
-                            />
+                            <TrnNumber value={trn.quantity} scale={2} />
                           )}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -763,24 +619,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           trn.trnType === "EXPENSE" ? (
                             <span className="text-gray-400">-</span>
                           ) : (
-                            <NumericFormat
-                              value={trn.price}
-                              displayType={"text"}
-                              decimalScale={2}
-                              fixedDecimalScale={true}
-                              thousandSeparator={true}
-                            />
+                            <TrnNumber value={trn.price} scale={2} />
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.tradeAmount}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
-                        </td>
+                        <TrnNumberCell value={trn.tradeAmount} scale={2} />
                         <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                           {["ADD", "REDUCE", "SPLIT", "COST_ADJUST"].includes(
                             trn.trnType,
@@ -793,45 +635,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                                 getDisplayCode(trn.cashAsset) ||
                                 `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
                         </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.cashAmount}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.tax}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.fees}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
-                        </td>
+                        <TrnNumberCell value={trn.cashAmount} scale={2} />
+                        <TrnNumberCell value={trn.tax} scale={2} />
+                        <TrnNumberCell value={trn.fees} scale={2} />
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                              trn.status === "SETTLED"
-                                ? "bg-green-100 text-green-800"
-                                : trn.status === "PROPOSED"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {trn.status}
-                          </span>
+                          <TrnStatusBadge status={trn.status} />
                         </td>
                         <td
                           className="px-4 py-3 text-gray-600 max-w-xs truncate"
@@ -840,43 +648,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           {trn.comments || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(
-                                  `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                                )
-                              }}
-                              className="text-gray-400 hover:text-blue-600 p-1"
-                              title={"Edit"}
-                            >
-                              <i className="fas fa-edit"></i>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => copyRowToClipboard(trn, e)}
-                              className="text-gray-400 hover:text-gray-600 p-1"
-                              title={"Copy"}
-                            >
-                              <i className="fas fa-copy"></i>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setListDeleteTarget({
-                                  id: trn.id,
-                                  portfolioCode: trn.portfolio.code,
-                                })
-                              }}
-                              className="text-gray-400 hover:text-red-600 p-1"
-                              title={"Delete"}
-                            >
-                              <i className="fas fa-trash-alt"></i>
-                            </button>
-                          </div>
+                          <TrnRowActions
+                            onEdit={() => editTrn(trn)}
+                            onCopy={(e) => copyRowToClipboard(trn, e)}
+                            onDelete={() => requestDelete(trn)}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -887,53 +663,13 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       <td className="px-4 py-3" colSpan={4}>
                         {"Total"}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <NumericFormat
-                          value={group.totals.quantity}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
+                      <GroupTotalCell value={group.totals.quantity} />
                       <td className="px-4 py-3"></td>
-                      <td className="px-4 py-3 text-right">
-                        <NumericFormat
-                          value={group.totals.tradeAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
+                      <GroupTotalCell value={group.totals.tradeAmount} />
                       <td className="px-4 py-3"></td>
-                      <td className="px-4 py-3 text-right">
-                        <NumericFormat
-                          value={group.totals.cashAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <NumericFormat
-                          value={group.totals.tax}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <NumericFormat
-                          value={group.totals.fees}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
+                      <GroupTotalCell value={group.totals.cashAmount} />
+                      <GroupTotalCell value={group.totals.tax} />
+                      <GroupTotalCell value={group.totals.fees} />
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3"></td>
@@ -945,16 +681,8 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           ))}
         </div>
       </div>
-      {listDeleteTarget && (
-        <ConfirmDialog
-          title={"Delete Transaction"}
-          message={"Permanently delete this transaction?"}
-          confirmLabel={"Delete"}
-          cancelLabel={"Cancel"}
-          variant="red"
-          onConfirm={handleListDeleteConfirm}
-          onCancel={() => setListDeleteTarget(null)}
-        />
+      {deletePending && (
+        <TrnDeleteConfirm onConfirm={confirmDelete} onCancel={cancelDelete} />
       )}
     </div>
   )

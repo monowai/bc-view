@@ -3,8 +3,6 @@ import useSwr, { useSWRConfig } from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, PerformanceResponse } from "types/beancounter"
 import {
-  AreaChart,
-  Area,
   Line,
   LineChart,
   XAxis,
@@ -17,12 +15,13 @@ import {
 import {
   TIME_RANGES,
   CHART_COLORS,
-  AXIS_TICK,
   ACTIVE_DOT,
+  DATE_AXIS_PROPS,
   TOOLTIP_STYLE,
+  VALUE_AXIS_PROPS,
   formatFull as formatFullShared,
-  formatAxisDate,
   formatTooltipDate,
+  referenceLineProps,
 } from "@lib/chart/performanceConstants"
 import { formatCompactSymbol } from "@lib/formatters"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -35,6 +34,7 @@ import {
   resetPerformanceCache,
 } from "@utils/api/client/holdings"
 import { backfillPrices } from "@utils/api/client/prices"
+import GainAreaChart from "./GainAreaChart"
 
 type ChartTab = "gain" | "benchmark" | "guide"
 
@@ -48,6 +48,59 @@ interface PerformanceChartProps {
 }
 
 const HIDDEN = "****"
+
+/** Icon button for a slow action: its icon, then a spinner, then a tick. */
+const ChartActionButton: React.FC<{
+  label: string
+  onClick: () => void
+  busy: boolean
+  done: boolean
+  /** The idle icon's paths. */
+  children: React.ReactNode
+}> = ({ label, onClick, busy, done, children }) => (
+  <button
+    onClick={onClick}
+    disabled={busy}
+    title={label}
+    aria-label={label}
+    className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+  >
+    {busy ? (
+      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="3"
+          className="opacity-25"
+        />
+        <path
+          d="M4 12a8 8 0 018-8"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </svg>
+    ) : done ? (
+      <svg
+        className="w-3.5 h-3.5 text-gain"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <path
+          fillRule="evenodd"
+          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+          clipRule="evenodd"
+        />
+      </svg>
+    ) : (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+        {children}
+      </svg>
+    )}
+  </button>
+)
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({
   portfolioCode,
@@ -231,8 +284,6 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   const isPositive = (growthStats?.returnPct ?? 0) >= 0
 
-  const tooltipStyle = TOOLTIP_STYLE
-
   if (error) {
     return (
       <Alert variant="error" className="p-6 text-center">
@@ -313,112 +364,28 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   {backfillSummary}
                 </span>
               )}
-              <button
+              <ChartActionButton
+                label="Load historical prices"
                 onClick={handleBackfill}
-                disabled={backfillState === "loading"}
-                title="Load historical prices"
-                aria-label="Load historical prices"
-                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                busy={backfillState === "loading"}
+                done={backfillState === "done"}
               >
-                {backfillState === "loading" ? (
-                  <svg
-                    className="w-3.5 h-3.5 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      className="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                ) : backfillState === "done" ? (
-                  <svg
-                    className="w-3.5 h-3.5 text-gain"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
-                    <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
-                    <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
-                  </svg>
-                )}
-              </button>
-              <button
+                <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+                <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+                <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
+              </ChartActionButton>
+              <ChartActionButton
+                label="Reset performance cache"
                 onClick={handleResetCache}
-                disabled={resetState === "resetting"}
-                title="Reset performance cache"
-                aria-label="Reset performance cache"
-                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                busy={resetState === "resetting"}
+                done={resetState === "done"}
               >
-                {resetState === "resetting" ? (
-                  <svg
-                    className="w-3.5 h-3.5 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      className="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                ) : resetState === "done" ? (
-                  <svg
-                    className="w-3.5 h-3.5 text-gain"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-              </button>
+                <path
+                  fillRule="evenodd"
+                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                  clipRule="evenodd"
+                />
+              </ChartActionButton>
             </div>
           )}
         </div>
@@ -575,25 +542,13 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={benchmarkChartData}>
-                    <XAxis
-                      dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={AXIS_TICK}
-                      tickFormatter={formatAxisDate}
-                      interval="preserveStartEnd"
-                      dy={4}
-                    />
+                    <XAxis {...DATE_AXIS_PROPS} />
                     <YAxis
-                      domain={["auto", "auto"]}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={AXIS_TICK}
+                      {...VALUE_AXIS_PROPS}
                       tickFormatter={(v: number) => v.toFixed(0)}
-                      width={55}
                     />
                     <Tooltip
-                      contentStyle={tooltipStyle}
+                      contentStyle={TOOLTIP_STYLE}
                       labelFormatter={(label) =>
                         formatTooltipDate(String(label))
                       }
@@ -605,16 +560,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                       ]}
                     />
                     <ReferenceLine
-                      y={1000}
-                      stroke={CHART_COLORS.axis}
-                      strokeDasharray="2 4"
-                      label={{
-                        value: "Start (1000)",
-                        position: "insideTopLeft",
-                        fill: CHART_COLORS.axis,
-                        fontSize: 10,
-                        fontFamily: "var(--font-dm-sans)",
-                      }}
+                      {...referenceLineProps(1000, "Start (1000)")}
                     />
                     <Legend
                       verticalAlign="top"
@@ -654,72 +600,14 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
               )}
             </div>
           ) : activeChart === "gain" ? (
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={gainSeries}>
-                  <defs>
-                    <linearGradient id="gainFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor={CHART_COLORS.accent}
-                        stopOpacity={0.15}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={CHART_COLORS.accent}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={AXIS_TICK}
-                    tickFormatter={formatAxisDate}
-                    interval="preserveStartEnd"
-                    dy={4}
-                  />
-                  <YAxis
-                    domain={["auto", "auto"]}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={AXIS_TICK}
-                    tickFormatter={formatCompact}
-                    width={55}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelFormatter={(label) => formatTooltipDate(String(label))}
-                    formatter={(value) => [
-                      hideValues ? HIDDEN : formatFull(Number(value)),
-                      "Gain",
-                    ]}
-                  />
-                  <ReferenceLine
-                    y={0}
-                    stroke={CHART_COLORS.axis}
-                    strokeDasharray="2 4"
-                    label={{
-                      value: "Break-even",
-                      position: "insideTopLeft",
-                      fill: CHART_COLORS.axis,
-                      fontSize: 10,
-                      fontFamily: "var(--font-dm-sans)",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="investmentGain"
-                    stroke={CHART_COLORS.accent}
-                    strokeWidth={2}
-                    fill="url(#gainFill)"
-                    dot={false}
-                    activeDot={ACTIVE_DOT}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <GainAreaChart
+              data={gainSeries}
+              gradientId="gainFill"
+              formatTick={formatCompact}
+              formatTooltipValue={(value) =>
+                hideValues ? HIDDEN : formatFull(value)
+              }
+            />
           ) : (
             <div
               className="grid gap-4 sm:grid-cols-2 text-xs text-gray-600 leading-relaxed"

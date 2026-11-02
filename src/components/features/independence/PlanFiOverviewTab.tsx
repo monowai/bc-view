@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react"
 import {
   ComposedChart,
   Line,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,6 +10,12 @@ import {
   ReferenceArea,
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
+import {
+  WEALTH_AGE_AXIS_PROPS,
+  WEALTH_GRID_PROPS,
+  monteCarloBands,
+  wealthMoneyAxisProps,
+} from "@components/features/independence/wealthChartProps"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import { deriveFiStack } from "@lib/independence/fiStack"
 import Spinner from "@components/ui/Spinner"
@@ -24,7 +29,6 @@ import CollapsibleSection from "@components/ui/CollapsibleSection"
 import {
   currencySymbolFor,
   formatCompact,
-  formatCompactBare,
   formatCurrencySymbol,
 } from "@lib/formatters"
 
@@ -464,37 +468,13 @@ export default function PlanFiOverviewTab({
             data={chartData}
             margin={{ top: 4, right: 16, bottom: 20, left: 0 }}
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#f1f5f9"
-              vertical={false}
-            />
+            <CartesianGrid {...WEALTH_GRID_PROPS} />
             <XAxis
-              dataKey="age"
-              type="number"
-              scale="linear"
+              {...WEALTH_AGE_AXIS_PROPS}
               domain={ageAxis.domain}
               ticks={ageAxis.ticks}
-              allowDataOverflow
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              tickLine={false}
-              axisLine={false}
-              label={{
-                value: "Age",
-                position: "insideBottom",
-                offset: -10,
-                fontSize: 11,
-                fill: "#94a3b8",
-              }}
             />
-            <YAxis
-              tickFormatter={hideValues ? () => "***" : formatCompactBare}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              tickLine={false}
-              axisLine={false}
-              width={54}
-              domain={[0, yMax]}
-            />
+            <YAxis {...wealthMoneyAxisProps(hideValues)} domain={[0, yMax]} />
             <ChartTooltip
               formatter={(val: any, name: any) => {
                 if (hideValues) return [HIDDEN_VALUE, name ?? ""]
@@ -511,58 +491,13 @@ export default function PlanFiOverviewTab({
               }}
             />
 
-            {hasMc && (
-              <>
-                <Area
-                  type="monotone"
-                  dataKey="p10Base"
-                  fill="transparent"
-                  stroke="none"
-                  stackId="outer"
-                  legendType="none"
-                  isAnimationActive={false}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="outerWidth"
-                  fill="rgba(34,197,94,0.09)"
-                  stroke="none"
-                  stackId="outer"
-                  legendType="none"
-                  isAnimationActive={false}
-                  name="p10–p90"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="p25Base"
-                  fill="transparent"
-                  stroke="none"
-                  stackId="inner"
-                  legendType="none"
-                  isAnimationActive={false}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="innerWidth"
-                  fill="rgba(34,197,94,0.15)"
-                  stroke="none"
-                  stackId="inner"
-                  legendType="none"
-                  isAnimationActive={false}
-                  name="p25–p75"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="p50"
-                  stroke="rgba(34,197,94,0.55)"
-                  strokeWidth={1.5}
-                  strokeDasharray="5 4"
-                  dot={false}
-                  isAnimationActive={false}
-                  name="Median (MC)"
-                />
-              </>
-            )}
+            {hasMc &&
+              monteCarloBands({
+                outerName: "p10–p90",
+                innerName: "p25–p75",
+                medianName: "Median (MC)",
+                hideFromLegend: true,
+              })}
 
             {fiCrossingAge && (
               <ReferenceArea

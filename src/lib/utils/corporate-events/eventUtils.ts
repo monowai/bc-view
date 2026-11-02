@@ -169,3 +169,31 @@ export const filterEventsForOpenPosition = (
 ): CorporateEvent[] => {
   return events.filter((event) => !isClosedBeforeEvent(closedDate, event))
 }
+
+/**
+ * Display label for a corporate event type.
+ */
+export const getEventTypeLabel = (trnType: string): string => {
+  switch (trnType) {
+    case "DIVI":
+      return "Dividend"
+    case "SPLIT":
+      return "Split"
+    default:
+      return trnType
+  }
+}
+
+/**
+ * Font Awesome icon class for a corporate event type.
+ */
+export const getEventTypeIcon = (trnType: string): string => {
+  switch (trnType) {
+    case "DIVI":
+      return "fa-money-bill-wave"
+    case "SPLIT":
+      return "fa-code-branch"
+    default:
+      return "fa-calendar"
+  }
+}

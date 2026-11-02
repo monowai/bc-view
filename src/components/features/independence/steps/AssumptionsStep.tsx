@@ -120,6 +120,39 @@ export default function AssumptionsStep({
     currentEquityAllocation > 0 ||
     currentHousingAllocation > 0
 
+  // Read the actual allocation of the selected portfolios into the form.
+  // onApplied fires only when holdings carried one to apply.
+  const loadAllocation = useCallback(
+    (onApplied?: () => void): void => {
+      setIsLoadingAllocation(true)
+      const ids = selectedPortfolioIds.join(",")
+
+      fetch(holdingsAllocationUrl(ids))
+        .then((res) => res.json())
+        .then((response: AllocationResponse) => {
+          if (response.data) {
+            const { cashAllocation, equityAllocation, housingAllocation } =
+              response.data
+            const total = cashAllocation + equityAllocation + housingAllocation
+            if (total > 0) {
+              const norm = normalizeAllocation(
+                equityAllocation,
+                cashAllocation,
+                housingAllocation,
+              )
+              setValue("cashAllocation", norm.cash)
+              setValue("equityAllocation", norm.equity)
+              setValue("housingAllocation", norm.housing)
+              onApplied?.()
+            }
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsLoadingAllocation(false))
+    },
+    [selectedPortfolioIds, setValue],
+  )
+
   // Fetch and apply allocation data when portfolios are first selected
   // but ONLY if allocations are not already set (all are 0)
   useEffect(() => {
@@ -130,62 +163,16 @@ export default function AssumptionsStep({
     )
       return
 
-    setIsLoadingAllocation(true)
-    const ids = selectedPortfolioIds.join(",")
-
-    fetch(holdingsAllocationUrl(ids))
-      .then((res) => res.json())
-      .then((response: AllocationResponse) => {
-        if (response.data) {
-          const { cashAllocation, equityAllocation, housingAllocation } =
-            response.data
-          const total = cashAllocation + equityAllocation + housingAllocation
-          if (total > 0) {
-            const norm = normalizeAllocation(
-              equityAllocation,
-              cashAllocation,
-              housingAllocation,
-            )
-            setValue("cashAllocation", norm.cash)
-            setValue("equityAllocation", norm.equity)
-            setValue("housingAllocation", norm.housing)
-            hasAppliedAllocation.current = true
-          }
-        }
-      })
-      .catch(console.error)
-      .finally(() => setIsLoadingAllocation(false))
-  }, [selectedPortfolioIds, setValue, hasExistingAllocation])
+    loadAllocation(() => {
+      hasAppliedAllocation.current = true
+    })
+  }, [selectedPortfolioIds, loadAllocation, hasExistingAllocation])
 
   // Function to refresh allocation from selected portfolios
   const refreshAllocation = useCallback((): void => {
     if (selectedPortfolioIds.length === 0) return
-
-    setIsLoadingAllocation(true)
-    const ids = selectedPortfolioIds.join(",")
-
-    fetch(holdingsAllocationUrl(ids))
-      .then((res) => res.json())
-      .then((response: AllocationResponse) => {
-        if (response.data) {
-          const { cashAllocation, equityAllocation, housingAllocation } =
-            response.data
-          const total = cashAllocation + equityAllocation + housingAllocation
-          if (total > 0) {
-            const norm = normalizeAllocation(
-              equityAllocation,
-              cashAllocation,
-              housingAllocation,
-            )
-            setValue("cashAllocation", norm.cash)
-            setValue("equityAllocation", norm.equity)
-            setValue("housingAllocation", norm.housing)
-          }
-        }
-      })
-      .catch(console.error)
-      .finally(() => setIsLoadingAllocation(false))
-  }, [selectedPortfolioIds, setValue])
+    loadAllocation()
+  }, [selectedPortfolioIds, loadAllocation])
 
   // Watch allocation and return values to calculate blended return
   // Use nullish coalescing (??) instead of || to allow 0 as a valid value

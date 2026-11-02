@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
+import AdminAccessDenied from "@components/features/admin/AdminAccessDenied"
 import { Asset, AssetOption, Currency, Market } from "types/beancounter"
 import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
@@ -58,23 +59,20 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
 
   if (!isAdmin) {
     return (
-      <div className="max-w-4xl mx-auto py-12 px-4">
-        <Alert variant="error" className="p-6 text-center">
-          <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
-          <h1 className="text-xl font-semibold text-red-700 mb-2">
-            {"Access Denied"}
-          </h1>
-          <p className="text-red-600">
-            {"You do not have permission to access the admin area."}
-          </p>
-          <Link
-            href="/admin"
-            className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-          >
-            {"Return to Admin"}
-          </Link>
-        </Alert>
-      </div>
+      <AdminAccessDenied returnHref="/admin" returnLabel="Return to Admin" />
+    )
+  }
+
+  const applyAsset = (asset: Asset): void => {
+    setSelectedAsset(asset)
+    setEditName(asset.name || "")
+    setEditCode(getDisplayCode(asset))
+    setEditCurrency(getAssetCurrency(asset))
+    setEditCategory(asset.assetCategory?.id || "Equity")
+    setEditReturnRate(
+      asset.expectedReturnRate != null
+        ? String(asset.expectedReturnRate * 100)
+        : "",
     )
   }
 
@@ -101,17 +99,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
         return
       }
       const data = await response.json()
-      const asset: Asset = data.data
-      setSelectedAsset(asset)
-      setEditName(asset.name || "")
-      setEditCode(getDisplayCode(asset))
-      setEditCurrency(getAssetCurrency(asset))
-      setEditCategory(asset.assetCategory?.id || "Equity")
-      setEditReturnRate(
-        asset.expectedReturnRate != null
-          ? String(asset.expectedReturnRate * 100)
-          : "",
-      )
+      applyAsset(data.data)
     } catch (err) {
       setMessage({
         type: "error",
@@ -171,16 +159,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       }
       const data = await response.json()
       if (data.data) {
-        setSelectedAsset(data.data)
-        setEditName(data.data.name || "")
-        setEditCode(getDisplayCode(data.data))
-        setEditCurrency(getAssetCurrency(data.data))
-        setEditCategory(data.data.assetCategory?.id || "Equity")
-        setEditReturnRate(
-          data.data.expectedReturnRate != null
-            ? String(data.data.expectedReturnRate * 100)
-            : "",
-        )
+        applyAsset(data.data)
       }
       setMessage({ type: "success", text: "Asset enriched successfully" })
     } catch (err) {
@@ -223,16 +202,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       }
       const data = await response.json()
       if (data.data) {
-        setSelectedAsset(data.data)
-        setEditName(data.data.name || "")
-        setEditCode(getDisplayCode(data.data))
-        setEditCurrency(getAssetCurrency(data.data))
-        setEditCategory(data.data.assetCategory?.id || "Equity")
-        setEditReturnRate(
-          data.data.expectedReturnRate != null
-            ? String(data.data.expectedReturnRate * 100)
-            : "",
-        )
+        applyAsset(data.data)
       }
       setMessage({ type: "success", text: "Asset updated" })
     } catch (err) {

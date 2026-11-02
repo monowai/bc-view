@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Alert from "@components/ui/Alert"
 import { rootLoader } from "@components/ui/PageLoader"
+import { BareAdminAccessDenied } from "@components/features/admin/AdminAccessDenied"
 import { usePermissions } from "@hooks/usePermissions"
 import useSWR, { mutate } from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -104,13 +105,7 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
 
   if (isLoading) return rootLoader("Loading...")
   if (!isAdmin) {
-    return (
-      <div className="max-w-4xl mx-auto py-12 px-4">
-        <Alert variant="error" className="p-6 text-center">
-          <h1 className="text-xl font-semibold text-red-700">Access Denied</h1>
-        </Alert>
-      </div>
-    )
+    return <BareAdminAccessDenied />
   }
 
   return (

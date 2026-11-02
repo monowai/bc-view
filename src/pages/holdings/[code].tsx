@@ -17,55 +17,34 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import useSwr, { mutate as globalMutate } from "swr"
+import useSwr from "swr"
 import {
-  ccyKey,
-  categoriesKey,
   holdingByIdKey,
   holdingKey,
   portfoliosKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
-import dynamic from "next/dynamic"
-import {
-  USER_ASSET_CATEGORIES,
-  type CategoryOption,
-  type SectorInfo,
-  type SectorOption,
-} from "@components/features/accounts/accountTypes"
-const EditAccountDialog = dynamic(
-  () => import("@components/features/accounts/EditAccountDialog"),
-  { ssr: false },
-)
-const AdminAssetEditDialog = dynamic(
-  () => import("@components/features/admin/AdminAssetEditDialog"),
-  { ssr: false },
-)
-import { currencyOptions } from "@lib/currency"
-import { AssetCategory } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
-import Rows, {
+import {
   CorporateActionsData,
   SectorWeightingsData,
 } from "@components/features/holdings/Rows"
+import HoldingsTable, {
+  useHoldingsGrid,
+} from "@components/features/holdings/HoldingsTable"
+import { useAssetEditor } from "@components/features/holdings/useAssetEditor"
 import { PriceChartData } from "types/beancounter"
 import SectorWeightingsPopup from "@components/features/portfolios/SectorWeightingsPopup"
 import AssetChart from "@components/features/assets/AssetChart"
-import SubTotal from "@components/features/holdings/SubTotal"
-import ColumnHeader from "@components/features/holdings/Header"
-import GroupBar from "@components/features/holdings/GroupBar"
-import GrandTotal from "@components/features/holdings/GrandTotal"
-import { useStickyHeaderOffset } from "@lib/holdings/useStickyHeaderOffset"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import PerformanceHeatmap from "@components/features/holdings/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
-import { getGroupComparator } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/transactions/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -83,14 +62,7 @@ import CreateModelFromHoldingsDialog from "@components/features/rebalance/models
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
-import { usePermissions } from "@hooks/usePermissions"
-import {
-  useViewportFillHeight,
-  HOLDINGS_GRID_BOTTOM_GAP_PX,
-} from "@hooks/useViewportFillHeight"
-import { assetsKey, updateAsset } from "@utils/api/client/assets"
 import { createTrns } from "@utils/api/client/trns"
-import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 import { writePrice } from "@utils/api/client/prices"
 
 function HoldingsPage(): React.ReactElement {
@@ -170,26 +142,7 @@ function HoldingsPage(): React.ReactElement {
   const [columns, setColumns] = useState<string[]>([
     ...COPYABLE_HOLDING_COLUMNS,
   ])
-  // Collapsed table sections (by groupKey). Default: all expanded.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set<string>(),
-  )
-  const toggleGroup = useCallback((groupKey: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev)
-      if (next.has(groupKey)) {
-        next.delete(groupKey)
-      } else {
-        next.add(groupKey)
-      }
-      return next
-    })
-  }, [])
-  // Measure the sticky column header so per-group bars pin just beneath it.
-  const { ref: gridRef, maxHeight: gridMaxHeight } =
-    useViewportFillHeight<HTMLDivElement>(HOLDINGS_GRID_BOTTOM_GAP_PX)
-  const { ref: columnHeaderRef, offset: headerOffset } =
-    useStickyHeaderOffset<HTMLTableSectionElement>()
+  const grid = useHoldingsGrid()
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
   )
@@ -231,12 +184,6 @@ function HoldingsPage(): React.ReactElement {
   const [cashTransactionType, setCashTransactionType] = useState<
     string | undefined
   >(undefined)
-  const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
-  const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
-    undefined,
-  )
-  const { admin: isAdmin } = usePermissions()
-
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)
 
@@ -258,88 +205,7 @@ function HoldingsPage(): React.ReactElement {
     (p: { active?: boolean }) => p.active !== false,
   )
 
-  // Edit-asset dialog needs the same reference data as the accounts page.
-  // Lazy-fetch — only after the user opens the dialog. Holdings is a hot
-  // path; editing is incidental, so we skip the three round-trips on the
-  // common case.
-  const { data: ccyData } = useSwr(
-    editAsset ? ccyKey : null,
-    simpleFetcher(ccyKey),
-  )
-  const { data: categoriesData } = useSwr(
-    editAsset ? categoriesKey : null,
-    simpleFetcher(categoriesKey),
-  )
-  const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    editAsset ? sectorsKey : null,
-    simpleFetcher(sectorsKey),
-  )
-  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
-  const categoryOptions: CategoryOption[] = categoriesData?.data
-    ? categoriesData.data
-        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
-        .map((cat: AssetCategory) => ({ value: cat.id, label: cat.name }))
-    : []
-  const sectorOptions: SectorOption[] = sectorsData?.data
-    ? sectorsData.data.map((sector: SectorInfo) => ({
-        value: sector.name,
-        label: sector.name,
-      }))
-    : []
-
-  const handleEditAsset = useCallback(
-    (asset: Asset) => {
-      // PRIVATE assets are user-owned → use the existing owner-scoped dialog.
-      // Non-PRIVATE assets are public; only admins can edit those, and they
-      // go through the slim admin dialog (category / name / sector only).
-      if (asset.market?.code === "PRIVATE") {
-        setEditAsset(asset)
-      } else if (isAdmin) {
-        setAdminEditAsset(asset)
-      }
-    },
-    [isAdmin],
-  )
-
-  const handleEditAssetClose = useCallback(() => {
-    setEditAsset(undefined)
-  }, [])
-
-  const handleEditAssetSave = useCallback(
-    async (
-      assetId: string,
-      code: string,
-      name: string,
-      currency: string,
-      category: string,
-      sector?: string,
-      expectedReturnRate?: number,
-    ): Promise<void> => {
-      const response = await updateAsset(assetId, {
-        market: "PRIVATE",
-        code,
-        name,
-        currency,
-        category,
-        expectedReturnRate,
-      })
-      if (!response.ok) {
-        throw new Error("Failed to update asset")
-      }
-      if (sector) {
-        try {
-          await setAssetSector(assetId, sector)
-        } catch (err) {
-          console.error("Failed to update sector classification:", err)
-        }
-      }
-      // Refresh holdings (this page) and the assets list (accounts page cache)
-      await mutate()
-      await globalMutate(assetsKey)
-      setEditAsset(undefined)
-    },
-    [mutate],
-  )
+  const { handleEditAsset, assetEditDialogs } = useAssetEditor(mutate)
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -687,77 +553,34 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <div
-            ref={gridRef}
-            style={{ maxHeight: gridMaxHeight }}
-            className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
-          >
-            <table className="min-w-full bg-white">
-              <ColumnHeader
-                ref={columnHeaderRef}
-                sortConfig={sortConfig}
-                onSort={handleSort}
-              />
-              {Object.keys(holdings.holdingGroups)
-                .sort(getGroupComparator(holdingState.groupBy.value))
-                .map((groupKey) => {
-                  const isCollapsed = collapsedGroups.has(groupKey)
-                  return (
-                    <React.Fragment key={groupKey}>
-                      <GroupBar
-                        groupBy={groupKey}
-                        subTotals={holdings.holdingGroups[groupKey].subTotals}
-                        valueIn={holdingState.valueIn.value}
-                        isCollapsed={isCollapsed}
-                        onToggleCollapse={() => toggleGroup(groupKey)}
-                        stickyTop={headerOffset}
-                      />
-                      {!isCollapsed && (
-                        <>
-                          <Rows
-                            portfolio={holdingResults.portfolio}
-                            groupBy={groupKey}
-                            holdingGroup={holdings.holdingGroups[groupKey]}
-                            valueIn={holdingState.valueIn.value}
-                            onColumnsChange={setColumns}
-                            onTrade={handleTrade}
-                            onQuickSell={handleQuickSell}
-                            onCorporateActions={handleCorporateActions}
-                            onWeightClick={handleWeightClick}
-                            onSetCashBalance={handleSetCashBalance}
-                            onSetPrice={handleSetPrice}
-                            onSetBalance={handleSetBalance}
-                            onSectorWeightings={handleSectorWeightings}
-                            onPriceChart={handlePriceChart}
-                            onCashTransfer={handleCashTransfer}
-                            onCashTransaction={handleCashTransaction}
-                            onCostAdjust={handleCostAdjust}
-                            onMovePosition={handleMovePosition}
-                            onRecordIncome={handleRecordIncome}
-                            onRecordExpense={handleRecordExpense}
-                            onEditAsset={handleEditAsset}
-                          />
-                          <SubTotal
-                            groupBy={groupKey}
-                            subTotals={
-                              holdings.holdingGroups[groupKey].subTotals
-                            }
-                            valueIn={holdingState.valueIn.value}
-                            positionCount={
-                              holdings.holdingGroups[groupKey].positions.length
-                            }
-                          />
-                        </>
-                      )}
-                    </React.Fragment>
-                  )
-                })}
-              <GrandTotal
-                holdings={holdings}
-                valueIn={holdingState.valueIn.value}
-              />
-            </table>
-          </div>
+          <HoldingsTable
+            {...grid}
+            holdings={holdings}
+            portfolio={holdingResults.portfolio}
+            valueIn={holdingState.valueIn.value}
+            groupBy={holdingState.groupBy.value}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            rowActions={{
+              onColumnsChange: setColumns,
+              onTrade: handleTrade,
+              onQuickSell: handleQuickSell,
+              onCorporateActions: handleCorporateActions,
+              onWeightClick: handleWeightClick,
+              onSetCashBalance: handleSetCashBalance,
+              onSetPrice: handleSetPrice,
+              onSetBalance: handleSetBalance,
+              onSectorWeightings: handleSectorWeightings,
+              onPriceChart: handlePriceChart,
+              onCashTransfer: handleCashTransfer,
+              onCashTransaction: handleCashTransaction,
+              onCostAdjust: handleCostAdjust,
+              onMovePosition: handleMovePosition,
+              onRecordIncome: handleRecordIncome,
+              onRecordExpense: handleRecordExpense,
+              onEditAsset: handleEditAsset,
+            }}
+          />
         </div>
       ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 gap-3">
@@ -976,27 +799,7 @@ function HoldingsPage(): React.ReactElement {
           onSuccess={() => setShowShareDialog(false)}
         />
       )}
-      {editAsset && (
-        <EditAccountDialog
-          asset={editAsset}
-          currencies={ccyOptions}
-          categories={categoryOptions}
-          sectors={sectorOptions}
-          onClose={handleEditAssetClose}
-          onSave={handleEditAssetSave}
-        />
-      )}
-      {adminEditAsset && (
-        <AdminAssetEditDialog
-          asset={adminEditAsset}
-          onClose={() => setAdminEditAsset(undefined)}
-          onSaved={async () => {
-            setAdminEditAsset(undefined)
-            await mutate()
-            await globalMutate(assetsKey)
-          }}
-        />
-      )}
+      {assetEditDialogs}
     </div>
   )
 }

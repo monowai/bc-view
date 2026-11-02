@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSwr from "swr"
 import SectorWeightingsPopup from "../SectorWeightingsPopup"
@@ -187,5 +187,83 @@ describe("SectorWeightingsPopup holdings tab asOf", () => {
 
     // Sanity: component renders without error with holdings asOf present.
     expect(screen.getByText("Sectors")).toBeInTheDocument()
+  })
+})
+
+describe("SectorWeightingsPopup weight bars", () => {
+  const asset = makeAsset({ id: "asset-bars", code: "SPY" })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  const renderPopup = (): void => {
+    render(
+      <SectorWeightingsPopup
+        asset={asset}
+        modalOpen={true}
+        onClose={jest.fn()}
+      />,
+    )
+  }
+
+  const barFor = (label: string): HTMLElement => {
+    const row = screen.getByText(label).closest(".flex.items-center")
+    return row?.querySelector(".transition-all") as HTMLElement
+  }
+
+  it("scales sector bars against the largest weight, heaviest first", () => {
+    mockSwr(asset.id, [
+      makeSectorExposure({
+        item: { code: "EN", name: "Energy" },
+        weight: 0.1,
+      } as never),
+      makeSectorExposure({
+        item: { code: "IT", name: "Information Technology" },
+        weight: 0.4,
+      } as never),
+    ])
+    renderPopup()
+
+    expect(barFor("Information Technology").style.width).toBe("100%")
+    expect(barFor("Energy").style.width).toBe("25%")
+    expect(barFor("Energy").style.backgroundColor).toBe("rgb(239, 68, 68)")
+    expect(screen.getByText("40.0%")).toHaveClass(
+      "w-16",
+      "text-right",
+      "text-sm",
+      "font-medium",
+      "text-gray-900",
+    )
+    expect(screen.getByText("Energy")).toHaveClass("w-32", "truncate", "pr-2")
+  })
+
+  it("shows symbol and optional name on holdings bars", () => {
+    mockSwr(
+      asset.id,
+      [],
+      [
+        makeAssetHolding({ symbol: "AAPL", name: "Apple", weight: 0.08 }),
+        makeAssetHolding({ symbol: "MSFT", name: undefined, weight: 0.02 }),
+      ],
+    )
+    renderPopup()
+    fireEvent.click(screen.getByText("Top Holdings"))
+
+    expect(barFor("AAPL").style.width).toBe("100%")
+    expect(barFor("MSFT").style.width).toBe("25%")
+    expect(barFor("AAPL").style.backgroundColor).toBe("rgb(59, 130, 246)")
+    expect(barFor("MSFT").style.backgroundColor).toBe("rgb(16, 185, 129)")
+    expect(screen.getByText("Apple")).toHaveClass(
+      "text-xs",
+      "text-gray-500",
+      "truncate",
+    )
+    expect(screen.getByText("AAPL").parentElement).toHaveClass(
+      "w-32",
+      "flex-shrink-0",
+      "pr-2",
+    )
+    expect(screen.getByText("8.0%")).toBeInTheDocument()
   })
 })

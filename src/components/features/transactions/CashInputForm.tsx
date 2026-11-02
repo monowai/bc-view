@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { FxResponse, Portfolio } from "types/beancounter"
+import { Portfolio } from "types/beancounter"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import useSwr, { mutate } from "swr"
@@ -18,8 +18,11 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
-import DateInput from "@components/ui/DateInput"
-import MathInput from "@components/ui/MathInput"
+import {
+  TrnDateField,
+  TrnMathField,
+  TrnTextField,
+} from "@components/features/transactions/TrnFormFields"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import {
@@ -32,20 +35,8 @@ import {
 } from "@lib/trns/cashFormHelpers"
 import { todayIso } from "@lib/formatters"
 import { accountsKey, tradeAccountsKey } from "@utils/api/client/assets"
-import { postFxRates } from "@utils/api/client/fx"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { useFxBuyAmount } from "./useFxBuyAmount"
-
-// Fetcher for FX rates
-const fxFetcher = async (
-  from: string,
-  to: string,
-): Promise<FxResponse | null> => {
-  if (!from || !to || from === to) return null
-  const response = await postFxRates({ pairs: [{ from, to }] })
-  if (!response.ok) return null
-  return response.json()
-}
+import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
 
 const TradeTypeValues = [
   "DEPOSIT",
@@ -312,6 +303,11 @@ const CashInputForm: React.FC<{
     "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
   const labelClass =
     "block text-xs font-medium text-gray-500 uppercase tracking-wide"
+  const fieldProps = {
+    control,
+    labelClassName: labelClass,
+    inputClassName: inputClass,
+  }
 
   // Only wait for currencies - accounts are optional enhancement
   if (ccyLoading) return rootLoader("Loading...")
@@ -512,20 +508,11 @@ const CashInputForm: React.FC<{
 
               {/* Date - for non-FX */}
               {type.value !== "FX" && (
-                <div>
-                  <label className={labelClass}>{"Trade Date"}</label>
-                  <Controller
-                    name="tradeDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DateInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
-                      />
-                    )}
-                  />
-                </div>
+                <TrnDateField
+                  {...fieldProps}
+                  name="tradeDate"
+                  label={"Trade Date"}
+                />
               )}
 
               {/* Account/Currency and Amount */}
@@ -592,26 +579,16 @@ const CashInputForm: React.FC<{
                     </p>
                   )}
                 </div>
-                <div>
-                  <label className={labelClass}>
-                    {type.value === "FX" ? "Sell Amount" : "Amount"}
-                  </label>
-                  <Controller
-                    name="quantity"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={`${inputClass} ${
-                          type.value === "FX"
-                            ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
-                            : ""
-                        }`}
-                      />
-                    )}
-                  />
-                </div>
+                <TrnMathField
+                  {...fieldProps}
+                  name="quantity"
+                  label={type.value === "FX" ? "Sell Amount" : "Amount"}
+                  inputClassName={`${inputClass} ${
+                    type.value === "FX"
+                      ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
+                      : ""
+                  }`}
+                />
               </div>
 
               {/* FX-specific: Buy Currency, Buy Amount, Date */}
@@ -700,85 +677,29 @@ const CashInputForm: React.FC<{
                         }}
                       />
                     </div>
-                    <div>
-                      <label className={labelClass}>{"Buy Amount"}</label>
-                      <Controller
-                        name="cashAmount"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={handleBuyAmountChange}
-                            className={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>{"Trade Date"}</label>
-                    <Controller
-                      name="tradeDate"
-                      control={control}
-                      render={({ field }) => (
-                        <DateInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={inputClass}
-                        />
-                      )}
+                    <TrnMathField
+                      {...fieldProps}
+                      name="cashAmount"
+                      label={"Buy Amount"}
+                      onChange={handleBuyAmountChange}
+                      inputClassName={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
                     />
                   </div>
+                  <TrnDateField
+                    {...fieldProps}
+                    name="tradeDate"
+                    label={"Trade Date"}
+                  />
                 </>
               )}
 
               {/* Fees, Tax, Comments */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>{"Fees"}</label>
-                  <Controller
-                    name="fees"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
-                      />
-                    )}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{"Tax"}</label>
-                  <Controller
-                    name="tax"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
-                      />
-                    )}
-                  />
-                </div>
+                <TrnMathField {...fieldProps} name="fees" label={"Fees"} />
+                <TrnMathField {...fieldProps} name="tax" label={"Tax"} />
               </div>
 
-              <div>
-                <label className={labelClass}>{"Comments"}</label>
-                <Controller
-                  name="comment"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className={inputClass}
-                      value={field.value || ""}
-                    />
-                  )}
-                />
-              </div>
+              <TrnTextField {...fieldProps} name="comment" label={"Comments"} />
 
               {Object.keys(errors).length > 0 && (
                 <Alert>
