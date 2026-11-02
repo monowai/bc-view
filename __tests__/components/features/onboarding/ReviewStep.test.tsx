@@ -58,7 +58,8 @@ describe("ReviewStep", () => {
 
   it("renders every asset section", () => {
     const { container } = render(<ReviewStep {...props} />)
-    expect(container.innerHTML).toMatchSnapshot()
+    // The USD symbol depends on the runtime's default locale.
+    expect(container.innerHTML.replace(/US\$/g, "$")).toMatchSnapshot()
   })
 
   it("renders the empty state", () => {

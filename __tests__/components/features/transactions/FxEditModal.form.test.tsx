@@ -89,7 +89,8 @@ describe("FxEditModal form", () => {
     fireEvent.click(screen.getByTitle("Copy"))
     expect(copyToClipboard).toHaveBeenCalledTimes(1)
     const copied = (copyToClipboard as jest.Mock).mock.calls[0][0] as string
-    expect(copied).toMatchSnapshot()
+    // The row starts with today's date in the local time zone.
+    expect(copied.replace(/^\d{8}/, "<today>")).toMatchSnapshot()
 
     fireEvent.change(fieldInput("Comments"), { target: { value: "swap 2" } })
     fireEvent.click(screen.getByText("Save"))
