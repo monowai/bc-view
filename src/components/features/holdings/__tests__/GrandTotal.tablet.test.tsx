@@ -14,7 +14,7 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
   it("verifies tablet shows Change column with gainOnDay sum (FIXED)", () => {
     const { container } = renderGrandTotal()
 
-    const dataRow = container.querySelector("tbody tr:last-child")
+    const dataRow = container.querySelector("tfoot tr:last-child")
     const cells = dataRow?.querySelectorAll("td")
     const dataCells = Array.from(cells!).slice(2)
 
@@ -35,7 +35,7 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
   it("verifies totalGain alignment on tablet (FIXED)", () => {
     const { container } = renderGrandTotal()
 
-    const dataRow = container.querySelector("tbody tr:last-child")
+    const dataRow = container.querySelector("tfoot tr:last-child")
     const cells = dataRow?.querySelectorAll("td")
     const dataCells = Array.from(cells!).slice(2)
 

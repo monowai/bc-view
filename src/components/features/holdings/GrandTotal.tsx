@@ -34,11 +34,14 @@ export default function GrandTotal({
   ]
 
   return (
-    <tbody className="grand-totals" key={holdings.portfolio.code + "totals"}>
+    <tfoot
+      className="grand-totals sticky bottom-0 z-30 bg-blue-50"
+      key={holdings.portfolio.code + "totals"}
+    >
       <tr>
         <td
           colSpan={GRANDTOTAL_LAYOUT.TOTAL_CELLS}
-          className="border-t border-blue-200"
+          className="h-px p-0 bg-blue-200"
         />
       </tr>
       <tr
@@ -188,6 +191,6 @@ export default function GrandTotal({
           )
         })}
       </tr>
-    </tbody>
+    </tfoot>
   )
 }
