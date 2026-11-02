@@ -29,7 +29,7 @@ function hashString(str: string): number {
  * Creates a checksum from the scenario state for change detection. Drives
  * the debounced recalculation effect — a stable checksum skips the API hit.
  */
-export function createScenarioChecksum(scenario: ScenarioState): number {
+function createScenarioChecksum(scenario: ScenarioState): number {
   return hashString(JSON.stringify(scenario))
 }
 
@@ -37,7 +37,7 @@ export function createScenarioChecksum(scenario: ScenarioState): number {
  * Creates a checksum from plan details that affect projections.
  * Used to detect when plan edits require recalculation.
  */
-export function createPlanChecksum(plan: RetirementPlan | undefined): number {
+function createPlanChecksum(plan: RetirementPlan | undefined): number {
   if (!plan) return 0
   const key = JSON.stringify({
     // Core plan values that affect projections

@@ -123,7 +123,7 @@ export function serializeAssetDisposals(
 export const HIDDEN_VALUE = "****"
 
 // Manual asset category display configuration
-export const MANUAL_ASSET_CONFIG: Record<
+const MANUAL_ASSET_CONFIG: Record<
   ManualAssetCategory,
   { label: string; color: string; isSpendable: boolean }
 > = {

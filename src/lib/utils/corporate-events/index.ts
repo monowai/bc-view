@@ -3,7 +3,6 @@ export {
   canProcessEvent,
   getMatchingTransaction,
   isEventReconciled,
-  isClosedBeforeEvent,
   isPositionClosedBeforeEvent,
   sortEventsByRecordDateDesc,
   getMissingProcessableEvents,

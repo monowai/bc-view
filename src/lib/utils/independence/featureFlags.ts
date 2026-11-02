@@ -19,5 +19,3 @@ export const independenceFeatureFlags = {
    */
   showCpfMaInRetirementExpander: false,
 } as const
-
-export type IndependenceFeatureFlags = typeof independenceFeatureFlags

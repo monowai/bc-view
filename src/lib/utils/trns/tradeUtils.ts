@@ -4,7 +4,7 @@ import { todayIso } from "@lib/formatters"
 import { TRN_STATUS } from "types/constants"
 
 // Cash transaction types
-export type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
+type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
 
 // Parameters for building a cash transaction row
 export interface CashRowParams {
@@ -318,7 +318,7 @@ export const isSimpleAmountType = (tradeType: string): boolean =>
   tradeType === "EXPENSE" || tradeType === "INCOME"
 
 /** Returns true if the trade type is a cash-account movement with no broker (DEPOSIT/WITHDRAWAL). */
-export const isCashMovementType = (tradeType: string): boolean =>
+const isCashMovementType = (tradeType: string): boolean =>
   tradeType === "DEPOSIT" || tradeType === "WITHDRAWAL"
 
 /** Returns true if the trade type accepts a broker (excludes simple-amount and cash-movement types). */

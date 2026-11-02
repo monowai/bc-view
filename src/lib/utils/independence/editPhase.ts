@@ -1,5 +1,5 @@
 /** Where the Independence plan lives. Every return target sits inside it. */
-export const PLAN_SURFACE = "/independence"
+const PLAN_SURFACE = "/independence"
 
 /**
  * Where a journey's shared assumptions are edited.

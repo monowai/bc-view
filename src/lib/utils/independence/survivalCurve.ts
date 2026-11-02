@@ -1,6 +1,6 @@
 import type { MonteCarloResult } from "types/independence"
 
-export interface SurvivalPoint {
+interface SurvivalPoint {
   age: number
   /** Fraction of simulation paths still funded at this age: 0..1 */
   survival: number

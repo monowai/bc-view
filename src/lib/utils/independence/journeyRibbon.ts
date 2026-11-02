@@ -7,7 +7,7 @@ import type {
 export type JourneyStatus =
   "building" | "covered" | "onTrack" | "thinning" | "shortfall"
 
-export interface JourneyCell {
+interface JourneyCell {
   age: number
   status: JourneyStatus
   note: string

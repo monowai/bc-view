@@ -7,8 +7,8 @@ import type { CompositePhase } from "types/independence"
  */
 
 /** Ages a stage boundary can sit at. The band's inputs are free text. */
-export const MIN_BOUNDARY_AGE = 18
-export const MAX_BOUNDARY_AGE = 120
+const MIN_BOUNDARY_AGE = 18
+const MAX_BOUNDARY_AGE = 120
 
 /**
  * Set the age a boundary sits at.

@@ -31,18 +31,3 @@ export function convertForStorage(
 ): number {
   return period === "annual" ? displayValue / 12 : displayValue
 }
-
-/**
- * Format a number as currency with optional period indicator.
- * @param value - The value to format
- * @param period - The current period
- * @param symbol - Currency symbol (default: $)
- */
-export function formatWithPeriod(
-  value: number,
-  period: Period,
-  symbol = "$",
-): string {
-  const formatted = `${symbol}${value.toLocaleString()}`
-  return period === "annual" ? `${formatted}/yr` : `${formatted}/mo`
-}

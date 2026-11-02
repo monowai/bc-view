@@ -104,7 +104,7 @@ export const isEventReconciled = (
  * @param event - The corporate event to check against
  * @returns true if position was closed before the event's record date
  */
-export const isClosedBeforeEvent = (
+const isClosedBeforeEvent = (
   closedDate: string | null | undefined,
   event: CorporateEvent,
 ): boolean => {

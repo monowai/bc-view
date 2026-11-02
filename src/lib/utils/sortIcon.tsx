@@ -1,6 +1,6 @@
 import React from "react"
 
-export type SortDirection = "asc" | "desc"
+type SortDirection = "asc" | "desc"
 
 export interface SortConfig {
   key: string | null

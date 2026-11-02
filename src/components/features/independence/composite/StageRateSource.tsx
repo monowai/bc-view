@@ -3,14 +3,14 @@ import type { AssumptionSource, PhaseAssumptions } from "types/independence"
 import { toPercent } from "@lib/independence/conversions"
 
 /** Provenance copy, keyed by what the engine echoed. */
-export const SOURCE_LABEL: Record<AssumptionSource, string> = {
+const SOURCE_LABEL: Record<AssumptionSource, string> = {
   JOURNEY: "Inherits from journey",
   STAGE: "Own assumptions",
   MIXED: "Mixed",
 }
 
 /** Journey-rate order for the per-stage readouts. */
-export const EFFECTIVE_RATE_ORDER: {
+const EFFECTIVE_RATE_ORDER: {
   key: keyof Omit<PhaseAssumptions, "source">
   short: string
 }[] = [

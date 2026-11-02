@@ -19,7 +19,7 @@ const MONTHS = [
   "December",
 ]
 
-export function calculateAge(
+function calculateAge(
   yearOfBirth: number,
   monthOfBirth?: number,
 ): { years: number; display: string } {

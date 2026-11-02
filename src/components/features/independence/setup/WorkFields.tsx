@@ -21,7 +21,7 @@ const numeric = (value: string): number => (value === "" ? 0 : Number(value))
  * never re-derived here — the contribution line below is a preview of the
  * arithmetic the user is doing on this screen, not a projection.
  */
-export function monthlyContribution(
+function monthlyContribution(
   income: number,
   expenses: number,
   taxes: number,

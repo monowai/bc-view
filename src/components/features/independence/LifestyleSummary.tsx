@@ -115,7 +115,7 @@ export default function LifestyleSummary({
  * headed as though it did — "what your plan supports" would be asserting
  * exactly the thing the backend didn't tell us.
  */
-export function headingText(
+function headingText(
   model: LifestyleSummaryModel | null,
   title?: string,
 ): string {
@@ -440,7 +440,7 @@ function Footnotes({ model, isPayoff, money }: ValueProps): React.ReactElement {
  * Says nothing about how many holidays the money buys — the backend supplies
  * no lifestyle benchmarks, and inventing them here would be fiction.
  */
-export function readSentence(model: LifestyleSummaryModel): string | null {
+function readSentence(model: LifestyleSummaryModel): string | null {
   const mix = model.mixDescriptor
   // A described-basis model was built without a projection, so every phrasing
   // about what "the plan supports" is unearned. Name the mix and stop.

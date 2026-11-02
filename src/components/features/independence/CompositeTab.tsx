@@ -28,8 +28,7 @@ import JourneyAssumptionsSection from "./composite/tabs/JourneyAssumptionsSectio
  * the same row as the charts — but both need this provider, so both are
  * rendered from here.
  */
-export type CompositeMode =
-  "plan" | "stages" | "wealth" | "work" | "assumptions"
+type CompositeMode = "plan" | "stages" | "wealth" | "work" | "assumptions"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]

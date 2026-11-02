@@ -13,8 +13,7 @@ export const REPORT_CATEGORIES = {
   RETIREMENT: "Retirement",
 } as const
 
-export type ReportCategory =
-  (typeof REPORT_CATEGORIES)[keyof typeof REPORT_CATEGORIES]
+type ReportCategory = (typeof REPORT_CATEGORIES)[keyof typeof REPORT_CATEGORIES]
 
 /**
  * Maps a detailed asset category to a higher-level report category.
@@ -74,7 +73,7 @@ export function getReportCategory(asset: Asset): string {
  * Sort order for report categories in holdings display.
  * Cash is always last.
  */
-export const REPORT_CATEGORY_SORT_ORDER = [
+const REPORT_CATEGORY_SORT_ORDER = [
   REPORT_CATEGORIES.EQUITY,
   REPORT_CATEGORIES.ETF,
   REPORT_CATEGORIES.MUTUAL_FUND,

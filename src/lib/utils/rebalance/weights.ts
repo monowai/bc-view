@@ -93,7 +93,7 @@ export function toWeightDecimal(percent: number): number {
   return Math.round(percent * 100) / 10000
 }
 
-export interface PlanAssetPayload {
+interface PlanAssetPayload {
   assetId: string
   weight: number
   assetCode?: string

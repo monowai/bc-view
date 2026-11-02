@@ -173,5 +173,3 @@ export const wizardMessages = {
     housing: "housing",
   },
 }
-
-export type WizardMessages = typeof wizardMessages

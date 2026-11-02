@@ -8,7 +8,7 @@ import { TRN_STATUS } from "types/constants"
  * The backend `TrnDto` already supports `subAccounts` and an arbitrary
  * `trnType`, so the CPF credit leg can carry its OA/SA|RA/MA split directly.
  */
-export interface PayslipTrnLeg {
+interface PayslipTrnLeg {
   assetId: string
   trnType: string
   quantity: number

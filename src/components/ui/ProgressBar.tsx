@@ -137,33 +137,4 @@ export const AlphaProgress: React.FC<AlphaProgressProps> = ({
   )
 }
 
-interface WeightProgressProps {
-  weight: number
-  className?: string
-}
-
-export const WeightProgress: React.FC<WeightProgressProps> = ({
-  weight,
-  className,
-}) => {
-  // Determine color based on weight size
-  const getColor = (weight: number): "blue" | "green" | "purple" | "gray" => {
-    if (weight >= 0.1) return "green" // 10%+ = green (large position)
-    if (weight >= 0.05) return "blue" // 5-10% = blue (medium position)
-    if (weight >= 0.01) return "purple" // 1-5% = purple (small position)
-    return "gray" // <1% = gray (tiny position)
-  }
-
-  return (
-    <ProgressBar
-      value={weight}
-      maxValue={0.5} // Show relative to 50% max for better visual scaling
-      showLabel={true}
-      size="sm"
-      color={getColor(weight)}
-      className={className}
-    />
-  )
-}
-
 export default ProgressBar

@@ -55,7 +55,7 @@ function storeConversationId(id: string | null): void {
  * content and its svc-agent code; it is described exactly as a live `error`
  * event is, so a reloaded failure reads the same as when it happened.
  */
-export function turnToMessage(turn: ConversationTurn): ChatMessage {
+function turnToMessage(turn: ConversationTurn): ChatMessage {
   return {
     id: turn.id,
     role: turn.role,

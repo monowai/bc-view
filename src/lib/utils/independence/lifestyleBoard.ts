@@ -78,10 +78,7 @@ export function fitToBudget(
 }
 
 /** Monthly cost of a single category at the given selected tier index. */
-export function categoryCost(
-  category: LifestyleCategory,
-  tierIndex: number,
-): number {
+function categoryCost(category: LifestyleCategory, tierIndex: number): number {
   return category.tiers[tierIndex]?.monthlyAmount ?? 0
 }
 

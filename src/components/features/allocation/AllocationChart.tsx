@@ -125,7 +125,7 @@ const AllocationLegend: React.FC<AllocationLegendProps> = ({
   )
 }
 
-export const AllocationChart: React.FC<AllocationChartProps> = ({
+const AllocationChart: React.FC<AllocationChartProps> = ({
   data,
   totalValue,
   currencySymbol = "$",

@@ -58,7 +58,7 @@ export function useAssetBreakdown(
  * @param valueIn - Which currency value to use (PORTFOLIO, BASE, or TRADE). Defaults to PORTFOLIO.
  * @param nonSpendableCategories - Categories to consider non-spendable. Defaults to DEFAULT_NON_SPENDABLE_CATEGORIES.
  */
-export function calculateAssetBreakdown(
+function calculateAssetBreakdown(
   holdingsData: HoldingContract | undefined | null,
   valueIn: ValueInOption = "PORTFOLIO",
   nonSpendableCategories: string[] = DEFAULT_NON_SPENDABLE_CATEGORIES,

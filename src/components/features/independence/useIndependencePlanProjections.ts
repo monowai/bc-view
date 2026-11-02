@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import type { PensionProjection } from "@lib/independence/planHelpers"
 import { projectLumpSum } from "@utils/api/client/independence"
 
-export interface LumpSumAssetConfig {
+interface LumpSumAssetConfig {
   assetId: string
   payoutAge?: number
   expectedReturnRate?: number

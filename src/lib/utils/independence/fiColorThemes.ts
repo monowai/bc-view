@@ -6,7 +6,7 @@
 /**
  * FI Progress thresholds for color determination.
  */
-export const FI_PROGRESS_THRESHOLDS = {
+const FI_PROGRESS_THRESHOLDS = {
   /** FI achieved - 100% or more */
   FI_ACHIEVED: 100,
   /** High progress - 75% or more */
@@ -20,7 +20,7 @@ export const FI_PROGRESS_THRESHOLDS = {
 /**
  * Color scheme for a progress level.
  */
-export interface ProgressColorScheme {
+interface ProgressColorScheme {
   /** Background color class (e.g., for progress bars) */
   bg: string
   /** Text color class (e.g., for percentage display) */
@@ -34,7 +34,7 @@ export interface ProgressColorScheme {
 /**
  * Color schemes for each FI progress level.
  */
-export const FI_PROGRESS_COLORS: Record<
+const FI_PROGRESS_COLORS: Record<
   "FI_ACHIEVED" | "HIGH" | "MEDIUM" | "LOW",
   ProgressColorScheme
 > = {
@@ -69,7 +69,7 @@ export const FI_PROGRESS_COLORS: Record<
  * @param progress FI progress percentage (0-100+)
  * @returns Color scheme for the progress level
  */
-export function getProgressColorScheme(progress: number): ProgressColorScheme {
+function getProgressColorScheme(progress: number): ProgressColorScheme {
   if (progress >= FI_PROGRESS_THRESHOLDS.FI_ACHIEVED) {
     return FI_PROGRESS_COLORS.FI_ACHIEVED
   }
@@ -132,7 +132,7 @@ export function getGapColorScheme(
 /**
  * Savings rate color thresholds.
  */
-export const SAVINGS_RATE_COLORS = {
+const SAVINGS_RATE_COLORS = {
   /** Excellent savings rate - 50% or more */
   EXCELLENT: { threshold: 50, text: "text-green-600" },
   /** Good savings rate - 20% or more */

@@ -79,33 +79,6 @@ if (isBackendError(error)) {
 }
 ```
 
-### 3. Error Boundary
-
-React Error Boundary to catch rendering errors.
-
-**Features:**
-
-- Catches React component errors
-- Integrates with Sentry
-- Shows fallback UI automatically
-- Allows retry
-
-**Usage:**
-
-```typescript
-import ErrorBoundary from "@components/errors/ErrorBoundary"
-
-// Wrap your app or specific components
-<ErrorBoundary>
-  <YourComponent />
-</ErrorBoundary>
-
-// With custom fallback
-<ErrorBoundary fallback={<CustomErrorPage />}>
-  <YourComponent />
-</ErrorBoundary>
-```
-
 ## Common Error Scenarios
 
 ### Authentication Errors
@@ -280,16 +253,7 @@ if (error) {
    />
    ```
 
-3. **Use Error Boundary at the root level:**
-
-   ```typescript
-   // _app.tsx
-   <ErrorBoundary>
-     <Component {...pageProps} />
-   </ErrorBoundary>
-   ```
-
-4. **Custom retry handlers for data refetching:**
+3. **Custom retry handlers for data refetching:**
 
    ```typescript
    const { data, error, mutate } = useSwr(url, fetcher)

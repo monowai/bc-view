@@ -10,7 +10,7 @@ const REBALANCE_STATUS_LABELS: Record<string, string> = {
 }
 
 // Status color configurations for different status types
-export const STATUS_COLORS = {
+const STATUS_COLORS = {
   // Plan statuses
   DRAFT: "bg-gray-100 text-gray-700",
   CALCULATING: "bg-yellow-100 text-yellow-700",

@@ -33,7 +33,7 @@ export const EMPTY_WEALTH_SUMMARY: WealthSummary =
  * Orders the portfolio rows for the details table. Lifted unchanged from the
  * old client-side summary hook; the only thing the browser still decides.
  */
-export function comparePortfolioRows(
+function comparePortfolioRows(
   sortConfig: SortConfig,
 ): (a: PortfolioRow, b: PortfolioRow) => number {
   return (a, b) => {

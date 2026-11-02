@@ -1,6 +1,4 @@
-import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 import type { User } from "@auth0/nextjs-auth0/types"
-import React, { ReactNode } from "react"
 import { PortfolioResponses, RegistrationResponse } from "types/beancounter"
 
 export const mockUserProfile: User = {
@@ -47,15 +45,4 @@ export const portfolioResult: PortfolioResponses = {
       irr: 0.05,
     },
   ],
-}
-export const withUserProvider = (
-  user: User = mockUserProfile,
-): React.ComponentType<{ children: ReactNode }> => {
-  const TestUserProvider = ({
-    children,
-  }: {
-    children: ReactNode
-  }): React.ReactElement => <Auth0Provider>{children}</Auth0Provider>
-  TestUserProvider.displayName = `TestUserProvider(${user.name})`
-  return TestUserProvider
 }
