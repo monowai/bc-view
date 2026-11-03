@@ -12,7 +12,7 @@ interface PortfolioActionsProps {
 }
 
 const GHOST_CLS =
-  "hidden md:flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+  "hidden md:flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
 
 const PortfolioActions = ({
   onImportClick,

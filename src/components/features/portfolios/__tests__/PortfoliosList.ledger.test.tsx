@@ -109,4 +109,22 @@ describe("PortfoliosList ledger", () => {
       screen.queryByRole("region", { name: "Selected portfolios" }),
     ).not.toBeInTheDocument()
   })
+
+  it("keeps the summary's day move when the book is flat", () => {
+    renderList([portfolio("AAA", 750, 0, 0.1)])
+    const summary = screen.getByTestId("portfolios-summary")
+    expect(within(summary).getByText("0.00%")).toBeInTheDocument()
+  })
+
+  it("shows no day percent when there is no previous value to compare", () => {
+    renderList([portfolio("AAA", 100, 100, 0.1)])
+    const row = screen.getAllByRole("row", { name: /AAA/ })[0]
+    expect(within(row).queryByText("0.00%")).not.toBeInTheDocument()
+  })
+
+  it("keeps the active sort icon visible on the white header", () => {
+    renderList(book)
+    const button = screen.getByRole("button", { name: /^Code/ })
+    expect(button.querySelector("svg, i, span")).not.toHaveClass("text-white")
+  })
 })

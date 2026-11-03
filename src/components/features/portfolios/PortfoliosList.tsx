@@ -97,13 +97,13 @@ function gainOnDayText(
   return `${gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${amount}`
 }
 
-// Safe gain-on-day percentage: null when there is no previous value to compare.
+// Gain-on-day percentage: undefined when there is no previous value to compare.
 function gainOnDayPercent(
   gainOnDay: number,
   marketValue: number,
-): number | null {
+): number | undefined {
   const previousValue = marketValue - gainOnDay
-  if (previousValue === 0) return null
+  if (previousValue === 0) return undefined
   return (gainOnDay / previousValue) * 100
 }
 
@@ -142,9 +142,7 @@ const DayMove: React.FC<{
   if (!gain || !marketValue) {
     return <span className="text-gray-500">{NO_RATE}</span>
   }
-  const percent = (
-    <SignedPercent value={gainOnDayPercent(gain, marketValue) ?? 0} />
-  )
+  const percent = <SignedPercent value={gainOnDayPercent(gain, marketValue)} />
   if (hideValues) return percent
   return (
     <QuickTooltip text={gainOnDayText(convertedGain, displayCurrency)}>
@@ -181,6 +179,8 @@ const ShareOfTotal: React.FC<{
   )
 }
 
+const ARIA_SORT = { asc: "ascending", desc: "descending" } as const
+
 const SortHeader: React.FC<{
   label: string
   sortKey: string
@@ -205,13 +205,7 @@ const SortHeader: React.FC<{
   return (
     <th
       scope="col"
-      aria-sort={
-        sorted
-          ? sortConfig.direction === "asc"
-            ? "ascending"
-            : "descending"
-          : "none"
-      }
+      aria-sort={sorted ? ARIA_SORT[sortConfig.direction] : "none"}
       className={`px-4 py-2.5 hover:bg-gray-50 ${className}`}
     >
       <button
@@ -220,7 +214,7 @@ const SortHeader: React.FC<{
         className={`flex w-full items-center ${justify} rounded-sm text-xs font-medium tracking-wide text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500`}
       >
         {label}
-        {getSortIcon(sortKey, sortConfig, "wealth")}
+        {getSortIcon(sortKey, sortConfig)}
       </button>
     </th>
   )
@@ -542,12 +536,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 {mark}
                 <FormatValue value={totalMarketValue} defaultValue={NO_RATE} />
               </span>
-              {totalGainOnDay && totalMarketValue ? (
+              {totalGainOnDay !== undefined && totalMarketValue ? (
                 <span className="flex items-baseline gap-1.5 text-sm">
                   <SignedPercent
-                    value={
-                      gainOnDayPercent(totalGainOnDay, totalMarketValue) ?? 0
-                    }
+                    value={gainOnDayPercent(totalGainOnDay, totalMarketValue)}
                   />
                   <span className="text-gray-500">{"today"}</span>
                 </span>
