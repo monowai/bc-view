@@ -305,8 +305,10 @@ jobs:
         run: |
           PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
           SHORT_SHA=${GITHUB_SHA::7}
-          echo "platform_tag=$PLATFORM_TAG" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          {
+            echo "platform_tag=$PLATFORM_TAG"
+            echo "short_sha=$SHORT_SHA"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -394,12 +396,15 @@ jobs:
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
-          echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Multi-arch Images (amd64 + arm64):**" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          IMAGE="${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}"
+          {
+            echo "## Docker Image Published"
+            echo ""
+            echo "**Multi-arch Images (amd64 + arm64):**"
+            echo '```'
+            echo "$IMAGE:${{ github.run_number }}"
+            if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+              echo "$IMAGE:latest"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
