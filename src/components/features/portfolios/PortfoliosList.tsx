@@ -126,7 +126,7 @@ const SignedPercent: React.FC<{ value: number | undefined }> = ({ value }) =>
   value === undefined ? (
     <span className="text-gray-500">{NO_RATE}</span>
   ) : (
-    <span className={`font-mono font-medium tabular-nums ${toneClass(value)}`}>
+    <span className={`font-medium tabular-nums ${toneClass(value)}`}>
       {signedPercent(value)}
     </span>
   )
@@ -174,7 +174,7 @@ const ShareOfTotal: React.FC<{
           style={{ width: `${Math.min(Math.max(share, 0), 100)}%` }}
         />
       </span>
-      <span className="w-12 text-right font-mono text-sm tabular-nums text-gray-600">
+      <span className="w-12 text-right text-sm tabular-nums text-gray-600">
         {figure}
       </span>
     </span>
@@ -538,7 +538,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               data-testid="portfolios-summary"
               className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1"
             >
-              <span className="font-mono text-3xl font-bold tracking-tight tabular-nums text-gray-900">
+              <span className="text-3xl font-bold tracking-tight tabular-nums text-gray-900">
                 {mark}
                 <FormatValue value={totalMarketValue} defaultValue={NO_RATE} />
               </span>
@@ -626,7 +626,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   <div className="min-w-0">
                     <Link
                       href={`/holdings/${portfolio.code}`}
-                      className="font-mono text-sm font-semibold text-wealth-600"
+                      className="text-sm font-semibold text-wealth-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {portfolio.code}
@@ -634,7 +634,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     <div className="truncate text-sm text-gray-900">
                       {portfolio.name}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-gray-500">
+                    <div className="mt-0.5 flex items-center gap-2 text-xs tabular-nums text-gray-500">
                       <span>
                         {portfolio.base.symbol}
                         {portfolio.base.code}
@@ -651,7 +651,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-mono text-base font-semibold tabular-nums text-gray-900">
+                    <div className="text-base font-semibold tabular-nums text-gray-900">
                       {mark}
                       <FormatValue value={value} defaultValue={NO_RATE} />
                     </div>
@@ -784,7 +784,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     <td className="px-4 py-2.5">
                       <Link
                         href={`/holdings/${portfolio.code}`}
-                        className="font-mono text-sm font-semibold text-wealth-600 rounded-sm hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+                        className="text-sm font-semibold text-wealth-600 rounded-sm hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
                       >
                         {portfolio.code}
                       </Link>
@@ -792,7 +792,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     <td className="px-4 py-2.5 text-sm text-gray-900">
                       {portfolio.name}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-sm font-medium tabular-nums text-gray-900">
+                    <td className="px-4 py-2.5 text-right text-sm font-medium tabular-nums text-gray-900">
                       <FormatValue value={value} defaultValue={NO_RATE} />
                     </td>
                     <td className="px-4 py-2.5 text-right">
@@ -846,7 +846,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   >
                     {"Total"}: {displayCurrency?.code}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-900">
+                  <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums text-gray-900">
                     {mark}
                     <FormatValue
                       value={totalMarketValue}
@@ -879,7 +879,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
           <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
             {effectiveSelected.size} {"selected"}
           </span>
-          <span className="hidden sm:inline font-mono text-sm tabular-nums text-gray-600">
+          <span className="hidden sm:inline text-sm tabular-nums text-gray-600">
             {mark}
             <FormatValue value={selectedValue} defaultValue={NO_RATE} />
           </span>
@@ -909,6 +909,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             <button
               type="button"
               className="btn-primary btn-primary--sm"
+              title={"View selected portfolios as one"}
               onClick={handleViewAggregated}
             >
               <span className="hidden sm:inline">

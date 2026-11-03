@@ -101,6 +101,9 @@ describe("PortfoliosList ledger", () => {
     const tray = screen.getByRole("region", { name: "Selected portfolios" })
     expect(within(tray).getByText("1 selected")).toBeInTheDocument()
     expect(within(tray).getByText("750.00")).toBeInTheDocument()
+    expect(
+      within(tray).getByRole("button", { name: "Holdings" }),
+    ).toHaveAttribute("title", "View selected portfolios as one")
     fireEvent.click(within(tray).getByRole("button", { name: "Clear" }))
     expect(
       screen.queryByRole("region", { name: "Selected portfolios" }),

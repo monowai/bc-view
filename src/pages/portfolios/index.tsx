@@ -47,7 +47,7 @@ function PortfolioTab({
       </span>
       {label}
       {count > 0 && (
-        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 py-0.5 font-mono text-xs text-gray-600">
+        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs tabular-nums text-gray-600">
           {count}
         </span>
       )}
