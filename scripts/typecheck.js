@@ -11,7 +11,8 @@
  * `types/` as well as node_modules'. An undefined name in a `.d.ts` then
  * silently becomes `any` for every consumer. This runs tsc with lib checking
  * on and fails on any error outside node_modules, whose own declaration
- * errors (react-switch, immer) are not ours to fix.
+ * errors (react-switch, immer) are not ours to fix, and outside .next, where
+ * `next dev` and `next build` generate overlapping route types.
  */
 
 const path = require("path")
@@ -19,7 +20,7 @@ const { spawnSync } = require("child_process")
 
 // "path(line,col): error TSnnnn: message", or a global "error TSnnnn: message".
 const ERROR_LINE = /^(?:(.*?)\(\d+,\d+\): )?error TS\d+:/
-const THIRD_PARTY = /(^|[\\/])node_modules[\\/]/
+const THIRD_PARTY = /(^|[\\/])(node_modules|\.next)[\\/]/
 
 /**
  * The diagnostics tsc printed, split into ours and third-party ones. A
