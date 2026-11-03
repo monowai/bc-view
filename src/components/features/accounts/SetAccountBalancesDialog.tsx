@@ -101,7 +101,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
     }
 
     fetchPositions()
-  }, [asset.id])
+  }, [asset.id, setError])
 
   // Calculate balance entries with adjustments
   const balanceEntries = useMemo((): BalanceEntry[] => {
