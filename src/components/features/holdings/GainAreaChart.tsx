@@ -50,7 +50,7 @@ const GainAreaChart: React.FC<GainAreaChartProps> = ({
             />
           </linearGradient>
         </defs>
-        <XAxis {...DATE_AXIS_PROPS} />
+        <XAxis {...DATE_AXIS_PROPS} minTickGap={80} />
         <YAxis {...VALUE_AXIS_PROPS} tickFormatter={formatTick} />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}

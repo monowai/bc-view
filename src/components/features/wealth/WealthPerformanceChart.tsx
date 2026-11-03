@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import WealthSection from "@components/features/wealth/WealthSection"
 import Alert from "@components/ui/Alert"
 import { Portfolio, Currency } from "types/beancounter"
 import { TIME_RANGES, formatFull } from "@lib/chart/performanceConstants"
@@ -64,175 +65,168 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   const fmtFull = (v: number): string => formatFull(v, sym)
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700 mb-4"
-      >
-        <i
-          className={`fas fa-chevron-${collapsed ? "right" : "down"} text-gray-400 mr-2 w-4`}
-        ></i>
-        <i className="fas fa-chart-line text-gray-400 mr-2"></i>
-        Wealth Performance
-        {excludedCount > 0 && (
+    <WealthSection
+      title="Wealth Performance"
+      icon="fa-chart-line"
+      collapsed={collapsed}
+      onToggle={onToggle}
+      note={
+        excludedCount > 0 && (
           <span
-            className="ml-2 text-xs font-normal text-gray-400"
+            className="text-xs text-gray-500"
             title={`Excludes ${excludedCount} property-dominated portfolio${excludedCount === 1 ? "" : "s"}. Tracking liquid AUM only.`}
           >
             (liquid only)
           </span>
-        )}
-      </button>
+        )
+      }
+    >
+      <>
+        {/* Time range tabs */}
+        <div className="flex items-center mb-4">
+          <div className="flex gap-1">
+            {TIME_RANGES.map((range) => (
+              <button
+                key={range.label}
+                onClick={() => setMonths(range.months)}
+                className={`px-3 py-1 rounded text-xs font-medium tracking-wide transition-colors ${
+                  months === range.months
+                    ? "bg-wealth-600 text-white"
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {!collapsed && (
-        <>
-          {/* Time range tabs */}
-          <div className="flex items-center mb-4">
-            <div className="flex gap-1">
-              {TIME_RANGES.map((range) => (
-                <button
-                  key={range.label}
-                  onClick={() => setMonths(range.months)}
-                  className={`px-3 py-1 rounded text-xs font-medium tracking-wide transition-colors ${
-                    months === range.months
-                      ? "bg-wealth-600 text-white"
-                      : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                  }`}
-                >
-                  {range.label}
-                </button>
+        {error && (
+          <Alert variant="error" className="p-6 text-center">
+            <div className="text-loss font-medium mb-1">
+              Failed to load performance data
+            </div>
+            <p className="text-sm text-gray-500">Please try again later</p>
+          </Alert>
+        )}
+
+        {isLoading && (
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 w-20 rounded bg-gray-100 animate-pulse" />
+                  <div className="h-8 w-28 rounded bg-gray-100 animate-pulse" />
+                  <div className="h-3 w-24 rounded bg-gray-100 animate-pulse" />
+                </div>
               ))}
             </div>
+            <div className="h-64 rounded bg-gray-50 animate-pulse" />
           </div>
+        )}
 
-          {error && (
-            <Alert variant="error" className="p-6 text-center">
-              <div className="text-loss font-medium mb-1">
-                Failed to load performance data
-              </div>
-              <p className="text-sm text-gray-500">Please try again later</p>
-            </Alert>
-          )}
+        {!isLoading && !error && series.length === 0 && (
+          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+            <p className="text-gray-500">
+              No performance data available for this period
+            </p>
+          </div>
+        )}
 
-          {isLoading && (
-            <div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-3 w-20 rounded bg-gray-100 animate-pulse" />
-                    <div className="h-8 w-28 rounded bg-gray-100 animate-pulse" />
-                    <div className="h-3 w-24 rounded bg-gray-100 animate-pulse" />
-                  </div>
-                ))}
-              </div>
-              <div className="h-64 rounded bg-gray-50 animate-pulse" />
-            </div>
-          )}
-
-          {!isLoading && !error && series.length === 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-              <p className="text-gray-500">
-                No performance data available for this period
-              </p>
-            </div>
-          )}
-
-          {!isLoading && !error && series.length > 0 && stats && (
-            <>
-              {/* Key metrics row — stacks on mobile, 3 columns from sm up.
+        {!isLoading && !error && series.length > 0 && stats && (
+          <>
+            {/* Key metrics row — stacks on mobile, 3 columns from sm up.
                   divide-y on stacked, divide-x once side-by-side. */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 mb-4 py-4 border-y border-gray-100">
-                {/* Investment Return — XIRR primary, TWR secondary */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 mb-4 py-3 border-y border-gray-100">
+              {/* Investment Return — XIRR primary, TWR secondary */}
+              <div
+                className="px-4 py-3 sm:py-0"
+                title={
+                  xirrPct != null
+                    ? "XIRR = money-weighted return on your actual cash flows. " +
+                      "TWR (below) = strategy/market return, ignores when you contributed."
+                    : "TWR cumulative return. XIRR unavailable for this window."
+                }
+              >
+                <div className="text-xs font-medium text-gray-500 mb-1">
+                  Investment Return
+                </div>
                 <div
-                  className="px-4 py-3 sm:py-0"
-                  title={
-                    xirrPct != null
-                      ? "XIRR = money-weighted return on your actual cash flows. " +
-                        "TWR (below) = strategy/market return, ignores when you contributed."
-                      : "TWR cumulative return. XIRR unavailable for this window."
-                  }
+                  className={`text-2xl font-bold tracking-tight tabular-nums ${isPositive ? "text-gain" : "text-loss"}`}
                 >
-                  <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                    Investment Return
-                  </div>
-                  <div
-                    className={`text-2xl font-mono font-bold tracking-tight ${isPositive ? "text-gain" : "text-loss"}`}
-                  >
-                    {isPositive ? "+" : ""}
-                    {headlinePct.toFixed(2)}%
-                    <span className="text-xs font-normal text-gray-500 ml-1">
-                      {xirrPct != null
-                        ? isAnnualised
-                          ? "/ yr"
-                          : "cumulative"
-                        : isAnnualised
-                          ? "TWR / yr"
-                          : "TWR"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">
+                  {isPositive ? "+" : ""}
+                  {headlinePct.toFixed(2)}%
+                  <span className="text-xs font-normal text-gray-500 ml-1">
                     {xirrPct != null
-                      ? `TWR ${stats.twrPct >= 0 ? "+" : ""}${stats.twrPct.toFixed(2)}% · ${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
-                          undefined,
-                          { maximumFractionDigits: 0 },
-                        )}`
-                      : `${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
-                          undefined,
-                          {
-                            maximumFractionDigits: 0,
-                          },
-                        )}`}
-                  </div>
+                      ? isAnnualised
+                        ? "/ yr"
+                        : "cumulative"
+                      : isAnnualised
+                        ? "TWR / yr"
+                        : "TWR"}
+                  </span>
                 </div>
-
-                {/* Total Value */}
-                <div className="px-4 py-3 sm:py-0">
-                  <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                    Total Value
-                  </div>
-                  <div className="text-2xl font-mono font-bold tracking-tight text-gray-900">
-                    {fmtCompact(stats.marketValue)}
-                  </div>
-                  <div
-                    className="text-xs text-gray-400 font-mono mt-0.5"
-                    title={`Lifetime contributed: ${fmtFull(stats.lifetimeContributed)}`}
-                  >
-                    {fmtCompact(stats.contributed)} contributed (period)
-                  </div>
-                </div>
-
-                {/* Investment Gain */}
-                <div className="px-4 py-3 sm:py-0">
-                  <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                    Investment Gain
-                  </div>
-                  <div
-                    className={`text-2xl font-mono font-bold tracking-tight ${stats.gain >= 0 ? "text-gain" : "text-loss"}`}
-                  >
-                    {stats.gain >= 0 ? "+" : ""}
-                    {fmtCompact(stats.gain)}
-                  </div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {stats.lifetimeContributed !== 0
-                      ? `${((stats.gain / Math.abs(stats.lifetimeContributed)) * 100).toFixed(1)}% on cost`
-                      : "\u00A0"}
-                  </div>
+                <div className="text-xs tabular-nums text-gray-500 mt-0.5">
+                  {xirrPct != null
+                    ? `TWR ${stats.twrPct >= 0 ? "+" : ""}${stats.twrPct.toFixed(2)}% · ${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                        undefined,
+                        { maximumFractionDigits: 0 },
+                      )}`
+                    : `${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                        undefined,
+                        {
+                          maximumFractionDigits: 0,
+                        },
+                      )}`}
                 </div>
               </div>
 
-              {/* Chart */}
-              <GainAreaChart
-                data={series}
-                gradientId="wealthGainFill"
-                formatTick={fmtCompact}
-                formatTooltipValue={fmtFull}
-              />
-            </>
-          )}
-        </>
-      )}
-    </div>
+              {/* Total Value */}
+              <div className="px-4 py-3 sm:py-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">
+                  Total Value
+                </div>
+                <div className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
+                  {fmtCompact(stats.marketValue)}
+                </div>
+                <div
+                  className="text-xs tabular-nums text-gray-500 mt-0.5"
+                  title={`Lifetime contributed: ${fmtFull(stats.lifetimeContributed)}`}
+                >
+                  {fmtCompact(stats.contributed)} contributed (period)
+                </div>
+              </div>
+
+              {/* Investment Gain */}
+              <div className="px-4 py-3 sm:py-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">
+                  Investment Gain
+                </div>
+                <div
+                  className={`text-2xl font-bold tracking-tight tabular-nums ${stats.gain >= 0 ? "text-gain" : "text-loss"}`}
+                >
+                  {stats.gain >= 0 ? "+" : ""}
+                  {fmtCompact(stats.gain)}
+                </div>
+                <div className="text-xs tabular-nums text-gray-500 mt-0.5">
+                  {stats.lifetimeContributed !== 0
+                    ? `${((stats.gain / Math.abs(stats.lifetimeContributed)) * 100).toFixed(1)}% on cost`
+                    : "\u00A0"}
+                </div>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <GainAreaChart
+              data={series}
+              gradientId="wealthGainFill"
+              formatTick={fmtCompact}
+              formatTooltipValue={fmtFull}
+            />
+          </>
+        )}
+      </>
+    </WealthSection>
   )
 }
 
