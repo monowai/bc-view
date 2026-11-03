@@ -22,6 +22,15 @@ describe("ownErrors", () => {
     expect(ownErrors(output)).toEqual([])
   })
 
+  it("ignores errors inside Next's generated types", () => {
+    const output = [
+      ".next/dev/types/routes.d.ts(111,8): error TS2300: Duplicate identifier 'LayoutProps'.",
+      ".next/types/routes.d.ts(107,8): error TS2300: Duplicate identifier 'LayoutProps'.",
+    ].join("\n")
+
+    expect(ownErrors(output)).toEqual([])
+  })
+
   it("ignores continuation lines of a multi-line message", () => {
     const output = [
       "types/app.d.ts(10,3): error TS7008: Member 'value' implicitly has an 'any' type.",
