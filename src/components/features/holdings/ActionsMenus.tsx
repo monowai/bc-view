@@ -41,7 +41,8 @@ interface UseDropdownMenuResult {
   menuRef: React.RefObject<HTMLDivElement | null>
   menuPos: { top: number; left: number }
   toggle: (e: React.MouseEvent) => void
-  close: () => void
+  /** Wraps a menu action: keeps the click from the row and closes the menu. */
+  handle: (fn: () => void) => (e: React.MouseEvent) => void
 }
 
 // Matches Tailwind w-48 (12rem ≈ 192px) on the menu panel below.
@@ -111,9 +112,16 @@ const useDropdownMenu = (): UseDropdownMenuResult => {
     [updatePosition],
   )
 
-  const close = useCallback(() => setIsOpen(false), [])
+  const handle =
+    (fn: () => void): ((e: React.MouseEvent) => void) =>
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsOpen(false)
+      fn()
+    }
 
-  return { isOpen, buttonRef, menuRef, menuPos, toggle, close }
+  return { isOpen, buttonRef, menuRef, menuPos, toggle, handle }
 }
 
 const TRIGGER_CLASSES =
@@ -132,6 +140,46 @@ const MenuItem: React.FC<MenuItemProps> = ({ iconClass, label, onClick }) => (
     <i className={iconClass}></i>
     {label}
   </button>
+)
+
+interface MenuFrameProps {
+  assetCode: string
+  menu: UseDropdownMenuResult
+  children: React.ReactNode
+  /** Rendered after the panel, for dialogs a menu item opens. */
+  after?: React.ReactNode
+}
+
+const MenuFrame: React.FC<MenuFrameProps> = ({
+  assetCode,
+  menu: { isOpen, buttonRef, menuRef, menuPos, toggle },
+  children,
+  after,
+}) => (
+  <div className="relative">
+    <button
+      ref={buttonRef}
+      type="button"
+      aria-label={`Actions ${assetCode}`}
+      className={TRIGGER_CLASSES}
+      onClick={toggle}
+      title="Actions"
+    >
+      <i className="fas fa-ellipsis-vertical text-sm"></i>
+    </button>
+    {isOpen &&
+      createPortal(
+        <div
+          ref={menuRef}
+          className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
+          <div className="py-1">{children}</div>
+        </div>,
+        document.body,
+      )}
+    {after}
+  </div>
 )
 
 export interface ActionsMenuProps {
@@ -200,8 +248,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onGoToPortfolio,
   onAnalyseHolding,
 }) => {
-  const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
-    useDropdownMenu()
+  const menu = useDropdownMenu()
+  const { handle } = menu
   const assetCode = asset.displayCode
   const [watching, setWatching] = useState(false)
   const canWatch = asset.watchable
@@ -217,178 +265,12 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     currentWeight,
   })
 
-  const handle =
-    (fn: () => void): ((e: React.MouseEvent) => void) =>
-    (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      close()
-      fn()
-    }
-
   return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label={`Actions ${assetCode}`}
-        className={TRIGGER_CLASSES}
-        onClick={toggle}
-        title="Actions"
-      >
-        <i className="fas fa-ellipsis-vertical text-sm"></i>
-      </button>
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
-            style={{ top: menuPos.top, left: menuPos.left }}
-          >
-            <div className="py-1">
-              {onTrade && (
-                <MenuItem
-                  iconClass="fas fa-right-left text-emerald-500 w-4"
-                  label="Trade"
-                  onClick={handle(() => onTrade(tradePayload()))}
-                />
-              )}
-              {onQuickSell && (
-                <MenuItem
-                  iconClass="fas fa-money-bill-transfer text-red-500 w-4"
-                  label="Quick Sell"
-                  onClick={handle(() => onQuickSell(tradePayload()))}
-                />
-              )}
-              {onCorporateActions && (
-                <MenuItem
-                  iconClass="fas fa-calendar-check text-blue-500 w-4"
-                  label="Corporate Actions"
-                  onClick={handle(() =>
-                    onCorporateActions({
-                      asset,
-                      portfolioId,
-                      fromDate: fromDate || "",
-                      closedDate,
-                    }),
-                  )}
-                />
-              )}
-              {asset.market?.code === "PRIVATE" &&
-                isConstantPrice(asset) &&
-                onSetBalance && (
-                  <MenuItem
-                    iconClass="fas fa-piggy-bank text-amber-500 w-4"
-                    label="Set Balance"
-                    onClick={handle(() => onSetBalance({ asset }))}
-                  />
-                )}
-              {onSetPrice &&
-                asset.market?.code === "PRIVATE" &&
-                !isConstantPrice(asset) && (
-                  <MenuItem
-                    iconClass="fas fa-tag text-green-500 w-4"
-                    label="Set Price"
-                    onClick={handle(() => onSetPrice({ asset }))}
-                  />
-                )}
-              {onSectorWeightings && isFundLike(asset) && (
-                <MenuItem
-                  iconClass="fas fa-chart-pie text-purple-500 w-4"
-                  label="View Sectors"
-                  onClick={handle(() => onSectorWeightings({ asset }))}
-                />
-              )}
-              {onCostAdjust && (
-                <MenuItem
-                  iconClass="fas fa-scale-balanced text-orange-500 w-4"
-                  label="Adjust Cost"
-                  onClick={handle(() =>
-                    onCostAdjust({
-                      asset,
-                      portfolioId,
-                      currentCostBasis: costBasis,
-                      currency: tradeCurrency,
-                    }),
-                  )}
-                />
-              )}
-              {onMovePosition && (
-                <MenuItem
-                  iconClass="fas fa-arrow-right-arrow-left text-indigo-500 w-4"
-                  label="Move Position"
-                  onClick={handle(() =>
-                    onMovePosition({ asset, portfolioId, portfolioCode }),
-                  )}
-                />
-              )}
-              {onRecordIncome && (
-                <MenuItem
-                  iconClass="fas fa-arrow-down text-green-500 w-4"
-                  label="Record Income"
-                  onClick={handle(() =>
-                    onRecordIncome({
-                      asset: assetCode,
-                      assetId: asset.id,
-                      currency: tradeCurrency.code,
-                      market: asset.market.code,
-                      quantity: 0,
-                      price: 0,
-                      type: "INCOME",
-                    }),
-                  )}
-                />
-              )}
-              {onRecordExpense && (
-                <MenuItem
-                  iconClass="fas fa-arrow-up text-red-500 w-4"
-                  label="Record Expense"
-                  onClick={handle(() =>
-                    onRecordExpense({
-                      asset: assetCode,
-                      assetId: asset.id,
-                      currency: tradeCurrency.code,
-                      market: asset.market.code,
-                      quantity: 0,
-                      price: 0,
-                      type: "EXPENSE",
-                    }),
-                  )}
-                />
-              )}
-              {onAnalyseHolding && (
-                <MenuItem
-                  iconClass="fas fa-magnifying-glass-chart text-purple-500 w-4"
-                  label="Analyse my holding"
-                  onClick={handle(onAnalyseHolding)}
-                />
-              )}
-              {canWatch && (
-                <MenuItem
-                  iconClass="fas fa-eye text-sky-500 w-4"
-                  label="Add to Watchlist"
-                  onClick={handle(() => setWatching(true))}
-                />
-              )}
-              {onGoToPortfolio && (
-                <MenuItem
-                  iconClass="fas fa-folder-open text-slate-500 w-4"
-                  label="Go to portfolio"
-                  onClick={handle(() => onGoToPortfolio(asset))}
-                />
-              )}
-              {onEditAsset && (
-                <MenuItem
-                  iconClass="fas fa-pen-to-square text-slate-500 w-4"
-                  label="Edit Asset"
-                  onClick={handle(() => onEditAsset(asset))}
-                />
-              )}
-            </div>
-          </div>,
-          document.body,
-        )}
-      {watching &&
+    <MenuFrame
+      assetCode={assetCode}
+      menu={menu}
+      after={
+        watching &&
         createPortal(
           // React events bubble through portals to the holding row, whose
           // double-click opens trades; stop them at the dialog boundary.
@@ -402,8 +284,148 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
             />
           </div>,
           document.body,
+        )
+      }
+    >
+      {onTrade && (
+        <MenuItem
+          iconClass="fas fa-right-left text-emerald-500 w-4"
+          label="Trade"
+          onClick={handle(() => onTrade(tradePayload()))}
+        />
+      )}
+      {onQuickSell && (
+        <MenuItem
+          iconClass="fas fa-money-bill-transfer text-red-500 w-4"
+          label="Quick Sell"
+          onClick={handle(() => onQuickSell(tradePayload()))}
+        />
+      )}
+      {onCorporateActions && (
+        <MenuItem
+          iconClass="fas fa-calendar-check text-blue-500 w-4"
+          label="Corporate Actions"
+          onClick={handle(() =>
+            onCorporateActions({
+              asset,
+              portfolioId,
+              fromDate: fromDate || "",
+              closedDate,
+            }),
+          )}
+        />
+      )}
+      {asset.market?.code === "PRIVATE" &&
+        isConstantPrice(asset) &&
+        onSetBalance && (
+          <MenuItem
+            iconClass="fas fa-piggy-bank text-amber-500 w-4"
+            label="Set Balance"
+            onClick={handle(() => onSetBalance({ asset }))}
+          />
         )}
-    </div>
+      {onSetPrice &&
+        asset.market?.code === "PRIVATE" &&
+        !isConstantPrice(asset) && (
+          <MenuItem
+            iconClass="fas fa-tag text-green-500 w-4"
+            label="Set Price"
+            onClick={handle(() => onSetPrice({ asset }))}
+          />
+        )}
+      {onSectorWeightings && isFundLike(asset) && (
+        <MenuItem
+          iconClass="fas fa-chart-pie text-purple-500 w-4"
+          label="View Sectors"
+          onClick={handle(() => onSectorWeightings({ asset }))}
+        />
+      )}
+      {onCostAdjust && (
+        <MenuItem
+          iconClass="fas fa-scale-balanced text-orange-500 w-4"
+          label="Adjust Cost"
+          onClick={handle(() =>
+            onCostAdjust({
+              asset,
+              portfolioId,
+              currentCostBasis: costBasis,
+              currency: tradeCurrency,
+            }),
+          )}
+        />
+      )}
+      {onMovePosition && (
+        <MenuItem
+          iconClass="fas fa-arrow-right-arrow-left text-indigo-500 w-4"
+          label="Move Position"
+          onClick={handle(() =>
+            onMovePosition({ asset, portfolioId, portfolioCode }),
+          )}
+        />
+      )}
+      {onRecordIncome && (
+        <MenuItem
+          iconClass="fas fa-arrow-down text-green-500 w-4"
+          label="Record Income"
+          onClick={handle(() =>
+            onRecordIncome({
+              asset: assetCode,
+              assetId: asset.id,
+              currency: tradeCurrency.code,
+              market: asset.market.code,
+              quantity: 0,
+              price: 0,
+              type: "INCOME",
+            }),
+          )}
+        />
+      )}
+      {onRecordExpense && (
+        <MenuItem
+          iconClass="fas fa-arrow-up text-red-500 w-4"
+          label="Record Expense"
+          onClick={handle(() =>
+            onRecordExpense({
+              asset: assetCode,
+              assetId: asset.id,
+              currency: tradeCurrency.code,
+              market: asset.market.code,
+              quantity: 0,
+              price: 0,
+              type: "EXPENSE",
+            }),
+          )}
+        />
+      )}
+      {onAnalyseHolding && (
+        <MenuItem
+          iconClass="fas fa-magnifying-glass-chart text-purple-500 w-4"
+          label="Analyse my holding"
+          onClick={handle(onAnalyseHolding)}
+        />
+      )}
+      {canWatch && (
+        <MenuItem
+          iconClass="fas fa-eye text-sky-500 w-4"
+          label="Add to Watchlist"
+          onClick={handle(() => setWatching(true))}
+        />
+      )}
+      {onGoToPortfolio && (
+        <MenuItem
+          iconClass="fas fa-folder-open text-slate-500 w-4"
+          label="Go to portfolio"
+          onClick={handle(() => onGoToPortfolio(asset))}
+        />
+      )}
+      {onEditAsset && (
+        <MenuItem
+          iconClass="fas fa-pen-to-square text-slate-500 w-4"
+          label="Edit Asset"
+          onClick={handle(() => onEditAsset(asset))}
+        />
+      )}
+    </MenuFrame>
   )
 }
 
@@ -440,148 +462,115 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   onEditAsset,
   onGoToPortfolio,
 }) => {
-  const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
-    useDropdownMenu()
+  const menu = useDropdownMenu()
+  const { handle } = menu
   const assetCode = asset.displayCode
 
-  const handle =
-    (fn: () => void): ((e: React.MouseEvent) => void) =>
-    (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      close()
-      fn()
-    }
-
   return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label={`Actions ${assetCode}`}
-        className={TRIGGER_CLASSES}
-        onClick={toggle}
-        title="Actions"
-      >
-        <i className="fas fa-ellipsis-vertical text-sm"></i>
-      </button>
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
-            style={{ top: menuPos.top, left: menuPos.left }}
-          >
-            <div className="py-1">
-              {onSetCashBalance && (
-                <MenuItem
-                  iconClass="fas fa-balance-scale text-purple-500 w-4"
-                  label="Set Balance"
-                  onClick={handle(() => {
-                    const isAccountAsset = isAccount(asset)
-                    onSetCashBalance({
-                      currency: isAccountAsset
-                        ? getAssetCurrency(asset) || asset.code
-                        : asset.code,
-                      currentBalance: marketValue,
-                      market: isAccountAsset ? "PRIVATE" : "CASH",
-                      assetCode: isAccountAsset ? asset.code : undefined,
-                      assetName: isAccountAsset ? asset.name : undefined,
-                      assetId: asset.id,
-                    })
-                  })}
-                />
-              )}
-              {onCashTransfer && (
-                <MenuItem
-                  iconClass="fas fa-exchange-alt text-blue-500 w-4"
-                  label="Transfer Cash"
-                  onClick={handle(() => {
-                    const isAccountAsset = isAccount(asset)
-                    onCashTransfer({
-                      portfolioId: portfolio.id,
-                      portfolioCode: portfolio.code,
-                      assetId: asset.id,
-                      assetCode: asset.code,
-                      assetName: asset.name || asset.code,
-                      currency: isAccountAsset
-                        ? getAssetCurrency(asset) || asset.code
-                        : asset.code,
-                      currentBalance: marketValue,
-                    })
-                  })}
-                />
-              )}
-              {onCashTransaction && (
-                <MenuItem
-                  iconClass="fas fa-right-left text-blue-500 w-4"
-                  label="Exchange Cash"
-                  onClick={handle(() => onCashTransaction(assetCode, "FX"))}
-                />
-              )}
-              {onCashTransaction && (
-                <MenuItem
-                  iconClass="fas fa-dollar-sign text-green-500 w-4"
-                  label="Cash Transaction"
-                  onClick={handle(() => onCashTransaction(assetCode))}
-                />
-              )}
-              {onRecordIncome && (
-                <MenuItem
-                  iconClass="fas fa-arrow-down text-green-500 w-4"
-                  label="Record Income"
-                  onClick={handle(() =>
-                    onRecordIncome({
-                      asset: assetCode,
-                      assetId: asset.id,
-                      currency:
-                        (tradeCurrency?.code ?? getAssetCurrency(asset)) ||
-                        asset.code,
-                      market: asset.market.code,
-                      quantity: 0,
-                      price: 0,
-                      type: "INCOME",
-                    }),
-                  )}
-                />
-              )}
-              {onRecordExpense && (
-                <MenuItem
-                  iconClass="fas fa-arrow-up text-red-500 w-4"
-                  label="Record Expense"
-                  onClick={handle(() =>
-                    onRecordExpense({
-                      asset: assetCode,
-                      assetId: asset.id,
-                      currency:
-                        (tradeCurrency?.code ?? getAssetCurrency(asset)) ||
-                        asset.code,
-                      market: asset.market.code,
-                      quantity: 0,
-                      price: 0,
-                      type: "EXPENSE",
-                    }),
-                  )}
-                />
-              )}
-              {onGoToPortfolio && (
-                <MenuItem
-                  iconClass="fas fa-folder-open text-slate-500 w-4"
-                  label="Go to portfolio"
-                  onClick={handle(() => onGoToPortfolio(asset))}
-                />
-              )}
-              {onEditAsset && asset.market?.code === "PRIVATE" && (
-                <MenuItem
-                  iconClass="fas fa-pen-to-square text-slate-500 w-4"
-                  label="Edit Asset"
-                  onClick={handle(() => onEditAsset(asset))}
-                />
-              )}
-            </div>
-          </div>,
-          document.body,
-        )}
-    </div>
+    <MenuFrame assetCode={assetCode} menu={menu}>
+      {onSetCashBalance && (
+        <MenuItem
+          iconClass="fas fa-balance-scale text-purple-500 w-4"
+          label="Set Balance"
+          onClick={handle(() => {
+            const isAccountAsset = isAccount(asset)
+            onSetCashBalance({
+              currency: isAccountAsset
+                ? getAssetCurrency(asset) || asset.code
+                : asset.code,
+              currentBalance: marketValue,
+              market: isAccountAsset ? "PRIVATE" : "CASH",
+              assetCode: isAccountAsset ? asset.code : undefined,
+              assetName: isAccountAsset ? asset.name : undefined,
+              assetId: asset.id,
+            })
+          })}
+        />
+      )}
+      {onCashTransfer && (
+        <MenuItem
+          iconClass="fas fa-exchange-alt text-blue-500 w-4"
+          label="Transfer Cash"
+          onClick={handle(() => {
+            const isAccountAsset = isAccount(asset)
+            onCashTransfer({
+              portfolioId: portfolio.id,
+              portfolioCode: portfolio.code,
+              assetId: asset.id,
+              assetCode: asset.code,
+              assetName: asset.name || asset.code,
+              currency: isAccountAsset
+                ? getAssetCurrency(asset) || asset.code
+                : asset.code,
+              currentBalance: marketValue,
+            })
+          })}
+        />
+      )}
+      {onCashTransaction && (
+        <MenuItem
+          iconClass="fas fa-right-left text-blue-500 w-4"
+          label="Exchange Cash"
+          onClick={handle(() => onCashTransaction(assetCode, "FX"))}
+        />
+      )}
+      {onCashTransaction && (
+        <MenuItem
+          iconClass="fas fa-dollar-sign text-green-500 w-4"
+          label="Cash Transaction"
+          onClick={handle(() => onCashTransaction(assetCode))}
+        />
+      )}
+      {onRecordIncome && (
+        <MenuItem
+          iconClass="fas fa-arrow-down text-green-500 w-4"
+          label="Record Income"
+          onClick={handle(() =>
+            onRecordIncome({
+              asset: assetCode,
+              assetId: asset.id,
+              currency:
+                (tradeCurrency?.code ?? getAssetCurrency(asset)) || asset.code,
+              market: asset.market.code,
+              quantity: 0,
+              price: 0,
+              type: "INCOME",
+            }),
+          )}
+        />
+      )}
+      {onRecordExpense && (
+        <MenuItem
+          iconClass="fas fa-arrow-up text-red-500 w-4"
+          label="Record Expense"
+          onClick={handle(() =>
+            onRecordExpense({
+              asset: assetCode,
+              assetId: asset.id,
+              currency:
+                (tradeCurrency?.code ?? getAssetCurrency(asset)) || asset.code,
+              market: asset.market.code,
+              quantity: 0,
+              price: 0,
+              type: "EXPENSE",
+            }),
+          )}
+        />
+      )}
+      {onGoToPortfolio && (
+        <MenuItem
+          iconClass="fas fa-folder-open text-slate-500 w-4"
+          label="Go to portfolio"
+          onClick={handle(() => onGoToPortfolio(asset))}
+        />
+      )}
+      {onEditAsset && asset.market?.code === "PRIVATE" && (
+        <MenuItem
+          iconClass="fas fa-pen-to-square text-slate-500 w-4"
+          label="Edit Asset"
+          onClick={handle(() => onEditAsset(asset))}
+        />
+      )}
+    </MenuFrame>
   )
 }

@@ -1,15 +1,20 @@
 import React from "react"
-import { render } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import SummaryHeader, { SummaryRow, SummaryRowMobile } from "../Summary"
+import SummaryHeader, {
+  SummaryHeaderMobile,
+  SummaryRow,
+  SummaryRowMobile,
+} from "../Summary"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
 import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock the holdingState hook
+const mockSetAsAt = jest.fn()
 jest.mock("@lib/holdings/holdingState", () => ({
   useHoldingState: () => ({
     asAt: new Date("2024-01-01"),
-    setAsAt: jest.fn(),
+    setAsAt: mockSetAsAt,
   }),
 }))
 
@@ -242,5 +247,71 @@ describe("Summary Mobile View Tests (TDD)", () => {
         dateCell?.classList.contains("font-medium")
       expect(hasFontWeight).toBe(true)
     })
+  })
+})
+
+describe("Summary as-at date and gain colours", () => {
+  beforeEach(() => mockSetAsAt.mockClear())
+
+  const dateInputs = (container: HTMLElement): HTMLInputElement[] =>
+    Array.from(container.querySelectorAll("input"))
+
+  it.each([
+    [
+      "mobile and tablet headers",
+      <SummaryHeaderMobile key="m" portfolio={mockPortfolio} />,
+      ["input text-xs w-28", "input text-sm"],
+    ],
+    [
+      "desktop header",
+      <table key="d">
+        <SummaryHeader portfolio={mockPortfolio} />
+      </table>,
+      ["input text-sm font-medium"],
+    ],
+  ])("submits a valid as-at date from the %s", async (_name, ui, classes) => {
+    const { container } = render(ui)
+    const inputs = dateInputs(container)
+    expect(inputs.map((i) => i.className)).toEqual(classes)
+
+    fireEvent.change(inputs[0], { target: { value: "2024-03-04" } })
+    await waitFor(() => expect(mockSetAsAt).toHaveBeenCalledWith("2024-03-04"))
+    // One form per breakpoint, one field behind them.
+    inputs.forEach((i) => expect(i.value).toBe("2024-03-04"))
+  })
+
+  it("ignores a cleared as-at date", async () => {
+    const { container } = render(
+      <SummaryHeaderMobile portfolio={mockPortfolio} />,
+    )
+    fireEvent.change(dateInputs(container)[0], { target: { value: "" } })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(mockSetAsAt).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [0.1, 5, "text-emerald-600", "text-emerald-600"],
+    [-0.1, -5, "text-red-600", "text-red-600"],
+    [0, 0, "text-slate-700", "text-slate-700"],
+    [0.1, -5, "text-emerald-600", "text-red-600"],
+  ])("colours irr %s and gain %s", (irr, gain, irrClass, gainClass) => {
+    const summary = {
+      ...mockSummary,
+      totals: { ...mockSummary.totals, irr, gain },
+    }
+    const mobile = render(<SummaryRowMobile {...summary} />)
+    const cells = mobile.container.querySelectorAll(".text-center")
+    expect(cells[2].children[1]).toHaveClass(gainClass)
+    expect(cells[3].children[1]).toHaveClass(irrClass)
+    mobile.unmount()
+
+    const desktop = render(
+      <table>
+        <SummaryHeader portfolio={mockPortfolio} portfolioSummary={summary} />
+      </table>,
+    )
+    const values = desktop.container.querySelectorAll("tr:nth-child(2) td")
+    expect(values[7]).toHaveClass(irrClass)
+    expect(values[8]).toHaveClass(gainClass)
   })
 })

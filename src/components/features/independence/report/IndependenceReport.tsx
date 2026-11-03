@@ -16,12 +16,18 @@ import LifestyleSummary from "../LifestyleSummary"
 import TimelineTabContent from "../TimelineTabContent"
 import { MonteCarloResultView } from "../monte-carlo/MonteCarloResultView"
 import {
+  DataNotes,
   FiProgressBar,
   FindingsList,
   Kpis,
+  ReportCover,
+  ReportFooter,
   ReportToolbar,
   Rows,
   Section,
+  StressTestSection,
+  YearByYearTable,
+  type YearTableRow,
   maskMoney,
 } from "./reportParts"
 
@@ -78,29 +84,12 @@ export default function IndependenceReport({
   )
   const sym = currencySymbolFor(effectiveCurrency)
   const m = (s: string): string => maskMoney(s, sym, hideValues)
-  // Three states, one level of JSX: ran, failed, not run.
-  const stressBody = (ran: React.ReactNode): React.ReactNode => {
-    if (model.stress && mc) return ran
-    if (mcError) {
-      return (
-        <p className="text-red-700">
-          Stress test failed: {mcError}. Reload the report to retry.
-        </p>
-      )
-    }
-    return (
-      <p className="text-gray-600">
-        Stress test not run. Open the plan and run the simulation, then print
-        again.
-      </p>
-    )
-  }
   const firstFinding = projection.findings?.[0]
   const fiProgress = projection.fiMetrics?.fiProgress
-  const yearRows = [
+  const yearRows: YearTableRow[] = [
     ...(projection.accumulationProjections ?? []).map((r) => ({
       key: `acc-${r.year}`,
-      age: r.age,
+      age: r.age ?? "—",
       starting: r.startingBalance,
       growth: r.investmentGrowth,
       income: r.contribution,
@@ -110,7 +99,7 @@ export default function IndependenceReport({
     })),
     ...projection.yearlyProjections.map((r) => ({
       key: `ret-${r.year}`,
-      age: r.age ?? null,
+      age: r.age ?? "—",
       starting: r.startingBalance,
       growth: r.investment,
       income: r.incomeBreakdown?.totalIncome ?? 0,
@@ -128,24 +117,13 @@ export default function IndependenceReport({
       />
 
       {/* 0. Cover band */}
-      <header
-        data-testid="report-cover"
-        className="report-cover report-keep grid grid-cols-[1fr_auto] gap-3 border-b-2 border-gray-900 pb-3"
+      <ReportCover
+        cover={model.cover}
+        name={model.cover.planName}
+        currencyNote={model.cover.valueBasis}
       >
-        <div>
-          <h1 className="text-2xl font-bold">{model.cover.title}</h1>
-          <div className="text-base text-gray-600">{model.cover.planName}</div>
-          <div className="mt-1 text-gray-600">{model.cover.ageLine}</div>
-        </div>
-        <div className="text-right text-xs leading-6 text-gray-600">
-          As of <b className="text-gray-900">{model.cover.asOfDate}</b>
-          <br />
-          <b className="text-gray-900">{model.cover.currency}</b> ·{" "}
-          {model.cover.valueBasis}
-          <br />
-          Strategy <b className="text-gray-900">{model.cover.strategy}</b>
-        </div>
-      </header>
+        Strategy <b className="text-gray-900">{model.cover.strategy}</b>
+      </ReportCover>
 
       {/* 1. Verdict */}
       <Section id="verdict" title="1. Verdict">
@@ -195,30 +173,23 @@ export default function IndependenceReport({
       </Section>
 
       {/* 5. Stress test */}
-      <Section id="stress" title="5. Stress test" breakBefore>
-        {stressBody(
-          <>
-            <p className="mb-3">{m(model.stress?.sentence ?? "")}</p>
-            {model.stress?.depletionLine && (
-              <p className="mb-3 text-gray-700">{model.stress.depletionLine}</p>
-            )}
-            <MonteCarloResultView
-              result={mc as MonteCarloResult}
-              deterministicProjection={projection}
-              currency={effectiveCurrency}
-              hideValues={hideValues}
-            />
-            <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Parameters
-            </h3>
-            <Rows
-              rows={model.stress?.parameters ?? []}
-              symbol={sym}
-              hide={hideValues}
-            />
-          </>,
+      <StressTestSection
+        stress={model.stress}
+        mc={mc}
+        mcError={mcError}
+        notRunMessage="Stress test not run. Open the plan and run the simulation, then print again."
+        mask={m}
+        symbol={sym}
+        hide={hideValues}
+        renderResult={(result) => (
+          <MonteCarloResultView
+            result={result}
+            deterministicProjection={projection}
+            currency={effectiveCurrency}
+            hideValues={hideValues}
+          />
         )}
-      </Section>
+      />
 
       {/* 6. Insights */}
       <Section id="insights" title="6. Insights">
@@ -227,18 +198,7 @@ export default function IndependenceReport({
         ) : (
           <FindingsList findings={model.insights.findings} mask={m} />
         )}
-        {model.insights.warnings.length > 0 && (
-          <>
-            <h3 className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Data notes
-            </h3>
-            <ul className="list-disc pl-5 text-gray-600">
-              {model.insights.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        <DataNotes warnings={model.insights.warnings} />
       </Section>
 
       {/* 7. Assumptions */}
@@ -248,42 +208,10 @@ export default function IndependenceReport({
 
       {/* 8. Appendix */}
       <Section id="appendix" title="8. Appendix" breakBefore>
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Year by year
-        </h3>
-        <table className="w-full text-xs tabular-nums">
-          <thead>
-            <tr className="border-b border-gray-300 text-left text-[10px] uppercase text-gray-500">
-              <th className="py-1">Age</th>
-              <th className="py-1 text-right">Starting</th>
-              <th className="py-1 text-right">Growth</th>
-              <th className="py-1 text-right">Income</th>
-              <th className="py-1 text-right">Expenses</th>
-              <th className="py-1 text-right">Ending</th>
-              <th className="py-1 text-right">Total wealth</th>
-            </tr>
-          </thead>
-          <tbody>
-            {yearRows.map((r) => (
-              <tr
-                key={r.key}
-                className="border-b border-gray-100 even:bg-gray-50"
-              >
-                <td className="py-0.5">{r.age ?? "—"}</td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.starting, sym))}
-                </td>
-                <td className="py-0.5 text-right">{m(money(r.growth, sym))}</td>
-                <td className="py-0.5 text-right">{m(money(r.income, sym))}</td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.expenses, sym))}
-                </td>
-                <td className="py-0.5 text-right">{m(money(r.ending, sym))}</td>
-                <td className="py-0.5 text-right">{m(money(r.total, sym))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <YearByYearTable
+          rows={yearRows}
+          money={(value) => m(money(value, sym))}
+        />
 
         <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Method
@@ -320,13 +248,7 @@ export default function IndependenceReport({
           lifetime income stream and no longer sellable.
         </p>
 
-        <footer
-          data-testid="report-footer"
-          className="mt-4 flex justify-between border-t border-gray-200 pt-2 text-[10px] text-gray-500"
-        >
-          <span>{model.footer.line}</span>
-          <span>{model.footer.disclaimer}</span>
-        </footer>
+        <ReportFooter footer={model.footer} />
       </Section>
     </div>
   )

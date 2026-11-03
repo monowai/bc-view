@@ -50,6 +50,13 @@ jest.mock("@components/features/portfolios/SectorWeightingsPopup", () => ({
   ),
 }))
 
+jest.mock("@components/features/accounts/EditAccountDialog", () => ({
+  __esModule: true,
+  default: ({ asset }: { asset: { code: string } }) => (
+    <div data-testid="edit-account-dialog">{asset.code}</div>
+  ),
+}))
+
 let capturedTradeProps: Record<string, unknown> | null = null
 jest.mock("@components/features/transactions/TradeInputForm", () => ({
   __esModule: true,
@@ -66,19 +73,34 @@ const etf = makeAsset({
   assetCategory: { id: "ETF", name: "ETF" },
 })
 
+const home = makeAsset({
+  id: "asset-home",
+  code: "HOME",
+  displayCode: "HOME",
+  name: "Home",
+  market: {
+    code: "PRIVATE",
+    name: "Private",
+    currency: { code: "USD", name: "US Dollar", symbol: "$" },
+  },
+})
+
 const holdings = makeHoldings({
   holdingGroups: {
-    ETF: makeHoldingGroup({ positions: [makePosition({ asset: etf })] }),
+    ETF: makeHoldingGroup({
+      positions: [makePosition({ asset: etf }), makePosition({ asset: home })],
+    }),
   },
 })
 
 // Mutated per test so the same page renders in table and card mode.
 let mockViewMode = "table"
+const mockSetViewMode = jest.fn()
 
 jest.mock("@lib/holdings/useHoldingsView", () => ({
   useHoldingsView: (): Record<string, unknown> => ({
     viewMode: mockViewMode,
-    setViewMode: jest.fn(),
+    setViewMode: mockSetViewMode,
     sortConfig: { key: "assetName", direction: "asc" },
     allocationGroupBy: "assetClass",
     excludedCategories: new Set<string>(),
@@ -147,6 +169,46 @@ describe("Aggregated holdings — sector weightings", () => {
       )
     },
   )
+})
+
+describe("Aggregated holdings — toolbar and asset editing", () => {
+  beforeEach(() => {
+    ;(useSwr as unknown as jest.Mock).mockImplementation((key: unknown) => ({
+      data:
+        typeof key === "string" && key.startsWith("/api/holdings/aggregated")
+          ? { data: holdingContract }
+          : undefined,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    }))
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it("marks the active view and switches view from the ribbon", () => {
+    render(<AggregatedHoldingsPage />)
+
+    expect(screen.getByRole("button", { name: "Table view" })).toHaveClass(
+      "bg-white",
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Cards view" }))
+
+    expect(mockSetViewMode).toHaveBeenCalledWith("cards")
+  })
+
+  it("edits a private asset in the owner dialog", async () => {
+    render(<AggregatedHoldingsPage />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Actions HOME/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Edit Asset" }))
+
+    expect(await screen.findByTestId("edit-account-dialog")).toHaveTextContent(
+      "HOME",
+    )
+  })
 })
 
 describe("Aggregated holdings — trade a new asset", () => {

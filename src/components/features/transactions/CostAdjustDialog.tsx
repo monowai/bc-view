@@ -1,19 +1,15 @@
 import React, { useState, useMemo } from "react"
 import { Asset, Currency } from "types/beancounter"
-
-const CATEGORY_LABELS: Record<string, string> = {
-  PENSION: "Policies",
-  ACCOUNT: "Bank Account",
-  TRADE: "Trade Account",
-  RE: "Real Estate",
-  "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Policies",
-}
 import MathInput from "@components/ui/MathInput"
-import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { todayIso } from "@lib/formatters"
+import {
+  ASSET_DIALOG_INPUT_CLASS,
+  AssetDateField,
+  AssetIdentityCard,
+  AssetSaveFooter,
+} from "@components/features/assets/AssetDialogParts"
 
 interface CostAdjustDialogProps {
   asset: Asset
@@ -71,27 +67,15 @@ export default function CostAdjustDialog({
       title={"Adjust Cost Basis"}
       onClose={onClose}
       footer={
-        <>
-          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
-          <Dialog.SubmitButton
-            onClick={handleSave}
-            label={"Save"}
-            loadingLabel={"Saving..."}
-            isSubmitting={isSubmitting}
-            disabled={!hasValidTarget || isSubmitting}
-            variant="green"
-          />
-        </>
+        <AssetSaveFooter
+          onClose={onClose}
+          onSave={handleSave}
+          isSubmitting={isSubmitting}
+          disabled={!hasValidTarget || isSubmitting}
+        />
       }
     >
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="font-semibold text-lg">{asset.name}</div>
-        <div className="text-sm text-gray-600">
-          {asset.displayCode} -{" "}
-          {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
-            asset.assetCategory?.name}
-        </div>
-      </div>
+      <AssetIdentityCard asset={asset} />
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <div className="flex justify-between text-sm">
@@ -106,16 +90,11 @@ export default function CostAdjustDialog({
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {"Adjustment Date"}
-        </label>
-        <DateInput
-          value={date}
-          onChange={setDate}
-          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
-        />
-      </div>
+      <AssetDateField
+        label={"Adjustment Date"}
+        value={date}
+        onChange={setDate}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -125,7 +104,7 @@ export default function CostAdjustDialog({
           value={newCostBasis === "" ? "" : parseFloat(newCostBasis)}
           onChange={(value) => setNewCostBasis(String(value))}
           placeholder={currentCostBasis.toFixed(2)}
-          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
+          className={ASSET_DIALOG_INPUT_CLASS}
         />
       </div>
 

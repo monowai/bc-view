@@ -3,6 +3,8 @@
  * Used by both per-portfolio PerformanceChart and aggregated WealthPerformanceChart.
  */
 
+import type { ReferenceLineProps, XAxisProps, YAxisProps } from "recharts"
+
 export const TIME_RANGES = [
   { label: "3M", months: 3 },
   { label: "6M", months: 6 },
@@ -57,6 +59,42 @@ export const TOOLTIP_STYLE = {
   fontSize: "12px",
   fontFamily: "var(--font-jetbrains-mono), monospace",
   boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+}
+
+export const DATE_AXIS_PROPS: XAxisProps = {
+  dataKey: "date",
+  axisLine: false,
+  tickLine: false,
+  tick: AXIS_TICK,
+  tickFormatter: formatAxisDate,
+  interval: "preserveStartEnd",
+  dy: 4,
+}
+
+export const VALUE_AXIS_PROPS: YAxisProps = {
+  domain: ["auto", "auto"],
+  axisLine: false,
+  tickLine: false,
+  tick: AXIS_TICK,
+  width: 55,
+}
+
+export function referenceLineProps(
+  y: number,
+  label: string,
+): ReferenceLineProps {
+  return {
+    y,
+    stroke: CHART_COLORS.axis,
+    strokeDasharray: "2 4",
+    label: {
+      value: label,
+      position: "insideTopLeft",
+      fill: CHART_COLORS.axis,
+      fontSize: 10,
+      fontFamily: "var(--font-dm-sans)",
+    },
+  }
 }
 
 export function formatFull(value: number, sym: string): string {

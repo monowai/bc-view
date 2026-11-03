@@ -1,33 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { NumericFormat } from "react-number-format"
-import { Controller, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { mutate } from "swr"
-import { Transaction, FxResponse } from "types/beancounter"
+import { Transaction } from "types/beancounter"
 import { convert } from "@lib/trns/tradeUtils"
 import { copyToClipboard } from "@lib/trns/formUtils"
 import { postData } from "@components/ui/DropZone"
 import { holdingKey, trnKey } from "@utils/api/fetchHelper"
-import MathInput from "@components/ui/MathInput"
-import DateInput from "@components/ui/DateInput"
+import {
+  TrnDateField,
+  TrnMathField,
+  TrnTextField,
+} from "@components/features/transactions/TrnFormFields"
 import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { deleteTrn, isProposedTrnsKey } from "@utils/api/client/trns"
-import { postFxRates } from "@utils/api/client/fx"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { useFxBuyAmount } from "./useFxBuyAmount"
-
-// Fetcher for FX rates
-const fxFetcher = async (
-  from: string,
-  to: string,
-): Promise<FxResponse | null> => {
-  if (!from || !to || from === to) return null
-  const response = await postFxRates({ pairs: [{ from, to }] })
-  if (!response.ok) return null
-  return response.json()
-}
+import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
 
 interface FxEditFormData {
   tradeDate: string
@@ -46,6 +37,23 @@ const fxEditSchema = yup.object().shape({
   tax: yup.number().required().min(0),
   comments: yup.string().default(""),
 })
+
+function AmountLabel({
+  label,
+  currency,
+  colorClass,
+}: {
+  label: string
+  currency: string
+  colorClass: string
+}): React.ReactElement {
+  return (
+    <>
+      <span className={colorClass}>{label}</span>
+      <span className="text-gray-400 ml-1">({currency})</span>
+    </>
+  )
+}
 
 interface FxEditModalProps {
   trn: Transaction
@@ -175,36 +183,38 @@ export default function FxEditModal({
     return null
   }, [sellAmount, buyAmount])
 
-  const handleCopy = (): void => {
-    const formData = getValues()
-    // Build data structure matching what getCashRow expects for FX
-    const data = {
-      type: { value: "FX", label: "FX" },
-      asset: sellAsset ? sellAsset.displayCode : sellCurrency,
+  // Build data structure matching what getCashRow expects for FX
+  const buildFxFormData = (
+    values: FxEditFormData,
+  ): Parameters<typeof convert>[0] => ({
+    type: { value: "FX", label: "FX" },
+    asset: sellAsset ? sellAsset.displayCode : sellCurrency,
+    market: sellAsset?.market?.code || "CASH",
+    tradeDate: values.tradeDate,
+    quantity: values.sellAmount,
+    price: 1,
+    tradeCurrency: {
+      value: sellCurrency,
+      label: sellCurrency,
+      currency: sellCurrency,
       market: sellAsset?.market?.code || "CASH",
-      tradeDate: formData.tradeDate,
-      quantity: formData.sellAmount,
-      price: 1,
-      tradeCurrency: {
-        value: sellCurrency,
-        label: sellCurrency,
-        currency: sellCurrency,
-        market: sellAsset?.market?.code || "CASH",
-      },
-      cashCurrency: {
-        value:
-          buyAsset.market.code === "CASH" ? buyCurrency : buyAsset.displayCode,
-        label: buyDisplayName,
-        currency: buyCurrency,
-        market: buyAsset.market.code,
-      },
-      cashAmount: formData.buyAmount,
-      fees: formData.fees,
-      tax: formData.tax,
-      comments: formData.comments || `Buy ${buyCurrency}/Sell ${sellCurrency}`,
-      status: { value: trn.status, label: trn.status },
-    }
-    const row = convert(data)
+    },
+    cashCurrency: {
+      value:
+        buyAsset.market.code === "CASH" ? buyCurrency : buyAsset.displayCode,
+      label: buyDisplayName,
+      currency: buyCurrency,
+      market: buyAsset.market.code,
+    },
+    cashAmount: values.buyAmount,
+    fees: values.fees,
+    tax: values.tax,
+    comments: values.comments || `Buy ${buyCurrency}/Sell ${sellCurrency}`,
+    status: { value: trn.status, label: trn.status },
+  })
+
+  const handleCopy = (): void => {
+    const row = convert(buildFxFormData(getValues()))
     copyToClipboard(row)
   }
 
@@ -224,36 +234,7 @@ export default function FxEditModal({
         throw new Error("Failed to delete transaction")
       }
 
-      // Build data structure matching what getCashRow expects for FX
-      const formData = {
-        type: { value: "FX", label: "FX" },
-        asset: sellAsset ? sellAsset.displayCode : sellCurrency,
-        market: sellAsset?.market?.code || "CASH",
-        tradeDate: data.tradeDate,
-        quantity: data.sellAmount,
-        price: 1,
-        tradeCurrency: {
-          value: sellCurrency,
-          label: sellCurrency,
-          currency: sellCurrency,
-          market: sellAsset?.market?.code || "CASH",
-        },
-        cashCurrency: {
-          value:
-            buyAsset.market.code === "CASH"
-              ? buyCurrency
-              : buyAsset.displayCode,
-          label: buyDisplayName,
-          currency: buyCurrency,
-          market: buyAsset.market.code,
-        },
-        cashAmount: data.buyAmount,
-        fees: data.fees,
-        tax: data.tax,
-        comments: data.comments || `Buy ${buyCurrency}/Sell ${sellCurrency}`,
-        status: { value: trn.status, label: trn.status },
-      }
-      const row = convert(formData)
+      const row = convert(buildFxFormData(data))
       await postData(trn.portfolio, false, row.split(","))
       await mutate(trnKey(trn.id))
       mutate(isProposedTrnsKey)
@@ -268,6 +249,12 @@ export default function FxEditModal({
 
   const inputClass =
     "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+  const labelClass = "block text-xs font-medium text-gray-600"
+  const fieldProps = {
+    control,
+    labelClassName: labelClass,
+    inputClassName: inputClass,
+  }
 
   return (
     <Dialog
@@ -394,113 +381,57 @@ export default function FxEditModal({
         className="space-y-3"
       >
         {/* Trade Date */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600">
-            {"Trade Date"}
-          </label>
-          <Controller
-            name="tradeDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                value={field.value}
-                onChange={field.onChange}
-                className={inputClass}
-              />
-            )}
-          />
-        </div>
+        <TrnDateField {...fieldProps} name="tradeDate" label={"Trade Date"} />
 
         {/* Sell Amount */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600">
-            <span className="text-red-600">{"Sell Amount"}</span>
-            <span className="text-gray-400 ml-1">({sellCurrency})</span>
-          </label>
-          <Controller
-            name="sellAmount"
-            control={control}
-            render={({ field }) => (
-              <MathInput
-                value={field.value}
-                onChange={(value) => {
-                  resumeAutoBuyAmount() // Reset manual override when sell amount changes
-                  field.onChange(value)
-                }}
-                className={`${inputClass} border-red-200 bg-red-50`}
-              />
-            )}
-          />
-          {errors.sellAmount && (
-            <p className="text-red-500 text-xs">{errors.sellAmount.message}</p>
-          )}
-        </div>
+        <TrnMathField
+          {...fieldProps}
+          name="sellAmount"
+          label={
+            <AmountLabel
+              label={"Sell Amount"}
+              currency={sellCurrency}
+              colorClass="text-red-600"
+            />
+          }
+          onChange={(value, applyChange) => {
+            resumeAutoBuyAmount() // Reset manual override when sell amount changes
+            applyChange(value)
+          }}
+          inputClassName={`${inputClass} border-red-200 bg-red-50`}
+          error={errors.sellAmount?.message}
+        />
 
         {/* Buy Amount */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600">
-            <span className="text-green-600">{"Buy Amount"}</span>
-            <span className="text-gray-400 ml-1">({buyCurrency})</span>
-          </label>
-          <Controller
-            name="buyAmount"
-            control={control}
-            render={({ field }) => (
-              <MathInput
-                value={field.value}
-                onChange={handleBuyAmountChange}
-                className={`${inputClass} border-green-200 bg-green-50`}
-              />
-            )}
-          />
-          {errors.buyAmount && (
-            <p className="text-red-500 text-xs">{errors.buyAmount.message}</p>
-          )}
-        </div>
+        <TrnMathField
+          {...fieldProps}
+          name="buyAmount"
+          label={
+            <AmountLabel
+              label={"Buy Amount"}
+              currency={buyCurrency}
+              colorClass="text-green-600"
+            />
+          }
+          onChange={handleBuyAmountChange}
+          inputClassName={`${inputClass} border-green-200 bg-green-50`}
+          error={errors.buyAmount?.message}
+        />
 
         {/* Fees */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600">
-            {"Fees"}
-          </label>
-          <Controller
-            name="fees"
-            control={control}
-            render={({ field }) => (
-              <MathInput
-                value={field.value}
-                onChange={field.onChange}
-                className={inputClass}
-              />
-            )}
-          />
-        </div>
+        <TrnMathField {...fieldProps} name="fees" label={"Fees"} />
 
         {/* Comments */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600">
-            {"Comments"}
-          </label>
-          <Controller
-            name="comments"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                className={inputClass}
-                value={field.value || ""}
-                placeholder={`Buy ${buyCurrency}/Sell ${sellCurrency}`}
-              />
-            )}
-          />
-        </div>
+        <TrnTextField
+          {...fieldProps}
+          name="comments"
+          label={"Comments"}
+          placeholder={`Buy ${buyCurrency}/Sell ${sellCurrency}`}
+        />
 
         {/* Status (read-only) */}
         <div>
-          <label className="block text-xs font-medium text-gray-600">
-            {"Status"}
-          </label>
+          <label className={labelClass}>{"Status"}</label>
           <div className={`${inputClass} bg-gray-100 flex items-center`}>
             <span
               className={`inline-block px-2 py-1 text-xs font-medium rounded ${

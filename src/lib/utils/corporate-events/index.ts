@@ -7,4 +7,6 @@ export {
   sortEventsByRecordDateDesc,
   getMissingProcessableEvents,
   filterEventsForOpenPosition,
+  getEventTypeLabel,
+  getEventTypeIcon,
 } from "./eventUtils"

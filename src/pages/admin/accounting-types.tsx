@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
-import Dialog from "@components/ui/Dialog"
-import Alert from "@components/ui/Alert"
-import Spinner from "@components/ui/Spinner"
+import AdminAccessDenied from "@components/features/admin/AdminAccessDenied"
+import {
+  AdminCrudHeader,
+  AdminDeleteDialog,
+  AdminFormActions,
+  AdminListPanel,
+  AdminRowActions,
+} from "@components/features/admin/AdminCrud"
+import { useAdminCrudForm } from "@hooks/useAdminCrudForm"
 import { usePermissions } from "@hooks/usePermissions"
-import Link from "next/link"
 import { AccountingType, Currency } from "types/beancounter"
 
 interface FormData {
@@ -28,18 +33,22 @@ export default withPageAuthRequired(
     const [accountingTypes, setAccountingTypes] = useState<AccountingType[]>([])
     const [currencies, setCurrencies] = useState<Currency[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [editingId, setEditingId] = useState<string | null>(null)
-    const [isCreating, setIsCreating] = useState(false)
-    const [formData, setFormData] = useState<FormData>(defaultFormData)
+    const {
+      editingId,
+      isCreating,
+      formData,
+      message,
+      setMessage,
+      startCreate,
+      startEdit,
+      closeForm,
+      updateField,
+    } = useAdminCrudForm<FormData>(defaultFormData)
     const [isSaving, setIsSaving] = useState(false)
     const [deleteConfirm, setDeleteConfirm] = useState<AccountingType | null>(
       null,
     )
     const [isDeleting, setIsDeleting] = useState(false)
-    const [message, setMessage] = useState<{
-      type: "success" | "error"
-      text: string
-    } | null>(null)
 
     const fetchAccountingTypes = useCallback(async () => {
       try {
@@ -72,30 +81,13 @@ export default withPageAuthRequired(
       fetchCurrencies()
     }, [fetchAccountingTypes, fetchCurrencies])
 
-    const handleCreate = (): void => {
-      setFormData(defaultFormData)
-      setIsCreating(true)
-      setEditingId(null)
-      setMessage(null)
-    }
-
     const handleEdit = (at: AccountingType): void => {
-      setFormData({
+      startEdit(at.id, {
         category: at.category,
         currency: at.currency.code,
         boardLot: at.boardLot ?? 1,
         settlementDays: at.settlementDays ?? 1,
       })
-      setEditingId(at.id)
-      setIsCreating(false)
-      setMessage(null)
-    }
-
-    const handleCancel = (): void => {
-      setFormData(defaultFormData)
-      setEditingId(null)
-      setIsCreating(false)
-      setMessage(null)
     }
 
     const handleSave = async (): Promise<void> => {
@@ -126,7 +118,7 @@ export default withPageAuthRequired(
           )
           if (response.ok) {
             setMessage({ type: "success", text: "Accounting type updated" })
-            handleCancel()
+            closeForm()
             await fetchAccountingTypes()
           } else {
             const errorData = await response.json().catch(() => ({}))
@@ -148,7 +140,7 @@ export default withPageAuthRequired(
           })
           if (response.ok) {
             setMessage({ type: "success", text: "Accounting type created" })
-            handleCancel()
+            closeForm()
             await fetchAccountingTypes()
           } else {
             const errorData = await response.json().catch(() => ({}))
@@ -200,71 +192,26 @@ export default withPageAuthRequired(
       }
     }
 
-    const updateField = <K extends keyof FormData>(
-      field: K,
-      value: FormData[K],
-    ): void => {
-      setFormData((prev) => ({ ...prev, [field]: value }))
-    }
-
     if (isAdminLoading) {
       return rootLoader("Loading...")
     }
 
     if (!isAdmin) {
-      return (
-        <div className="max-w-4xl mx-auto py-12 px-4">
-          <Alert variant="error" className="p-6 text-center">
-            <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
-            <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {"Access Denied"}
-            </h1>
-            <p className="text-red-600">
-              {"You do not have permission to access the admin area."}
-            </p>
-            <Link
-              href="/portfolios"
-              className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-            >
-              {"Return to Portfolios"}
-            </Link>
-          </Alert>
-        </div>
-      )
+      return <AdminAccessDenied />
     }
 
     return (
       <div className="max-w-4xl mx-auto py-6 px-4">
-        <div className="mb-6 flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {"Accounting Types"}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {
-                "Manage board lots, settlement days, and category-currency mappings"
-              }
-            </p>
-          </div>
-          {!isCreating && !editingId && (
-            <button
-              onClick={handleCreate}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              {"New Type"}
-            </button>
-          )}
-        </div>
-
-        {message && (
-          <Alert
-            variant={message.type === "success" ? "success" : "error"}
-            className="mb-4"
-          >
-            {message.text}
-          </Alert>
-        )}
+        <AdminCrudHeader
+          title={"Accounting Types"}
+          description={
+            "Manage board lots, settlement days, and category-currency mappings"
+          }
+          newLabel={"New Type"}
+          showNew={!isCreating && !editingId}
+          onNew={startCreate}
+          message={message}
+        />
 
         {(isCreating || editingId) && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
@@ -353,128 +300,76 @@ export default withPageAuthRequired(
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                {"Cancel"}
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={
-                  isSaving ||
-                  (isCreating &&
-                    (!formData.category.trim() || !formData.currency))
-                }
-                className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                  isSaving ||
-                  (isCreating &&
-                    (!formData.category.trim() || !formData.currency))
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-500 hover:bg-blue-600"
-                }`}
-              >
-                {isSaving ? <Spinner label={"Saving..."} /> : "Save"}
-              </button>
-            </div>
+            <AdminFormActions
+              onCancel={closeForm}
+              onSave={handleSave}
+              isSaving={isSaving}
+              invalid={
+                isCreating && (!formData.category.trim() || !formData.currency)
+              }
+            />
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200">
-          {isLoading ? (
-            <div className="p-8 text-center text-gray-500">
-              <Spinner label={"Loading..."} size="lg" />
-            </div>
-          ) : accountingTypes.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <i className="fas fa-receipt text-4xl mb-3"></i>
-              <p>{"No accounting types defined yet"}</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
-                    {"Category"}
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
-                    {"Currency"}
-                  </th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
-                    {"Board Lot"}
-                  </th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
-                    {"Settlement Days"}
-                  </th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-700">
-                    {"Actions"}
-                  </th>
+        <AdminListPanel
+          isLoading={isLoading}
+          isEmpty={accountingTypes.length === 0}
+          emptyIcon="fa-receipt"
+          emptyText={"No accounting types defined yet"}
+        >
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
+                  {"Category"}
+                </th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
+                  {"Currency"}
+                </th>
+                <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
+                  {"Board Lot"}
+                </th>
+                <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
+                  {"Settlement Days"}
+                </th>
+                <th className="text-right px-4 py-3 text-sm font-medium text-gray-700">
+                  {"Actions"}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {accountingTypes.map((at) => (
+                <tr key={at.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {at.category}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {at.currency.code}
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-600">
+                    {at.boardLot ?? 1}
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-600">
+                    {at.settlementDays ?? 1}
+                  </td>
+                  <AdminRowActions
+                    onEdit={() => handleEdit(at)}
+                    onDelete={() => setDeleteConfirm(at)}
+                  />
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {accountingTypes.map((at) => (
-                  <tr key={at.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {at.category}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {at.currency.code}
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-600">
-                      {at.boardLot ?? 1}
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-600">
-                      {at.settlementDays ?? 1}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleEdit(at)}
-                        className="text-blue-600 hover:text-blue-800 mr-3"
-                        title={"Edit"}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(at)}
-                        className="text-red-600 hover:text-red-800"
-                        title={"Delete"}
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              ))}
+            </tbody>
+          </table>
+        </AdminListPanel>
 
         {deleteConfirm && (
-          <Dialog
+          <AdminDeleteDialog
             title={"Delete Accounting Type?"}
+            prompt={`Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`}
             onClose={() => setDeleteConfirm(null)}
-            footer={
-              <>
-                <Dialog.CancelButton
-                  onClick={() => setDeleteConfirm(null)}
-                  label={"Cancel"}
-                />
-                <Dialog.SubmitButton
-                  onClick={handleDelete}
-                  label={"Delete"}
-                  loadingLabel={"Deleting..."}
-                  isSubmitting={isDeleting}
-                  variant="red"
-                />
-              </>
-            }
-          >
-            <p className="text-gray-600">
-              {`Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`}
-            </p>
-          </Dialog>
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+          />
         )}
       </div>
     )

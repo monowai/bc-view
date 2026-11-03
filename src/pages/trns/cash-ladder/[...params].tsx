@@ -1,17 +1,37 @@
-import React, { useCallback, useMemo, useState } from "react"
-import { NumericFormat } from "react-number-format"
+import React, { useCallback, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
-import { mutate } from "swr"
-import { holdingKey } from "@utils/api/fetchHelper"
 import { getAssetCurrency, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import { cashLadderKey, deleteTrn } from "@utils/api/client/trns"
+import { cashLadderKey } from "@utils/api/client/trns"
+import {
+  TrnCardValue,
+  TrnColumn,
+  TrnDeleteConfirm,
+  TrnEmptyState,
+  TrnNumber,
+  TrnNumberCell,
+  TrnPageNav,
+  TrnRowActions,
+  TrnStatusBadge,
+  TrnTableHead,
+} from "@components/features/transactions/TrnListParts"
+import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+
+const COLUMNS: TrnColumn[] = [
+  { label: "Trade Date" },
+  { label: "Type" },
+  { label: "Description" },
+  { label: "Price", align: "right" },
+  { label: "Cash", align: "right" },
+  { label: "Balance", align: "right" },
+  { label: "Status" },
+  { label: "Actions", align: "center" },
+]
 
 // Format transaction description for cash ladder
 // Priority: 1) transaction comments, 2) type-specific description with asset name
@@ -170,28 +190,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     [],
   )
 
-  const [deleteTarget, setDeleteTarget] = useState<{
-    id: string
-    portfolioCode: string
-  } | null>(null)
-
-  // Delete transaction
-  const handleDeleteConfirm = useCallback(async (): Promise<void> => {
-    if (!deleteTarget) return
-    try {
-      const response = await deleteTrn(deleteTarget.id)
-      if (response.ok) {
-        setTimeout(() => {
-          mutate(holdingKey(deleteTarget.portfolioCode, "today"))
-          cashLadderData.mutate()
-        }, 1500)
-      }
-    } catch (err) {
-      console.error("Error deleting transaction:", err)
-    } finally {
-      setDeleteTarget(null)
-    }
-  }, [deleteTarget, cashLadderData])
+  const { deletePending, requestDelete, cancelDelete, confirmDelete } =
+    useTrnListDelete(cashLadderData.mutate)
 
   // Loading states
   if (!router.isReady) {
@@ -226,24 +226,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   return (
     <div className="min-h-screen bg-gray-50 text-sm">
       {/* Header with back button */}
-      <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{"Back"}</span>
-            </button>
-            <div className="flex-1 text-lg font-semibold text-center truncate">
-              {assetName}
-              <span className="text-gray-500 text-sm ml-2">{currencyCode}</span>
-            </div>
-            <div className="w-16"></div>
-          </div>
-        </div>
-      </nav>
+      <TrnPageNav title={assetName} subtitle={currencyCode} />
 
       {/* Page Title */}
       <div className="container mx-auto px-4 py-4">
@@ -257,16 +240,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
         </div>
 
         {transactionsWithBalance.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">{"No transactions found"}</p>
-            <button
-              onClick={() => router.back()}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
-            >
-              <i className="fa fa-arrow-left mr-2"></i>
-              {"Back"}
-            </button>
-          </div>
+          <TrnEmptyState />
         ) : (
           <>
             {/* Mobile: Card layout */}
@@ -304,33 +278,19 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-500">{"Cash"}:</span>
-                      <span
-                        className={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
-                      >
-                        <NumericFormat
-                          value={trn.signedCashAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                          prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                        />
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">{"Balance"}:</span>
-                      <span className="ml-1 font-bold">
-                        <NumericFormat
-                          value={trn.runningBalance}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </span>
-                    </div>
+                    <TrnCardValue
+                      label={"Cash"}
+                      value={trn.signedCashAmount}
+                      scale={2}
+                      prefix={trn.signedCashAmount >= 0 ? "+" : ""}
+                      valueClassName={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
+                    />
+                    <TrnCardValue
+                      label={"Balance"}
+                      value={trn.runningBalance}
+                      scale={2}
+                      valueClassName="ml-1 font-bold"
+                    />
                   </div>
                 </div>
               ))}
@@ -339,34 +299,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
             {/* Desktop: Table layout */}
             <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Trade Date"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Type"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Description"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Price"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Cash"}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {"Balance"}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {"Status"}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      {"Actions"}
-                    </th>
-                  </tr>
-                </thead>
+                <TrnTableHead columns={COLUMNS} />
                 <tbody className="divide-y divide-gray-200">
                   {transactionsWithBalance.map((trn: TrnWithBalance) => (
                     <tr
@@ -403,87 +336,33 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {trn.price > 0 && (
-                          <NumericFormat
-                            value={trn.price}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
+                          <TrnNumber value={trn.price} scale={2} />
                         )}
                       </td>
-                      <td
+                      <TrnNumberCell
+                        value={trn.signedCashAmount}
+                        scale={2}
+                        prefix={trn.signedCashAmount >= 0 ? "+" : ""}
                         className={`px-4 py-3 text-right whitespace-nowrap font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
-                      >
-                        <NumericFormat
-                          value={trn.signedCashAmount}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                          prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap font-bold">
-                        <NumericFormat
-                          value={trn.runningBalance}
-                          displayType={"text"}
-                          decimalScale={2}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      </td>
+                      />
+                      <TrnNumberCell
+                        value={trn.runningBalance}
+                        scale={2}
+                        className="px-4 py-3 text-right whitespace-nowrap font-bold"
+                      />
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            trn.status === "SETTLED"
-                              ? "bg-green-100 text-green-800"
-                              : trn.status === "PROPOSED"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {trn.status}
-                        </span>
+                        <TrnStatusBadge status={trn.status} />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEditClick(trn)
-                            }}
-                            className="text-gray-400 hover:text-blue-600 p-1"
-                            title={"Edit"}
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => copyRowToClipboard(trn, e)}
-                            className="text-gray-400 hover:text-gray-600 p-1"
-                            title={"Copy"}
-                          >
-                            <i className="fas fa-copy"></i>
-                          </button>
-                          {isCash(trn.asset) && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDeleteTarget({
-                                  id: trn.id,
-                                  portfolioCode: trn.portfolio.code,
-                                })
-                              }}
-                              className="text-gray-400 hover:text-red-600 p-1"
-                              title={"Delete"}
-                            >
-                              <i className="fas fa-trash-alt"></i>
-                            </button>
-                          )}
-                        </div>
+                        <TrnRowActions
+                          onEdit={() => handleEditClick(trn)}
+                          onCopy={(e) => copyRowToClipboard(trn, e)}
+                          onDelete={
+                            isCash(trn.asset)
+                              ? () => requestDelete(trn)
+                              : undefined
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -493,16 +372,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
           </>
         )}
       </div>
-      {deleteTarget && (
-        <ConfirmDialog
-          title={"Delete Transaction"}
-          message={"Permanently delete this transaction?"}
-          confirmLabel={"Delete"}
-          cancelLabel={"Cancel"}
-          variant="red"
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
+      {deletePending && (
+        <TrnDeleteConfirm onConfirm={confirmDelete} onCancel={cancelDelete} />
       )}
     </div>
   )

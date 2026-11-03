@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import Image from "next/image"
@@ -13,7 +13,6 @@ import {
   HoldingsView,
   Market,
   RegistrationResponse,
-  TaxRate,
   UserPreferencesRequest,
 } from "types/beancounter"
 import {
@@ -22,15 +21,10 @@ import {
   ValueInOption,
 } from "types/constants"
 import { usePermissions } from "@hooks/usePermissions"
+import { useTaxRateEditor } from "@hooks/useTaxRateEditor"
 import ApiKeysTab from "@components/features/settings/ApiKeysTab"
 import { updateIndependenceSettings } from "@utils/api/client/independence"
-import {
-  deleteTaxRate,
-  getMe,
-  getTaxRates,
-  saveTaxRate,
-  updateMe,
-} from "@utils/api/client/account"
+import { getMe, getTaxRates, updateMe } from "@utils/api/client/account"
 
 type SettingsTab = "profile" | "wealth" | "tax" | "apikeys" | "account"
 
@@ -40,15 +34,6 @@ const TABS: { id: SettingsTab; label: string; icon: string }[] = [
   { id: "tax", label: "Tax", icon: "fa-percent" },
   { id: "apikeys", label: "API Keys", icon: "fa-key" },
   { id: "account", label: "Account", icon: "fa-cog" },
-]
-
-// Common country codes for tax rate configuration
-const COUNTRY_OPTIONS = [
-  { code: "AU", name: "Australia" },
-  { code: "NZ", name: "New Zealand" },
-  { code: "SG", name: "Singapore" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "US", name: "United States" },
 ]
 
 const MONTHS = [
@@ -121,10 +106,19 @@ function SettingsPage(): React.ReactElement {
 
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [markets, setMarkets] = useState<Market[]>([])
-  const [taxRates, setTaxRates] = useState<TaxRate[]>([])
-  const [newTaxCountry, setNewTaxCountry] = useState("")
-  const [newTaxRate, setNewTaxRate] = useState("")
-  const [taxRateSaving, setTaxRateSaving] = useState(false)
+  const {
+    taxRates,
+    setTaxRates,
+    newTaxCountry,
+    setNewTaxCountry,
+    newTaxRate,
+    setNewTaxRate,
+    taxRateSaving,
+    handleAddTaxRate,
+    handleDeleteTaxRate,
+    getCountryName,
+    availableCountries,
+  } = useTaxRateEditor({ setError, setSuccess })
   const [preferredName, setPreferredName] = useState<string>("")
   const [yearOfBirth, setYearOfBirth] = useState<number | "">("")
   const [monthOfBirth, setMonthOfBirth] = useState<number>(1)
@@ -213,7 +207,7 @@ function SettingsPage(): React.ReactElement {
     }
 
     fetchData()
-  }, [])
+  }, [setTaxRates])
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true)
@@ -279,81 +273,6 @@ function SettingsPage(): React.ReactElement {
       setIsSaving(false)
     }
   }
-
-  const handleAddTaxRate = useCallback(async (): Promise<void> => {
-    if (!newTaxCountry || !newTaxRate) return
-
-    const rate = parseFloat(newTaxRate) / 100
-    if (isNaN(rate) || rate < 0 || rate > 1) {
-      setError("Rate must be between 0 and 100%")
-      return
-    }
-
-    setTaxRateSaving(true)
-    setError(null)
-
-    try {
-      const response = await saveTaxRate({ countryCode: newTaxCountry, rate })
-
-      if (response.ok) {
-        const data = await response.json()
-        setTaxRates((prev) => {
-          const existing = prev.findIndex(
-            (r) => r.countryCode === newTaxCountry,
-          )
-          if (existing >= 0) {
-            const updated = [...prev]
-            updated[existing] = data.data
-            return updated
-          }
-          return [...prev, data.data]
-        })
-        setNewTaxCountry("")
-        setNewTaxRate("")
-        setSuccess("Tax rate saved")
-        setTimeout(() => setSuccess(null), 3000)
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || "Failed to save tax rate")
-      }
-    } catch (err) {
-      console.error("Failed to save tax rate:", err)
-      setError("Failed to save tax rate")
-    } finally {
-      setTaxRateSaving(false)
-    }
-  }, [newTaxCountry, newTaxRate])
-
-  const handleDeleteTaxRate = useCallback(
-    async (countryCode: string): Promise<void> => {
-      try {
-        const response = await deleteTaxRate(countryCode)
-
-        if (response.ok || response.status === 204) {
-          setTaxRates((prev) =>
-            prev.filter((r) => r.countryCode !== countryCode),
-          )
-          setSuccess("Tax rate deleted")
-          setTimeout(() => setSuccess(null), 3000)
-        } else {
-          setError("Failed to delete tax rate")
-        }
-      } catch (err) {
-        console.error("Failed to delete tax rate:", err)
-        setError("Failed to delete tax rate")
-      }
-    },
-    [],
-  )
-
-  const getCountryName = useCallback((code: string): string => {
-    const country = COUNTRY_OPTIONS.find((c) => c.code === code)
-    return country ? country.name : code
-  }, [])
-
-  const availableCountries = COUNTRY_OPTIONS.filter(
-    (c) => !taxRates.some((r) => r.countryCode === c.code),
-  )
 
   if (isLoading) {
     return rootLoader("Loading...")

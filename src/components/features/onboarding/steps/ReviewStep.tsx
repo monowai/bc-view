@@ -18,6 +18,61 @@ interface ReviewStepProps {
   onRemoveInsurance: (index: number) => void
 }
 
+const NAME_CELL = "px-4 py-3 text-sm text-gray-900"
+const MUTED_CELL = "px-4 py-3 text-sm text-gray-600"
+const AMOUNT_CELL = "px-4 py-3 text-sm text-gray-900 text-right"
+
+const ReviewSection: React.FC<{
+  icon: string
+  title: string
+  columns: { label: string; right?: boolean }[]
+  children: React.ReactNode
+}> = ({ icon, title, columns, children }) => (
+  <div>
+    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+      <i className={`fas ${icon}`}></i>
+      {title}
+    </h3>
+    <div className="bg-gray-50 rounded-lg overflow-hidden">
+      <table className="min-w-full">
+        <thead className="bg-gray-100">
+          <tr>
+            {columns.map(({ label, right }) => (
+              <th
+                key={label}
+                className={`px-4 py-2 ${right ? "text-right" : "text-left"} text-xs font-medium text-gray-500 uppercase`}
+              >
+                {label}
+              </th>
+            ))}
+            <th className="px-4 py-2 w-10"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">{children}</tbody>
+      </table>
+    </div>
+  </div>
+)
+
+const ReviewRow: React.FC<{
+  onRemove: () => void
+  children: React.ReactNode
+}> = ({ onRemove, children }) => (
+  <tr className="hover:bg-gray-100">
+    {children}
+    <td className="px-4 py-3 text-center">
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-red-500 hover:text-red-700"
+        title={"Remove"}
+      >
+        <i className="fas fa-trash-alt"></i>
+      </button>
+    </td>
+  </tr>
+)
+
 const ReviewStep: React.FC<ReviewStepProps> = ({
   baseCurrency,
   bankAccounts,
@@ -74,255 +129,137 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         <div className="space-y-6">
           {/* Bank Accounts */}
           {bankAccounts.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <i className="fas fa-university text-blue-500 mr-2"></i>
-                {"Bank Accounts"}
-              </h3>
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <table className="min-w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Name"}
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Currency"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Balance"}
-                      </th>
-                      <th className="px-4 py-2 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {bankAccounts.map((account, index) => (
-                      <tr key={index} className="hover:bg-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {account.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {account.currency}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(account.balance, account.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => onRemoveBankAccount(index)}
-                            className="text-red-500 hover:text-red-700"
-                            title={"Remove"}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReviewSection
+              icon="fa-university text-blue-500 mr-2"
+              title={"Bank Accounts"}
+              columns={[
+                { label: "Name" },
+                { label: "Currency" },
+                { label: "Balance", right: true },
+              ]}
+            >
+              {bankAccounts.map((account, index) => (
+                <ReviewRow
+                  key={index}
+                  onRemove={() => onRemoveBankAccount(index)}
+                >
+                  <td className={NAME_CELL}>{account.name}</td>
+                  <td className={MUTED_CELL}>{account.currency}</td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(account.balance, account.currency)}
+                  </td>
+                </ReviewRow>
+              ))}
+            </ReviewSection>
           )}
 
           {/* Properties */}
           {properties.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <i className="fas fa-home text-green-500 mr-2"></i>
-                {"Properties"}
-              </h3>
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <table className="min-w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Name"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Purchase Price"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Current Value"}
-                      </th>
-                      <th className="px-4 py-2 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {properties.map((property, index) => (
-                      <tr key={index} className="hover:bg-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {property.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(property.price, baseCurrency)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(
-                            property.value || property.price,
-                            baseCurrency,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => onRemoveProperty(index)}
-                            className="text-red-500 hover:text-red-700"
-                            title={"Remove"}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReviewSection
+              icon="fa-home text-green-500 mr-2"
+              title={"Properties"}
+              columns={[
+                { label: "Name" },
+                { label: "Purchase Price", right: true },
+                { label: "Current Value", right: true },
+              ]}
+            >
+              {properties.map((property, index) => (
+                <ReviewRow key={index} onRemove={() => onRemoveProperty(index)}>
+                  <td className={NAME_CELL}>{property.name}</td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(property.price, baseCurrency)}
+                  </td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(
+                      property.value || property.price,
+                      baseCurrency,
+                    )}
+                  </td>
+                </ReviewRow>
+              ))}
+            </ReviewSection>
           )}
 
           {/* Pensions */}
           {pensions.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <i className="fas fa-piggy-bank text-purple-500 mr-2"></i>
-                {"Pension Plans"}
-              </h3>
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <table className="min-w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Name"}
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Currency"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Balance"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Payout Age"}
-                      </th>
-                      <th className="px-4 py-2 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {pensions.map((pension, index) => (
-                      <tr key={index} className="hover:bg-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {pension.name}
-                          {pension.policyType && (
-                            <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
-                              {pension.policyType}
-                            </span>
-                          )}
-                          {pension.lumpSum && (
-                            <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
-                              lump sum
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {pension.currency}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(pension.balance, pension.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 text-right">
-                          {pension.payoutAge || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => onRemovePension(index)}
-                            className="text-red-500 hover:text-red-700"
-                            title={"Remove"}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReviewSection
+              icon="fa-piggy-bank text-purple-500 mr-2"
+              title={"Pension Plans"}
+              columns={[
+                { label: "Name" },
+                { label: "Currency" },
+                { label: "Balance", right: true },
+                { label: "Payout Age", right: true },
+              ]}
+            >
+              {pensions.map((pension, index) => (
+                <ReviewRow key={index} onRemove={() => onRemovePension(index)}>
+                  <td className={NAME_CELL}>
+                    {pension.name}
+                    {pension.policyType && (
+                      <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                        {pension.policyType}
+                      </span>
+                    )}
+                    {pension.lumpSum && (
+                      <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+                        lump sum
+                      </span>
+                    )}
+                  </td>
+                  <td className={MUTED_CELL}>{pension.currency}</td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(pension.balance, pension.currency)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                    {pension.payoutAge || "-"}
+                  </td>
+                </ReviewRow>
+              ))}
+            </ReviewSection>
           )}
 
           {/* Life Insurance */}
           {insurances.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <i className="fas fa-shield-alt text-teal-500 mr-2"></i>
-                {"Life Insurance"}
-              </h3>
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <table className="min-w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Name"}
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {"Currency"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Cash Value"}
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {"Payout"}
-                      </th>
-                      <th className="px-4 py-2 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {insurances.map((insurance, index) => (
-                      <tr key={index} className="hover:bg-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {insurance.name}
-                          {insurance.lumpSum && (
-                            <span className="ml-2 text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded">
-                              lump sum
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {insurance.currency}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(
-                            insurance.currentValue,
-                            insurance.currency,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                          {formatCurrency(
-                            insurance.payoutAmount,
-                            insurance.currency,
-                          )}
-                          {insurance.payoutAge && (
-                            <span className="text-gray-500 ml-1">
-                              @ {insurance.payoutAge}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => onRemoveInsurance(index)}
-                            className="text-red-500 hover:text-red-700"
-                            title={"Remove"}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReviewSection
+              icon="fa-shield-alt text-teal-500 mr-2"
+              title={"Life Insurance"}
+              columns={[
+                { label: "Name" },
+                { label: "Currency" },
+                { label: "Cash Value", right: true },
+                { label: "Payout", right: true },
+              ]}
+            >
+              {insurances.map((insurance, index) => (
+                <ReviewRow
+                  key={index}
+                  onRemove={() => onRemoveInsurance(index)}
+                >
+                  <td className={NAME_CELL}>
+                    {insurance.name}
+                    {insurance.lumpSum && (
+                      <span className="ml-2 text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded">
+                        lump sum
+                      </span>
+                    )}
+                  </td>
+                  <td className={MUTED_CELL}>{insurance.currency}</td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(insurance.currentValue, insurance.currency)}
+                  </td>
+                  <td className={AMOUNT_CELL}>
+                    {formatCurrency(insurance.payoutAmount, insurance.currency)}
+                    {insurance.payoutAge && (
+                      <span className="text-gray-500 ml-1">
+                        @ {insurance.payoutAge}
+                      </span>
+                    )}
+                  </td>
+                </ReviewRow>
+              ))}
+            </ReviewSection>
           )}
         </div>
       )}

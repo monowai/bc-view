@@ -12,6 +12,7 @@ import {
   ReferenceArea,
   Legend,
 } from "recharts"
+import type { XAxisProps, YAxisProps } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
 import CollapsibleSection from "@components/ui/CollapsibleSection"
 import { RetirementProjection, YearlyProjection } from "types/independence"
@@ -29,6 +30,33 @@ import Spinner from "@components/ui/Spinner"
 import YearFlowDialog from "@components/features/independence/YearFlowDialog"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { expenseShares } from "@lib/independence/yearFlows"
+
+const CHART_MARGIN = { top: 10, right: 30, left: 20, bottom: 20 }
+const CHART_GRID_PROPS = { strokeDasharray: "3 3", stroke: "#e5e7eb" }
+
+/** Add the age range as `domain` and `ticks`. */
+const AGE_AXIS_PROPS: XAxisProps = {
+  dataKey: "age",
+  label: {
+    value: "Age",
+    position: "insideBottom",
+    offset: -10,
+  },
+  tick: { fontSize: 12 },
+  type: "number",
+  scale: "linear",
+  allowDataOverflow: true,
+}
+
+function moneyAxisProps(hideValues: boolean): YAxisProps {
+  return {
+    tickFormatter: (value) =>
+      hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`,
+    tick: { fontSize: 12 },
+  }
+}
+
+const ageTooltipLabel = (label: unknown): string => `Age ${label}`
 
 interface TimelineTabContentProps {
   projection: RetirementProjection | null
@@ -302,29 +330,15 @@ export default function TimelineTabContent({
                 ? chartDataWithBaseline
                 : projection.yearlyProjections) as Record<string, unknown>[]
             }
-            margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+            margin={CHART_MARGIN}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid {...CHART_GRID_PROPS} />
             <XAxis
-              dataKey="age"
-              label={{
-                value: "Age",
-                position: "insideBottom",
-                offset: -10,
-              }}
-              tick={{ fontSize: 12 }}
-              type="number"
-              scale="linear"
+              {...AGE_AXIS_PROPS}
               domain={ageAxis.domain}
               ticks={ageAxis.ticks}
-              allowDataOverflow={true}
             />
-            <YAxis
-              tickFormatter={(value) =>
-                hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
-              }
-              tick={{ fontSize: 12 }}
-            />
+            <YAxis {...moneyAxisProps(hideValues)} />
             <ChartTooltip
               formatter={(value, name) => {
                 const formatted = hideValues
@@ -340,7 +354,7 @@ export default function TimelineTabContent({
                 if (name === "baselineBalance") return [formatted, "Baseline"]
                 return [formatted, name]
               }}
-              labelFormatter={(label) => `Age ${label}`}
+              labelFormatter={ageTooltipLabel}
             />
             <Legend
               verticalAlign="top"
@@ -631,29 +645,15 @@ export default function TimelineTabContent({
                 negWithdrawals: -y.withdrawals,
               })),
             ]}
-            margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+            margin={CHART_MARGIN}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid {...CHART_GRID_PROPS} />
             <XAxis
-              dataKey="age"
-              label={{
-                value: "Age",
-                position: "insideBottom",
-                offset: -10,
-              }}
-              tick={{ fontSize: 12 }}
-              type="number"
-              scale="linear"
+              {...AGE_AXIS_PROPS}
               domain={ageAxis.domain}
               ticks={ageAxis.ticks}
-              allowDataOverflow={true}
             />
-            <YAxis
-              tickFormatter={(value) =>
-                hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
-              }
-              tick={{ fontSize: 12 }}
-            />
+            <YAxis {...moneyAxisProps(hideValues)} />
             <ChartTooltip
               formatter={(value, name) => {
                 if (hideValues) {
@@ -667,7 +667,7 @@ export default function TimelineTabContent({
                 }
                 return [`+$${absVal.toLocaleString()}`, "Returns & Income"]
               }}
-              labelFormatter={(label) => `Age ${label}`}
+              labelFormatter={ageTooltipLabel}
             />
             <Legend
               verticalAlign="top"

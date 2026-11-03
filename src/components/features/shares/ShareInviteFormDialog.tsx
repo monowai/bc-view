@@ -1,0 +1,180 @@
+import React, { useState } from "react"
+import Dialog from "@components/ui/Dialog"
+import { ShareAccessLevel } from "types/beancounter"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
+
+export interface ShareInviteItem {
+  id: string
+  label: React.ReactNode
+}
+
+export interface ShareInviteDetails {
+  adviserEmail: string
+  ids: string[]
+  accessLevel: ShareAccessLevel
+}
+
+interface ShareInviteFormDialogProps {
+  title: string
+  selectLabel: string
+  noSelectionError: string
+  items: ShareInviteItem[]
+  preSelectedId?: string
+  invite: (details: ShareInviteDetails) => Promise<Response>
+  onClose: () => void
+  onSuccess: () => void
+}
+
+/** Adviser invite form: email, access level and the items to share. */
+export default function ShareInviteFormDialog({
+  title,
+  selectLabel,
+  noSelectionError,
+  items,
+  preSelectedId,
+  invite,
+  onClose,
+  onSuccess,
+}: ShareInviteFormDialogProps): React.ReactElement {
+  const [email, setEmail] = useState("")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    preSelectedId ? new Set([preSelectedId]) : new Set(),
+  )
+  const [accessLevel, setAccessLevel] = useState<ShareAccessLevel>("VIEW")
+  const {
+    isSubmitting,
+    submitError: error,
+    submitSuccess,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess,
+    autoCloseDelay: 1500,
+    fallbackError: "Failed to send invitation",
+  })
+
+  const toggleItem = (id: string): void => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const onSubmit = async (): Promise<void> => {
+    if (!email.trim()) {
+      setError("Please enter an email address")
+      return
+    }
+    if (selectedIds.size === 0) {
+      setError(noSelectionError)
+      return
+    }
+
+    await handleSubmit(async () => {
+      const response = await invite({
+        adviserEmail: email.trim(),
+        ids: Array.from(selectedIds),
+        accessLevel,
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to send invitation")
+      }
+    })
+  }
+
+  const canSubmit = email.trim().length > 0 && selectedIds.size > 0
+
+  return (
+    <Dialog
+      title={title}
+      onClose={onClose}
+      maxWidth="md"
+      scrollable
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
+          <Dialog.SubmitButton
+            onClick={onSubmit}
+            label={"Send Invite"}
+            loadingLabel={"Sending..."}
+            isSubmitting={isSubmitting}
+            disabled={!canSubmit}
+            variant="blue"
+          />
+        </>
+      }
+    >
+      <Dialog.ErrorAlert message={error} />
+      <Dialog.SuccessAlert
+        message={submitSuccess ? "Invitation sent successfully" : null}
+      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {"Adviser Email"}
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder={"Enter adviser's email address"}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {"Access Level"}
+        </label>
+        <div className="flex space-x-4">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={accessLevel === "VIEW"}
+              onChange={() => setAccessLevel("VIEW")}
+              className="text-blue-600"
+            />
+            <span className="text-sm">{"View Only"}</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={accessLevel === "FULL"}
+              onChange={() => setAccessLevel("FULL")}
+              className="text-blue-600"
+            />
+            <span className="text-sm">{"Full Access"}</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {selectLabel}
+        </label>
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {items.map((item) => (
+            <label
+              key={item.id}
+              className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.has(item.id)}
+                onChange={() => toggleItem(item.id)}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+              />
+              {item.label}
+            </label>
+          ))}
+        </div>
+      </div>
+    </Dialog>
+  )
+}

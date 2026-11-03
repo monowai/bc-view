@@ -61,6 +61,36 @@ const getBarColor = (sectorName: string, index: number): string => {
   )
 }
 
+/** One row of the weight chart: label cell, bar scaled to the heaviest row. */
+const WeightBar: React.FC<{
+  weight: number
+  maxWeight: number
+  barColor: string
+  labelClassName: string
+  children: React.ReactNode
+}> = ({ weight, maxWeight, barColor, labelClassName, children }) => {
+  const percentage = weight * 100
+  const barWidth = maxWeight > 0 ? (weight / maxWeight) * 100 : 0
+
+  return (
+    <div className="flex items-center">
+      <div className={labelClassName}>{children}</div>
+      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden mr-3">
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{
+            width: `${barWidth}%`,
+            backgroundColor: barColor,
+          }}
+        />
+      </div>
+      <div className="w-16 text-right text-sm font-medium text-gray-900">
+        {percentage.toFixed(1)}%
+      </div>
+    </div>
+  )
+}
+
 const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
   asset,
   modalOpen,
@@ -253,34 +283,17 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           !error &&
           exposures.length > 0 && (
             <div className="space-y-3">
-              {exposures.map((exposure, index) => {
-                const percentage = exposure.weight * 100
-                const barWidth =
-                  maxExposureWeight > 0
-                    ? (exposure.weight / maxExposureWeight) * 100
-                    : 0
-                const barColor = getBarColor(exposure.item.name, index)
-
-                return (
-                  <div key={exposure.item.code} className="flex items-center">
-                    <div className="w-32 flex-shrink-0 text-sm text-gray-700 truncate pr-2">
-                      {exposure.item.name}
-                    </div>
-                    <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden mr-3">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${barWidth}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
-                    </div>
-                    <div className="w-16 text-right text-sm font-medium text-gray-900">
-                      {percentage.toFixed(1)}%
-                    </div>
-                  </div>
-                )
-              })}
+              {exposures.map((exposure, index) => (
+                <WeightBar
+                  key={exposure.item.code}
+                  weight={exposure.weight}
+                  maxWeight={maxExposureWeight}
+                  barColor={getBarColor(exposure.item.name, index)}
+                  labelClassName="w-32 flex-shrink-0 text-sm text-gray-700 truncate pr-2"
+                >
+                  {exposure.item.name}
+                </WeightBar>
+              ))}
             </div>
           )}
 
@@ -290,41 +303,24 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           !error &&
           holdings.length > 0 && (
             <div className="space-y-3">
-              {holdings.map((holding, index) => {
-                const percentage = holding.weight * 100
-                const barWidth =
-                  maxHoldingWeight > 0
-                    ? (holding.weight / maxHoldingWeight) * 100
-                    : 0
-                const barColor = getBarColor(holding.symbol, index)
-
-                return (
-                  <div key={holding.symbol} className="flex items-center">
-                    <div className="w-32 flex-shrink-0 pr-2">
-                      <div className="text-sm font-medium text-gray-900">
-                        {holding.symbol}
-                      </div>
-                      {holding.name && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {holding.name}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden mr-3">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${barWidth}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
-                    </div>
-                    <div className="w-16 text-right text-sm font-medium text-gray-900">
-                      {percentage.toFixed(1)}%
-                    </div>
+              {holdings.map((holding, index) => (
+                <WeightBar
+                  key={holding.symbol}
+                  weight={holding.weight}
+                  maxWeight={maxHoldingWeight}
+                  barColor={getBarColor(holding.symbol, index)}
+                  labelClassName="w-32 flex-shrink-0 pr-2"
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    {holding.symbol}
                   </div>
-                )
-              })}
+                  {holding.name && (
+                    <div className="text-xs text-gray-500 truncate">
+                      {holding.name}
+                    </div>
+                  )}
+                </WeightBar>
+              ))}
             </div>
           )}
 

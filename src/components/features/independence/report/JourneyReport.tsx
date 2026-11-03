@@ -12,11 +12,17 @@ import WealthOverTime from "../composite/WealthOverTime"
 import { MonteCarloResultView } from "../monte-carlo/MonteCarloResultView"
 import JourneyStageInsights from "./JourneyStageInsights"
 import {
+  DataNotes,
   FiProgressBar,
   Kpis,
+  ReportCover,
+  ReportFooter,
   ReportToolbar,
   Rows,
   Section,
+  StressTestSection,
+  YearByYearTable,
+  type YearTableRow,
   maskMoney,
 } from "./reportParts"
 
@@ -75,7 +81,7 @@ export default function JourneyReport({
   )
   // Accumulation rows carry the first stage's planId, but they are the
   // working years before any stage begins.
-  const yearRows = [
+  const yearRows: YearTableRow[] = [
     ...(projection.accumulationProjections ?? []).map((r) => ({
       row: r,
       stage: "Before independence",
@@ -84,50 +90,26 @@ export default function JourneyReport({
       row: r,
       stage: stageName.get(r.planId) ?? r.planName,
     })),
-  ]
-  // Three states, one level of JSX: ran, failed, not run.
-  const stressBody = (
-    ran: (result: MonteCarloResult) => React.ReactNode,
-  ): React.ReactNode => {
-    if (model.stress && mc) return ran(mc)
-    if (mcError) {
-      return (
-        <p className="text-red-700">
-          Stress test failed: {mcError}. Reload the report to retry.
-        </p>
-      )
-    }
-    return (
-      <p className="text-gray-600">
-        Stress test not run. Reload the report to run it, then print again.
-      </p>
-    )
-  }
+  ].map(({ row: r, stage }) => ({
+    key: `${r.year}-${r.planId}`,
+    age: r.age,
+    stage,
+    starting: r.startingBalance,
+    growth: r.investmentReturns,
+    income: r.income,
+    expenses: r.expenses,
+    ending: r.endingBalance,
+    total: r.totalWealth,
+  }))
 
   return (
     <div className="report mx-auto max-w-[760px] space-y-5 text-[13px] text-gray-900">
       <ReportToolbar backHref={backHref} backLabel="Back to your plan" />
 
       {/* 0. Cover band */}
-      <header
-        data-testid="report-cover"
-        className="report-cover report-keep grid grid-cols-[1fr_auto] gap-3 border-b-2 border-gray-900 pb-3"
-      >
-        <div>
-          <h1 className="text-2xl font-bold">{model.cover.title}</h1>
-          <div className="text-base text-gray-600">
-            {model.cover.journeyName}
-          </div>
-          <div className="mt-1 text-gray-600">{model.cover.ageLine}</div>
-        </div>
-        <div className="text-right text-xs leading-6 text-gray-600">
-          As of <b className="text-gray-900">{model.cover.asOfDate}</b>
-          <br />
-          <b className="text-gray-900">{model.cover.currency}</b>
-          <br />
-          {model.cover.stageLine}
-        </div>
-      </header>
+      <ReportCover cover={model.cover} name={model.cover.journeyName}>
+        {model.cover.stageLine}
+      </ReportCover>
 
       {/* 1. Verdict */}
       <Section id="verdict" title="1. Verdict">
@@ -174,30 +156,23 @@ export default function JourneyReport({
       </Section>
 
       {/* 5. Stress test */}
-      <Section id="stress" title="5. Stress test" breakBefore>
-        {stressBody((result) => (
-          <>
-            <p className="mb-3">{m(model.stress?.sentence ?? "")}</p>
-            {model.stress?.depletionLine && (
-              <p className="mb-3 text-gray-700">{model.stress.depletionLine}</p>
-            )}
-            <MonteCarloResultView
-              result={result}
-              currency={currency}
-              hideValues={hideValues}
-              showDeterministic={false}
-            />
-            <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Parameters
-            </h3>
-            <Rows
-              rows={model.stress?.parameters ?? []}
-              symbol={sym}
-              hide={hideValues}
-            />
-          </>
-        ))}
-      </Section>
+      <StressTestSection
+        stress={model.stress}
+        mc={mc}
+        mcError={mcError}
+        notRunMessage="Stress test not run. Reload the report to run it, then print again."
+        mask={m}
+        symbol={sym}
+        hide={hideValues}
+        renderResult={(result) => (
+          <MonteCarloResultView
+            result={result}
+            currency={currency}
+            hideValues={hideValues}
+            showDeterministic={false}
+          />
+        )}
+      />
 
       {/* 6. Stage by stage */}
       <Section id="stage-by-stage" title="6. Stage by stage">
@@ -228,66 +203,16 @@ export default function JourneyReport({
       {/* 7. Assumptions */}
       <Section id="assumptions" title="7. Assumptions">
         <Rows rows={model.assumptions} symbol={sym} hide={hideValues} />
-        {model.warnings.length > 0 && (
-          <>
-            <h3 className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Data notes
-            </h3>
-            <ul className="list-disc pl-5 text-gray-600">
-              {model.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        <DataNotes warnings={model.warnings} />
       </Section>
 
       {/* 8. Appendix */}
       <Section id="appendix" title="8. Appendix" breakBefore>
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Year by year
-        </h3>
-        <table className="w-full text-xs tabular-nums">
-          <thead>
-            <tr className="border-b border-gray-300 text-left text-[10px] uppercase text-gray-500">
-              <th className="py-1">Age</th>
-              <th className="py-1">Stage</th>
-              <th className="py-1 text-right">Starting</th>
-              <th className="py-1 text-right">Growth</th>
-              <th className="py-1 text-right">Income</th>
-              <th className="py-1 text-right">Expenses</th>
-              <th className="py-1 text-right">Ending</th>
-              <th className="py-1 text-right">Total wealth</th>
-            </tr>
-          </thead>
-          <tbody>
-            {yearRows.map(({ row: r, stage }) => (
-              <tr
-                key={`${r.year}-${r.planId}`}
-                className="border-b border-gray-100 even:bg-gray-50"
-              >
-                <td className="py-0.5">{r.age}</td>
-                <td className="py-0.5">{stage}</td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.startingBalance, sym))}
-                </td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.investmentReturns, sym))}
-                </td>
-                <td className="py-0.5 text-right">{m(money(r.income, sym))}</td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.expenses, sym))}
-                </td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.endingBalance, sym))}
-                </td>
-                <td className="py-0.5 text-right">
-                  {m(money(r.totalWealth, sym))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <YearByYearTable
+          rows={yearRows}
+          showStage
+          money={(value) => m(money(value, sym))}
+        />
 
         <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Method
@@ -309,13 +234,7 @@ export default function JourneyReport({
           a check on the stage, not as the journey&apos;s answer.
         </p>
 
-        <footer
-          data-testid="report-footer"
-          className="mt-4 flex justify-between border-t border-gray-200 pt-2 text-[10px] text-gray-500"
-        >
-          <span>{model.footer.line}</span>
-          <span>{model.footer.disclaimer}</span>
-        </footer>
+        <ReportFooter footer={model.footer} />
       </Section>
     </div>
   )

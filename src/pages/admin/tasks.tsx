@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import Alert from "@components/ui/Alert"
 import { rootLoader } from "@components/ui/PageLoader"
+import AdminAccessDenied from "@components/features/admin/AdminAccessDenied"
 import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import Spinner from "@components/ui/Spinner"
@@ -195,25 +195,7 @@ export default withPageAuthRequired(
     }
 
     if (!isAdmin) {
-      return (
-        <div className="max-w-4xl mx-auto py-12 px-4">
-          <Alert variant="error" className="p-6 text-center">
-            <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
-            <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {"Access Denied"}
-            </h1>
-            <p className="text-red-600">
-              {"You do not have permission to access the admin area."}
-            </p>
-            <Link
-              href="/portfolios"
-              className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-            >
-              {"Return to Portfolios"}
-            </Link>
-          </Alert>
-        </div>
-      )
+      return <AdminAccessDenied />
     }
 
     // Group tasks by service

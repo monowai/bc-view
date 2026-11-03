@@ -114,7 +114,7 @@ export async function submitEditMode(
   }
 }
 
-export interface SubmitExpenseParams {
+export interface SubmitCashFlowParams {
   data: TradeFormValues
   portfolio: Portfolio
   mutate: MutateFn
@@ -129,10 +129,12 @@ export interface SubmitExpenseParams {
 }
 
 /**
- * Submit handler for EXPENSE: direct REST POST (synchronous, bypasses message broker).
+ * Direct REST POST of a cash-flow trn (synchronous, bypasses message broker).
  */
-export async function submitExpense(
-  params: SubmitExpenseParams,
+async function submitCashFlow(
+  params: SubmitCashFlowParams,
+  trnType: "EXPENSE" | "INCOME",
+  buildPayload: (data: TradeFormValues, portfolioId: string) => unknown,
 ): Promise<void> {
   const {
     data,
@@ -148,7 +150,7 @@ export async function submitExpense(
   setSubmitError(null)
   setSubmitWarnings?.([])
   try {
-    const payload = buildExpensePayload(data, portfolio.id)
+    const payload = buildPayload(data, portfolio.id)
     const response = await createTrns(payload)
     if (response.ok) {
       const warnings = await parseWarnings(response)
@@ -162,7 +164,7 @@ export async function submitExpense(
       }
     } else {
       const errorData = await response.json().catch(() => ({}))
-      console.error("EXPENSE creation failed:", response.status, errorData)
+      console.error(`${trnType} creation failed:`, response.status, errorData)
       setSubmitError(
         errorData.message ||
           errorData.error ||
@@ -170,73 +172,33 @@ export async function submitExpense(
       )
     }
   } catch (error) {
-    console.error("EXPENSE submission error:", error)
+    console.error(`${trnType} submission error:`, error)
     setSubmitError(
-      error instanceof Error ? error.message : "Failed to create expense",
+      error instanceof Error
+        ? error.message
+        : `Failed to create ${trnType.toLowerCase()}`,
     )
   } finally {
     setIsSubmitting(false)
   }
 }
 
-export interface SubmitIncomeParams {
-  data: TradeFormValues
-  portfolio: Portfolio
-  mutate: MutateFn
-  setModalOpen: (open: boolean) => void
-  setSubmitError: (error: string | null) => void
-  setIsSubmitting: (submitting: boolean) => void
-  // See SubmitExpenseParams.setSubmitWarnings.
-  setSubmitWarnings?: (warnings: string[]) => void
+/**
+ * Submit handler for EXPENSE: direct REST POST (synchronous, bypasses message broker).
+ */
+export async function submitExpense(
+  params: SubmitCashFlowParams,
+): Promise<void> {
+  await submitCashFlow(params, "EXPENSE", buildExpensePayload)
 }
 
 /**
  * Submit handler for INCOME: direct REST POST (synchronous, bypasses message broker).
  */
-export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
-  const {
-    data,
-    portfolio,
-    mutate,
-    setModalOpen,
-    setSubmitError,
-    setIsSubmitting,
-    setSubmitWarnings,
-  } = params
-
-  setIsSubmitting(true)
-  setSubmitError(null)
-  setSubmitWarnings?.([])
-  try {
-    const payload = buildIncomePayload(data, portfolio.id)
-    const response = await createTrns(payload)
-    if (response.ok) {
-      const warnings = await parseWarnings(response)
-      setTimeout(() => {
-        mutate(holdingKey(portfolio.code, "today"))
-        mutate(aggregatedHoldingsTodayKey)
-      }, 1500)
-      setSubmitWarnings?.(warnings)
-      if (warnings.length === 0) {
-        setModalOpen(false)
-      }
-    } else {
-      const errorData = await response.json().catch(() => ({}))
-      console.error("INCOME creation failed:", response.status, errorData)
-      setSubmitError(
-        errorData.message ||
-          errorData.error ||
-          `Failed: ${response.statusText}`,
-      )
-    }
-  } catch (error) {
-    console.error("INCOME submission error:", error)
-    setSubmitError(
-      error instanceof Error ? error.message : "Failed to create income",
-    )
-  } finally {
-    setIsSubmitting(false)
-  }
+export async function submitIncome(
+  params: SubmitCashFlowParams,
+): Promise<void> {
+  await submitCashFlow(params, "INCOME", buildIncomePayload)
 }
 
 export interface SubmitCreateModeParams {

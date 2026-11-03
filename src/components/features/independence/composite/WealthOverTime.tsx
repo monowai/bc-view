@@ -11,6 +11,12 @@ import {
   ReferenceArea,
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
+import {
+  WEALTH_AGE_AXIS_PROPS,
+  WEALTH_GRID_PROPS,
+  monteCarloBands,
+  wealthMoneyAxisProps,
+} from "@components/features/independence/wealthChartProps"
 import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibbon"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
@@ -25,7 +31,7 @@ import {
   deriveJourneyRibbon,
   fromCompositeRows,
 } from "@lib/independence/journeyRibbon"
-import { formatCompact, formatCompactBare } from "@lib/formatters"
+import { formatCompact } from "@lib/formatters"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
 import WealthPointTooltip from "./WealthPointTooltip"
 
@@ -288,35 +294,14 @@ export default function WealthOverTime(): React.ReactElement | null {
             data={rows}
             margin={{ top: 8, right: 16, bottom: 20, left: 0 }}
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#f1f5f9"
-              vertical={false}
-            />
+            <CartesianGrid {...WEALTH_GRID_PROPS} />
             <XAxis
-              dataKey="age"
-              type="number"
-              scale="linear"
+              {...WEALTH_AGE_AXIS_PROPS}
               domain={ageAxis.domain}
               ticks={ageAxis.ticks}
-              allowDataOverflow
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              tickLine={false}
-              axisLine={false}
-              label={{
-                value: "Age",
-                position: "insideBottom",
-                offset: -10,
-                fontSize: 11,
-                fill: "#94a3b8",
-              }}
             />
             <YAxis
-              tickFormatter={hideValues ? () => "***" : formatCompactBare}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              tickLine={false}
-              axisLine={false}
-              width={54}
+              {...wealthMoneyAxisProps(hideValues)}
               {...(yMax != null ? { domain: [0, yMax] } : {})}
             />
             <ChartTooltip
@@ -350,54 +335,12 @@ export default function WealthOverTime(): React.ReactElement | null {
 
             {lens === "lasts" && (
               <>
-                {hasBands && (
-                  <>
-                    <Area
-                      type="monotone"
-                      dataKey="p10Base"
-                      fill="transparent"
-                      stroke="none"
-                      stackId="outer"
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="outerWidth"
-                      fill="rgba(34,197,94,0.09)"
-                      stroke="none"
-                      stackId="outer"
-                      isAnimationActive={false}
-                      name="Range of outcomes"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="p25Base"
-                      fill="transparent"
-                      stroke="none"
-                      stackId="inner"
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="innerWidth"
-                      fill="rgba(34,197,94,0.15)"
-                      stroke="none"
-                      stackId="inner"
-                      isAnimationActive={false}
-                      name="Most likely range"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="p50"
-                      stroke="rgba(34,197,94,0.55)"
-                      strokeWidth={1.5}
-                      strokeDasharray="5 4"
-                      dot={false}
-                      isAnimationActive={false}
-                      name="Middle outcome"
-                    />
-                  </>
-                )}
+                {hasBands &&
+                  monteCarloBands({
+                    outerName: "Range of outcomes",
+                    innerName: "Most likely range",
+                    medianName: "Middle outcome",
+                  })}
 
                 {fiNumber > 0 && (
                   <ReferenceLine

@@ -119,6 +119,46 @@ describe("ActionsMenu", () => {
   })
 })
 
+describe("menu behaviour shared by both menus", () => {
+  const cashProps = {
+    asset: makeAsset({ id: "asset-dbs", code: "DBS" }),
+    portfolio: { id: "p1", code: "SGD" },
+    marketValue: 1000,
+  }
+
+  it.each([
+    [
+      "ActionsMenu",
+      () => <ActionsMenu {...baseProps} onTrade={jest.fn()} />,
+      /Actions AAPL/i,
+      "Trade",
+    ],
+    [
+      "CashActionsMenu",
+      () => <CashActionsMenu {...cashProps} onGoToPortfolio={jest.fn()} />,
+      /Actions DBS/i,
+      "Go to portfolio",
+    ],
+  ])(
+    "%s opens on the trigger, closes on a pick, and hides the click from the row",
+    (_name, menu, trigger, item) => {
+      const onRowClick = jest.fn()
+      render(<div onClick={onRowClick}>{menu()}</div>)
+
+      expect(
+        screen.queryByRole("button", { name: item }),
+      ).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole("button", { name: trigger }))
+      fireEvent.click(screen.getByRole("button", { name: item }))
+
+      expect(
+        screen.queryByRole("button", { name: item }),
+      ).not.toBeInTheDocument()
+      expect(onRowClick).not.toHaveBeenCalled()
+    },
+  )
+})
+
 describe("ActionsMenu — watchlist", () => {
   beforeEach(() => {
     capturedWatchlistProps = null
