@@ -3,9 +3,12 @@ import Link from "next/link"
 import { useRouter } from "next/router"
 import { Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { WealthSummary, COLORS } from "@lib/wealth/liquidityGroups"
+import { WealthSummary } from "@lib/wealth/liquidityGroups"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import { gainLossClass } from "@lib/formatters"
+import WealthSection from "@components/features/wealth/WealthSection"
+
+const ARIA_SORT = { asc: "ascending", desc: "descending" } as const
 
 interface PortfolioDetailsTableProps {
   summary: WealthSummary
@@ -26,164 +29,139 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
 }) => {
   const router = useRouter()
 
-  return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700"
-        >
-          <i
-            className={`fas fa-chevron-${collapsed ? "right" : "down"} text-gray-400 mr-2 w-4`}
-          ></i>
-          <i className="fas fa-table text-gray-400 mr-2"></i>
-          Portfolio Details
-        </button>
-      </div>
+  const columns = [
+    { key: "code", label: "Portfolio", align: "left" },
+    {
+      key: "value",
+      label: `Value (${displayCurrency?.code ?? ""})`,
+      align: "right",
+    },
+    { key: "percentage", label: "% of Total", align: "right" },
+    { key: "irr", label: "IRR", align: "right" },
+  ]
 
-      {!collapsed && (
-        <>
-          {summary.portfolioBreakdown.length === 0 ? (
-            <div className="p-8">
-              <p className="text-gray-600 mb-6 text-center">
-                {"No portfolios yet"}
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
-                {/* Guided Setup */}
-                <Link
-                  href="/onboarding"
-                  className="border border-gray-200 rounded-lg p-4 text-center hover:border-blue-300 hover:shadow-sm transition-all"
-                >
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i className="fas fa-rocket text-blue-500"></i>
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-1">
-                    {"Start Setup"}
-                  </h4>
-                  <p className="text-gray-500 text-xs">{"Guided setup"}</p>
-                </Link>
-                {/* Direct Add */}
-                <Link
-                  href="/portfolios/__NEW__"
-                  className="border border-gray-200 rounded-lg p-4 text-center hover:border-green-300 hover:shadow-sm transition-all"
-                >
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i className="fas fa-plus text-green-500"></i>
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-1">{"Add"}</h4>
-                  <p className="text-gray-500 text-xs">{"Direct control"}</p>
-                </Link>
+  return (
+    <WealthSection
+      title="Portfolio Details"
+      icon="fa-table"
+      collapsed={collapsed}
+      onToggle={onToggle}
+      flush
+    >
+      {summary.portfolioBreakdown.length === 0 ? (
+        <div className="p-8">
+          <p className="text-gray-600 mb-6 text-center">
+            {"No portfolios yet"}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
+            {/* Guided Setup */}
+            <Link
+              href="/onboarding"
+              className="border border-gray-200 rounded-lg p-4 text-center hover:border-wealth-200 transition-colors"
+            >
+              <div className="w-10 h-10 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i className="fas fa-rocket text-wealth-500"></i>
               </div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                      onClick={() => onSort("code")}
+              <h4 className="font-medium text-gray-900 mb-1">
+                {"Start Setup"}
+              </h4>
+              <p className="text-gray-500 text-xs">{"Guided setup"}</p>
+            </Link>
+            {/* Direct Add */}
+            <Link
+              href="/portfolios/__NEW__"
+              className="border border-gray-200 rounded-lg p-4 text-center hover:border-wealth-200 transition-colors"
+            >
+              <div className="w-10 h-10 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i className="fas fa-plus text-wealth-500"></i>
+              </div>
+              <h4 className="font-medium text-gray-900 mb-1">{"Add"}</h4>
+              <p className="text-gray-500 text-xs">{"Direct control"}</p>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="border-y border-gray-100">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    aria-sort={
+                      sortConfig.key === column.key
+                        ? ARIA_SORT[sortConfig.direction]
+                        : "none"
+                    }
+                    className="px-5 py-2.5 hover:bg-gray-50"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onSort(column.key)}
+                      className={`flex w-full items-center ${column.align === "right" ? "justify-end" : "justify-start"} rounded-sm text-xs font-medium tracking-wide text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500`}
                     >
-                      <div className="flex items-center">
-                        Portfolio
-                        {getSortIcon("code", sortConfig)}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                      onClick={() => onSort("value")}
+                      {column.label}
+                      {getSortIcon(column.key, sortConfig)}
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {summary.portfolioBreakdown.map((portfolio) => (
+                <tr
+                  key={portfolio.code}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => router.push(`/holdings/${portfolio.code}`)}
+                >
+                  <td className="px-5 py-2.5">
+                    <Link
+                      href={`/holdings/${portfolio.code}`}
+                      className="rounded-sm text-sm font-semibold text-wealth-600 hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-end">
-                        Value ({displayCurrency?.code})
-                        {getSortIcon("value", sortConfig)}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                      onClick={() => onSort("percentage")}
+                      {portfolio.code}
+                    </Link>
+                    <p className="text-sm text-gray-500">{portfolio.name}</p>
+                  </td>
+                  <td className="px-5 py-2.5 text-right text-sm font-medium tabular-nums text-gray-900">
+                    {displayCurrency?.symbol}
+                    <FormatValue value={portfolio.value} />
+                  </td>
+                  <td className="px-5 py-2.5 text-right text-sm tabular-nums text-gray-600">
+                    {portfolio.percentage.toFixed(1)}%
+                  </td>
+                  <td className="px-5 py-2.5 text-right text-sm">
+                    <span
+                      className={`font-medium tabular-nums ${gainLossClass(portfolio.irr)}`}
                     >
-                      <div className="flex items-center justify-end">
-                        % of Total
-                        {getSortIcon("percentage", sortConfig)}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                      onClick={() => onSort("irr")}
-                    >
-                      <div className="flex items-center justify-end">
-                        IRR
-                        {getSortIcon("irr", sortConfig)}
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {summary.portfolioBreakdown.map((portfolio, index) => (
-                    <tr
-                      key={portfolio.code}
-                      className="hover:bg-slate-100 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/holdings/${portfolio.code}`)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div
-                            className="w-3 h-3 rounded-full mr-3"
-                            style={{
-                              backgroundColor: COLORS[index % COLORS.length],
-                            }}
-                          ></div>
-                          <div>
-                            <Link
-                              href={`/holdings/${portfolio.code}`}
-                              className="font-medium text-blue-600 hover:text-blue-800"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {portfolio.code}
-                            </Link>
-                            <p className="text-sm text-gray-500">
-                              {portfolio.name}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900">
-                        {displayCurrency?.symbol}
-                        <FormatValue value={portfolio.value} />
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-600">
-                        {portfolio.percentage.toFixed(1)}%
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span
-                          className={`font-medium ${gainLossClass(portfolio.irr)}`}
-                        >
-                          {(portfolio.irr * 100).toFixed(2)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                  <tr>
-                    <td className="px-6 py-4 font-bold text-gray-900">Total</td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-900">
-                      {displayCurrency?.symbol}
-                      <FormatValue value={summary.totalValue} />
-                    </td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-600">
-                      100%
-                    </td>
-                    <td className="px-6 py-4"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </>
+                      {portfolio.irr > 0 ? "+" : ""}
+                      {(portfolio.irr * 100).toFixed(2)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="border-t border-gray-200 bg-gray-50">
+              <tr>
+                <td className="px-5 py-2.5 text-sm font-medium text-gray-500">
+                  Total
+                </td>
+                <td className="px-5 py-2.5 text-right text-sm font-semibold tabular-nums text-gray-900">
+                  {displayCurrency?.symbol}
+                  <FormatValue value={summary.totalValue} />
+                </td>
+                <td className="px-5 py-2.5 text-right text-sm tabular-nums text-gray-600">
+                  100%
+                </td>
+                <td className="px-5 py-2.5"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
-    </div>
+    </WealthSection>
   )
 }
 

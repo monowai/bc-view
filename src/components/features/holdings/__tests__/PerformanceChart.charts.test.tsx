@@ -93,6 +93,7 @@ const last = (name: string): ChartProps =>
 function expectGainChart(fill: string, gradientId: string): void {
   const { tickFormatter: xFmt, ...x } = last("XAxis")
   expect(x).toEqual({
+    minTickGap: 80,
     dataKey: "date",
     axisLine: false,
     tickLine: false,

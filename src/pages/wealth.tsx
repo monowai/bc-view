@@ -16,7 +16,6 @@ import {
   useFiProjectionSimple,
 } from "@components/features/independence"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
-import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useFxRates } from "@hooks/useFxRates"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
@@ -45,6 +44,31 @@ import { plansKey } from "@utils/api/client/independence"
 type SortConfig = {
   key: string | null
   direction: "asc" | "desc"
+}
+
+/** Holds the page's shape while the server headline loads. */
+function WealthSkeleton(): React.ReactElement {
+  return (
+    <div
+      data-testid="loading"
+      aria-busy="true"
+      className="min-h-screen animate-pulse py-6"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-6">
+          <div className="h-4 w-24 rounded bg-gray-200"></div>
+          <div className="mt-3 h-12 w-72 rounded bg-gray-200"></div>
+          <div className="mt-5 h-2 rounded-full bg-gray-100"></div>
+        </div>
+        {[0, 1, 2].map((row) => (
+          <div
+            key={row}
+            className="mb-4 h-14 rounded-lg border border-gray-200 bg-white"
+          ></div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function WealthDashboard(): React.ReactElement {
@@ -205,7 +229,7 @@ function WealthDashboard(): React.ReactElement {
   // approximation that corrects itself a beat later. Holdings stay in the
   // gate so the allocation charts never read an in-flight pot as empty.
   if (portfolioLoading || holdingsLoading || !fxReady || netWorthLoading) {
-    return rootLoader("Loading...")
+    return <WealthSkeleton />
   }
 
   // A config-only composite (e.g. a CPF with no portfolio trn) still counts
@@ -216,12 +240,14 @@ function WealthDashboard(): React.ReactElement {
         <Head>
           <title>Net Worth | Holdsworth</title>
         </Head>
-        <div className="min-h-screen bg-gray-50 py-6">
+        <div className="min-h-screen py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Hero banner */}
-            <div className="bg-blue-600 rounded-2xl p-8 text-center text-white shadow-lg mb-8">
-              <h1 className="text-3xl font-bold mb-2">Net Worth</h1>
-              <p className="text-white/80">
+            <div className="rounded-lg border border-gray-200 bg-white p-8 text-center mb-4">
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">
+                Net Worth
+              </h1>
+              <p className="text-gray-600">
                 {
                   "Add a portfolio to see your net worth across brokers, assets, and currencies"
                 }
@@ -230,8 +256,8 @@ function WealthDashboard(): React.ReactElement {
 
             {/* Setup prompt cards */}
             <div className="max-w-2xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">
                   {"Let's Get You Started"}
                 </h2>
                 <p className="text-gray-600 mb-6 text-center">
@@ -240,10 +266,10 @@ function WealthDashboard(): React.ReactElement {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Link
                     href="/onboarding"
-                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-blue-300 hover:shadow-md transition-all"
+                    className="border border-gray-200 rounded-lg p-5 text-center hover:border-wealth-200 transition-colors"
                   >
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <i className="fas fa-rocket text-xl text-blue-500"></i>
+                    <div className="w-12 h-12 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <i className="fas fa-rocket text-xl text-wealth-500"></i>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">
                       {"Start Setup"}
@@ -254,10 +280,10 @@ function WealthDashboard(): React.ReactElement {
                   </Link>
                   <Link
                     href="/portfolios/__NEW__"
-                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-green-300 hover:shadow-md transition-all"
+                    className="border border-gray-200 rounded-lg p-5 text-center hover:border-wealth-200 transition-colors"
                   >
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <i className="fas fa-plus text-xl text-green-500"></i>
+                    <div className="w-12 h-12 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <i className="fas fa-plus text-xl text-wealth-500"></i>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">
                       {"Add"}
@@ -271,7 +297,7 @@ function WealthDashboard(): React.ReactElement {
                       was the only way in. */}
                   <Link
                     href="/independence"
-                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-independence-200 hover:shadow-md transition-all"
+                    className="border border-gray-200 rounded-lg p-5 text-center hover:border-independence-200 transition-colors"
                   >
                     <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
                       <i className="fas fa-compass text-xl text-independence-500"></i>
@@ -298,7 +324,7 @@ function WealthDashboard(): React.ReactElement {
         <title>Net Worth | Holdsworth</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 py-6">
+      <div className="min-h-screen py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero — Net Worth */}
           <WealthHeroSection
@@ -339,7 +365,7 @@ function WealthDashboard(): React.ReactElement {
               journeys or their phases are still loading, "none" is not yet
               true and the CTA would flash under a plan that does exist. */}
           {!primaryPlan && !journeysLoading && plansData !== undefined && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6 text-center">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-center">
               <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <i className="fas fa-compass text-xl text-independence-500"></i>
               </div>

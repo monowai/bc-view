@@ -16,6 +16,9 @@ interface WealthHeroSectionProps {
   onShareClick: () => void
 }
 
+const SHORTCUT_CLS =
+  "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+
 const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   summary,
   displayCurrency,
@@ -50,94 +53,131 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
         )}`
       : "/holdings/aggregated"
 
+  const previousValue = summary.totalValue - summary.totalGainOnDay
+  const gainSign = summary.totalGainOnDay >= 0 ? "+" : "-"
+
   return (
-    <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl mb-8 overflow-hidden">
-      {/* Title */}
-      <div className="px-8 pt-6 pb-3">
-        <h1 className="text-sm font-semibold text-white/90">Net Worth</h1>
+    <section className="mb-4 rounded-lg border border-gray-200 bg-white px-5 py-5 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-sm font-medium text-gray-500">Net Worth</h1>
+        <nav
+          aria-label={"Wealth shortcuts"}
+          className="flex items-center gap-1"
+        >
+          {/* Portfolios list — hidden in zen mode (a single portfolio has no
+              list to browse). Route stays reachable directly. */}
+          {!zenMode && (
+            <Link
+              href="/portfolios"
+              className={SHORTCUT_CLS}
+              title="Portfolios"
+            >
+              <i className="fas fa-chart-pie text-sm text-wealth-500"></i>
+              <span className="hidden sm:inline">Portfolios</span>
+            </Link>
+          )}
+          <Link
+            href="/rebalance/wizard"
+            className={SHORTCUT_CLS}
+            title="Strategy"
+          >
+            <i className="fas fa-chess text-sm text-invest-500"></i>
+            <span className="hidden sm:inline">Strategy</span>
+          </Link>
+          <Link
+            href="/independence"
+            className={SHORTCUT_CLS}
+            title="Independence"
+          >
+            <i className="fas fa-umbrella-beach text-sm text-independence-500"></i>
+            <span className="hidden sm:inline">Independence</span>
+          </Link>
+          {portfolios.length > 0 && (
+            <button
+              type="button"
+              onClick={onShareClick}
+              className={SHORTCUT_CLS}
+              title={"Share Portfolios"}
+            >
+              <i className="fas fa-share-alt text-sm text-gray-400"></i>
+              <span className="hidden sm:inline">{"Share"}</span>
+            </button>
+          )}
+        </nav>
       </div>
 
       {/* Total value + currency selector */}
-      <div className="px-8">
-        <div className="flex items-baseline gap-3 flex-wrap">
-          <Link
-            href={aggregateHref}
-            title="View all holdings contributing to your net worth"
-            className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-nums rounded transition-colors hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <Link
+          href={aggregateHref}
+          title="View all holdings contributing to your net worth"
+          className="rounded text-4xl font-bold tracking-tight tabular-nums text-gray-900 transition-colors hover:text-wealth-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500 sm:text-5xl"
+        >
+          {displayCurrency?.symbol}
+          <FormatValue value={summary.totalValue} />
+        </Link>
+        {currencies.length > 0 && displayCurrency && (
+          <select
+            value={displayCurrency.code}
+            onChange={(e) => {
+              const selected = currencies.find((c) => c.code === e.target.value)
+              if (selected) onCurrencyChange(selected)
+            }}
+            aria-label={"Display Currency"}
+            className="cursor-pointer rounded-md border border-gray-200 bg-white px-2 py-1 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-wealth-500"
           >
-            {displayCurrency?.symbol}
-            <FormatValue value={summary.totalValue} />
-          </Link>
-          {currencies.length > 0 && displayCurrency && (
-            <select
-              value={displayCurrency.code}
-              onChange={(e) => {
-                const selected = currencies.find(
-                  (c) => c.code === e.target.value,
-                )
-                if (selected) onCurrencyChange(selected)
-              }}
-              className="bg-transparent border-none text-white/80 text-lg font-semibold focus:outline-none focus:ring-0 cursor-pointer appearance-none pr-0"
-            >
-              {currencies.map((c) => (
-                <option
-                  key={c.code}
-                  value={c.code}
-                  className="bg-blue-800 text-white"
-                >
-                  {c.code}
-                </option>
-              ))}
-            </select>
-          )}
-          {summary.totalGainOnDay !== 0 && !hideValues && (
-            <span
-              className={`text-lg font-semibold tabular-nums ${summary.totalGainOnDay >= 0 ? "text-emerald-300" : "text-red-300"}`}
-            >
-              {summary.totalGainOnDay >= 0 ? "+" : ""}
-              {displayCurrency?.symbol}
-              <FormatValue value={summary.totalGainOnDay} />
-              {summary.totalValue - summary.totalGainOnDay > 0 && (
-                <span className="ml-1">
-                  (
-                  {(
-                    (summary.totalGainOnDay /
-                      (summary.totalValue - summary.totalGainOnDay)) *
-                    100
-                  ).toFixed(2)}
-                  %)
-                </span>
-              )}
-              <span className="text-sm ml-1 text-white/80 font-normal">
-                today
-              </span>
-            </span>
-          )}
-        </div>
-        {!zenMode && (
-          <p className="text-white/80 text-sm mt-1">
-            Across {summary.portfolioCount} portfolio
-            {summary.portfolioCount !== 1 ? "s" : ""}
-          </p>
+            {currencies.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
         )}
-        {summary.healthcareReserve > 0 && (
-          <p
-            className="text-white/70 text-sm mt-1"
-            title="CPF MA / Medisave is a statutory healthcare reserve — counted in Net Worth, but not freely spendable."
+        {summary.totalGainOnDay !== 0 && !hideValues && (
+          <span
+            className={`text-base font-semibold tabular-nums ${summary.totalGainOnDay > 0 ? "text-gain" : "text-loss"}`}
           >
-            Includes Healthcare Reserve{" "}
-            <span className="font-semibold text-white tabular-nums">
-              {displayCurrency?.symbol}
-              <FormatValue value={summary.healthcareReserve} />
+            {gainSign}
+            {displayCurrency?.symbol}
+            <FormatValue value={Math.abs(summary.totalGainOnDay)} />
+            {previousValue > 0 && (
+              <span className="ml-1">
+                ({gainSign}
+                {(
+                  (Math.abs(summary.totalGainOnDay) / previousValue) *
+                  100
+                ).toFixed(2)}
+                %)
+              </span>
+            )}
+            <span className="ml-1 text-sm font-normal text-gray-500">
+              today
             </span>
-          </p>
+          </span>
         )}
       </div>
+      {!zenMode && (
+        <p className="mt-1 text-sm text-gray-500">
+          Across {summary.portfolioCount} portfolio
+          {summary.portfolioCount !== 1 ? "s" : ""}
+        </p>
+      )}
+      {summary.healthcareReserve > 0 && (
+        <p
+          className="mt-1 text-sm text-gray-500"
+          title="CPF MA / Medisave is a statutory healthcare reserve — counted in Net Worth, but not freely spendable."
+        >
+          Includes Healthcare Reserve{" "}
+          <span className="font-semibold tabular-nums text-gray-900">
+            {displayCurrency?.symbol}
+            <FormatValue value={summary.healthcareReserve} />
+          </span>
+        </p>
+      )}
 
-      {/* Liquidity bar — inline in hero */}
       {summary.classificationBreakdown.length > 0 && (
-        <div className="px-8 pt-4 pb-6">
-          <div className="flex h-3 rounded-full overflow-hidden bg-white/25 mb-3">
+        <div className="mt-4">
+          <div className="mb-2 flex h-2 gap-px overflow-hidden rounded-full bg-gray-100">
             {summary.classificationBreakdown.map((item) => (
               <div
                 key={item.classification}
@@ -150,23 +190,21 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
               />
             ))}
           </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-1">
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
             {summary.classificationBreakdown.map((item) => (
               <div
                 key={item.classification}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5 text-sm"
               >
                 <div
-                  className="w-3 h-3 rounded-full ring-2 ring-white/50"
+                  className="h-2 w-2 rounded-full"
                   style={{
                     backgroundColor:
                       LIQUIDITY_COLORS[item.classification] || "#6B7280",
                   }}
                 />
-                <span className="text-sm text-white/80">
-                  {item.classification}
-                </span>
-                <span className="text-sm font-semibold text-white tabular-nums">
+                <span className="text-gray-600">{item.classification}</span>
+                <span className="font-semibold tabular-nums text-gray-900">
                   {item.percentage.toFixed(0)}%
                 </span>
               </div>
@@ -174,55 +212,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
           </div>
         </div>
       )}
-
-      {/* Navigation links */}
-      <div className="flex items-center gap-1 px-8 pb-5">
-        {/* Portfolios list — hidden in zen mode (a single portfolio has no
-            list to browse). Route stays reachable directly. */}
-        {!zenMode && (
-          <Link
-            href="/portfolios"
-            className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-            title="Portfolios"
-          >
-            <i className="fas fa-chart-pie text-sm text-white"></i>
-            <span className="text-xs font-medium hidden sm:inline">
-              Portfolios
-            </span>
-          </Link>
-        )}
-        <Link
-          href="/rebalance/wizard"
-          className="text-emerald-300 hover:text-emerald-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-          title="Strategy"
-        >
-          <i className="fas fa-chess text-sm text-emerald-300"></i>
-          <span className="text-xs font-medium hidden sm:inline">Strategy</span>
-        </Link>
-        <Link
-          href="/independence"
-          className="text-orange-300 hover:text-orange-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-          title="Independence"
-        >
-          <i className="fas fa-umbrella-beach text-sm text-orange-300"></i>
-          <span className="text-xs font-medium hidden sm:inline">
-            Independence
-          </span>
-        </Link>
-        {portfolios.length > 0 && (
-          <button
-            onClick={onShareClick}
-            className="text-white/70 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-            title={"Share Portfolios"}
-          >
-            <i className="fas fa-share-alt text-sm"></i>
-            <span className="text-xs font-medium hidden sm:inline">
-              {"Share"}
-            </span>
-          </button>
-        )}
-      </div>
-    </div>
+    </section>
   )
 }
 

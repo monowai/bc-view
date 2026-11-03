@@ -47,7 +47,7 @@ describe("WealthHeroSection — today's gain percent", () => {
   it("renders the gain percent next to the dollar gain when totalGainOnDay > 0", () => {
     // gain 2,500 on prior-day value 97,500 → ~2.56% rise
     renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
-    expect(screen.getByText(/\(2\.56%\)/)).toBeInTheDocument()
+    expect(screen.getByText(/\(\+2\.56%\)/)).toBeInTheDocument()
     expect(screen.getByText(/today/)).toBeInTheDocument()
   })
 
