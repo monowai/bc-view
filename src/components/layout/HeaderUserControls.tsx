@@ -91,7 +91,7 @@ export default function HeaderUserControls(): React.ReactElement {
           <Avatar user={user} size={28} />
           <span className="hidden sm:inline text-sm">{displayName}</span>
           <i
-            className={`fas fa-chevron-down text-xs text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+            className={`hidden sm:inline fas fa-chevron-down text-xs text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
           ></i>
         </button>
       </div>
