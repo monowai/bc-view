@@ -42,6 +42,8 @@ jobs:
     runs-on: ${{ (vars.CI_RUNNER && !startsWith(github.head_ref || github.ref_name, 'renovate/') && !github.event.pull_request.head.repo.fork) && vars.CI_RUNNER || 'ubuntu-latest' }}
     # Kauri takes one job at a time: a hung job would hold it for the 6h default.
     timeout-minutes: 15
+    env:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     steps:
       # The self-hosted runner keeps its workspace between jobs. A job cancelled
       # mid-fetch leaves a .lock under .git, and every later checkout then fails
@@ -83,26 +85,17 @@ jobs:
       - name: Run tests
         run: yarn test
 
-      - name: Upload coverage to Codacy
-        if: false
-        env:
-          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          CODACY_API_TOKEN: ${{ secrets.CODACY_API_TOKEN }}
-        run: |
-          if [ -n "$CODACY_PROJECT_TOKEN" ]; then
-            echo "Uploading coverage to Codacy using project token..."
-            bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
-            echo "✅ Coverage uploaded successfully"
-          elif [ -n "$CODACY_API_TOKEN" ]; then
-            echo "Uploading coverage to Codacy using API token..."
-            export CODACY_ORGANIZATION_PROVIDER=gh
-            export CODACY_USERNAME=monowai
-            export CODACY_PROJECT_NAME=bc-view
-            bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
-            echo "✅ Coverage uploaded successfully"
-          else
-            echo "⚠️  No Codacy token set, skipping coverage upload"
-          fi
+      # Push events only: a pull_request run reports the merge commit, which
+      # Codacy cannot match to the PR head. Every branch push also runs this
+      # workflow, so PR heads still get coverage. Best-effort: a Codacy outage
+      # must not fail the gating test job. Fork PRs carry no secret.
+      - name: Report coverage to Codacy
+        if: github.event_name == 'push' && env.CODACY_PROJECT_TOKEN != ''
+        continue-on-error: true
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1
+        with:
+          project-token: ${{ env.CODACY_PROJECT_TOKEN }}
+          coverage-reports: coverage/lcov.info
 
   build:
     name: Build Application
