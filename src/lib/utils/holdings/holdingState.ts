@@ -17,8 +17,15 @@ const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
 const STORAGE_KEY = `${BC_STORAGE_PREFIX}wealth`
 
+type HoldingStateShape = HoldingDefaults & {
+  hasInitialized: boolean
+  viewMode: ViewMode
+  incomePeriod: number
+  incomeLayout: IncomeLayout
+}
+
 // Load initial state from sessionStorage if available
-function loadPersistedState(): Record<string, unknown> | null {
+export function loadPersistedState(): Record<string, unknown> | null {
   if (typeof window === "undefined") {
     return null
   }
@@ -33,25 +40,33 @@ function loadPersistedState(): Record<string, unknown> | null {
   return null
 }
 
-const persistedState = loadPersistedState()
+const HOLDING_DEFAULTS: HoldingStateShape = {
+  hideEmpty: true,
+  asAt: "today",
+  hasInitialized: false,
+  viewMode: "summary",
+  valueIn: null,
+  groupBy: null,
+  displayCurrency: null,
+  incomePeriod: 12,
+  incomeLayout: "chart",
+} as unknown as HoldingStateShape
+
+/**
+ * Initial holdings view state: each known setting the session persisted,
+ * falling back to its default when absent or null.
+ */
+export function initialHoldingState(
+  persistedState: Record<string, unknown> | null,
+): HoldingStateShape {
+  const restored = Object.entries(persistedState ?? {}).filter(
+    ([key, value]) => key in HOLDING_DEFAULTS && value != null,
+  )
+  return { ...HOLDING_DEFAULTS, ...Object.fromEntries(restored) }
+}
 
 const holdingDefaults = hookstate(
-  {
-    hideEmpty: persistedState?.hideEmpty ?? true,
-    asAt: persistedState?.asAt ?? "today",
-    hasInitialized: persistedState?.hasInitialized ?? false,
-    viewMode: (persistedState?.viewMode ?? "summary") as ViewMode,
-    valueIn: persistedState?.valueIn ?? null,
-    groupBy: persistedState?.groupBy ?? null,
-    displayCurrency: persistedState?.displayCurrency ?? null,
-    incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
-    incomeLayout: (persistedState?.incomeLayout ?? "chart") as IncomeLayout,
-  } as HoldingDefaults & {
-    hasInitialized: boolean
-    viewMode: ViewMode
-    incomePeriod: number
-    incomeLayout: IncomeLayout
-  },
+  initialHoldingState(loadPersistedState()),
   devtools({ key: "holdings" }),
 )
 
