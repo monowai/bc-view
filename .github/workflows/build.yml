@@ -85,11 +85,20 @@ jobs:
 
       # Push events only: a pull_request run reports the merge commit, which
       # Codacy cannot match to the PR head. Every branch push also runs this
-      # workflow, so PR heads still get coverage. Best-effort: a Codacy outage,
-      # or a fork without the secret, must not fail the gating test job. The
-      # token stays in this step only: install and test run project code.
-      - name: Report coverage to Codacy
+      # workflow, so PR heads still get coverage. The token is visible only to
+      # these two steps: install and test run project code. A step cannot read
+      # its own env in its if, so the check sets an output; a fork without the
+      # secret skips the upload. Best-effort: a Codacy outage must not fail
+      # the gating test job.
+      - name: Check for Codacy token
+        id: codacy
         if: github.event_name == 'push'
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        run: echo "enabled=${CODACY_PROJECT_TOKEN:+true}" >> "$GITHUB_OUTPUT"
+
+      - name: Report coverage to Codacy
+        if: steps.codacy.outputs.enabled == 'true'
         continue-on-error: true
         uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1
         with:
