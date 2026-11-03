@@ -17,7 +17,7 @@ jest.mock("@components/features/portfolios/usePortfolioReview", () => ({
 }))
 
 describe("PortfoliosList header", () => {
-  it("uses an opaque hover colour and no transition on the Code header", () => {
+  it("sorts from a labelled header button", () => {
     const usd = makeCurrency({ code: "USD" })
     render(
       <PortfoliosList
@@ -34,7 +34,7 @@ describe("PortfoliosList header", () => {
     )
 
     const th = screen.getAllByText("Code")[0].closest("th")
-    expect(th).toHaveClass("hover:bg-wealth-700")
-    expect(th).not.toHaveClass("transition-colors")
+    expect(th).toHaveAttribute("aria-sort", "ascending")
+    expect(screen.getByRole("button", { name: /^Code/ })).toBeInTheDocument()
   })
 })

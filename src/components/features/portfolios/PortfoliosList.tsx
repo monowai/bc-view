@@ -5,8 +5,10 @@ import { Portfolio, Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioActions from "./PortfolioActions"
+import PortfolioRowActions from "./PortfolioRowActions"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import { usePermissions } from "@hooks/usePermissions"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { convertAt, sumConverted } from "@lib/currency"
 import { todayIso } from "@lib/formatters"
@@ -24,6 +26,9 @@ interface PortfoliosListProps {
   onDelete: (target: { id: string; code: string }) => void
   isInactiveTab?: boolean
 }
+
+const SECONDARY_BUTTON_CLS =
+  "inline-flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
 
 const SELECTED_STORAGE_KEY = "bc-portfolios-selected"
 
@@ -92,14 +97,127 @@ function gainOnDayText(
   return `${gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${amount}`
 }
 
-// Safe gain-on-day percentage: returns formatted string or null if previous value is zero
+// Gain-on-day percentage: undefined when there is no previous value to compare.
 function gainOnDayPercent(
   gainOnDay: number,
   marketValue: number,
-): string | null {
+): number | undefined {
   const previousValue = marketValue - gainOnDay
-  if (previousValue === 0) return null
-  return ((gainOnDay / previousValue) * 100).toFixed(2)
+  if (previousValue === 0) return undefined
+  return (gainOnDay / previousValue) * 100
+}
+
+function signedPercent(value: number): string {
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`
+}
+
+function toneClass(value: number): string {
+  if (value > 0) return "text-gain"
+  if (value < 0) return "text-loss"
+  return "text-gray-500"
+}
+
+function currencyMark(currency: Currency | null): string | undefined {
+  return currency?.symbol === "?" ? currency.code : currency?.symbol
+}
+
+/** A signed return; sign and colour both carry the direction. */
+const SignedPercent: React.FC<{ value: number | undefined }> = ({ value }) =>
+  value === undefined ? (
+    <span className="text-gray-500">{NO_RATE}</span>
+  ) : (
+    <span className={`font-medium tabular-nums ${toneClass(value)}`}>
+      {signedPercent(value)}
+    </span>
+  )
+
+/** Move on the day: the percent, with the amount on hover unless values are hidden. */
+const DayMove: React.FC<{
+  gain: number | undefined
+  convertedGain: number | undefined
+  marketValue: number | undefined
+  displayCurrency: Currency | null
+}> = ({ gain, convertedGain, marketValue, displayCurrency }) => {
+  const { hideValues } = usePrivacyMode()
+  if (!gain || !marketValue) {
+    return <span className="text-gray-500">{NO_RATE}</span>
+  }
+  const percent = <SignedPercent value={gainOnDayPercent(gain, marketValue)} />
+  if (hideValues) return percent
+  return (
+    <QuickTooltip text={gainOnDayText(convertedGain, displayCurrency)}>
+      {percent}
+    </QuickTooltip>
+  )
+}
+
+/** Share of the book: a figure, with a hairline bar for reading concentration. */
+const ShareOfTotal: React.FC<{
+  share: number | undefined
+  compact?: boolean
+}> = ({ share, compact = false }) => {
+  if (share === undefined) {
+    return <span className="text-gray-500">{NO_RATE}</span>
+  }
+  const figure = `${share.toFixed(1)}%`
+  if (compact) return <span className="tabular-nums">{figure}</span>
+  return (
+    <span className="flex items-center justify-end gap-2">
+      <span
+        className="hidden lg:block h-1 w-14 overflow-hidden rounded-full bg-gray-100"
+        aria-hidden="true"
+      >
+        <span
+          className="block h-full bg-wealth-500"
+          style={{ width: `${Math.min(Math.max(share, 0), 100)}%` }}
+        />
+      </span>
+      <span className="w-12 text-right text-sm tabular-nums text-gray-600">
+        {figure}
+      </span>
+    </span>
+  )
+}
+
+const ARIA_SORT = { asc: "ascending", desc: "descending" } as const
+
+const SortHeader: React.FC<{
+  label: string
+  sortKey: string
+  sortConfig: SortConfig
+  onSort: (key: string) => void
+  align?: "left" | "right" | "center"
+  className?: string
+}> = ({
+  label,
+  sortKey,
+  sortConfig,
+  onSort,
+  align = "left",
+  className = "",
+}) => {
+  const sorted = sortConfig.key === sortKey
+  const justify = {
+    left: "justify-start",
+    right: "justify-end",
+    center: "justify-center",
+  }[align]
+  return (
+    <th
+      scope="col"
+      aria-sort={sorted ? ARIA_SORT[sortConfig.direction] : "none"}
+      className={`px-4 py-2.5 hover:bg-gray-50 ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`flex w-full items-center ${justify} rounded-sm text-xs font-medium tracking-wide text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500`}
+      >
+        {label}
+        {getSortIcon(sortKey, sortConfig)}
+      </button>
+    </th>
+  )
 }
 
 function sortPortfolios(
@@ -221,9 +339,6 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
     })
   }
 
-  const renderSortIcon = (headerKey: string): React.ReactElement =>
-    getSortIcon(headerKey, sortConfig, "wealth")
-
   const togglePortfolioSelection = useCallback((code: string) => {
     setSelectedPortfolios((prev) => {
       const newSet = new Set(prev)
@@ -244,6 +359,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
     )
   }, [portfolios])
 
+  const clearSelection = useCallback(() => {
+    setSelectedPortfolios(new Set<string>())
+  }, [])
+
   const handleViewAggregated = useCallback(() => {
     if (effectiveSelected.size === 0) return
     const codes = Array.from(effectiveSelected).join(",")
@@ -253,9 +372,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   if (!portfolios || portfolios.length === 0) {
     if (isInactiveTab) {
       return (
-        <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="min-h-screen px-4 py-8">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-archive text-xl text-gray-400"></i>
             </div>
             <p className="text-gray-500">{"No inactive portfolios"}</p>
@@ -264,7 +383,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
       )
     }
     return (
-      <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="min-h-screen px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
             {"No portfolios yet"}
@@ -276,7 +395,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
               href="/onboarding"
-              className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-wealth-200 hover:shadow-md transition-all"
+              className="bg-white border border-gray-200 rounded-lg p-6 text-center hover:border-wealth-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
             >
               <div className="w-12 h-12 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-rocket text-xl text-wealth-500"></i>
@@ -291,10 +410,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
 
             <Link
               href="/portfolios/__NEW__"
-              className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-green-300 hover:shadow-md transition-all"
+              className="bg-white border border-gray-200 rounded-lg p-6 text-center hover:border-wealth-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
             >
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-plus text-xl text-green-500"></i>
+              <div className="w-12 h-12 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-plus text-xl text-wealth-500"></i>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">{"Add"}</h3>
               <p className="text-gray-500 text-sm">
@@ -314,33 +433,71 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
       ? 1
       : fxRates[portfolio.base.code]
 
-  const totalMarketValue = sumConverted(
-    sortedPortfolios.map((p) => convertAt(p.marketValue || 0, rateFor(p))),
+  const rows = sortedPortfolios.map((portfolio) => ({
+    portfolio,
+    value: convertAt(portfolio.marketValue || 0, rateFor(portfolio)),
+    gain: convertAt(portfolio.gainOnDay || 0, rateFor(portfolio)),
+    selected: effectiveSelected.has(portfolio.code),
+  }))
+
+  const totalMarketValue = sumConverted(rows.map((row) => row.value))
+  const totalGainOnDay = sumConverted(rows.map((row) => row.gain))
+  const selectedValue = sumConverted(
+    rows.filter((row) => row.selected).map((row) => row.value),
   )
 
-  const totalGainOnDay = sumConverted(
-    sortedPortfolios.map((p) => convertAt(p.gainOnDay || 0, rateFor(p))),
-  )
+  const shareOf = (value: number | undefined): number | undefined =>
+    value !== undefined && totalMarketValue
+      ? (value / totalMarketValue) * 100
+      : undefined
 
   const allSelected =
     portfolios.length > 0 && effectiveSelected.size === portfolios.length
 
+  const mark = currencyMark(displayCurrency)
+
+  const openReview = (portfolio: Portfolio): void =>
+    showReview({
+      kind: "portfolio",
+      id: portfolio.id,
+      code: portfolio.code,
+      name: portfolio.name,
+    })
+
+  const rowActions = (
+    portfolio: Portfolio,
+    size: "touch" | "compact",
+  ): React.ReactElement => (
+    <PortfolioRowActions
+      portfolio={portfolio}
+      canUseAi={canUseAi}
+      size={size}
+      onReview={openReview}
+      onShare={onShareClick}
+      onCorporateActions={onCorporateActions}
+      onDelete={onDelete}
+    />
+  )
+
   return (
     <>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="px-4 py-4">
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center space-x-3">
+      <div
+        className={`min-h-screen ${effectiveSelected.size > 0 ? "pb-24" : ""}`}
+      >
+        {/* Header: the page's one primary figure leads */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="px-4 pt-4 pb-5">
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => router.push("/wealth")}
-                  className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
+                  className="text-gray-500 hover:text-gray-900 p-1 -ml-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
                   title={"Wealth"}
+                  aria-label={"Back to Wealth"}
                 >
-                  <i className="fas fa-arrow-left text-lg"></i>
+                  <i className="fas fa-arrow-left"></i>
                 </button>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">
                   {"Portfolios"}
                 </h1>
                 {currencies.length > 0 && displayCurrency && (
@@ -352,8 +509,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       )
                       if (selected) onCurrencyChange(selected)
                     }}
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-wealth-500 bg-gray-50"
+                    className="border border-gray-200 rounded-md px-2 py-1 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-wealth-500"
                     title={"Display Currency"}
+                    aria-label={"Display Currency"}
                   >
                     {currencies.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -370,48 +528,42 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               />
             </div>
 
-            {effectiveSelected.size > 0 && (
-              <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
-                <span className="text-sm text-gray-600">
-                  {effectiveSelected.size} {"selected"}
+            <div
+              data-testid="portfolios-summary"
+              className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1"
+            >
+              <span className="text-3xl font-bold tracking-tight tabular-nums text-gray-900">
+                {mark}
+                <FormatValue value={totalMarketValue} defaultValue={NO_RATE} />
+              </span>
+              {totalGainOnDay !== undefined && totalMarketValue ? (
+                <span className="flex items-baseline gap-1.5 text-sm">
+                  <SignedPercent
+                    value={gainOnDayPercent(totalGainOnDay, totalMarketValue)}
+                  />
+                  <span className="text-gray-500">{"today"}</span>
                 </span>
-                <button
-                  className="bg-amber-500 text-white py-1.5 px-3 rounded-lg hover:bg-amber-600 transition-colors flex items-center text-sm"
-                  onClick={handleViewAggregated}
-                >
-                  <i className="fas fa-layer-group mr-1.5"></i>
-                  {"Holdings"}
-                </button>
-                <button
-                  className="bg-indigo-500 text-white py-1.5 px-3 rounded-lg hover:bg-indigo-600 transition-colors flex items-center text-sm"
-                  onClick={() => {
-                    const codes = Array.from(effectiveSelected).join(",")
-                    router.push(
-                      `/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`,
-                    )
-                  }}
-                >
-                  <i className="fas fa-balance-scale mr-1.5"></i>
-                  {"Rebalance"}
-                </button>
-              </div>
-            )}
+              ) : null}
+              <span className="text-sm text-gray-500">
+                {portfolios.length}{" "}
+                {portfolios.length === 1 ? "portfolio" : "portfolios"}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Mobile: Card layout */}
-        <div className="md:hidden px-4 py-4 space-y-3">
-          {/* Mobile select-all toolbar */}
-          <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-3 py-2">
+        <div className="md:hidden px-4 py-4 space-y-2">
+          <div className="flex items-center justify-between px-1">
             <label
-              className="flex items-center space-x-3 py-2 pr-3 -my-2 cursor-pointer select-none"
+              className="flex items-center space-x-3 py-2 pr-3 cursor-pointer select-none"
               aria-label={"Select all portfolios"}
             >
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAllSelection}
-                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                className="w-5 h-5 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 cursor-pointer"
               />
               <span className="text-sm font-medium text-gray-700">
                 {allSelected ? "Deselect all" : "Select all"}
@@ -422,13 +574,13 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             </span>
           </div>
 
-          {sortedPortfolios.map((portfolio) => (
+          {rows.map(({ portfolio, value, gain, selected }) => (
             <div
               key={portfolio.id}
-              className={`bg-white rounded-xl shadow-sm border overflow-hidden flex ${
-                effectiveSelected.has(portfolio.code)
-                  ? "border-wealth-200 bg-wealth-50"
-                  : "border-gray-200"
+              className={`rounded-lg border overflow-hidden flex ${
+                selected
+                  ? "border-wealth-500 bg-wealth-50"
+                  : "border-gray-200 bg-white"
               }`}
             >
               {/* Dedicated checkbox tap zone — outside the navigate region.
@@ -441,9 +593,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               <button
                 type="button"
                 role="checkbox"
-                aria-checked={effectiveSelected.has(portfolio.code)}
+                aria-checked={selected}
                 aria-label={`Select ${portfolio.code}`}
-                className="flex items-center justify-center px-4 py-4 cursor-pointer select-none"
+                className="flex items-start justify-center px-4 py-4 cursor-pointer select-none"
                 onClick={(e) => {
                   e.stopPropagation()
                   togglePortfolioSelection(portfolio.code)
@@ -451,496 +603,256 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               >
                 <input
                   type="checkbox"
-                  checked={effectiveSelected.has(portfolio.code)}
+                  checked={selected}
                   readOnly
                   tabIndex={-1}
                   aria-hidden="true"
-                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 pointer-events-none"
+                  className="w-5 h-5 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 pointer-events-none"
                 />
               </button>
               <div
-                className="flex-1 p-4 pl-0 cursor-pointer"
+                className="flex-1 min-w-0 py-3 pr-2 cursor-pointer"
                 onClick={() => router.push(`/holdings/${portfolio.code}`)}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <div className="font-semibold text-wealth-600">
-                        {portfolio.code}
-                      </div>
-                      <div className="text-gray-900">{portfolio.name}</div>
+                <div className="flex justify-between items-start gap-3 pr-2">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/holdings/${portfolio.code}`}
+                      className="text-sm font-semibold text-wealth-600"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {portfolio.code}
+                    </Link>
+                    <div className="truncate text-sm text-gray-900">
+                      {portfolio.name}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs tabular-nums text-gray-500">
+                      <span>
+                        {portfolio.base.symbol}
+                        {portfolio.base.code}
+                      </span>
+                      <ShareOfTotal share={shareOf(value)} compact />
+                      {isStale(portfolio.valuedAt) && (
+                        <span
+                          className="text-amber-600"
+                          title={`Valued: ${formatValuedAt(portfolio.valuedAt)}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`}
+                        >
+                          <i className="fas fa-clock text-xs"></i>
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
-                      {displayCurrency?.symbol === "?"
-                        ? displayCurrency?.code
-                        : displayCurrency?.symbol}
-                      <FormatValue
-                        value={convertAt(
-                          portfolio.marketValue ? portfolio.marketValue : 0,
-                          rateFor(portfolio),
-                        )}
-                        defaultValue={NO_RATE}
+                  <div className="text-right shrink-0">
+                    <div className="text-base font-semibold tabular-nums text-gray-900">
+                      {mark}
+                      <FormatValue value={value} defaultValue={NO_RATE} />
+                    </div>
+                    <div className="text-sm">
+                      <DayMove
+                        gain={portfolio.gainOnDay}
+                        convertedGain={gain}
+                        marketValue={portfolio.marketValue}
+                        displayCurrency={displayCurrency}
                       />
                     </div>
-                    {portfolio.gainOnDay !== undefined &&
-                      portfolio.gainOnDay !== 0 &&
-                      portfolio.marketValue && (
-                        <QuickTooltip
-                          text={gainOnDayText(
-                            convertAt(portfolio.gainOnDay, rateFor(portfolio)),
-                            displayCurrency,
-                          )}
-                        >
-                          <span
-                            className={`text-sm font-medium tabular-nums ${
-                              portfolio.gainOnDay >= 0
-                                ? "text-emerald-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {gainOnDayPercent(
-                              portfolio.gainOnDay,
-                              portfolio.marketValue,
-                            ) ?? "0.00"}
-                            %
-                          </span>
-                        </QuickTooltip>
-                      )}
-                    <div
-                      className={`text-sm font-medium tabular-nums ${
-                        (portfolio.irr || 0) >= 0
-                          ? "text-emerald-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      <FormatValue
-                        value={portfolio.irr}
-                        multiplier={100}
-                        isPublic
+                    <div className="text-sm">
+                      <SignedPercent
+                        value={
+                          portfolio.irr === undefined
+                            ? undefined
+                            : portfolio.irr * 100
+                        }
                       />
-                      %
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center space-x-2">
-                    <span>
-                      {portfolio.base.symbol}
-                      {portfolio.base.code}
-                    </span>
-                    {isStale(portfolio.valuedAt) && (
-                      <span
-                        className="text-amber-500"
-                        title={`Valued: ${formatValuedAt(portfolio.valuedAt)}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`}
-                      >
-                        <i className="fas fa-clock text-xs"></i>
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className="flex items-center space-x-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {canUseAi && (
-                      <button
-                        onClick={() =>
-                          showReview({
-                            kind: "portfolio",
-                            id: portfolio.id,
-                            code: portfolio.code,
-                            name: portfolio.name,
-                          })
-                        }
-                        className="p-1 text-purple-500 hover:text-purple-700"
-                        title={"AI Summary"}
-                        aria-label={"AI Summary"}
-                      >
-                        <i className="fas fa-wand-magic-sparkles"></i>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onShareClick(portfolio.id)}
-                      className="text-blue-500 hover:text-blue-700 p-1"
-                      title={"Share"}
-                    >
-                      <i className="fas fa-share-alt"></i>
-                    </button>
-                    <button
-                      onClick={() => onCorporateActions(portfolio)}
-                      className="text-blue-500 hover:text-blue-700 p-1"
-                      title={"Scan Corporate Actions"}
-                    >
-                      <i className="fas fa-calendar-check"></i>
-                    </button>
-                    <Link
-                      href={`/portfolios/${portfolio.id}`}
-                      className="text-blue-500 hover:text-blue-700 p-1"
-                      title={"Edit"}
-                    >
-                      <i className="fas fa-edit"></i>
-                    </Link>
-                    <button
-                      onClick={() =>
-                        onDelete({
-                          id: portfolio.id,
-                          code: portfolio.code,
-                        })
-                      }
-                      className="text-red-500 hover:text-red-700 p-1"
-                      title={"Delete"}
-                    >
-                      <i className="fas fa-trash-alt"></i>
-                    </button>
-                  </div>
+                <div className="mt-1 -mb-1">
+                  {rowActions(portfolio, "touch")}
                 </div>
               </div>
             </div>
           ))}
-
-          {/* Mobile total */}
-          <div className="bg-wealth-600 rounded-xl shadow-sm p-4">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-white/90">
-                {"Total"}: {displayCurrency?.code}
-              </span>
-              <div className="text-right">
-                <span className="text-xl font-bold text-white tabular-nums">
-                  {displayCurrency?.symbol === "?"
-                    ? displayCurrency?.code
-                    : displayCurrency?.symbol}
-                  <FormatValue
-                    value={totalMarketValue}
-                    defaultValue={NO_RATE}
-                  />
-                </span>
-                {totalGainOnDay !== undefined &&
-                  totalGainOnDay !== 0 &&
-                  totalMarketValue !== undefined &&
-                  totalMarketValue !== 0 && (
-                    <QuickTooltip
-                      text={gainOnDayText(totalGainOnDay, displayCurrency)}
-                    >
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${
-                          totalGainOnDay >= 0
-                            ? "text-emerald-200"
-                            : "text-red-200"
-                        }`}
-                      >
-                        {(
-                          (totalGainOnDay /
-                            (totalMarketValue - totalGainOnDay)) *
-                          100
-                        ).toFixed(2)}
-                        %
-                      </span>
-                    </QuickTooltip>
-                  )}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Desktop: Table layout */}
         <div className="hidden md:block px-4 py-4">
-          <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full">
-              <thead className="bg-wealth-600 text-white">
+              <thead className="border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-center w-12">
+                  <th scope="col" className="px-4 py-2.5 text-center w-12">
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleAllSelection}
-                      className="w-4 h-4 text-blue-500 rounded border-blue-300 bg-blue-400 focus:ring-white cursor-pointer"
+                      className="w-4 h-4 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 cursor-pointer"
                       title={"Select all"}
+                      aria-label={"Select all portfolios"}
                     />
                   </th>
+                  <SortHeader
+                    label={"Code"}
+                    sortKey="code"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                  <SortHeader
+                    label={"Name"}
+                    sortKey="name"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                  <SortHeader
+                    label={"Market Value"}
+                    sortKey="marketValue"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    align="right"
+                  />
                   <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-700"
-                    onClick={() => handleSort("code")}
+                    scope="col"
+                    className="px-4 py-2.5 text-right text-xs font-medium tracking-wide text-gray-500"
                   >
-                    <div className="flex items-center">
-                      {"Code"}
-                      {renderSortIcon("code")}
-                    </div>
+                    {"Share"}
                   </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-700"
-                    onClick={() => handleSort("name")}
-                  >
-                    <div className="flex items-center">
-                      {"Name"}
-                      {renderSortIcon("name")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
-                    onClick={() => handleSort("marketValue")}
-                  >
-                    <div className="flex items-center justify-end">
-                      {"Market Value"}
-                      {renderSortIcon("marketValue")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
-                    onClick={() => handleSort("gainOnDayPercent")}
-                  >
-                    <div className="flex items-center justify-end">
-                      {"Day %"}
-                      {renderSortIcon("gainOnDayPercent")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-700"
-                    onClick={() => handleSort("irr")}
-                  >
-                    <div className="flex items-center justify-end">
-                      {"IRR"}
-                      {renderSortIcon("irr")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-wealth-700 hidden xl:table-cell"
-                    onClick={() => handleSort("valuedAt")}
-                  >
-                    <div className="flex items-center justify-center">
-                      {"Valued"}
-                      {renderSortIcon("valuedAt")}
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold w-32">
-                    {"Actions"}
+                  <SortHeader
+                    label={"Day %"}
+                    sortKey="gainOnDayPercent"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    align="right"
+                  />
+                  <SortHeader
+                    label={"IRR"}
+                    sortKey="irr"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    align="right"
+                  />
+                  <SortHeader
+                    label={"Valued"}
+                    sortKey="valuedAt"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    align="right"
+                    className="hidden xl:table-cell"
+                  />
+                  <th scope="col" className="w-44 px-4 py-2.5">
+                    <span className="sr-only">{"Actions"}</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sortedPortfolios.map((portfolio, index) => (
-                  <React.Fragment key={portfolio.id}>
-                    <tr
-                      className={`transition-colors duration-150 cursor-pointer ${
-                        effectiveSelected.has(portfolio.code)
-                          ? "bg-wealth-50 hover:bg-wealth-100"
-                          : index % 2 === 0
-                            ? "bg-white hover:bg-gray-50"
-                            : "bg-gray-50/60 hover:bg-gray-100"
-                      }`}
-                      onClick={(e) => {
-                        if (
-                          !(e.target as HTMLElement).closest(
-                            ".action-buttons",
-                          ) &&
-                          !(e.target as HTMLElement).closest(
-                            ".selection-checkbox",
-                          )
-                        ) {
-                          router.push(`/holdings/${portfolio.code}`)
+                {rows.map(({ portfolio, value, gain, selected }) => (
+                  <tr
+                    key={portfolio.id}
+                    className={`group cursor-pointer ${
+                      selected
+                        ? "bg-wealth-50 hover:bg-wealth-100"
+                        : "hover:bg-gray-50"
+                    }`}
+                    onClick={(e) => {
+                      if (
+                        !(e.target as HTMLElement).closest(
+                          ".action-buttons, .selection-checkbox, a",
+                        )
+                      ) {
+                        router.push(`/holdings/${portfolio.code}`)
+                      }
+                    }}
+                  >
+                    <td className="px-4 py-2.5 text-center selection-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() =>
+                          togglePortfolioSelection(portfolio.code)
                         }
-                      }}
-                    >
-                      <td className="px-4 py-3 text-center selection-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={effectiveSelected.has(portfolio.code)}
-                          onChange={() =>
-                            togglePortfolioSelection(portfolio.code)
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-wealth-600 font-semibold">
-                          {portfolio.code}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
-                        {portfolio.name}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
-                        <FormatValue
-                          value={convertAt(
-                            portfolio.marketValue ? portfolio.marketValue : 0,
-                            rateFor(portfolio),
-                          )}
-                          defaultValue={NO_RATE}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {portfolio.gainOnDay !== undefined &&
-                        portfolio.gainOnDay !== 0 &&
-                        portfolio.marketValue ? (
-                          <QuickTooltip
-                            text={gainOnDayText(
-                              convertAt(
-                                portfolio.gainOnDay,
-                                rateFor(portfolio),
-                              ),
-                              displayCurrency,
-                            )}
-                          >
-                            <span
-                              className={`font-semibold tabular-nums ${
-                                portfolio.gainOnDay >= 0
-                                  ? "text-emerald-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {gainOnDayPercent(
-                                portfolio.gainOnDay,
-                                portfolio.marketValue,
-                              ) ?? "0.00"}
-                              %
-                            </span>
-                          </QuickTooltip>
-                        ) : (
-                          <span className="text-gray-500">-</span>
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${portfolio.code}`}
+                        className="w-4 h-4 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/holdings/${portfolio.code}`}
+                        className="text-sm font-semibold text-wealth-600 rounded-sm hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+                      >
+                        {portfolio.code}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-gray-900">
+                      {portfolio.name}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-sm font-medium tabular-nums text-gray-900">
+                      <FormatValue value={value} defaultValue={NO_RATE} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ShareOfTotal share={shareOf(value)} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-sm">
+                      <DayMove
+                        gain={portfolio.gainOnDay}
+                        convertedGain={gain}
+                        marketValue={portfolio.marketValue}
+                        displayCurrency={displayCurrency}
+                      />
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-sm">
+                      <SignedPercent
+                        value={
+                          portfolio.irr === undefined
+                            ? undefined
+                            : portfolio.irr * 100
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-sm text-gray-500 whitespace-nowrap hidden xl:table-cell">
+                      <span
+                        title={
+                          portfolio.valuedAt
+                            ? `Valued: ${portfolio.valuedAt}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`
+                            : "Not yet valued"
+                        }
+                      >
+                        {isStale(portfolio.valuedAt) && (
+                          <i className="fas fa-clock mr-1.5 text-xs text-amber-600"></i>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span
-                          className={`font-semibold tabular-nums ${
-                            (portfolio.irr || 0) >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          <FormatValue
-                            value={portfolio.irr}
-                            multiplier={100}
-                            isPublic
-                          />
-                          %
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center hidden xl:table-cell">
-                        <span
-                          className={
-                            isStale(portfolio.valuedAt)
-                              ? "text-amber-500"
-                              : "text-gray-600"
-                          }
-                          title={
-                            portfolio.valuedAt
-                              ? `Valued: ${portfolio.valuedAt}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`
-                              : "Not yet valued"
-                          }
-                        >
-                          {formatValuedAt(portfolio.valuedAt)}
-                          {isStale(portfolio.valuedAt) && (
-                            <i className="fas fa-clock ml-1 text-xs"></i>
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="action-buttons flex items-center justify-center space-x-3">
-                          {canUseAi && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                showReview({
-                                  kind: "portfolio",
-                                  id: portfolio.id,
-                                  code: portfolio.code,
-                                  name: portfolio.name,
-                                })
-                              }}
-                              className="transition-colors text-gray-500 hover:text-purple-600"
-                              title={"AI Summary"}
-                              aria-label={"AI Summary"}
-                            >
-                              <i className="fas fa-wand-magic-sparkles text-lg"></i>
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onShareClick(portfolio.id)
-                            }}
-                            className="text-gray-500 hover:text-blue-600 transition-colors"
-                            title={"Share"}
-                          >
-                            <i className="fas fa-share-alt text-lg"></i>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onCorporateActions(portfolio)
-                            }}
-                            className="text-gray-500 hover:text-blue-600 transition-colors"
-                            title={"Scan Corporate Actions"}
-                          >
-                            <i className="fas fa-calendar-check text-lg"></i>
-                          </button>
-                          <Link
-                            href={`/portfolios/${portfolio.id}`}
-                            className="text-gray-500 hover:text-blue-600 transition-colors"
-                            title={"Edit Portfolio"}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <i className="fas fa-edit text-lg"></i>
-                          </Link>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDelete({
-                                id: portfolio.id,
-                                code: portfolio.code,
-                              })
-                            }}
-                            className="text-gray-500 hover:text-red-600 transition-colors"
-                            title={"Delete Portfolio"}
-                          >
-                            <i className="fas fa-trash-alt text-lg"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
+                        {formatValuedAt(portfolio.valuedAt)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-1">
+                      {/* Quiet until the row is in play; always there for touch and keyboard. */}
+                      <div className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
+                        {rowActions(portfolio, "compact")}
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-wealth-600 text-white border-t-2 border-wealth-500">
+              <tfoot className="border-t border-gray-200 bg-gray-50">
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-4 py-3 text-right text-sm font-semibold text-white/90"
+                    className="px-4 py-2.5 text-sm font-medium text-gray-500"
                   >
                     {"Total"}: {displayCurrency?.code}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm font-bold text-white tabular-nums">
-                    {displayCurrency?.symbol === "?"
-                      ? displayCurrency?.code
-                      : displayCurrency?.symbol}
+                  <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums text-gray-900">
+                    {mark}
                     <FormatValue
                       value={totalMarketValue}
                       defaultValue={NO_RATE}
                     />
                   </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    {totalGainOnDay !== undefined &&
-                    totalGainOnDay !== 0 &&
-                    totalMarketValue ? (
-                      <QuickTooltip
-                        text={gainOnDayText(totalGainOnDay, displayCurrency)}
-                      >
-                        <span
-                          className={`font-bold tabular-nums ${
-                            totalGainOnDay >= 0
-                              ? "text-emerald-200"
-                              : "text-red-200"
-                          }`}
-                        >
-                          {gainOnDayPercent(totalGainOnDay, totalMarketValue) ??
-                            "0.00"}
-                          %
-                        </span>
-                      </QuickTooltip>
-                    ) : (
-                      <span className="text-wealth-200">-</span>
-                    )}
+                  <td></td>
+                  <td className="px-4 py-2.5 text-right text-sm">
+                    <DayMove
+                      gain={totalGainOnDay}
+                      convertedGain={totalGainOnDay}
+                      marketValue={totalMarketValue}
+                      displayCurrency={displayCurrency}
+                    />
                   </td>
                   <td colSpan={3}></td>
                 </tr>
@@ -949,6 +861,57 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
           </div>
         </div>
       </div>
+
+      {effectiveSelected.size > 0 && (
+        <div
+          role="region"
+          aria-label={"Selected portfolios"}
+          className="fixed bottom-4 left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center gap-3 rounded-lg bg-white px-3 sm:px-4 py-2.5 shadow-[0_2px_10px_rgb(0_0_0/0.1)] animate-menu-in"
+        >
+          <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+            {effectiveSelected.size} {"selected"}
+          </span>
+          <span className="hidden sm:inline text-sm tabular-nums text-gray-600">
+            {mark}
+            <FormatValue value={selectedValue} defaultValue={NO_RATE} />
+          </span>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-sm text-gray-500 hover:text-gray-900 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+          >
+            {"Clear"}
+          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              className={SECONDARY_BUTTON_CLS}
+              onClick={() => {
+                const codes = Array.from(effectiveSelected).join(",")
+                router.push(
+                  `/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`,
+                )
+              }}
+            >
+              <span className="hidden sm:inline">
+                <i className="fas fa-balance-scale mr-1.5"></i>
+              </span>
+              {"Rebalance"}
+            </button>
+            <button
+              type="button"
+              className="btn-primary btn-primary--sm"
+              title={"View selected portfolios as one"}
+              onClick={handleViewAggregated}
+            >
+              <span className="hidden sm:inline">
+                <i className="fas fa-layer-group mr-1.5"></i>
+              </span>
+              {"Holdings"}
+            </button>
+          </div>
+        </div>
+      )}
       {reviewPopup}
     </>
   )
