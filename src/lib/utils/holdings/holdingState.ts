@@ -17,8 +17,15 @@ const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
 const STORAGE_KEY = `${BC_STORAGE_PREFIX}wealth`
 
+type HoldingStateShape = HoldingDefaults & {
+  hasInitialized: boolean
+  viewMode: ViewMode
+  incomePeriod: number
+  incomeLayout: IncomeLayout
+}
+
 // Load initial state from sessionStorage if available
-function loadPersistedState(): Record<string, unknown> | null {
+export function loadPersistedState(): Record<string, unknown> | null {
   if (typeof window === "undefined") {
     return null
   }
@@ -33,10 +40,11 @@ function loadPersistedState(): Record<string, unknown> | null {
   return null
 }
 
-const persistedState = loadPersistedState()
-
-const holdingDefaults = hookstate(
-  {
+/** Initial holdings view state: the persisted session choices over the defaults. */
+export function initialHoldingState(
+  persistedState: Record<string, unknown> | null,
+): HoldingStateShape {
+  return {
     hideEmpty: persistedState?.hideEmpty ?? true,
     asAt: persistedState?.asAt ?? "today",
     hasInitialized: persistedState?.hasInitialized ?? false,
@@ -46,12 +54,11 @@ const holdingDefaults = hookstate(
     displayCurrency: persistedState?.displayCurrency ?? null,
     incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
     incomeLayout: (persistedState?.incomeLayout ?? "chart") as IncomeLayout,
-  } as HoldingDefaults & {
-    hasInitialized: boolean
-    viewMode: ViewMode
-    incomePeriod: number
-    incomeLayout: IncomeLayout
-  },
+  } as HoldingStateShape
+}
+
+const holdingDefaults = hookstate(
+  initialHoldingState(loadPersistedState()),
   devtools({ key: "holdings" }),
 )
 
