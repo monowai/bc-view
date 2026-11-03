@@ -18,6 +18,66 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { sharesManagedKey, simpleFetcher } from "@utils/api/fetchHelper"
 
+function PortfolioTab({
+  label,
+  icon,
+  count = 0,
+  active,
+  onClick,
+}: {
+  label: string
+  icon: string
+  count?: number
+  active: boolean
+  onClick: () => void
+}): React.ReactElement {
+  return (
+    <button
+      type="button"
+      aria-current={active ? "page" : undefined}
+      className={`-mb-px whitespace-nowrap border-b-2 px-3 sm:px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wealth-500 ${
+        active
+          ? "border-wealth-500 text-wealth-600"
+          : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+      }`}
+      onClick={onClick}
+    >
+      <span className="hidden sm:inline">
+        <i className={`fas ${icon} mr-2`}></i>
+      </span>
+      {label}
+      {count > 0 && (
+        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs tabular-nums text-gray-600">
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** Holds the page's shape while portfolios and FX rates load. */
+function PortfoliosSkeleton(): React.ReactElement {
+  return (
+    <div data-testid="loading" aria-busy="true" className="animate-pulse">
+      <div className="border-b border-gray-200 bg-white px-4 pt-4 pb-5">
+        <div className="h-8 w-40 rounded bg-gray-200"></div>
+        <div className="mt-4 h-9 w-64 rounded bg-gray-200"></div>
+      </div>
+      <div className="p-4">
+        <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          {[0, 1, 2, 3, 4, 5].map((row) => (
+            <div key={row} className="flex items-center gap-6 px-4 py-3">
+              <div className="h-4 w-16 rounded bg-gray-200"></div>
+              <div className="h-4 flex-1 rounded bg-gray-100"></div>
+              <div className="h-4 w-24 rounded bg-gray-200"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default withPageAuthRequired(function Portfolios({
   user,
 }: {
@@ -136,65 +196,42 @@ export default withPageAuthRequired(function Portfolios({
     return rootLoader("Loading...")
   }
 
-  if (
-    activeTab === "my" &&
-    (isLoading || (portfolios.length > 0 && !fxRatesReady))
-  ) {
-    return rootLoader("Loading...")
-  }
+  const valuesPending = isLoading || (portfolios.length > 0 && !fxRatesReady)
 
   return (
     <>
-      {/* Tab bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="flex px-4">
-          <button
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "my"
-                ? "border-wealth-500 text-wealth-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-            onClick={() => setActiveTab("my")}
-          >
-            <i className="fas fa-briefcase mr-2"></i>
-            {"My Portfolios"}
-          </button>
-          <button
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "inactive"
-                ? "border-wealth-500 text-wealth-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-            onClick={() => setActiveTab("inactive")}
-          >
-            <i className="fas fa-archive mr-2"></i>
-            {"Inactive"}
-            {inactivePortfolios.length > 0 && (
-              <span className="ml-1.5 bg-gray-200 text-gray-600 text-xs font-medium px-1.5 py-0.5 rounded-full">
-                {inactivePortfolios.length}
-              </span>
-            )}
-          </button>
-          {hasManagedShares && (
-            <button
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "managed"
-                  ? "border-wealth-500 text-wealth-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-              onClick={() => setActiveTab("managed")}
-            >
-              <i className="fas fa-users mr-2"></i>
-              {"Managed"}
-            </button>
-          )}
-        </div>
-      </div>
+      <nav
+        aria-label={"Portfolio lists"}
+        className="flex border-b border-gray-200 bg-white px-4"
+      >
+        <PortfolioTab
+          label={"My Portfolios"}
+          icon="fa-briefcase"
+          active={activeTab === "my"}
+          onClick={() => setActiveTab("my")}
+        />
+        <PortfolioTab
+          label={"Inactive"}
+          icon="fa-archive"
+          count={inactivePortfolios.length}
+          active={activeTab === "inactive"}
+          onClick={() => setActiveTab("inactive")}
+        />
+        {hasManagedShares && (
+          <PortfolioTab
+            label={"Managed"}
+            icon="fa-users"
+            active={activeTab === "managed"}
+            onClick={() => setActiveTab("managed")}
+          />
+        )}
+      </nav>
 
       {/* Tab content */}
-      {activeTab === "my" && !isLoading && (
+      {activeTab !== "managed" && valuesPending && <PortfoliosSkeleton />}
+      {activeTab === "my" && !valuesPending && (
         <>
-          <div className="px-4 pt-4">
+          <div className="px-4 pt-4 empty:hidden">
             <LinkCompositeBanner />
           </div>
           <PortfoliosList
@@ -215,7 +252,7 @@ export default withPageAuthRequired(function Portfolios({
           />
         </>
       )}
-      {activeTab === "inactive" && !isLoading && (
+      {activeTab === "inactive" && !valuesPending && (
         <PortfoliosList
           portfolios={inactivePortfolios}
           displayCurrency={displayCurrency}

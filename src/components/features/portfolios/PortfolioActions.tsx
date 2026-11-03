@@ -11,6 +11,9 @@ interface PortfolioActionsProps {
   onConsolidateClick?: () => void
 }
 
+const GHOST_CLS =
+  "hidden md:flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+
 const PortfolioActions = ({
   onImportClick,
   onShareClick,
@@ -31,10 +34,10 @@ const PortfolioActions = ({
   }
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center gap-2 shrink-0">
       {/* Import/Export hidden on mobile */}
       <button
-        className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
+        className={GHOST_CLS}
         onClick={handleExport}
         disabled={isExporting}
       >
@@ -45,16 +48,13 @@ const PortfolioActions = ({
         )}
         {"Export"}
       </button>
-      <button
-        className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
-        onClick={onImportClick}
-      >
+      <button className={GHOST_CLS} onClick={onImportClick}>
         <i className="fas fa-upload mr-2"></i>
         {"Import"}
       </button>
       {onConsolidateClick && (
         <button
-          className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
+          className={GHOST_CLS}
           onClick={onConsolidateClick}
           title="Move one portfolio's transactions into another and remove it"
         >
@@ -62,15 +62,12 @@ const PortfolioActions = ({
           {"Consolidate"}
         </button>
       )}
-      <button
-        className="hidden md:flex bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors items-center"
-        onClick={onShareClick}
-      >
+      <button className={GHOST_CLS} onClick={onShareClick}>
         <i className="fas fa-share-alt mr-2"></i>
         {"Share"}
       </button>
       <button
-        className="bg-wealth-500 text-white py-2 px-4 rounded-lg hover:bg-wealth-600 transition-colors flex items-center shadow-sm"
+        className="btn-primary btn-primary--sm flex items-center"
         onClick={() => router.push(`/portfolios/__NEW__`)}
       >
         <i className="fas fa-plus mr-2"></i>
