@@ -44,6 +44,17 @@ describe("initial holdings state", () => {
     expect(initialHoldingState(loadPersistedState())).toMatchObject(persisted)
   })
 
+  it("falls back to the default for a null setting and drops unknown keys", () => {
+    const state = initialHoldingState({
+      viewMode: null,
+      incomePeriod: 3,
+      somethingElse: "x",
+    })
+    expect(state.viewMode).toBe("summary")
+    expect(state.incomePeriod).toBe(3)
+    expect(state).not.toHaveProperty("somethingElse")
+  })
+
   it("ignores unreadable persisted state", () => {
     sessionStorage.setItem(STORAGE_KEY, "{not json")
     expect(loadPersistedState()).toBeNull()

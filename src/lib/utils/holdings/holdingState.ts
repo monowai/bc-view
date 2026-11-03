@@ -40,21 +40,29 @@ export function loadPersistedState(): Record<string, unknown> | null {
   return null
 }
 
-/** Initial holdings view state: the persisted session choices over the defaults. */
+const HOLDING_DEFAULTS: HoldingStateShape = {
+  hideEmpty: true,
+  asAt: "today",
+  hasInitialized: false,
+  viewMode: "summary",
+  valueIn: null,
+  groupBy: null,
+  displayCurrency: null,
+  incomePeriod: 12,
+  incomeLayout: "chart",
+} as unknown as HoldingStateShape
+
+/**
+ * Initial holdings view state: each known setting the session persisted,
+ * falling back to its default when absent or null.
+ */
 export function initialHoldingState(
   persistedState: Record<string, unknown> | null,
 ): HoldingStateShape {
-  return {
-    hideEmpty: persistedState?.hideEmpty ?? true,
-    asAt: persistedState?.asAt ?? "today",
-    hasInitialized: persistedState?.hasInitialized ?? false,
-    viewMode: (persistedState?.viewMode ?? "summary") as ViewMode,
-    valueIn: persistedState?.valueIn ?? null,
-    groupBy: persistedState?.groupBy ?? null,
-    displayCurrency: persistedState?.displayCurrency ?? null,
-    incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
-    incomeLayout: (persistedState?.incomeLayout ?? "chart") as IncomeLayout,
-  } as HoldingStateShape
+  const restored = Object.entries(persistedState ?? {}).filter(
+    ([key, value]) => key in HOLDING_DEFAULTS && value != null,
+  )
+  return { ...HOLDING_DEFAULTS, ...Object.fromEntries(restored) }
 }
 
 const holdingDefaults = hookstate(
