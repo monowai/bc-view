@@ -675,7 +675,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
         </div>
 
         {/* Desktop: Table layout */}
-        <div className="hidden md:block px-4 py-4">
+        <div className="hidden md:block py-4">
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full">
               <thead className="border-b border-gray-200">
@@ -737,7 +737,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     align="right"
                     className="hidden xl:table-cell"
                   />
-                  <th scope="col" className="w-44 px-4 py-2.5">
+                  <th scope="col" className="w-px py-2.5 pl-2 pr-3">
                     <span className="sr-only">{"Actions"}</span>
                   </th>
                 </tr>
@@ -821,9 +821,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                         {formatValuedAt(portfolio.valuedAt)}
                       </span>
                     </td>
-                    <td className="px-4 py-1">
-                      {/* Quiet until the row is in play; always there for touch and keyboard. */}
-                      <div className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
+                    <td className="py-1 pl-2 pr-3 whitespace-nowrap">
+                      {/* Faint until the row is in play, so the column never reads as an empty band; full for touch and keyboard. */}
+                      <div className="transition-opacity [@media(hover:hover)]:opacity-40 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
                         {rowActions(portfolio, "compact")}
                       </div>
                     </td>

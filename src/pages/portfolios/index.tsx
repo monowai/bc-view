@@ -63,7 +63,7 @@ function PortfoliosSkeleton(): React.ReactElement {
         <div className="h-8 w-40 rounded bg-gray-200"></div>
         <div className="mt-4 h-9 w-64 rounded bg-gray-200"></div>
       </div>
-      <div className="p-4">
+      <div className="p-4 md:px-0">
         <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
           {[0, 1, 2, 3, 4, 5].map((row) => (
             <div key={row} className="flex items-center gap-6 px-4 py-3">
@@ -231,7 +231,7 @@ export default withPageAuthRequired(function Portfolios({
       {activeTab !== "managed" && valuesPending && <PortfoliosSkeleton />}
       {activeTab === "my" && !valuesPending && (
         <>
-          <div className="px-4 pt-4 empty:hidden">
+          <div className="px-4 pt-4 md:px-0 empty:hidden">
             <LinkCompositeBanner />
           </div>
           <PortfoliosList
