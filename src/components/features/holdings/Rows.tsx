@@ -39,6 +39,7 @@ import {
 } from "@lib/holdings/holdingAnalysis"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import ChartIconButton from "@components/features/holdings/ChartIconButton"
+import WatchTargetPrice from "@components/features/watchlists/WatchTargetPrice"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
 import {
@@ -302,9 +303,11 @@ export default function Rows({
             </td>
             <td className={getCellClasses(0)}>
               {hideValue(moneyValues[valueIn].priceData) ||
-              !moneyValues[valueIn].priceData?.close
-                ? " "
-                : (() => {
+              !moneyValues[valueIn].priceData?.close ? (
+                " "
+              ) : (
+                <>
+                  {(() => {
                     const isChartable = !!onPriceChart && asset.chartable
                     const priceContent = (
                       <>
@@ -351,6 +354,14 @@ export default function Rows({
                       </span>
                     )
                   })()}
+                  <WatchTargetPrice
+                    assetId={asset.id}
+                    currencyCode={moneyValues[valueIn].currency.code}
+                    scale={priceDecimals(asset)}
+                    className="mt-0.5 flex justify-end"
+                  />
+                </>
+              )}
             </td>
             <td className={getCellClasses(1)}>
               {!moneyValues[valueIn].priceData?.changePercent ? (
