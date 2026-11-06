@@ -88,6 +88,11 @@ const Percent: React.FC<{ value: number }> = ({ value }) => (
   </>
 )
 
+// Both figure rows share one grid, so the movers above stand over the
+// ledger columns below.
+const FIGURE_GRID =
+  "grid grid-cols-2 gap-x-6 px-5 sm:grid-cols-3 lg:grid-cols-5"
+
 interface FigureProps {
   label: string
   children: React.ReactNode
@@ -249,8 +254,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({
         aria-label="Portfolio figures"
         className="rounded-lg border border-gray-200 bg-white"
       >
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 p-5 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end md:gap-x-10">
-          <div className="col-span-2 md:col-span-1">
+        <dl className={`${FIGURE_GRID} gap-y-5 py-5 sm:items-end`}>
+          <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <Figure
               label="Market Value"
               valueClass="text-2xl tracking-tight text-gray-900 sm:text-3xl"
@@ -291,7 +296,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
             <Percent value={holdings.totals.irr} />
           </Figure>
         </dl>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-gray-100 px-5 py-4 sm:grid-cols-3 lg:grid-cols-5">
+        <dl className={`${FIGURE_GRID} gap-y-4 border-t border-gray-100 py-4`}>
           <Figure label="Dividends" valueClass="text-sm text-gray-900">
             <Money
               value={convert(viewTotals.dividends)}
