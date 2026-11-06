@@ -35,6 +35,7 @@ import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import ChartIconButton from "@components/features/holdings/ChartIconButton"
+import WatchTargetPrice from "@components/features/watchlists/WatchTargetPrice"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
@@ -124,6 +125,8 @@ interface PositionFooterProps {
   chartIconAriaLabel?: string
   onQuantityClick?: (e: React.MouseEvent) => void
   quantityAriaLabel?: string
+  /** Shown beneath the price, e.g. the watchlist target. */
+  priceNote?: React.ReactNode
 }
 
 const PositionFooter: React.FC<PositionFooterProps> = ({
@@ -139,6 +142,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   chartIconAriaLabel,
   onQuantityClick,
   quantityAriaLabel,
+  priceNote,
 }) => {
   const priceText = (
     <>
@@ -196,7 +200,16 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   return (
     <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
       <PositionMetric label="Quantity" value={quantityValue} />
-      <PositionMetric label="Price" align="center" value={priceValue} />
+      <PositionMetric
+        label="Price"
+        align="center"
+        value={
+          <>
+            {priceValue}
+            {priceNote}
+          </>
+        }
+      />
       <PositionMetric
         label="Weight"
         align="right"
@@ -561,6 +574,14 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                 weight={values.weight}
                 currencySymbol={currencySymbol}
                 onPriceClick={handlePriceClick}
+                priceNote={
+                  <WatchTargetPrice
+                    assetId={asset.id}
+                    currencyCode={values.currency.code}
+                    scale={priceDecimals(asset)}
+                    className="flex justify-center font-normal"
+                  />
+                }
                 priceAriaLabel={
                   isChartable
                     ? `Show price chart for ${asset.displayCode}`

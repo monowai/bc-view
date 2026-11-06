@@ -1,14 +1,22 @@
 import React from "react"
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react"
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSWR from "swr"
 import AssetLookupPage from "@pages/assets/lookup"
-import { marketsKey } from "@utils/api/fetchHelper"
+import { marketsKey, watchlistKey } from "@utils/api/fetchHelper"
 import { formatDate } from "@lib/formatters"
 import {
   makeAsset,
   makePortfolio,
   makePosition,
+  makeWatchlistItem,
 } from "@test-fixtures/beancounter"
 
 // Mock next/router — hydrate selectedAsset straight from the query string so
@@ -131,6 +139,7 @@ const defaultPrice = {
   ],
 }
 let priceFixture: unknown = defaultPrice
+let watchlistFixture: unknown = { data: { items: [] } }
 
 const growthPortfolio = makePortfolio({ id: "pf-1", code: "GROWTH" })
 const incomePortfolio = makePortfolio({ id: "pf-2", code: "INCOME" })
@@ -184,6 +193,9 @@ function mockSwrData(): void {
     }
     if (key === priceKey) {
       return { data: priceFixture, isLoading: false }
+    }
+    if (key === watchlistKey) {
+      return { data: watchlistFixture, isLoading: false }
     }
     return { data: undefined, isLoading: false }
   })
@@ -360,6 +372,30 @@ describe("Asset Lookup Page — last close", () => {
     expect(lastClose).toHaveTextContent("-2.10")
     expect(lastClose).toHaveTextContent("-1.14%")
     expect(lastClose).toHaveTextContent(formatDate("2026-09-29"))
+  })
+
+  it("shows the watchlist target beside the latest close", () => {
+    watchlistFixture = {
+      data: {
+        items: [
+          makeWatchlistItem({
+            asset: makeAsset({ id: "asset-1" }),
+            targetPrice: 200,
+          }),
+        ],
+      },
+    }
+    render(<AssetLookupPage />)
+    watchlistFixture = { data: { items: [] } }
+
+    expect(
+      within(screen.getByTestId("last-close")).getByTestId("watch-target"),
+    ).toHaveTextContent("Target $200.00")
+  })
+
+  it("shows no target when the asset is not watched", () => {
+    render(<AssetLookupPage />)
+    expect(screen.queryByTestId("watch-target")).not.toBeInTheDocument()
   })
 
   it("omits the change when the provider sent no previous close", () => {

@@ -50,6 +50,7 @@ import { usePermissions } from "@hooks/usePermissions"
 import { assetPositionsKey, deleteAssetAdmin } from "@utils/api/client/assets"
 import { assetModelsKey } from "@utils/api/client/rebalance"
 import { priceQuoteKey } from "@utils/api/client/prices"
+import WatchTargetPrice from "@components/features/watchlists/WatchTargetPrice"
 
 interface AssetPosition {
   // Composite assets (CPF, ILP, ...) don't belong to a portfolio — svc-position
@@ -541,11 +542,20 @@ function AssetLookupPage(): React.ReactElement {
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {lastClose.priceDate
-                    ? `Last Close · ${formatDate(lastClose.priceDate)}`
-                    : "Last Close"}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <p className="text-xs text-gray-500">
+                    {lastClose.priceDate
+                      ? `Last Close · ${formatDate(lastClose.priceDate)}`
+                      : "Last Close"}
+                  </p>
+                  {selectedAsset.assetId && selectedAsset.currency && (
+                    <WatchTargetPrice
+                      assetId={selectedAsset.assetId}
+                      currencyCode={selectedAsset.currency}
+                      scale={closeDecimals}
+                    />
+                  )}
+                </div>
               </div>
             )}
             {!lastClose && (loadingPrice || creatingPending) && (

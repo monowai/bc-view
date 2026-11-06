@@ -15,6 +15,10 @@ import {
   makePosition,
 } from "@test-fixtures/beancounter"
 
+// The watchlist's own fetch would take the analysis stream queued below.
+jest.mock("@hooks/useWatchlist", () => ({
+  useWatchlist: () => ({ items: [] }),
+}))
 jest.mock("@components/ui/ProgressBar", () => ({
   AlphaProgress: () => <div data-testid="alpha-progress" />,
 }))
