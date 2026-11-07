@@ -17,6 +17,7 @@ import {
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
 import { getGroupComparator } from "@lib/categoryMapping"
+import { formatPercent } from "@lib/formatters"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 
 // Color palette for report categories
@@ -53,45 +54,62 @@ interface SummaryViewProps {
   groupBy: GroupingMode
 }
 
-interface MetricCardProps {
-  label: string
+const signClass = (value: number): string =>
+  value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-900"
+
+/** Direction never rests on colour alone: a caret and a sign go with it. */
+const Direction: React.FC<{ value: number }> = ({ value }) =>
+  value === 0 ? null : (
+    <i
+      aria-hidden="true"
+      className={`fas ${value > 0 ? "fa-caret-up" : "fa-caret-down"} mr-1`}
+    ></i>
+  )
+
+const sign = (value: number): string => (value > 0 ? "+" : value < 0 ? "-" : "")
+
+const Money: React.FC<{
   value: number
   currencySymbol: string
-  showSign?: boolean
-  isPercentage?: boolean
+  signed?: boolean
+}> = ({ value, currencySymbol, signed = false }) => (
+  <>
+    {signed && <Direction value={value} />}
+    {signed ? sign(value) : value < 0 ? "-" : ""}
+    {currencySymbol}
+    <FormatValue value={Math.abs(value)} />
+  </>
+)
+
+const Percent: React.FC<{ value: number }> = ({ value }) => (
+  <>
+    <Direction value={value} />
+    {`${sign(value)}${formatPercent(Math.abs(value))}`}
+  </>
+)
+
+// Both figure rows share one grid, so the movers above stand over the
+// ledger columns below.
+const FIGURE_GRID =
+  "grid grid-cols-2 gap-x-6 px-5 sm:grid-cols-3 lg:grid-cols-5"
+
+interface FigureProps {
+  label: string
+  children: React.ReactNode
+  /** Size and colour of the value. */
+  valueClass: string
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({
-  label,
-  value,
-  currencySymbol,
-  showSign = false,
-  isPercentage = false,
-}) => {
-  const isPositive = value >= 0
-  const colorClass = showSign
-    ? isPositive
-      ? "text-green-600"
-      : "text-red-600"
-    : "text-gray-900"
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className={`text-xl font-semibold ${colorClass}`}>
-        {showSign && value > 0 && "+"}
-        {isPercentage ? (
-          `${value.toFixed(2)}%`
-        ) : (
-          <>
-            {currencySymbol}
-            <FormatValue value={value} />
-          </>
-        )}
-      </p>
-    </div>
-  )
-}
+const Figure: React.FC<FigureProps> = ({ label, children, valueClass }) => (
+  <div className="min-w-0">
+    <dt className="text-xs font-medium tracking-wide text-gray-500">{label}</dt>
+    <dd
+      className={`mt-1 whitespace-nowrap font-mono font-semibold tabular-nums ${valueClass}`}
+    >
+      {children}
+    </dd>
+  </div>
+)
 
 interface TooltipPayload {
   name: string
@@ -141,6 +159,12 @@ const CustomBarTooltip: React.FC<CustomTooltipProps> = ({
 }
 
 type ChartType = "none" | "bar" | "donut"
+
+const CHART_VIEWS: { type: ChartType; label: string; icon: string }[] = [
+  { type: "none", label: "Table only", icon: "fa-table-list" },
+  { type: "bar", label: "Bar chart", icon: "fa-bars-progress" },
+  { type: "donut", label: "Donut chart", icon: "fa-chart-pie" },
+]
 
 const SummaryView: React.FC<SummaryViewProps> = ({
   holdings,
@@ -196,6 +220,16 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     )
   }, [filteredAllocation, convert])
 
+  const filteredGainOnDay = useMemo(
+    () =>
+      filteredAllocation.reduce(
+        (sum, slice) => sum + convert(slice.gainOnDay),
+        0,
+      ),
+    [filteredAllocation, convert],
+  )
+  const isFiltered = excludedCategories.size > 0
+
   // Transform data for stacked bar chart - single row with all categories (with FX conversion)
   const barData = useMemo(() => {
     const dataPoint: Record<string, number | string> = { name: "Allocation" }
@@ -214,147 +248,130 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Row: Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          label={`Market Value - ${effectiveCurrencyCode}`}
-          value={convert(viewTotals.marketValue)}
-          currencySymbol={effectiveCurrencySymbol}
-        />
-        <MetricCard
-          label="Gain on Day"
-          value={convert(viewTotals.gainOnDay)}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-        />
-        <MetricCard
-          label="Total Gain"
-          value={convert(viewTotals.totalGain)}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-        />
-        <MetricCard
-          label="IRR"
-          value={holdings.totals.irr * 100}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-          isPercentage
-        />
-      </div>
-
-      {/* Second Row: Detail Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <MetricCard
-          label="Dividends"
-          value={convert(viewTotals.dividends)}
-          currencySymbol={effectiveCurrencySymbol}
-        />
-        <MetricCard
-          label="Purchases"
-          value={convert(viewTotals.purchases)}
-          currencySymbol={effectiveCurrencySymbol}
-        />
-        <MetricCard
-          label="Sales"
-          value={convert(viewTotals.sales)}
-          currencySymbol={effectiveCurrencySymbol}
-        />
-        <MetricCard
-          label="Realised Gain"
-          value={convert(viewTotals.realisedGain)}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-        />
-        <MetricCard
-          label={`Unrealised Gain - ${effectiveCurrencyCode}`}
-          value={convert(viewTotals.unrealisedGain)}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-        />
-      </div>
+      {/* Total first: market value leads, the movers sit beside it and the
+          ledger of flows follows. One surface, not a grid of cards. */}
+      <section
+        aria-label="Portfolio figures"
+        className="rounded-lg border border-gray-200 bg-white"
+      >
+        <dl className={`${FIGURE_GRID} gap-y-5 py-5 sm:items-end`}>
+          <div className="col-span-2 sm:col-span-3 lg:col-span-2">
+            <Figure
+              label="Market Value"
+              valueClass="text-2xl tracking-tight text-gray-900 sm:text-3xl"
+            >
+              <Money
+                value={convert(viewTotals.marketValue)}
+                currencySymbol={effectiveCurrencySymbol}
+              />
+              <span className="ml-2 font-sans text-sm font-medium tracking-normal text-gray-500">
+                {effectiveCurrencyCode}
+              </span>
+            </Figure>
+          </div>
+          <Figure
+            label="Gain on Day"
+            valueClass={`text-lg ${signClass(viewTotals.gainOnDay)}`}
+          >
+            <Money
+              value={convert(viewTotals.gainOnDay)}
+              currencySymbol={effectiveCurrencySymbol}
+              signed
+            />
+          </Figure>
+          <Figure
+            label="Total Gain"
+            valueClass={`text-lg ${signClass(viewTotals.totalGain)}`}
+          >
+            <Money
+              value={convert(viewTotals.totalGain)}
+              currencySymbol={effectiveCurrencySymbol}
+              signed
+            />
+          </Figure>
+          <Figure
+            label="IRR"
+            valueClass={`text-lg ${signClass(holdings.totals.irr)}`}
+          >
+            <Percent value={holdings.totals.irr} />
+          </Figure>
+        </dl>
+        <dl className={`${FIGURE_GRID} gap-y-4 border-t border-gray-100 py-4`}>
+          <Figure label="Dividends" valueClass="text-sm text-gray-900">
+            <Money
+              value={convert(viewTotals.dividends)}
+              currencySymbol={effectiveCurrencySymbol}
+            />
+          </Figure>
+          <Figure label="Purchases" valueClass="text-sm text-gray-900">
+            <Money
+              value={convert(viewTotals.purchases)}
+              currencySymbol={effectiveCurrencySymbol}
+            />
+          </Figure>
+          <Figure label="Sales" valueClass="text-sm text-gray-900">
+            <Money
+              value={convert(viewTotals.sales)}
+              currencySymbol={effectiveCurrencySymbol}
+            />
+          </Figure>
+          <Figure
+            label="Realised Gain"
+            valueClass={`text-sm ${signClass(viewTotals.realisedGain)}`}
+          >
+            <Money
+              value={convert(viewTotals.realisedGain)}
+              currencySymbol={effectiveCurrencySymbol}
+              signed
+            />
+          </Figure>
+          <Figure
+            label="Unrealised Gain"
+            valueClass={`text-sm ${signClass(viewTotals.unrealisedGain)}`}
+          >
+            <Money
+              value={convert(viewTotals.unrealisedGain)}
+              currencySymbol={effectiveCurrencySymbol}
+              signed
+            />
+          </Figure>
+        </dl>
+      </section>
 
       {/* Asset Allocation Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <section
+        aria-labelledby="allocation-heading"
+        className="rounded-lg border border-gray-200 bg-white p-5"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Asset Allocation
+          <h3
+            id="allocation-heading"
+            className="text-lg font-semibold text-gray-900"
+          >
+            {"Asset Allocation"}
           </h3>
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setChartType("none")}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                chartType === "none"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="Table only"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div
+            role="group"
+            aria-label="Allocation view"
+            className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5"
+          >
+            {CHART_VIEWS.map((view) => (
+              <button
+                key={view.type}
+                type="button"
+                onClick={() => setChartType(view.type)}
+                aria-label={view.label}
+                aria-pressed={chartType === view.type}
+                title={view.label}
+                className={`rounded-md px-2 py-1 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600 ${
+                  chartType === view.type
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10h18M3 14h18M3 18h18M3 6h18"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setChartType("bar")}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                chartType === "bar"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="Bar chart"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setChartType("donut")}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                chartType === "donut"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title="Donut chart"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
-                />
-              </svg>
-            </button>
+                <i aria-hidden="true" className={`fas ${view.icon}`}></i>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -430,23 +447,23 @@ const SummaryView: React.FC<SummaryViewProps> = ({
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-2 font-medium text-gray-600">
-                  Group
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 text-left">
+                  {"Group"}
                 </th>
-                <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  Market Value
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 text-right">
+                  {"Market Value"}
                 </th>
-                <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  Change
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 text-right">
+                  {"Gain on Day"}
                 </th>
-                <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  IRR
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 text-right">
+                  {"IRR"}
                 </th>
-                <th className="text-center py-2 px-2 font-medium text-gray-600 hidden md:table-cell">
-                  Alpha
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 hidden text-center md:table-cell">
+                  {"Alpha"}
                 </th>
-                <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  Weight
+                <th className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500 text-right">
+                  {"Weight"}
                 </th>
               </tr>
             </thead>
@@ -461,20 +478,33 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                     filteredTotal > 0 && !isExcluded
                       ? (convertedValue / filteredTotal) * 100
                       : 0
-                  const gainOnDayPositive = convertedGainOnDay >= 0
+                  const muted = "text-gray-400"
 
                   return (
+                    // The row is the mouse target; the button in the first
+                    // cell gives keyboard users the same toggle (its click
+                    // bubbles here, so a press toggles once).
                     <tr
                       key={slice.key}
-                      className={`border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                        isExcluded ? "opacity-40" : ""
+                      className={`cursor-pointer border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50 ${
+                        isExcluded ? "opacity-50" : ""
                       }`}
                       onClick={() => handleToggleCategory(slice.key)}
                     >
-                      <td className="py-2 px-2">
-                        <div className="flex items-center">
-                          <div
-                            className={`w-3 h-3 rounded-sm mr-2 shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
+                      <td className="px-2 py-2">
+                        <button
+                          type="button"
+                          aria-pressed={!isExcluded}
+                          title={
+                            isExcluded
+                              ? `Include ${slice.label} in the totals`
+                              : `Leave ${slice.label} out of the totals`
+                          }
+                          className="flex items-center rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`mr-2 h-3 w-3 shrink-0 rounded-sm ${isExcluded ? "bg-gray-300" : ""}`}
                             style={{
                               backgroundColor: isExcluded
                                 ? undefined
@@ -484,48 +514,37 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                           <span
                             className={
                               isExcluded
-                                ? "text-gray-400 line-through"
+                                ? "text-gray-500 line-through"
                                 : "text-gray-900"
                             }
                           >
                             {slice.label}
                           </span>
-                        </div>
+                        </button>
                       </td>
                       <td
-                        className={`py-2 px-2 text-right tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-900"}`}
+                        className={`px-2 py-2 text-right font-mono tabular-nums ${isExcluded ? muted : "text-gray-900"}`}
                       >
-                        {effectiveCurrencySymbol}
-                        <FormatValue value={convertedValue} />
+                        <Money
+                          value={convertedValue}
+                          currencySymbol={effectiveCurrencySymbol}
+                        />
                       </td>
                       <td
-                        className={`py-2 px-2 text-right tabular-nums ${
-                          isExcluded
-                            ? "text-gray-400"
-                            : gainOnDayPositive
-                              ? "text-green-600"
-                              : "text-red-600"
-                        }`}
+                        className={`px-2 py-2 text-right font-mono tabular-nums ${isExcluded ? muted : signClass(convertedGainOnDay)}`}
                       >
-                        {gainOnDayPositive && convertedGainOnDay > 0 && "+"}
-                        {effectiveCurrencySymbol}
-                        <FormatValue value={convertedGainOnDay} />
+                        <Money
+                          value={convertedGainOnDay}
+                          currencySymbol={effectiveCurrencySymbol}
+                          signed
+                        />
                       </td>
                       <td
-                        className={`py-2 px-2 text-right tabular-nums ${
-                          isExcluded
-                            ? "text-gray-400"
-                            : slice.irr >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                        }`}
+                        className={`px-2 py-2 text-right font-mono tabular-nums ${isExcluded ? muted : signClass(slice.irr)}`}
                       >
-                        {slice.irr >= 0 && slice.irr > 0 && "+"}
-                        {(slice.irr * 100).toFixed(2)}%
+                        <Percent value={slice.irr} />
                       </td>
-                      <td
-                        className={`py-2 px-2 hidden md:table-cell ${isExcluded ? "opacity-40" : ""}`}
-                      >
+                      <td className="hidden px-2 py-2 md:table-cell">
                         <ProgressBar
                           value={Math.abs(slice.irr)}
                           maxValue={0.3}
@@ -535,7 +554,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                         />
                       </td>
                       <td
-                        className={`py-2 px-2 text-right tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-600"}`}
+                        className={`px-2 py-2 text-right font-mono tabular-nums ${isExcluded ? muted : "text-gray-600"}`}
                       >
                         {isExcluded ? "-" : `${percentage.toFixed(1)}%`}
                       </td>
@@ -544,58 +563,49 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                 })}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-gray-300 font-medium">
-                <td className="py-2 px-2 text-gray-700">
-                  {excludedCategories.size > 0 ? "Filtered Total" : "Total"}
+              <tr className="border-t-2 border-gray-300 font-semibold">
+                <td className="px-2 py-2 text-gray-700">
+                  {isFiltered ? "Filtered Total" : "Total"}
                 </td>
-                <td className="py-2 px-2 text-right tabular-nums text-gray-900">
-                  {effectiveCurrencySymbol}
-                  <FormatValue value={filteredTotal} />
+                <td className="px-2 py-2 text-right font-mono tabular-nums text-gray-900">
+                  <Money
+                    value={filteredTotal}
+                    currencySymbol={effectiveCurrencySymbol}
+                  />
                 </td>
-                <td className="py-2 px-2 text-right tabular-nums">
-                  {(() => {
-                    const totalGainOnDay = filteredAllocation.reduce(
-                      (sum, slice) => sum + convert(slice.gainOnDay),
-                      0,
-                    )
-                    const isPositive = totalGainOnDay >= 0
-                    return (
-                      <span
-                        className={
-                          isPositive ? "text-green-600" : "text-red-600"
-                        }
-                      >
-                        {isPositive && totalGainOnDay > 0 && "+"}
-                        {effectiveCurrencySymbol}
-                        <FormatValue value={totalGainOnDay} />
-                      </span>
-                    )
-                  })()}
+                <td
+                  className={`px-2 py-2 text-right font-mono tabular-nums ${signClass(filteredGainOnDay)}`}
+                >
+                  <Money
+                    value={filteredGainOnDay}
+                    currencySymbol={effectiveCurrencySymbol}
+                    signed
+                  />
                 </td>
-                <td className="py-2 px-2 text-right tabular-nums">
-                  <span
-                    className={
-                      holdings.totals.irr >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }
-                  >
-                    {holdings.totals.irr >= 0 && holdings.totals.irr > 0 && "+"}
-                    {(holdings.totals.irr * 100).toFixed(2)}%
-                  </span>
+                {/* The IRR is the whole portfolio's; it says nothing about
+                    a total with groups left out. */}
+                <td
+                  className={`px-2 py-2 text-right font-mono tabular-nums ${isFiltered ? "text-gray-500" : signClass(holdings.totals.irr)}`}
+                  title={
+                    isFiltered
+                      ? "IRR covers the whole portfolio, not a filtered total"
+                      : undefined
+                  }
+                >
+                  {isFiltered ? "—" : <Percent value={holdings.totals.irr} />}
                 </td>
-                <td className="py-2 px-2 hidden md:table-cell" />
-                <td className="py-2 px-2 text-right tabular-nums text-gray-600">
-                  100%
+                <td className="hidden px-2 py-2 md:table-cell" />
+                <td className="px-2 py-2 text-right font-mono tabular-nums text-gray-600">
+                  {"100%"}
                 </td>
               </tr>
             </tfoot>
           </table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Click row to exclude/include from totals
+        <p className="mt-3 text-xs text-gray-500">
+          {"Select a group to leave it out of the totals."}
         </p>
-      </div>
+      </section>
     </div>
   )
 }

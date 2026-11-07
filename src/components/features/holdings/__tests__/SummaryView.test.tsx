@@ -80,26 +80,46 @@ function renderSummary(
 const rowFor = (label: string): HTMLElement =>
   screen.getByText(label, { selector: "td span" }).closest("tr") as HTMLElement
 
+// A figure's value: the <dd> that follows its <dt> label.
+const figure = (label: string): HTMLElement =>
+  screen.getByText(label, { selector: "dt" }).nextElementSibling as HTMLElement
+
 describe("SummaryView", () => {
-  it("shows the key metrics with signs and the portfolio IRR", () => {
+  it("leads with market value, naming the currency once", () => {
     renderSummary()
-    expect(screen.getByText("Market Value - USD")).toBeVisible()
-    expect(screen.getByText("Unrealised Gain - USD")).toBeVisible()
-    expect(
-      screen.getByText("IRR", { selector: "p" }).nextElementSibling,
-    ).toHaveTextContent("+12.30%")
-    const gainOnDay = screen.getByText("Gain on Day").nextElementSibling
-    expect(gainOnDay).toHaveTextContent(/^\+\$70/)
-    expect(gainOnDay).toHaveClass("text-green-600")
-    const realised = screen.getByText("Realised Gain").nextElementSibling
-    expect(realised).toHaveClass("text-red-600")
-    expect(screen.getByText("Dividends")).toBeVisible()
-    expect(screen.getByText("Purchases")).toBeVisible()
-    expect(screen.getByText("Sales")).toBeVisible()
+    const marketValue = figure("Market Value")
+    expect(marketValue).toHaveTextContent("$10,000.00")
+    expect(marketValue).toHaveTextContent("USD")
+    expect(screen.queryByText(/ - USD$/)).toBeNull()
   })
 
-  it("lists each allocation group with weight, change and IRR", () => {
+  it("shows gain on day with a sign and a direction icon, not colour alone", () => {
     renderSummary()
+    const gainOnDay = figure("Gain on Day")
+    expect(gainOnDay).toHaveTextContent(/^\+\$70\.00/)
+    expect(gainOnDay).toHaveClass("text-green-600")
+    expect(gainOnDay.querySelector(".fa-caret-up")).not.toBeNull()
+  })
+
+  it("shows total gain, IRR and the detail figures", () => {
+    renderSummary()
+    expect(figure("Total Gain")).toHaveTextContent("+$1,500.00")
+    expect(figure("IRR")).toHaveTextContent("+12.30%")
+    const realised = figure("Realised Gain")
+    expect(realised).toHaveTextContent("-$20.00")
+    expect(realised).toHaveClass("text-red-600")
+    expect(realised.querySelector(".fa-caret-down")).not.toBeNull()
+    expect(figure("Unrealised Gain")).toHaveTextContent("+$1,520.00")
+    expect(figure("Dividends")).toHaveTextContent("$40.00")
+    expect(figure("Purchases")).toHaveTextContent("$8,000.00")
+    expect(figure("Sales")).toHaveTextContent("$500.00")
+  })
+
+  it("lists each allocation group with weight, gain on day and IRR", () => {
+    renderSummary()
+    expect(
+      screen.getByRole("columnheader", { name: "Gain on Day" }),
+    ).toBeVisible()
     const equity = rowFor("Equity")
     expect(within(equity).getByText("60.0%")).toBeVisible()
     expect(within(equity).getByText("+20.00%")).toBeVisible()
@@ -125,15 +145,48 @@ describe("SummaryView", () => {
     expect(within(rowFor("Equity")).getByText("60.0%")).toBeVisible()
   })
 
+  it("toggles a group from the keyboard and reports its state", async () => {
+    const user = userEvent.setup()
+    renderSummary()
+    const cash = screen.getByRole("button", { name: "Cash" })
+    expect(cash).toHaveAttribute("aria-pressed", "true")
+
+    cash.focus()
+    await user.keyboard("{Enter}")
+    expect(cash).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByText("Filtered Total")).toBeVisible()
+
+    await user.keyboard(" ")
+    expect(cash).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText("Total")).toBeVisible()
+  })
+
+  it("withholds the portfolio IRR from a filtered total it does not describe", async () => {
+    const user = userEvent.setup()
+    renderSummary()
+    const footer = (): HTMLElement =>
+      screen
+        .getByText(/Total$/, { selector: "td" })
+        .closest("tr") as HTMLElement
+    expect(footer()).toHaveTextContent("+12.30%")
+
+    await user.click(rowFor("Cash"))
+    expect(footer()).not.toHaveTextContent("12.30%")
+  })
+
   it("switches between table, bar and donut views", async () => {
     const user = userEvent.setup()
     renderSummary()
+    const tableOnly = screen.getByRole("button", { name: "Table only" })
+    expect(tableOnly).toHaveAttribute("aria-pressed", "true")
     expect(screen.queryByTestId("chart")).toBeNull()
-    await user.click(screen.getByTitle("Bar chart"))
+
+    await user.click(screen.getByRole("button", { name: "Bar chart" }))
     expect(screen.getByTestId("chart")).toBeInTheDocument()
-    await user.click(screen.getByTitle("Donut chart"))
+    expect(tableOnly).toHaveAttribute("aria-pressed", "false")
+    await user.click(screen.getByRole("button", { name: "Donut chart" }))
     expect(screen.getByTestId("chart")).toBeInTheDocument()
-    await user.click(screen.getByTitle("Table only"))
+    await user.click(tableOnly)
     expect(screen.queryByTestId("chart")).toBeNull()
   })
 })
