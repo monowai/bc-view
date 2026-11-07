@@ -860,16 +860,55 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   return (
     <Dialog
+      // The readout sits beside the name so every row below the header is
+      // spent on the chart, which has to fit the viewport without scrolling.
       title={
-        <div>
-          <div>{resolvedName || asset.code}</div>
-          <p className="text-sm text-gray-500 font-normal">
-            {resolvedMarket}:{asset.code}
-          </p>
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <div className="truncate">{resolvedName || asset.code}</div>
+            <p className="text-sm text-gray-500 font-normal">
+              {resolvedMarket}:{asset.code}
+            </p>
+          </div>
+          {last && (
+            <div className="text-right shrink-0 font-normal">
+              <div className="text-lg font-semibold text-gray-900 tabular-nums">
+                {currencySymbol}
+                <FormatValue value={last.close} />
+              </div>
+              <div
+                className={`text-xs tabular-nums ${
+                  positive ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                {positive ? "+" : ""}
+                {changePct.toFixed(2)}%
+              </div>
+              {typeof gapPrice === "number" && (
+                <div className="mt-1 text-xs tabular-nums">
+                  <span className="text-gray-500">{gapLabel} </span>
+                  <span className="font-medium text-gray-700">
+                    {currencySymbol}
+                    {gapPrice.toFixed(2)}
+                  </span>
+                  {limitGapPct !== null && (
+                    <span
+                      className={`ml-1 ${
+                        limitGapPct >= 0 ? "text-emerald-600" : "text-red-600"
+                      }`}
+                    >
+                      {limitGapPct >= 0 ? "+" : ""}
+                      {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       }
       onClose={onClose}
-      maxWidth="3xl"
+      maxWidth="4xl"
       scrollable
       footer={
         <div className="flex items-center gap-3 w-full justify-between">
@@ -964,96 +1003,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
             ))}
           </div>
         </div>
-        {last && (
-          <div className="text-right">
-            <div className="text-lg font-semibold text-gray-900 tabular-nums">
-              {currencySymbol}
-              <FormatValue value={last.close} />
-            </div>
-            <div
-              className={`text-xs tabular-nums ${
-                positive ? "text-emerald-600" : "text-red-600"
-              }`}
-            >
-              {positive ? "+" : ""}
-              {changePct.toFixed(2)}%
-            </div>
-            {typeof gapPrice === "number" && (
-              <div className="mt-1 text-xs tabular-nums">
-                <span className="text-gray-500">{gapLabel} </span>
-                <span className="font-medium text-gray-700">
-                  {currencySymbol}
-                  {gapPrice.toFixed(2)}
-                </span>
-                {limitGapPct !== null && (
-                  <span
-                    className={`ml-1 ${
-                      limitGapPct >= 0 ? "text-emerald-600" : "text-red-600"
-                    }`}
-                  >
-                    {limitGapPct >= 0 ? "+" : ""}
-                    {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between mb-3 text-xs gap-3 text-gray-500">
-        <span>
-          {overlayFailed && (
-            <span className="text-amber-600">
-              {overlay.label} unavailable — could not load its price history
-            </span>
-          )}
-          {trendActive && trendLabels && (
-            <span className="flex items-center gap-1.5">
-              <span
-                aria-hidden
-                className="inline-block w-3 h-2.5 rounded-sm"
-                style={{ backgroundColor: TREND_COLOR[trendSummary.current] }}
-              />
-              <span>
-                {overlay.label}:{" "}
-                <span className="font-medium">
-                  {trendLabels[trendSummary.current]}
-                </span>
-                {trendSummary.since && (
-                  <span className="text-gray-500">
-                    {" "}
-                    since {trendSummary.since} ({trendSummary.runDays}d)
-                  </span>
-                )}
-              </span>
-              <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                — {trendSummary.risingPct}% {trendLabels.rising.toLowerCase()} ·{" "}
-                {trendSummary.fallingPct}% {trendLabels.falling.toLowerCase()}{" "}
-                over range
-              </span>
-            </span>
-          )}
-          {indexed && (
-            <span className="flex items-center gap-1">
-              <span
-                aria-hidden
-                className="inline-block w-4 h-0.5 bg-sky-500 rounded"
-              />
-              <span className="text-sky-700">{overlay.label}</span>
-              {typeof ratioLast === "number" && (
-                <span className="tabular-nums whitespace-nowrap">
-                  {ratioLast >= 1 ? "+" : ""}
-                  {indexAsPercent(ratioLast)}% over range
-                </span>
-              )}
-              {overlay.hint && (
-                <span className="text-gray-400">— {overlay.hint}</span>
-              )}
-            </span>
-          )}
-        </span>
-        <span className="flex items-center gap-3">
+        <span className="flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <span
               aria-hidden
@@ -1071,7 +1021,65 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         </span>
       </div>
 
-      <div className="h-80">
+      {(overlayFailed || trendActive || indexed) && (
+        <div className="flex items-center mb-3 text-xs gap-3 text-gray-500">
+          <span>
+            {overlayFailed && (
+              <span className="text-amber-600">
+                {overlay.label} unavailable — could not load its price history
+              </span>
+            )}
+            {trendActive && trendLabels && (
+              <span className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className="inline-block w-3 h-2.5 rounded-sm"
+                  style={{ backgroundColor: TREND_COLOR[trendSummary.current] }}
+                />
+                <span>
+                  {overlay.label}:{" "}
+                  <span className="font-medium">
+                    {trendLabels[trendSummary.current]}
+                  </span>
+                  {trendSummary.since && (
+                    <span className="text-gray-500">
+                      {" "}
+                      since {trendSummary.since} ({trendSummary.runDays}d)
+                    </span>
+                  )}
+                </span>
+                <span className="text-gray-500 tabular-nums whitespace-nowrap">
+                  — {trendSummary.risingPct}% {trendLabels.rising.toLowerCase()}{" "}
+                  · {trendSummary.fallingPct}%{" "}
+                  {trendLabels.falling.toLowerCase()} over range
+                </span>
+              </span>
+            )}
+            {indexed && (
+              <span className="flex items-center gap-1">
+                <span
+                  aria-hidden
+                  className="inline-block w-4 h-0.5 bg-sky-500 rounded"
+                />
+                <span className="text-sky-700">{overlay.label}</span>
+                {typeof ratioLast === "number" && (
+                  <span className="tabular-nums whitespace-nowrap">
+                    {ratioLast >= 1 ? "+" : ""}
+                    {indexAsPercent(ratioLast)}% over range
+                  </span>
+                )}
+                {overlay.hint && (
+                  <span className="text-gray-400">— {overlay.hint}</span>
+                )}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Sized from the viewport: 90vh is the dialog's ceiling and ~17rem the
+          header, a wrapped controls row and the footer. */}
+      <div className="h-[clamp(13rem,calc(90vh-17rem),28rem)]">
         {pricesLoading && (
           <div className="flex items-center justify-center h-full">
             <Spinner label={"Loading..."} />

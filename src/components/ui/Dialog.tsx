@@ -54,9 +54,9 @@ export default function Dialog({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b p-4">
-          <h2 className="text-xl font-semibold">{title}</h2>
+          <h2 className="text-xl font-semibold min-w-0 flex-1">{title}</h2>
           <button
-            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            className="ml-4 text-gray-500 hover:text-gray-700 text-2xl leading-none"
             onClick={onClose}
           >
             &times;
