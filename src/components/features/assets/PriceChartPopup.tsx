@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react"
 import useSwr, { mutate } from "swr"
 import { usePermissions } from "@hooks/usePermissions"
+import { useWatchlist } from "@hooks/useWatchlist"
 import {
   ComposedChart,
   Area,
@@ -484,6 +485,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     setLocalValue(RATIO_KEY, label)
   }
   const { admin: isAdmin } = usePermissions()
+  const { items: watchlistItems } = useWatchlist()
+  const watched = watchlistItems?.find((i) => i.asset.id === asset.id)
   const [repairState, setRepairState] = useState<{
     busy: boolean
     message: string | null
@@ -726,6 +729,22 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   const resolvedName = priceData?.asset?.name ?? asset.name
   const resolvedMarket = priceData?.asset?.market?.code ?? asset.market?.code
 
+  // The watchlist target, from the first close on or after the day it was set
+  // to the end of the range. A target set after the last close has no span to
+  // draw yet. Both the target and the chart are in the asset's market currency.
+  const targetLine = useMemo(() => {
+    const price = watched?.targetPrice
+    const setOn = watched?.targetOn
+    if (price == null || setOn == null || series.length === 0) return null
+    const first = series.find((p) => p.priceDate >= setOn)
+    if (!first) return null
+    return {
+      price,
+      from: first.priceDate,
+      to: series[series.length - 1].priceDate,
+    }
+  }, [watched, series])
+
   const { min, max } = useMemo(() => {
     if (series.length === 0) return { min: 0, max: 0 }
     const vals: number[] = []
@@ -738,10 +757,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       if (typeof p.buyPrice === "number") vals.push(p.buyPrice)
       if (typeof p.sellPrice === "number") vals.push(p.sellPrice)
     }
-    // Keep the limit line inside the plotted range so it never clips off-axis.
+    // Keep the limit and target lines inside the plotted range so they never
+    // clip off-axis.
     if (typeof limitPrice === "number") vals.push(limitPrice)
+    if (targetLine) vals.push(targetLine.price)
     return { min: Math.min(...vals), max: Math.max(...vals) }
-  }, [series, smaWindows, limitPrice])
+  }, [series, smaWindows, limitPrice, targetLine])
 
   // No ratio selected (or none loaded yet) means nothing to describe: the lane
   // is not reserved and the chart is exactly what it was before the ribbon.
@@ -764,11 +785,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         series.map((p) => p.sellIndex ?? undefined),
         series.map((p) => p.ratio),
         limitIndex,
+        targetLine && priceBase ? [targetLine.price / priceBase] : [],
       ])
     }
     const span = max - min || max * 0.02 || 1
     return [min - span * 0.1, max + span * 0.1]
-  }, [series, smaWindows, indexed, min, max, limitPrice, priceBase])
+  }, [series, smaWindows, indexed, min, max, limitPrice, priceBase, targetLine])
 
   const yDomain = useMemo<[number, number]>(
     () => (trendActive ? reserveRibbonLane(plottedDomain) : plottedDomain),
@@ -804,6 +826,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   }, [yDomain])
 
   const last = series[series.length - 1]
+  // Entered in money, so on an indexed scale it is indexed like the limit.
+  const targetY =
+    targetLine && indexed
+      ? targetLine.price / (priceBase as number)
+      : targetLine?.price
   const first = series[0]
   const changePct =
     first && last && first.close !== 0
@@ -814,9 +841,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // Gap of the latest market close over the supplied limit. Positive means the
   // market trades above the limit (a buy limit would not fill; a sell limit
   // would). null until we have both a close and a non-zero limit.
+  // The header compares the close with a given limit, else the watch target.
+  const gapPrice = limitPrice ?? watched?.targetPrice ?? undefined
+  const gapLabel = limitPrice === undefined ? "Target" : limitLabel
   const limitGapPct =
-    typeof limitPrice === "number" && limitPrice !== 0 && last
-      ? ((last.close - limitPrice) / limitPrice) * 100
+    typeof gapPrice === "number" && gapPrice !== 0 && last
+      ? ((last.close - gapPrice) / gapPrice) * 100
       : null
 
   const splitEvents = useMemo(
@@ -948,12 +978,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {positive ? "+" : ""}
               {changePct.toFixed(2)}%
             </div>
-            {typeof limitPrice === "number" && (
+            {typeof gapPrice === "number" && (
               <div className="mt-1 text-xs tabular-nums">
-                <span className="text-gray-500">{limitLabel} </span>
+                <span className="text-gray-500">{gapLabel} </span>
                 <span className="font-medium text-gray-700">
                   {currencySymbol}
-                  {limitPrice.toFixed(2)}
+                  {gapPrice.toFixed(2)}
                 </span>
                 {limitGapPct !== null && (
                   <span
@@ -962,7 +992,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     }`}
                   >
                     {limitGapPct >= 0 ? "+" : ""}
-                    {limitGapPct.toFixed(2)}% vs {limitLabel.toLowerCase()}
+                    {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
                   </span>
                 )}
               </div>
@@ -1156,6 +1186,24 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     position: "insideTopLeft",
                     fontSize: 10,
                     fill: "#6D28D9",
+                  }}
+                />
+              )}
+              {targetLine && (
+                <ReferenceLine
+                  yAxisId="price"
+                  segment={[
+                    { x: targetLine.from, y: targetY },
+                    { x: targetLine.to, y: targetY },
+                  ]}
+                  stroke="#374151"
+                  strokeDasharray="6 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Target ${currencySymbol}${targetLine.price.toFixed(2)}`,
+                    position: "insideTopRight",
+                    fontSize: 10,
+                    fill: "#374151",
                   }}
                 />
               )}

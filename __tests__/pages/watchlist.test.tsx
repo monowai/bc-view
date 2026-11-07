@@ -602,19 +602,7 @@ describe("Watchlist page", () => {
       expect(screen.queryByText(/rate chart/)).not.toBeInTheDocument()
     })
 
-    it("draws the watch price on the chart", async () => {
-      renderPage()
-      await screen.findByTestId("watchlist-item-wi-1")
-
-      fireEvent.click(
-        within(row("wi-1")).getByRole("button", { name: /price chart/i }),
-      )
-
-      expect(screen.getByText("line Watch 99")).toBeInTheDocument()
-    })
-
-    it("draws no line for an item with no watch price", async () => {
-      watchlist = makeWatchlist({ items: [{ ...priced, targetPrice: null }] })
+    it("leaves the watch target to the chart, which reads the watchlist itself", async () => {
       renderPage()
       await screen.findByTestId("watchlist-item-wi-1")
 

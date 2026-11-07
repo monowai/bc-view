@@ -140,8 +140,6 @@ export default withPageAuthRequired(
               charting.currency.code,
               charting.currency.symbol,
             )}
-            limitPrice={charting.targetPrice ?? undefined}
-            limitLabel="Watch"
             onClose={() => setCharting(null)}
           />
         )}
