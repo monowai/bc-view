@@ -440,6 +440,9 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
   )
 }
 
+// White ink drawn over a coloured chart marker: trade dots and the target tag.
+const MARKER_INK = "#FFFFFF"
+
 const TradeDot: React.FC<{
   cx?: number
   cy?: number
@@ -451,7 +454,65 @@ const TradeDot: React.FC<{
     direction === "up"
       ? `M${cx},${cy - 6} L${cx - 5},${cy + 4} L${cx + 5},${cy + 4} Z`
       : `M${cx},${cy + 6} L${cx - 5},${cy - 4} L${cx + 5},${cy - 4} Z`
-  return <path d={path} fill={color} stroke="#fff" strokeWidth={1} />
+  return <path d={path} fill={color} stroke={MARKER_INK} strokeWidth={1} />
+}
+
+// The watch target is one price, so it draws solid in neutral ink: colour is
+// kept for status, and the SMAs already own the dashed lines.
+const TARGET_COLOR = "#374151"
+const TAG_HEIGHT = 18
+const TAG_PAD = 6
+const TAG_FONT_SIZE = 10
+const TAG_RADIUS = 3
+// First-paint guess at the text's width, until the browser has measured it.
+const TAG_CHAR_WIDTH = TAG_FONT_SIZE * 0.6
+
+/**
+ * The target's price as a filled tag at the right end of its line, where the
+ * eye looks for a price level. Recharts passes the box the segment's end
+ * points span, so its right edge is the line's last close.
+ */
+const TargetTag: React.FC<{
+  text: string
+  viewBox?: { x?: number; y?: number; width?: number }
+}> = ({ text, viewBox }) => {
+  const [textWidth, setTextWidth] = useState<number>()
+  // Letters, the currency symbol and the decimal point are proportional, so
+  // the tag fits the rendered text rather than a per-character estimate.
+  const measure = useCallback((node: SVGTextElement | null): void => {
+    const measured = node?.getComputedTextLength?.()
+    if (measured) setTextWidth(measured)
+  }, [])
+  if (!viewBox) return null
+  const width = (textWidth ?? text.length * TAG_CHAR_WIDTH) + TAG_PAD * 2
+  const right = (viewBox.x ?? 0) + (viewBox.width ?? 0)
+  const y = viewBox.y ?? 0
+  return (
+    <g>
+      <rect
+        x={right - width}
+        y={y - TAG_HEIGHT / 2}
+        width={width}
+        height={TAG_HEIGHT}
+        rx={TAG_RADIUS}
+        fill={TARGET_COLOR}
+      />
+      <text
+        // A new price mounts a new node, so the ref measures it again.
+        key={text}
+        ref={measure}
+        x={right - width / 2}
+        y={y}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={TAG_FONT_SIZE}
+        fill={MARKER_INK}
+        className="tabular-nums"
+      >
+        {text}
+      </text>
+    </g>
+  )
 }
 
 const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
@@ -768,6 +829,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // is not reserved and the chart is exactly what it was before the ribbon.
   const trendActive = series.some((p) => p.trend !== undefined)
   const trendLabels = overlay.trendLabels
+  const legendShown = overlayFailed || trendActive || indexed
 
   // What the axis covers before the ribbon lane is taken out of it: money when
   // the chart plots prices, the shared 1.0-based index when an overlay is on.
@@ -860,16 +922,55 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   return (
     <Dialog
+      // The readout sits beside the name so every row below the header is
+      // spent on the chart, which has to fit the viewport without scrolling.
       title={
-        <div>
-          <div>{resolvedName || asset.code}</div>
-          <p className="text-sm text-gray-500 font-normal">
-            {resolvedMarket}:{asset.code}
-          </p>
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <div className="truncate">{resolvedName || asset.code}</div>
+            <p className="text-sm text-gray-500 font-normal">
+              {resolvedMarket}:{asset.code}
+            </p>
+          </div>
+          {last && (
+            <div className="text-right shrink-0 font-normal">
+              <div className="text-lg font-semibold text-gray-900 tabular-nums">
+                {currencySymbol}
+                <FormatValue value={last.close} />
+              </div>
+              <div
+                className={`text-xs tabular-nums ${
+                  positive ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                {positive ? "+" : ""}
+                {changePct.toFixed(2)}%
+              </div>
+              {typeof gapPrice === "number" && (
+                <div className="mt-1 text-xs tabular-nums">
+                  <span className="text-gray-500">{gapLabel} </span>
+                  <span className="font-medium text-gray-700">
+                    {currencySymbol}
+                    {gapPrice.toFixed(2)}
+                  </span>
+                  {limitGapPct !== null && (
+                    <span
+                      className={`ml-1 ${
+                        limitGapPct >= 0 ? "text-emerald-600" : "text-red-600"
+                      }`}
+                    >
+                      {limitGapPct >= 0 ? "+" : ""}
+                      {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       }
       onClose={onClose}
-      maxWidth="3xl"
+      maxWidth="4xl"
       scrollable
       footer={
         <div className="flex items-center gap-3 w-full justify-between">
@@ -964,96 +1065,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
             ))}
           </div>
         </div>
-        {last && (
-          <div className="text-right">
-            <div className="text-lg font-semibold text-gray-900 tabular-nums">
-              {currencySymbol}
-              <FormatValue value={last.close} />
-            </div>
-            <div
-              className={`text-xs tabular-nums ${
-                positive ? "text-emerald-600" : "text-red-600"
-              }`}
-            >
-              {positive ? "+" : ""}
-              {changePct.toFixed(2)}%
-            </div>
-            {typeof gapPrice === "number" && (
-              <div className="mt-1 text-xs tabular-nums">
-                <span className="text-gray-500">{gapLabel} </span>
-                <span className="font-medium text-gray-700">
-                  {currencySymbol}
-                  {gapPrice.toFixed(2)}
-                </span>
-                {limitGapPct !== null && (
-                  <span
-                    className={`ml-1 ${
-                      limitGapPct >= 0 ? "text-emerald-600" : "text-red-600"
-                    }`}
-                  >
-                    {limitGapPct >= 0 ? "+" : ""}
-                    {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between mb-3 text-xs gap-3 text-gray-500">
-        <span>
-          {overlayFailed && (
-            <span className="text-amber-600">
-              {overlay.label} unavailable — could not load its price history
-            </span>
-          )}
-          {trendActive && trendLabels && (
-            <span className="flex items-center gap-1.5">
-              <span
-                aria-hidden
-                className="inline-block w-3 h-2.5 rounded-sm"
-                style={{ backgroundColor: TREND_COLOR[trendSummary.current] }}
-              />
-              <span>
-                {overlay.label}:{" "}
-                <span className="font-medium">
-                  {trendLabels[trendSummary.current]}
-                </span>
-                {trendSummary.since && (
-                  <span className="text-gray-500">
-                    {" "}
-                    since {trendSummary.since} ({trendSummary.runDays}d)
-                  </span>
-                )}
-              </span>
-              <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                — {trendSummary.risingPct}% {trendLabels.rising.toLowerCase()} ·{" "}
-                {trendSummary.fallingPct}% {trendLabels.falling.toLowerCase()}{" "}
-                over range
-              </span>
-            </span>
-          )}
-          {indexed && (
-            <span className="flex items-center gap-1">
-              <span
-                aria-hidden
-                className="inline-block w-4 h-0.5 bg-sky-500 rounded"
-              />
-              <span className="text-sky-700">{overlay.label}</span>
-              {typeof ratioLast === "number" && (
-                <span className="tabular-nums whitespace-nowrap">
-                  {ratioLast >= 1 ? "+" : ""}
-                  {indexAsPercent(ratioLast)}% over range
-                </span>
-              )}
-              {overlay.hint && (
-                <span className="text-gray-400">— {overlay.hint}</span>
-              )}
-            </span>
-          )}
-        </span>
-        <span className="flex items-center gap-3">
+        <span className="flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <span
               aria-hidden
@@ -1071,7 +1083,73 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         </span>
       </div>
 
-      <div className="h-80">
+      {legendShown && (
+        <div className="flex items-center mb-3 text-xs gap-3 text-gray-500">
+          <span>
+            {overlayFailed && (
+              <span className="text-amber-600">
+                {overlay.label} unavailable — could not load its price history
+              </span>
+            )}
+            {trendActive && trendLabels && (
+              <span className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className="inline-block w-3 h-2.5 rounded-sm"
+                  style={{ backgroundColor: TREND_COLOR[trendSummary.current] }}
+                />
+                <span>
+                  {overlay.label}:{" "}
+                  <span className="font-medium">
+                    {trendLabels[trendSummary.current]}
+                  </span>
+                  {trendSummary.since && (
+                    <span className="text-gray-500">
+                      {" "}
+                      since {trendSummary.since} ({trendSummary.runDays}d)
+                    </span>
+                  )}
+                </span>
+                <span className="text-gray-500 tabular-nums whitespace-nowrap">
+                  — {trendSummary.risingPct}% {trendLabels.rising.toLowerCase()}{" "}
+                  · {trendSummary.fallingPct}%{" "}
+                  {trendLabels.falling.toLowerCase()} over range
+                </span>
+              </span>
+            )}
+            {indexed && (
+              <span className="flex items-center gap-1">
+                <span
+                  aria-hidden
+                  className="inline-block w-4 h-0.5 bg-sky-500 rounded"
+                />
+                <span className="text-sky-700">{overlay.label}</span>
+                {typeof ratioLast === "number" && (
+                  <span className="tabular-nums whitespace-nowrap">
+                    {ratioLast >= 1 ? "+" : ""}
+                    {indexAsPercent(ratioLast)}% over range
+                  </span>
+                )}
+                {overlay.hint && (
+                  <span className="text-gray-400">— {overlay.hint}</span>
+                )}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Sized from the viewport: 90vh is the dialog's ceiling and ~17rem the
+          header, a wrapped controls row and the footer; the overlay legend row
+          and its gap take ~2rem more. Tailwind needs both classes literal. */}
+      <div
+        data-testid="chart-frame"
+        className={
+          legendShown
+            ? "h-[clamp(13rem,calc(90vh-19rem),28rem)]"
+            : "h-[clamp(13rem,calc(90vh-17rem),28rem)]"
+        }
+      >
         {pricesLoading && (
           <div className="flex items-center justify-center h-full">
             <Spinner label={"Loading..."} />
@@ -1196,15 +1274,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     { x: targetLine.from, y: targetY },
                     { x: targetLine.to, y: targetY },
                   ]}
-                  stroke="#374151"
-                  strokeDasharray="6 4"
+                  stroke={TARGET_COLOR}
                   strokeWidth={1.5}
-                  label={{
-                    value: `Target ${currencySymbol}${targetLine.price.toFixed(2)}`,
-                    position: "insideTopRight",
-                    fontSize: 10,
-                    fill: "#374151",
-                  }}
+                  label={
+                    <TargetTag
+                      text={`Target ${currencySymbol}${targetLine.price.toFixed(2)}`}
+                    />
+                  }
                 />
               )}
               {splitEvents.map((p) => (

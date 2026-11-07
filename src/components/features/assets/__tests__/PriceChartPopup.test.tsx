@@ -78,11 +78,13 @@ jest.mock("recharts", () => ({
     y,
     segment,
     label,
+    strokeDasharray,
   }: {
     x?: string
     y?: number
     segment?: { x: string; y: number }[]
-    label?: { value?: string }
+    label?: React.ReactElement<{ text?: string; viewBox?: object }>
+    strokeDasharray?: string
   }) =>
     segment ? (
       <g
@@ -90,8 +92,15 @@ jest.mock("recharts", () => ({
         data-from={segment[0].x}
         data-to={segment[1].x}
         data-y={segment[0].y}
-        data-label={label?.value}
-      />
+        data-tag={label?.props.text}
+        data-dash={strokeDasharray ?? "solid"}
+      >
+        {/* Recharts hands a segment's label the box its two end points span. */}
+        {label &&
+          React.cloneElement(label, {
+            viewBox: { x: 40, y: 100, width: 300, height: 0 },
+          })}
+      </g>
     ) : x != null ? (
       <g data-testid={`refline-${x}`} />
     ) : (
@@ -1086,6 +1095,33 @@ describe("PriceChartPopup", () => {
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
   })
 
+  it("gives the overlay legend row its height out of the chart's budget", () => {
+    mockUseSwr.mockImplementation(((key: unknown) => {
+      const base = makeRouter({})(key)
+      if (typeof key === "string" && key.startsWith("/api/assets/resolve")) {
+        return {
+          data: undefined,
+          isLoading: false,
+          error: new Error("boom"),
+        } as unknown as ReturnType<typeof useSwr>
+      }
+      return base
+    }) as unknown as typeof useSwr)
+
+    renderPopup()
+    const frame = screen.getByTestId("chart-frame")
+    expect(frame.className).toContain("calc(90vh-17rem)")
+
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    // The legend row and its gap take ~2rem; without this the dialog body
+    // scrolls whenever an overlay is on.
+    expect(screen.getByText(/vs SPY unavailable/)).toBeInTheDocument()
+    expect(screen.getByTestId("chart-frame").className).toContain(
+      "calc(90vh-19rem)",
+    )
+  })
+
   it("fetches trades from a single portfolio via the path form", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
@@ -1336,7 +1372,27 @@ describe("PriceChartPopup", () => {
       expect(target()).toHaveAttribute("data-from", "2026-04-01")
       expect(target()).toHaveAttribute("data-to", "2026-04-20")
       expect(target()).toHaveAttribute("data-y", "450")
-      expect(target()).toHaveAttribute("data-label", "Target $450.00")
+      expect(target()).toHaveAttribute("data-tag", "Target $450.00")
+      expect(target()).toHaveAttribute("data-dash", "solid")
+    })
+
+    it("sizes the target tag to its measured text at the line's right end", () => {
+      const proto = window.SVGElement.prototype as unknown as Record<
+        string,
+        unknown
+      >
+      proto.getComputedTextLength = (): number => 80
+      try {
+        mockUseSwr.mockImplementation(makeRouter({}))
+        watchedFrom("2026-03-25")
+        renderPopup()
+
+        const tag = target().querySelector("rect") as SVGRectElement
+        expect(tag).toHaveAttribute("width", "92")
+        expect(tag).toHaveAttribute("x", "248")
+      } finally {
+        delete proto.getComputedTextLength
+      }
     })
 
     it("runs the target across the whole range when it was set before it", () => {
