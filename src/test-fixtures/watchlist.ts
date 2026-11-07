@@ -10,6 +10,7 @@ export function makeWatchlistItem(
     addedPrice: 100,
     addedOn: "2026-01-02",
     targetPrice: 150,
+    targetOn: "2026-01-02",
     currency: USD,
     price: 120,
     priceDate: "2026-01-09",

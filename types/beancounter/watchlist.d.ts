@@ -10,6 +10,8 @@ export interface WatchlistItem {
   /** yyyy-MM-dd */
   addedOn: string
   targetPrice: number | null
+  /** yyyy-MM-dd the target was set; null without a target. */
+  targetOn: string | null
   currency: Currency
   price: number | null
   priceDate: string | null

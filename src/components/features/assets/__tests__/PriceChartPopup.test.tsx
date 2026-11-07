@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PriceChartPopup, { parseDefaultSmas } from "../PriceChartPopup"
 import useSwr from "swr"
-import { makeAsset } from "@test-fixtures/beancounter"
+import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
+import { useWatchlist } from "@hooks/useWatchlist"
+import type { WatchlistItem } from "types/beancounter"
 import { localIsoDate } from "@lib/formatters"
 
 jest.mock("swr", () => ({
@@ -23,6 +25,16 @@ jest.mock("@hooks/usePermissions", () => ({
   __esModule: true,
   usePermissions: () => mockUsePermissions(),
 }))
+
+jest.mock("@hooks/useWatchlist")
+function watching(items: WatchlistItem[] | undefined): void {
+  ;(useWatchlist as jest.Mock).mockReturnValue({
+    items,
+    error: undefined,
+    isLoading: false,
+    mutate: jest.fn(),
+  })
+}
 
 let lastSeries: Record<string, unknown>[] = []
 
@@ -61,8 +73,26 @@ jest.mock("recharts", () => ({
   }) => (
     <g data-testid="rs-band" data-from={x1} data-to={x2} data-fill={fill} />
   ),
-  ReferenceLine: ({ x, y }: { x?: string; y?: number }) =>
-    x != null ? (
+  ReferenceLine: ({
+    x,
+    y,
+    segment,
+    label,
+  }: {
+    x?: string
+    y?: number
+    segment?: { x: string; y: number }[]
+    label?: { value?: string }
+  }) =>
+    segment ? (
+      <g
+        data-testid="refline-segment"
+        data-from={segment[0].x}
+        data-to={segment[1].x}
+        data-y={segment[0].y}
+        data-label={label?.value}
+      />
+    ) : x != null ? (
       <g data-testid={`refline-${x}`} />
     ) : (
       <g data-testid={`refline-y-${y}`} />
@@ -314,6 +344,7 @@ describe("PriceChartPopup", () => {
   beforeEach(() => {
     mockUseSwr.mockReset()
     window.localStorage.clear()
+    watching([])
     mockUsePermissions.mockReturnValue({
       ai: false,
       preview: false,
@@ -1288,6 +1319,77 @@ describe("PriceChartPopup", () => {
     renderPopup()
 
     expect(screen.getByText("Failed to load price history")).toBeInTheDocument()
+  })
+
+  describe("watchlist target", () => {
+    const target = (): HTMLElement => screen.getByTestId("refline-segment")
+    const watchedFrom = (
+      targetOn: string | null,
+      targetPrice: number | null = 450,
+    ): void => watching([makeWatchlistItem({ asset, targetPrice, targetOn })])
+
+    it("draws the target from the first close on or after the day it was set", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25")
+      renderPopup()
+
+      expect(target()).toHaveAttribute("data-from", "2026-04-01")
+      expect(target()).toHaveAttribute("data-to", "2026-04-20")
+      expect(target()).toHaveAttribute("data-y", "450")
+      expect(target()).toHaveAttribute("data-label", "Target $450.00")
+    })
+
+    it("runs the target across the whole range when it was set before it", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2025-01-10")
+      renderPopup()
+
+      expect(target()).toHaveAttribute("data-from", "2026-03-21")
+    })
+
+    it("widens the price axis so a distant target stays on the chart", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 600)
+      renderPopup()
+
+      const domain = JSON.parse(
+        screen.getByTestId("yaxis-price").getAttribute("data-domain") as string,
+      ) as [number, number]
+      expect(domain[1]).toBeGreaterThan(600)
+    })
+
+    it("reports the gap to the target in the header when no limit is given", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 400)
+      renderPopup()
+
+      expect(screen.getByText("+5.00% vs target")).toBeInTheDocument()
+    })
+
+    it("keeps a given limit in the header over the target", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 400)
+      renderPopup({ limitPrice: 420, limitLabel: "Limit" })
+
+      expect(screen.getByText("+0.00% vs limit")).toBeInTheDocument()
+      expect(screen.queryByText(/vs target/)).not.toBeInTheDocument()
+    })
+
+    it("draws no target line for an asset watched without a target", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom(null, null)
+      renderPopup()
+
+      expect(screen.queryByTestId("refline-segment")).not.toBeInTheDocument()
+    })
+
+    it("draws no target line while the target postdates every close", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-04-21")
+      renderPopup()
+
+      expect(screen.queryByTestId("refline-segment")).not.toBeInTheDocument()
+    })
   })
 
   describe("Repair splits admin action", () => {
