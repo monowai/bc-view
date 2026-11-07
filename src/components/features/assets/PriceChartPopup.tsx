@@ -440,6 +440,9 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
   )
 }
 
+// White ink drawn over a coloured chart marker: trade dots and the target tag.
+const MARKER_INK = "#FFFFFF"
+
 const TradeDot: React.FC<{
   cx?: number
   cy?: number
@@ -451,7 +454,7 @@ const TradeDot: React.FC<{
     direction === "up"
       ? `M${cx},${cy - 6} L${cx - 5},${cy + 4} L${cx + 5},${cy + 4} Z`
       : `M${cx},${cy + 6} L${cx - 5},${cy - 4} L${cx + 5},${cy - 4} Z`
-  return <path d={path} fill={color} stroke="#fff" strokeWidth={1} />
+  return <path d={path} fill={color} stroke={MARKER_INK} strokeWidth={1} />
 }
 
 // The watch target is one price, so it draws solid in neutral ink: colour is
@@ -460,20 +463,28 @@ const TARGET_COLOR = "#374151"
 const TAG_HEIGHT = 18
 const TAG_PAD = 6
 const TAG_FONT_SIZE = 10
-// Recharts gives a label no measured text width; at TAG_FONT_SIZE the digits
-// and letters here run close to 0.6em each.
+const TAG_RADIUS = 3
+// First-paint guess at the text's width, until the browser has measured it.
 const TAG_CHAR_WIDTH = TAG_FONT_SIZE * 0.6
 
 /**
  * The target's price as a filled tag at the right end of its line, where the
- * eye looks for a price level. Recharts passes the line's viewBox.
+ * eye looks for a price level. Recharts passes the box the segment's end
+ * points span, so its right edge is the line's last close.
  */
 const TargetTag: React.FC<{
   text: string
   viewBox?: { x?: number; y?: number; width?: number }
 }> = ({ text, viewBox }) => {
+  const [textWidth, setTextWidth] = useState<number>()
+  // Letters, the currency symbol and the decimal point are proportional, so
+  // the tag fits the rendered text rather than a per-character estimate.
+  const measure = useCallback((node: SVGTextElement | null): void => {
+    const measured = node?.getComputedTextLength?.()
+    if (measured) setTextWidth(measured)
+  }, [])
   if (!viewBox) return null
-  const width = text.length * TAG_CHAR_WIDTH + TAG_PAD * 2
+  const width = (textWidth ?? text.length * TAG_CHAR_WIDTH) + TAG_PAD * 2
   const right = (viewBox.x ?? 0) + (viewBox.width ?? 0)
   const y = viewBox.y ?? 0
   return (
@@ -483,16 +494,19 @@ const TargetTag: React.FC<{
         y={y - TAG_HEIGHT / 2}
         width={width}
         height={TAG_HEIGHT}
-        rx={3}
+        rx={TAG_RADIUS}
         fill={TARGET_COLOR}
       />
       <text
+        // A new price mounts a new node, so the ref measures it again.
+        key={text}
+        ref={measure}
         x={right - width / 2}
         y={y}
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={TAG_FONT_SIZE}
-        fill="#FFFFFF"
+        fill={MARKER_INK}
         className="tabular-nums"
       >
         {text}

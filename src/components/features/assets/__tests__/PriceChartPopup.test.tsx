@@ -83,7 +83,7 @@ jest.mock("recharts", () => ({
     x?: string
     y?: number
     segment?: { x: string; y: number }[]
-    label?: React.ReactElement<{ text?: string }>
+    label?: React.ReactElement<{ text?: string; viewBox?: object }>
     strokeDasharray?: string
   }) =>
     segment ? (
@@ -94,7 +94,13 @@ jest.mock("recharts", () => ({
         data-y={segment[0].y}
         data-tag={label?.props.text}
         data-dash={strokeDasharray ?? "solid"}
-      />
+      >
+        {/* Recharts hands a segment's label the box its two end points span. */}
+        {label &&
+          React.cloneElement(label, {
+            viewBox: { x: 40, y: 100, width: 300, height: 0 },
+          })}
+      </g>
     ) : x != null ? (
       <g data-testid={`refline-${x}`} />
     ) : (
@@ -1368,6 +1374,25 @@ describe("PriceChartPopup", () => {
       expect(target()).toHaveAttribute("data-y", "450")
       expect(target()).toHaveAttribute("data-tag", "Target $450.00")
       expect(target()).toHaveAttribute("data-dash", "solid")
+    })
+
+    it("sizes the target tag to its measured text at the line's right end", () => {
+      const proto = window.SVGElement.prototype as unknown as Record<
+        string,
+        unknown
+      >
+      proto.getComputedTextLength = (): number => 80
+      try {
+        mockUseSwr.mockImplementation(makeRouter({}))
+        watchedFrom("2026-03-25")
+        renderPopup()
+
+        const tag = target().querySelector("rect") as SVGRectElement
+        expect(tag).toHaveAttribute("width", "92")
+        expect(tag).toHaveAttribute("x", "248")
+      } finally {
+        delete proto.getComputedTextLength
+      }
     })
 
     it("runs the target across the whole range when it was set before it", () => {
