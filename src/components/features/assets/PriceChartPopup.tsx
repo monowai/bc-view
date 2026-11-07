@@ -109,6 +109,9 @@ interface ChartPoint {
   [smaIndexKey: `sma${number}Index`]: number | undefined
   buyIndex?: number | null
   sellIndex?: number | null
+  // The plotted close over the watch target's span, null before it, so the
+  // gap between the closes and the target line can be shaded.
+  targetGap?: number | null
 }
 
 const RANGES: { label: string; months: number }[] = [
@@ -440,7 +443,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
   )
 }
 
-// White ink drawn over a coloured chart marker: trade dots and the target tag.
+// White ink drawn over a coloured chart marker.
 const MARKER_INK = "#FFFFFF"
 
 const TradeDot: React.FC<{
@@ -460,58 +463,44 @@ const TradeDot: React.FC<{
 // The watch target is one price, so it draws solid in neutral ink: colour is
 // kept for status, and the SMAs already own the dashed lines.
 const TARGET_COLOR = "#374151"
-const TAG_HEIGHT = 18
-const TAG_PAD = 6
-const TAG_FONT_SIZE = 10
-const TAG_RADIUS = 3
-// First-paint guess at the text's width, until the browser has measured it.
-const TAG_CHAR_WIDTH = TAG_FONT_SIZE * 0.6
+// The gap between the closes and the target is shaded as a move: gain above
+// the target line, loss below it.
+const GAIN_COLOR = "#10B981"
+const LOSS_COLOR = "#EF4444"
+const TARGET_FILL_OPACITY = 0.3
 
 /**
- * The target's price as a filled tag at the right end of its line, where the
- * eye looks for a price level. Recharts passes the box the segment's end
- * points span, so its right edge is the line's last close.
+ * Whether the last close is over, under or at the watch target, then the
+ * target's price and by how much: "Over target $400.00 by 5.00%". Without a
+ * close to compare, the target's price alone is said.
  */
-const TargetTag: React.FC<{
-  text: string
-  viewBox?: { x?: number; y?: number; width?: number }
-}> = ({ text, viewBox }) => {
-  const [textWidth, setTextWidth] = useState<number>()
-  // Letters, the currency symbol and the decimal point are proportional, so
-  // the tag fits the rendered text rather than a per-character estimate.
-  const measure = useCallback((node: SVGTextElement | null): void => {
-    const measured = node?.getComputedTextLength?.()
-    if (measured) setTextWidth(measured)
-  }, [])
-  if (!viewBox) return null
-  const width = (textWidth ?? text.length * TAG_CHAR_WIDTH) + TAG_PAD * 2
-  const right = (viewBox.x ?? 0) + (viewBox.width ?? 0)
-  const y = viewBox.y ?? 0
+const TargetGap: React.FC<{ price: string; gapPct: number | null }> = ({
+  price,
+  gapPct,
+}) => {
+  const rounded = gapPct === null ? null : Number(gapPct.toFixed(2))
+  const words =
+    rounded === null
+      ? "Target"
+      : rounded > 0
+        ? "Over target"
+        : rounded < 0
+          ? "Under target"
+          : "At target"
+  const tone =
+    rounded === null || rounded === 0
+      ? "text-gray-500"
+      : rounded > 0
+        ? "text-emerald-600"
+        : "text-red-600"
   return (
-    <g>
-      <rect
-        x={right - width}
-        y={y - TAG_HEIGHT / 2}
-        width={width}
-        height={TAG_HEIGHT}
-        rx={TAG_RADIUS}
-        fill={TARGET_COLOR}
-      />
-      <text
-        // A new price mounts a new node, so the ref measures it again.
-        key={text}
-        ref={measure}
-        x={right - width / 2}
-        y={y}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={TAG_FONT_SIZE}
-        fill={MARKER_INK}
-        className="tabular-nums"
-      >
-        {text}
-      </text>
-    </g>
+    <div data-testid="target-gap" className="mt-1 text-xs tabular-nums">
+      <span className={tone}>{words}</span>{" "}
+      <span className="font-medium text-gray-700">{price}</span>
+      {rounded !== null && rounded !== 0 && (
+        <span className={tone}> by {Math.abs(rounded).toFixed(2)}%</span>
+      )}
+    </div>
   )
 }
 
@@ -893,6 +882,32 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     targetLine && indexed
       ? targetLine.price / (priceBase as number)
       : targetLine?.price
+  // The series the chart draws: the closes, plus their plotted values over the
+  // target's span for the shaded gap.
+  const chartData = useMemo(() => {
+    if (!targetLine) return series
+    return series.map((p) => ({
+      ...p,
+      targetGap:
+        p.priceDate >= targetLine.from
+          ? ((indexed ? p.closeIndex : p.close) ?? null)
+          : null,
+    }))
+  }, [series, targetLine, indexed])
+
+  // Where the shade turns from gain to loss, as a fraction of its height from
+  // the top. The y scale is linear and the shade spans the closes and the
+  // target, so the target's place among those values is its place in the box.
+  const targetSplit = useMemo(() => {
+    if (targetY === undefined) return 1
+    const values = chartData
+      .map((p) => p.targetGap)
+      .filter((v): v is number => typeof v === "number")
+    const high = Math.max(targetY, ...values)
+    const low = Math.min(targetY, ...values)
+    return high === low ? 1 : (high - targetY) / (high - low)
+  }, [chartData, targetY])
+
   const first = series[0]
   const changePct =
     first && last && first.close !== 0
@@ -906,6 +921,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // The header compares the close with a given limit, else the watch target.
   const gapPrice = limitPrice ?? watched?.targetPrice ?? undefined
   const gapLabel = limitPrice === undefined ? "Target" : limitLabel
+  const watchTarget = limitPrice === undefined ? gapPrice : undefined
   const limitGapPct =
     typeof gapPrice === "number" && gapPrice !== 0 && last
       ? ((last.close - gapPrice) / gapPrice) * 100
@@ -934,24 +950,33 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
           </div>
           {last && (
             <div className="text-right shrink-0 font-normal">
-              <div className="text-lg font-semibold text-gray-900 tabular-nums">
-                {currencySymbol}
-                <FormatValue value={last.close} />
+              {/* The move over the range sits on the price's line. */}
+              <div className="flex items-baseline justify-end gap-2 tabular-nums">
+                <span className="text-lg font-semibold text-gray-900">
+                  {currencySymbol}
+                  <FormatValue value={last.close} />
+                </span>
+                <span
+                  className={`text-xs ${
+                    positive ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {positive ? "+" : ""}
+                  {changePct.toFixed(2)}%
+                </span>
               </div>
-              <div
-                className={`text-xs tabular-nums ${
-                  positive ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                {positive ? "+" : ""}
-                {changePct.toFixed(2)}%
-              </div>
-              {typeof gapPrice === "number" && (
+              {typeof watchTarget === "number" && (
+                <TargetGap
+                  price={`${currencySymbol}${watchTarget.toFixed(2)}`}
+                  gapPct={limitGapPct}
+                />
+              )}
+              {typeof limitPrice === "number" && (
                 <div className="mt-1 text-xs tabular-nums">
                   <span className="text-gray-500">{gapLabel} </span>
                   <span className="font-medium text-gray-700">
                     {currencySymbol}
-                    {gapPrice.toFixed(2)}
+                    {limitPrice.toFixed(2)}
                   </span>
                   {limitGapPct !== null && (
                     <span
@@ -1168,7 +1193,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         {!pricesLoading && !priceError && series.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={series}
+              data={chartData}
               margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
             >
               <defs>
@@ -1184,6 +1209,20 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     stopOpacity={0}
                   />
                 </linearGradient>
+                {targetLine && (
+                  <linearGradient
+                    id="targetGapFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset={0} stopColor={GAIN_COLOR} />
+                    <stop offset={targetSplit} stopColor={GAIN_COLOR} />
+                    <stop offset={targetSplit} stopColor={LOSS_COLOR} />
+                    <stop offset={1} stopColor={LOSS_COLOR} />
+                  </linearGradient>
+                )}
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis
@@ -1241,6 +1280,20 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   />
                 }
               />
+              {targetLine && (
+                <Area
+                  yAxisId="price"
+                  type="monotone"
+                  dataKey="targetGap"
+                  baseValue={targetY}
+                  stroke="none"
+                  fill="url(#targetGapFill)"
+                  fillOpacity={TARGET_FILL_OPACITY}
+                  activeDot={false}
+                  tooltipType="none"
+                  isAnimationActive={false}
+                />
+              )}
               <Area
                 yAxisId="price"
                 type="monotone"
@@ -1276,11 +1329,6 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   ]}
                   stroke={TARGET_COLOR}
                   strokeWidth={1.5}
-                  label={
-                    <TargetTag
-                      text={`Target ${currencySymbol}${targetLine.price.toFixed(2)}`}
-                    />
-                  }
                 />
               )}
               {splitEvents.map((p) => (

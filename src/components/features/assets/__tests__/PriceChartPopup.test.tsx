@@ -53,8 +53,16 @@ jest.mock("recharts", () => ({
       </svg>
     )
   },
-  Area: ({ dataKey }: { dataKey: string }) => (
-    <g data-testid={`area-${dataKey}`} />
+  Area: ({
+    dataKey,
+    baseValue,
+    fill,
+  }: {
+    dataKey: string
+    baseValue?: number
+    fill?: string
+  }) => (
+    <g data-testid={`area-${dataKey}`} data-base={baseValue} data-fill={fill} />
   ),
   Line: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`line-${dataKey}`} />
@@ -1372,27 +1380,9 @@ describe("PriceChartPopup", () => {
       expect(target()).toHaveAttribute("data-from", "2026-04-01")
       expect(target()).toHaveAttribute("data-to", "2026-04-20")
       expect(target()).toHaveAttribute("data-y", "450")
-      expect(target()).toHaveAttribute("data-tag", "Target $450.00")
+      expect(target()).not.toHaveAttribute("data-tag")
+      expect(target().querySelector("rect")).toBeNull()
       expect(target()).toHaveAttribute("data-dash", "solid")
-    })
-
-    it("sizes the target tag to its measured text at the line's right end", () => {
-      const proto = window.SVGElement.prototype as unknown as Record<
-        string,
-        unknown
-      >
-      proto.getComputedTextLength = (): number => 80
-      try {
-        mockUseSwr.mockImplementation(makeRouter({}))
-        watchedFrom("2026-03-25")
-        renderPopup()
-
-        const tag = target().querySelector("rect") as SVGRectElement
-        expect(tag).toHaveAttribute("width", "92")
-        expect(tag).toHaveAttribute("x", "248")
-      } finally {
-        delete proto.getComputedTextLength
-      }
     })
 
     it("runs the target across the whole range when it was set before it", () => {
@@ -1414,12 +1404,70 @@ describe("PriceChartPopup", () => {
       expect(domain[1]).toBeGreaterThan(600)
     })
 
-    it("reports the gap to the target in the header when no limit is given", () => {
+    it("says the last close is over the target, and by how much", () => {
       mockUseSwr.mockImplementation(makeRouter({}))
       watchedFrom("2026-03-25", 400)
       renderPopup()
 
-      expect(screen.getByText("+5.00% vs target")).toBeInTheDocument()
+      expect(screen.getByTestId("target-gap")).toHaveTextContent(
+        "Over target $400.00 by 5.00%",
+      )
+    })
+
+    it("says the last close is under the target, and by how much", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 450)
+      renderPopup()
+
+      expect(screen.getByTestId("target-gap")).toHaveTextContent(
+        "Under target $450.00 by 6.67%",
+      )
+    })
+
+    it("says the last close is at a target it rounds to", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 420.001)
+      renderPopup()
+
+      expect(screen.getByTestId("target-gap")).toHaveTextContent(
+        "At target $420.00",
+      )
+      expect(screen.getByTestId("target-gap")).not.toHaveTextContent(/ by /)
+    })
+
+    it("shades between the closes and the target over the target's span", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 415)
+      renderPopup()
+
+      expect(lastSeries.map((p) => p.targetGap)).toEqual([null, 410, 420])
+      const gap = screen.getByTestId("area-targetGap")
+      expect(gap).toHaveAttribute("data-base", "415")
+      expect(gap).toHaveAttribute("data-fill", "url(#targetGapFill)")
+    })
+
+    it("turns the shade from gain to loss where the target crosses it", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 415)
+      const { container } = renderPopup()
+
+      const stops = Array.from(
+        container.querySelectorAll("#targetGapFill stop"),
+      ).map((s) => [s.getAttribute("offset"), s.getAttribute("stop-color")])
+      expect(stops).toEqual([
+        ["0", "#10B981"],
+        ["0.5", "#10B981"],
+        ["0.5", "#EF4444"],
+        ["1", "#EF4444"],
+      ])
+    })
+
+    it("draws no shade without a target line", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-04-21")
+      renderPopup()
+
+      expect(screen.queryByTestId("area-targetGap")).not.toBeInTheDocument()
     })
 
     it("keeps a given limit in the header over the target", () => {
@@ -1428,7 +1476,7 @@ describe("PriceChartPopup", () => {
       renderPopup({ limitPrice: 420, limitLabel: "Limit" })
 
       expect(screen.getByText("+0.00% vs limit")).toBeInTheDocument()
-      expect(screen.queryByText(/vs target/)).not.toBeInTheDocument()
+      expect(screen.queryByTestId("target-gap")).not.toBeInTheDocument()
     })
 
     it("draws no target line for an asset watched without a target", () => {
