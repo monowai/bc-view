@@ -78,11 +78,13 @@ jest.mock("recharts", () => ({
     y,
     segment,
     label,
+    strokeDasharray,
   }: {
     x?: string
     y?: number
     segment?: { x: string; y: number }[]
-    label?: { value?: string }
+    label?: React.ReactElement<{ text?: string }>
+    strokeDasharray?: string
   }) =>
     segment ? (
       <g
@@ -90,7 +92,8 @@ jest.mock("recharts", () => ({
         data-from={segment[0].x}
         data-to={segment[1].x}
         data-y={segment[0].y}
-        data-label={label?.value}
+        data-tag={label?.props.text}
+        data-dash={strokeDasharray ?? "solid"}
       />
     ) : x != null ? (
       <g data-testid={`refline-${x}`} />
@@ -1336,7 +1339,8 @@ describe("PriceChartPopup", () => {
       expect(target()).toHaveAttribute("data-from", "2026-04-01")
       expect(target()).toHaveAttribute("data-to", "2026-04-20")
       expect(target()).toHaveAttribute("data-y", "450")
-      expect(target()).toHaveAttribute("data-label", "Target $450.00")
+      expect(target()).toHaveAttribute("data-tag", "Target $450.00")
+      expect(target()).toHaveAttribute("data-dash", "solid")
     })
 
     it("runs the target across the whole range when it was set before it", () => {

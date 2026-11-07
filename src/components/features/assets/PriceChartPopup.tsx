@@ -454,6 +454,52 @@ const TradeDot: React.FC<{
   return <path d={path} fill={color} stroke="#fff" strokeWidth={1} />
 }
 
+// The watch target is one price, so it draws solid in neutral ink: colour is
+// kept for status, and the SMAs already own the dashed lines.
+const TARGET_COLOR = "#374151"
+const TAG_HEIGHT = 18
+const TAG_PAD = 6
+// Recharts gives a label no measured text width; at 10px the digits and
+// letters here run close to 6px each.
+const TAG_CHAR_WIDTH = 6
+
+/**
+ * The target's price as a filled tag at the right end of its line, where the
+ * eye looks for a price level. Recharts passes the line's viewBox.
+ */
+const TargetTag: React.FC<{
+  text: string
+  viewBox?: { x?: number; y?: number; width?: number }
+}> = ({ text, viewBox }) => {
+  if (!viewBox) return null
+  const width = text.length * TAG_CHAR_WIDTH + TAG_PAD * 2
+  const right = (viewBox.x ?? 0) + (viewBox.width ?? 0)
+  const y = viewBox.y ?? 0
+  return (
+    <g>
+      <rect
+        x={right - width}
+        y={y - TAG_HEIGHT / 2}
+        width={width}
+        height={TAG_HEIGHT}
+        rx={3}
+        fill={TARGET_COLOR}
+      />
+      <text
+        x={right - width / 2}
+        y={y}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={10}
+        fill="#FFFFFF"
+        className="tabular-nums"
+      >
+        {text}
+      </text>
+    </g>
+  )
+}
+
 const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   asset,
   currencySymbol = "",
@@ -1204,15 +1250,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     { x: targetLine.from, y: targetY },
                     { x: targetLine.to, y: targetY },
                   ]}
-                  stroke="#374151"
-                  strokeDasharray="6 4"
+                  stroke={TARGET_COLOR}
                   strokeWidth={1.5}
-                  label={{
-                    value: `Target ${currencySymbol}${targetLine.price.toFixed(2)}`,
-                    position: "insideTopRight",
-                    fontSize: 10,
-                    fill: "#374151",
-                  }}
+                  label={
+                    <TargetTag
+                      text={`Target ${currencySymbol}${targetLine.price.toFixed(2)}`}
+                    />
+                  }
                 />
               )}
               {splitEvents.map((p) => (
