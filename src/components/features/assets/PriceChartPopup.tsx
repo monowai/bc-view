@@ -459,9 +459,10 @@ const TradeDot: React.FC<{
 const TARGET_COLOR = "#374151"
 const TAG_HEIGHT = 18
 const TAG_PAD = 6
-// Recharts gives a label no measured text width; at 10px the digits and
-// letters here run close to 6px each.
-const TAG_CHAR_WIDTH = 6
+const TAG_FONT_SIZE = 10
+// Recharts gives a label no measured text width; at TAG_FONT_SIZE the digits
+// and letters here run close to 0.6em each.
+const TAG_CHAR_WIDTH = TAG_FONT_SIZE * 0.6
 
 /**
  * The target's price as a filled tag at the right end of its line, where the
@@ -490,7 +491,7 @@ const TargetTag: React.FC<{
         y={y}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={10}
+        fontSize={TAG_FONT_SIZE}
         fill="#FFFFFF"
         className="tabular-nums"
       >
