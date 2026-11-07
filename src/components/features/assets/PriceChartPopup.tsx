@@ -815,6 +815,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // is not reserved and the chart is exactly what it was before the ribbon.
   const trendActive = series.some((p) => p.trend !== undefined)
   const trendLabels = overlay.trendLabels
+  const legendShown = overlayFailed || trendActive || indexed
 
   // What the axis covers before the ribbon lane is taken out of it: money when
   // the chart plots prices, the shared 1.0-based index when an overlay is on.
@@ -1068,7 +1069,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         </span>
       </div>
 
-      {(overlayFailed || trendActive || indexed) && (
+      {legendShown && (
         <div className="flex items-center mb-3 text-xs gap-3 text-gray-500">
           <span>
             {overlayFailed && (
@@ -1125,8 +1126,16 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       )}
 
       {/* Sized from the viewport: 90vh is the dialog's ceiling and ~17rem the
-          header, a wrapped controls row and the footer. */}
-      <div className="h-[clamp(13rem,calc(90vh-17rem),28rem)]">
+          header, a wrapped controls row and the footer; the overlay legend row
+          and its gap take ~2rem more. Tailwind needs both classes literal. */}
+      <div
+        data-testid="chart-frame"
+        className={
+          legendShown
+            ? "h-[clamp(13rem,calc(90vh-19rem),28rem)]"
+            : "h-[clamp(13rem,calc(90vh-17rem),28rem)]"
+        }
+      >
         {pricesLoading && (
           <div className="flex items-center justify-center h-full">
             <Spinner label={"Loading..."} />

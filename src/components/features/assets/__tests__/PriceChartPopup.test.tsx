@@ -1089,6 +1089,33 @@ describe("PriceChartPopup", () => {
     expect(screen.queryByTestId("line-ratio")).not.toBeInTheDocument()
   })
 
+  it("gives the overlay legend row its height out of the chart's budget", () => {
+    mockUseSwr.mockImplementation(((key: unknown) => {
+      const base = makeRouter({})(key)
+      if (typeof key === "string" && key.startsWith("/api/assets/resolve")) {
+        return {
+          data: undefined,
+          isLoading: false,
+          error: new Error("boom"),
+        } as unknown as ReturnType<typeof useSwr>
+      }
+      return base
+    }) as unknown as typeof useSwr)
+
+    renderPopup()
+    const frame = screen.getByTestId("chart-frame")
+    expect(frame.className).toContain("calc(90vh-17rem)")
+
+    fireEvent.click(screen.getByRole("button", { name: "vs SPY" }))
+
+    // The legend row and its gap take ~2rem; without this the dialog body
+    // scrolls whenever an overlay is on.
+    expect(screen.getByText(/vs SPY unavailable/)).toBeInTheDocument()
+    expect(screen.getByTestId("chart-frame").className).toContain(
+      "calc(90vh-19rem)",
+    )
+  })
+
   it("fetches trades from a single portfolio via the path form", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
