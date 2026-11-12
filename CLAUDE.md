@@ -8,7 +8,7 @@ Next.js frontend for the Beancounter financial transaction processing system.
 
 | Repository  | Path             | Purpose                                                                        |
 | ----------- | ---------------- | ------------------------------------------------------------------------------ |
-| bc-claude   | `../bc-claude`   | **Read first** - System architecture, Auth0, service URLs, cross-service flows |
+| bc-domain   | `../bc-domain`   | **Read first** - System architecture, Auth0, service URLs, cross-service flows |
 | bc-deploy   | `../bc-deploy`   | Kubernetes/Helm deployment, OpenAPI endpoints, debugging                       |
 | beancounter | `../beancounter` | Spring Boot backend services (Kotlin source code)                              |
 
