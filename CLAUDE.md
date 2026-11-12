@@ -328,6 +328,44 @@ yarn check-imports
 
 **Message broker connection failed**: Check `RABBIT_URL` or `KAFKA_URL` and `BROKER_TYPE`
 
+## Standards
+
+General rules are in the harness plugin: [ways of working](../harness/plugins/harness/standards/ways-of-working.md),
+[TypeScript, React and Next.js](../harness/plugins/harness/standards/typescript.md), [client calls](../harness/plugins/harness/standards/client-calls.md)
+and the [standards index](../harness/plugins/harness/standards/README.md). This app is the model for the TypeScript
+standard. What follows is specific to this app.
+
+## Styling and dev-server notes
+
+- **Tailwind with cascade layers: keep an icon library's display rules off the icon element.**
+  Unlayered icon-font rules such as `.fas` can beat a layered `hidden sm:inline`.
+  Put display utilities on a wrapper `<span>`. Run the failing browser test again
+  after a CSS fix, before you start the full suite.
+- **Tailwind: class-based dark mode with semantic tokens.** Enable the variant
+  with `@custom-variant dark (&:where(.dark, .dark *))` and toggle a `.dark` class on
+  the root element. Do not fall back to `prefers-color-scheme`; the user's choice
+  wins.
+- **Wide views lift their own width cap.** Keep the page frame one width on every
+  view so the header never moves. A view that needs more room lifts the cap in its
+  own styles.
+- **A dev server can serve a stale bundle.** After edits to many files, the page
+  renders and the console is clean, but your change is missing. This looks like a
+  render bug. Fetch the loaded script chunks and search them for a string that only
+  the new code has. If it is absent, restart the dev server. A browser hard reload
+  does not help.
+- **Allow time for the first paint after a restart.** In dev it can take 20 to 40
+  seconds. Read `document.body.innerText` before you decide the page is broken.
+- **Never delete the build cache folder while the dev server runs.** The bundler can
+  then fail every request, including font loading. Serve a branch from the checkout
+  that already has a warm cache.
+- **CI artifact upload: include hidden files.** `actions/upload-artifact` drops
+  dot-prefixed paths such as `.next/` unless `include-hidden-files: true` is set. The
+  image then rebuilds without the public build-time variables, and the browser bundle
+  ships them as `undefined`.
+- **Public build-time variables go to every build path.** Pass a `NEXT_PUBLIC_*`
+  value to the CI build step and to the image build arguments. Assert after the build
+  that the value is present in the client chunk, so a missing value fails the build.
+
 ## Docker Build
 
 ```bash
