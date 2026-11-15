@@ -12,10 +12,23 @@ export interface Broker {
   notes?: string
 }
 
+/** A brokerage firm known to every user; a user's broker is an account with one. */
+export interface GlobalBroker {
+  id: string
+  code: string
+  name: string
+}
+
+export interface GlobalBrokersResponse {
+  data: GlobalBroker[]
+}
+
 export interface BrokerInput {
   name: string
   accountNumber?: string
   notes?: string
+  // The firm this broker is an account with. Left out, a saved firm is kept.
+  globalBrokerId?: string
   // Map of currency code to settlement account asset ID
   settlementAccounts?: Record<string, string>
 }
@@ -45,6 +58,7 @@ export interface BrokerWithAccounts {
   name: string
   accountNumber?: string
   notes?: string
+  globalBrokerId?: string
   settlementAccounts: SettlementAccountMapping[]
 }
 

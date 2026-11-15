@@ -8,6 +8,7 @@ import { jsonInit } from "@utils/api/client/request"
 
 export const brokersKey = "/api/brokers"
 export const brokersWithAccountsKey = `${brokersKey}?includeAccounts=true`
+export const globalBrokersKey = "/api/global-brokers"
 export const brokerUrl = (brokerId: string): string =>
   `${brokersKey}/${brokerId}`
 
