@@ -9,6 +9,7 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
+import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import Spinner from "@components/ui/Spinner"
 
 // Common currencies for settlement accounts
@@ -25,6 +26,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     deleteBroker,
     transferTransactions,
   } = useBrokers()
+  const { globalBrokers } = useGlobalBrokers()
 
   const [editingBroker, setEditingBroker] = useState<BrokerWithAccounts | null>(
     null,
@@ -71,6 +73,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       name: broker.name,
       accountNumber: broker.accountNumber || "",
       notes: broker.notes || "",
+      globalBrokerId: broker.globalBrokerId,
       settlementAccounts: settlementMap,
     })
     setEditingBroker(broker)
@@ -166,6 +169,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     setTargetBrokerId("")
     setDeleteError(null)
   }, [])
+
+  const firmName = (globalBrokerId?: string): string | undefined =>
+    globalBrokers.find((firm) => firm.id === globalBrokerId)?.name
 
   if (error) {
     return errorOut("Error loading brokers", error)
@@ -297,6 +303,39 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                       autoFocus
                     />
                   </div>
+
+                  {globalBrokers.length > 0 && (
+                    <div>
+                      <label
+                        htmlFor="broker-firm"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        {"Brokerage firm"}
+                      </label>
+                      <select
+                        id="broker-firm"
+                        value={formData.globalBrokerId ?? ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            globalBrokerId: e.target.value || undefined,
+                          })
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        {/* A saved firm can be changed but not removed: the
+                            backend keeps it when the request names none. */}
+                        {!editingBroker?.globalBrokerId && (
+                          <option value="">{"Not listed"}</option>
+                        )}
+                        {globalBrokers.map((firm) => (
+                          <option key={firm.id} value={firm.id}>
+                            {firm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -473,6 +512,12 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {broker.name}
                     </h3>
+                    {firmName(broker.globalBrokerId) && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        <i className="fas fa-building-columns mr-1 text-gray-400"></i>
+                        {firmName(broker.globalBrokerId)}
+                      </p>
+                    )}
                     {broker.accountNumber && (
                       <p className="text-sm text-gray-600 mt-1">
                         <i className="fas fa-hashtag mr-1 text-gray-400"></i>
