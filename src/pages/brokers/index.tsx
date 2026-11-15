@@ -324,8 +324,10 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                         className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
                         {/* A saved firm can be changed but not removed: the
-                            backend keeps it when the request names none. */}
-                        {!editingBroker?.globalBrokerId && (
+                            backend keeps it when the request names none. A
+                            saved firm the list no longer names shows as not
+                            listed, as on the card, and is kept on save. */}
+                        {!firmName(editingBroker?.globalBrokerId) && (
                           <option value="">{"Not listed"}</option>
                         )}
                         {globalBrokers.map((firm) => (

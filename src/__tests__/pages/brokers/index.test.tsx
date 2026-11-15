@@ -118,6 +118,23 @@ describe("Brokers page: brokerage firm", () => {
     expect(choices).toEqual(["gb-ibkr", "gb-schwab"])
   })
 
+  it("shows a saved firm the list no longer names as not listed, and keeps it on save", async () => {
+    show([{ ...linked, globalBrokerId: "gb-gone" }])
+    fireEvent.click(screen.getByTitle("Edit"))
+
+    const firm = screen.getByLabelText("Brokerage firm") as HTMLSelectElement
+    expect(firm.selectedOptions[0].text).toBe("Not listed")
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        "b1",
+        expect.objectContaining({ globalBrokerId: "gb-gone" }),
+      ),
+    )
+  })
+
   it("names the firm on the broker's card", () => {
     show([linked, unlinked])
 
