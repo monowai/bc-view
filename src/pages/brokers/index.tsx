@@ -150,7 +150,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       } else {
         setDeletingBroker(broker)
       }
-    } catch {
+    } catch (err) {
+      console.error("Failed to read broker holdings:", err)
       setDeleteError("Failed to read the broker's holdings")
     }
   }, [])

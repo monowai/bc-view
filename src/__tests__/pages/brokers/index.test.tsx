@@ -259,6 +259,7 @@ describe("Brokers page: brokerage firm", () => {
   })
 
   it("says so, and removes nothing, when the holdings cannot be read", async () => {
+    const logged = jest.spyOn(console, "error").mockImplementation(() => {})
     fetchMock.mockResponse(JSON.stringify({ message: "down" }), { status: 500 })
     show([unlinked])
     fireEvent.click(screen.getByTitle("Delete"))
@@ -267,5 +268,9 @@ describe("Brokers page: brokerage firm", () => {
       await screen.findByText("Failed to read the broker's holdings"),
     ).toBeInTheDocument()
     expect(deleteBroker).not.toHaveBeenCalled()
+    expect(logged).toHaveBeenCalledWith("Failed to read broker holdings:", {
+      message: "down",
+    })
+    logged.mockRestore()
   })
 })
