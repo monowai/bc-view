@@ -1,7 +1,10 @@
 import React from "react"
-import { act, render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { enableFetchMocks } from "jest-fetch-mock"
 import Brokers from "@pages/brokers"
+
+enableFetchMocks()
 
 const BrokersPage = Brokers as React.ComponentType<any>
 
@@ -51,6 +54,10 @@ describe("Brokers page", () => {
     hook.isLoading = false
     hook.saveBroker.mockResolvedValue(undefined)
     hook.deleteBroker.mockResolvedValue(undefined)
+    fetchMock.resetMocks()
+    fetchMock.mockResponse(
+      JSON.stringify({ brokerId: "b1", brokerName: "Alpha", holdings: [] }),
+    )
     hook.transferTransactions.mockResolvedValue(undefined)
     jest.spyOn(console, "error").mockImplementation(() => {})
   })
@@ -194,7 +201,9 @@ describe("Brokers page", () => {
     ): Promise<void> => {
       await user.click(screen.getAllByTitle("Delete")[0])
       expect(
-        screen.getByText(/Delete broker Alpha Broker and all associated data/),
+        await screen.findByText(
+          "Delete broker Alpha Broker? It holds no positions.",
+        ),
       ).toBeInTheDocument()
       await user.click(
         screen.getAllByRole("button", { name: "Delete" }).pop() as HTMLElement,
@@ -212,21 +221,23 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(screen.getAllByTitle("Delete")[0])
-      await user.click(screen.getByRole("button", { name: "Cancel" }))
+      await user.click(await screen.findByRole("button", { name: "Cancel" }))
       expect(hook.deleteBroker).not.toHaveBeenCalled()
     })
 
-    it("offers a transfer when delete fails because of transactions", async () => {
+    it("offers to deactivate when delete fails because of transactions", async () => {
       hook.deleteBroker.mockRejectedValue(new Error("Broker has transactions"))
       const user = userEvent.setup()
       render(<BrokersPage />)
       await confirmDelete(user)
       expect(
-        await screen.findByText("Broker has transactions"),
+        await screen.findByText(
+          /Alpha Broker has transactions, so it cannot be deleted/,
+        ),
       ).toBeInTheDocument()
       expect(
-        screen.getByText(/Transfer all transactions from "Alpha Broker"/),
-      ).toBeInTheDocument()
+        screen.queryByText(/Transfer all transactions/),
+      ).not.toBeInTheDocument()
     })
 
     it("transfers transactions to the chosen broker and announces success", async () => {
@@ -265,10 +276,11 @@ describe("Brokers page", () => {
       hook.deleteBroker.mockRejectedValue("bad")
       const user = userEvent.setup()
       render(<BrokersPage />)
-      await act(async () => {
-        await confirmDelete(user)
-      })
+      await confirmDelete(user)
       // generic message contains no 'transaction', so no transfer dialog
+      expect(
+        await screen.findByText("Failed to delete broker"),
+      ).toBeInTheDocument()
       expect(
         screen.queryByText(/Transfer all transactions/),
       ).not.toBeInTheDocument()

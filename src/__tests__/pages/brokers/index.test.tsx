@@ -3,7 +3,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import BrokersPage from "@pages/brokers/index"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
+import { enableFetchMocks } from "jest-fetch-mock"
 import type { BrokerWithAccounts, GlobalBroker } from "types/beancounter"
+
+enableFetchMocks()
 
 jest.mock("@hooks/useBrokers")
 const mockUseBrokers = useBrokers as jest.Mock
@@ -37,6 +40,18 @@ const unlinked: BrokerWithAccounts = {
 
 describe("Brokers page: brokerage firm", () => {
   const saveBroker = jest.fn()
+  const deleteBroker = jest.fn()
+
+  // What the broker holds, as /api/trns/broker/{id}/holdings reports it.
+  function holds(...quantities: number[]): void {
+    fetchMock.mockResponse(
+      JSON.stringify({
+        brokerId: "b",
+        brokerName: "b",
+        holdings: quantities.map((quantity) => ({ quantity })),
+      }),
+    )
+  }
 
   function show(
     brokers: BrokerWithAccounts[],
@@ -48,7 +63,7 @@ describe("Brokers page: brokerage firm", () => {
       error: undefined,
       isLoading: false,
       saveBroker,
-      deleteBroker: jest.fn(),
+      deleteBroker,
       transferTransactions: jest.fn(),
     })
     mockUseGlobalBrokers.mockReturnValue({ globalBrokers })
@@ -57,6 +72,9 @@ describe("Brokers page: brokerage firm", () => {
 
   beforeEach(() => {
     saveBroker.mockReset().mockResolvedValue(undefined)
+    deleteBroker.mockReset().mockResolvedValue(undefined)
+    fetchMock.resetMocks()
+    holds()
   })
 
   it("saves a new broker against the firm the user picks", async () => {
@@ -147,5 +165,107 @@ describe("Brokers page: brokerage firm", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /Add Broker/ })[0])
 
     expect(screen.queryByLabelText("Brokerage firm")).not.toBeInTheDocument()
+  })
+
+  it("offers to close an account with a firm, and to delete a broker with none", () => {
+    show([linked, unlinked])
+
+    expect(screen.getAllByTitle("Close account")).toHaveLength(1)
+    expect(screen.getAllByTitle("Delete")).toHaveLength(1)
+  })
+
+  it("closes an account that holds nothing, and says the firm stays", async () => {
+    show([linked])
+    fireEvent.click(screen.getByTitle("Close account"))
+
+    expect(
+      await screen.findByText(
+        'Close your Interactive Brokers account "My IB"? Your account details are removed. Interactive Brokers stays available to add again.',
+      ),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByText("Close account", { selector: "button" }))
+
+    await waitFor(() => expect(deleteBroker).toHaveBeenCalledWith("b1"))
+  })
+
+  it("deletes a broker with no firm whose positions are all sold out", async () => {
+    holds(0, 0)
+    show([unlinked])
+    fireEvent.click(screen.getByTitle("Delete"))
+
+    await screen.findByText("Delete broker Local bank? It holds no positions.")
+    fireEvent.click(screen.getByText("Delete", { selector: "button" }))
+
+    await waitFor(() => expect(deleteBroker).toHaveBeenCalledWith("b2"))
+  })
+
+  it("offers to deactivate a broker that holds a position, and neither closes nor deletes it", async () => {
+    holds(10, 0, 5)
+    show([linked])
+    fireEvent.click(screen.getByTitle("Close account"))
+
+    expect(
+      await screen.findByText(
+        "My IB holds 2 position(s), so it cannot be closed. Deactivate it to stop it being offered for a new trade. Its transactions stay.",
+      ),
+    ).toBeInTheDocument()
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/trns/broker/b1/holdings")
+    fireEvent.click(screen.getByText("Deactivate", { selector: "button" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith("b1", {
+        name: "My IB",
+        active: false,
+      }),
+    )
+    expect(deleteBroker).not.toHaveBeenCalled()
+  })
+
+  it("offers to deactivate a broker the server will not delete because it has transactions", async () => {
+    deleteBroker.mockRejectedValue(
+      new Error("Cannot delete broker 'Local bank' - it has 4 transaction(s)."),
+    )
+    show([unlinked])
+    fireEvent.click(screen.getByTitle("Delete"))
+    await screen.findByText("Delete broker Local bank? It holds no positions.")
+    fireEvent.click(screen.getByText("Delete", { selector: "button" }))
+
+    expect(
+      await screen.findByText(
+        "Local bank has transactions, so it cannot be deleted. Deactivate it to stop it being offered for a new trade. Its transactions stay.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("marks a deactivated broker inactive and reactivates it on request", async () => {
+    show([{ ...linked, active: false }, unlinked])
+
+    expect(screen.getAllByText("Inactive")).toHaveLength(1)
+    fireEvent.click(screen.getByTitle("Reactivate"))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith("b1", {
+        name: "My IB",
+        active: true,
+      }),
+    )
+  })
+
+  it("offers no reactivation for an active broker", () => {
+    show([linked])
+
+    expect(screen.queryByTitle("Reactivate")).not.toBeInTheDocument()
+    expect(screen.queryByText("Inactive")).not.toBeInTheDocument()
+  })
+
+  it("says so, and removes nothing, when the holdings cannot be read", async () => {
+    fetchMock.mockResponse(JSON.stringify({ message: "down" }), { status: 500 })
+    show([unlinked])
+    fireEvent.click(screen.getByTitle("Delete"))
+
+    expect(
+      await screen.findByText("Failed to read the broker's holdings"),
+    ).toBeInTheDocument()
+    expect(deleteBroker).not.toHaveBeenCalled()
   })
 })

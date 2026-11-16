@@ -57,6 +57,7 @@ import {
   brokerHasSettlementForCurrency,
   resolveSellableQuantity,
   heldQuantityForBroker,
+  brokersOfferedForTrade,
   singleHeldBrokerId,
 } from "@lib/trns/tradeFormHelpers"
 import {
@@ -354,6 +355,10 @@ const TradeInputForm: React.FC<{
   const tradeCurrency = watch("tradeCurrency")
   const asset = watch("asset")
   const brokerId = watch("brokerId")
+  const offeredBrokers = useMemo(
+    () => brokersOfferedForTrade(brokers, brokerId),
+    [brokers, brokerId],
+  )
 
   // Weight basis: aggregate market value when supplied (aggregated view),
   // otherwise the single portfolio's own market value.
@@ -757,13 +762,13 @@ const TradeInputForm: React.FC<{
     if (brokerAutoSelectedRef.current || isEditMode) return
     if (
       acceptsBroker(type?.value) &&
-      brokers.length === 1 &&
+      offeredBrokers.length === 1 &&
       !watch("brokerId")
     ) {
       brokerAutoSelectedRef.current = true
-      setValue("brokerId", brokers[0].id)
+      setValue("brokerId", offeredBrokers[0].id)
     }
-  }, [isEditMode, type?.value, brokers, setValue, watch])
+  }, [isEditMode, type?.value, offeredBrokers, setValue, watch])
 
   // Quick Sell: when the asset is held at exactly one brokerage, default to it
   // (the brokerId effect below then fills the quantity). Fires once; create
@@ -1251,7 +1256,7 @@ const TradeInputForm: React.FC<{
                             onChange={(e) => field.onChange(e.target.value)}
                           >
                             <option value="">{"-- No broker --"}</option>
-                            {brokers.map((broker) => (
+                            {offeredBrokers.map((broker) => (
                               <option key={broker.id} value={broker.id}>
                                 {broker.name}
                                 {broker.accountNumber
@@ -1469,7 +1474,7 @@ const TradeInputForm: React.FC<{
                               onChange={(e) => field.onChange(e.target.value)}
                             >
                               <option value="">{"-- No broker --"}</option>
-                              {brokers.map((broker) => (
+                              {offeredBrokers.map((broker) => (
                                 <option key={broker.id} value={broker.id}>
                                   {broker.name}
                                   {broker.accountNumber

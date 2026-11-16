@@ -1,6 +1,12 @@
 import React, { useState, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { BrokerInput, BrokerWithAccounts } from "types/beancounter"
+import {
+  BrokerHoldingsResponse,
+  BrokerInput,
+  BrokerWithAccounts,
+} from "types/beancounter"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+import { brokerTrnHoldingsKey } from "@utils/api/client/trns"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
@@ -9,6 +15,7 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
+import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import Spinner from "@components/ui/Spinner"
 
@@ -44,6 +51,10 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const [targetBrokerId, setTargetBrokerId] = useState<string>("")
   const [isTransferring, setIsTransferring] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deactivating, setDeactivating] = useState<{
+    broker: BrokerWithAccounts
+    why: string
+  } | null>(null)
   const [deletingBroker, setDeletingBroker] =
     useState<BrokerWithAccounts | null>(null)
   const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
@@ -122,10 +133,42 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     }
   }, [formData, editingBroker, saveBroker, handleCancel])
 
-  const handleDelete = useCallback((broker: BrokerWithAccounts) => {
+  // A broker that holds a position can be neither closed nor deleted: the user
+  // is offered to deactivate it. The server refuses one that has transactions,
+  // and the same offer follows.
+  const handleDelete = useCallback(async (broker: BrokerWithAccounts) => {
     setDeleteError(null)
-    setDeletingBroker(broker)
+    try {
+      const held: BrokerHoldingsResponse = await simpleFetcher(
+        brokerTrnHoldingsKey(broker.id),
+      )()
+      const positions = held.holdings.filter(
+        (holding) => holding.quantity !== 0,
+      ).length
+      if (positions > 0) {
+        setDeactivating({ broker, why: `holds ${positions} position(s)` })
+      } else {
+        setDeletingBroker(broker)
+      }
+    } catch {
+      setDeleteError("Failed to read the broker's holdings")
+    }
   }, [])
+
+  const setActive = useCallback(
+    async (broker: BrokerWithAccounts, active: boolean) => {
+      setDeactivating(null)
+      setDeleteError(null)
+      try {
+        await saveBroker(broker.id, { name: broker.name, active })
+      } catch (err) {
+        setDeleteError(
+          err instanceof Error ? err.message : "Failed to update the broker",
+        )
+      }
+    },
+    [saveBroker],
+  )
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deletingBroker) return
@@ -136,8 +179,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to delete broker"
       if (errorMessage.toLowerCase().includes("transaction")) {
-        setTransferringBroker(deletingBroker)
-        setDeleteError(errorMessage)
+        setDeactivating({ broker: deletingBroker, why: "has transactions" })
       } else {
         setDeleteError(errorMessage)
       }
@@ -172,6 +214,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
   const firmName = (globalBrokerId?: string): string | undefined =>
     globalBrokers.find((firm) => firm.id === globalBrokerId)?.name
+  const deletingFirm = firmName(deletingBroker?.globalBrokerId)
 
   if (error) {
     return errorOut("Error loading brokers", error)
@@ -186,6 +229,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {transferSuccess && (
         <div className="px-4 pt-4">
           <Alert variant="success">{transferSuccess}</Alert>
+        </div>
+      )}
+      {deleteError && !transferringBroker && (
+        <div className="px-4 pt-4">
+          <Alert>{deleteError}</Alert>
         </div>
       )}
       {/* Header */}
@@ -304,40 +352,22 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                     />
                   </div>
 
-                  {globalBrokers.length > 0 && (
-                    <div>
-                      <label
-                        htmlFor="broker-firm"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        {"Brokerage firm"}
-                      </label>
-                      <select
-                        id="broker-firm"
-                        value={formData.globalBrokerId ?? ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            globalBrokerId: e.target.value || undefined,
-                          })
-                        }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        {/* A saved firm can be changed but not removed: the
-                            backend keeps it when the request names none. A
-                            saved firm the list no longer names shows as not
-                            listed, as on the card, and is kept on save. */}
-                        {!firmName(editingBroker?.globalBrokerId) && (
-                          <option value="">{"Not listed"}</option>
-                        )}
-                        {globalBrokers.map((firm) => (
-                          <option key={firm.id} value={firm.id}>
-                            {firm.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  {/* A saved firm can be changed but not removed: the backend
+                      keeps it when the request names none. A saved firm the
+                      list no longer names shows as not listed, as on the card,
+                      and is kept on save. */}
+                  <BrokerFirmSelect
+                    firms={globalBrokers}
+                    value={formData.globalBrokerId ?? ""}
+                    onChange={(globalBrokerId) =>
+                      setFormData({
+                        ...formData,
+                        globalBrokerId: globalBrokerId || undefined,
+                      })
+                    }
+                    allowNone={!firmName(editingBroker?.globalBrokerId)}
+                    selectClassName="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -513,6 +543,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   >
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {broker.name}
+                      {broker.active === false && (
+                        <span className="ml-2 text-xs font-medium text-gray-600 bg-gray-100 rounded px-2 py-0.5">
+                          {"Inactive"}
+                        </span>
+                      )}
                     </h3>
                     {firmName(broker.globalBrokerId) && (
                       <p className="text-sm text-gray-600 mt-1">
@@ -556,10 +591,23 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                     >
                       <i className="fas fa-exchange-alt"></i>
                     </button>
+                    {broker.active === false && (
+                      <button
+                        onClick={() => setActive(broker, true)}
+                        className="text-gray-400 hover:text-green-600 p-2 transition-colors"
+                        title={"Reactivate"}
+                      >
+                        <i className="fas fa-rotate-left"></i>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(broker)}
                       className="text-gray-400 hover:text-red-600 p-2 transition-colors"
-                      title={"Delete"}
+                      title={
+                        firmName(broker.globalBrokerId)
+                          ? "Close account"
+                          : "Delete"
+                      }
                     >
                       <i className="far fa-trash-alt"></i>
                     </button>
@@ -621,12 +669,28 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
         </Dialog>
       )}
 
+      {deactivating && (
+        <ConfirmDialog
+          title={"Deactivate Broker"}
+          message={`${deactivating.broker.name} ${deactivating.why}, so it cannot be ${firmName(deactivating.broker.globalBrokerId) ? "closed" : "deleted"}. Deactivate it to stop it being offered for a new trade. Its transactions stay.`}
+          confirmLabel={"Deactivate"}
+          cancelLabel={"Cancel"}
+          variant="amber"
+          onConfirm={() => setActive(deactivating.broker, false)}
+          onCancel={() => setDeactivating(null)}
+        />
+      )}
+
       {/* Delete Confirmation */}
       {deletingBroker && (
         <ConfirmDialog
-          title={"Delete Broker"}
-          message={`Delete broker ${deletingBroker.name} and all associated data?`}
-          confirmLabel={"Delete"}
+          title={deletingFirm ? "Close Account" : "Delete Broker"}
+          message={
+            deletingFirm
+              ? `Close your ${deletingFirm} account "${deletingBroker.name}"? Your account details are removed. ${deletingFirm} stays available to add again.`
+              : `Delete broker ${deletingBroker.name}? It holds no positions.`
+          }
+          confirmLabel={deletingFirm ? "Close account" : "Delete"}
           cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}

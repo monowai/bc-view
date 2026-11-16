@@ -17,6 +17,8 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 import { activePortfoliosKey } from "@utils/api/client/portfolios"
 import { brokersKey } from "@utils/api/client/brokers"
+import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
+import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
 
@@ -25,6 +27,7 @@ interface BrokerState {
   existingId: string
   newName: string
   newAccountNumber: string
+  newGlobalBrokerId: string
 }
 
 interface PortfolioState {
@@ -100,6 +103,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     existingId: "",
     newName: "",
     newAccountNumber: "",
+    newGlobalBrokerId: "",
   })
   const [portfolio, setPortfolio] = useState<PortfolioState>({
     // Master users toggle this; for Zen users the effective mode is derived
@@ -129,6 +133,21 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
+  const { globalBrokers } = useGlobalBrokers()
+
+  // Picking a firm names the broker after it, unless the user has typed a name
+  // of their own: a name that is blank or still a firm's name is replaced.
+  const pickFirm = (globalBrokerId: string): void => {
+    const firmNames = globalBrokers.map((firm) => firm.name)
+    const picked = globalBrokers.find((firm) => firm.id === globalBrokerId)
+    const typed = broker.newName.trim()
+    const ownName = typed.length > 0 && !firmNames.includes(typed)
+    setBroker({
+      ...broker,
+      newGlobalBrokerId: globalBrokerId,
+      newName: ownName || !picked ? broker.newName : picked.name,
+    })
+  }
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
 
   const { preferences } = useUserPreferences()
@@ -234,6 +253,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           existingId: broker.existingId || undefined,
           newName: broker.newName || undefined,
           newAccountNumber: broker.newAccountNumber || undefined,
+          newGlobalBrokerId: broker.newGlobalBrokerId || undefined,
         },
         portfolio:
           effMode === "existing"
@@ -327,6 +347,13 @@ export default function OpenBrokerageWizard(): React.ReactElement {
 
           {broker.mode === "new" ? (
             <div className="space-y-3">
+              <BrokerFirmSelect
+                firms={globalBrokers}
+                value={broker.newGlobalBrokerId}
+                onChange={pickFirm}
+                allowNone
+                selectClassName="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+              />
               <div>
                 <label
                   htmlFor="broker-name"
