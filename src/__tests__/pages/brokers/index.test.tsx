@@ -14,6 +14,10 @@ const mockUseBrokers = useBrokers as jest.Mock
 jest.mock("@hooks/useGlobalBrokers")
 const mockUseGlobalBrokers = useGlobalBrokers as jest.Mock
 
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({ admin: true }),
+}))
+
 jest.mock("next/router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 }))
@@ -56,7 +60,7 @@ describe("Brokers page: brokerage firm", () => {
   function show(
     brokers: BrokerWithAccounts[],
     globalBrokers: GlobalBroker[] = firms,
-  ): void {
+  ): ReturnType<typeof render> {
     mockUseBrokers.mockReturnValue({
       brokers,
       accountAssets: [],
@@ -67,7 +71,7 @@ describe("Brokers page: brokerage firm", () => {
       transferTransactions: jest.fn(),
     })
     mockUseGlobalBrokers.mockReturnValue({ globalBrokers })
-    render(<BrokersPage />)
+    return render(<BrokersPage />)
   }
 
   beforeEach(() => {
@@ -77,17 +81,27 @@ describe("Brokers page: brokerage firm", () => {
     holds()
   })
 
-  it("saves a new broker against the firm the user picks", async () => {
-    show([])
+  function openDialog(): void {
     fireEvent.click(
       screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
     )
-    fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
-      target: { value: "My IB" },
-    })
-    fireEvent.change(screen.getByLabelText("Brokerage firm"), {
-      target: { value: "gb-ibkr" },
-    })
+  }
+
+  function type(label: string, value: string): void {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  }
+
+  function pickFirm(choice: string): void {
+    const firm = screen.getByLabelText("Brokerage firm *") as HTMLSelectElement
+    const option = Array.from(firm.options).find((o) => o.text === choice)
+    fireEvent.change(firm, { target: { value: option?.value } })
+  }
+
+  it("saves a new account against the listed firm the user picks", async () => {
+    show([])
+    openDialog()
+    pickFirm("Interactive Brokers")
+    type("Account name", "My IB")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
@@ -98,18 +112,89 @@ describe("Brokers page: brokerage firm", () => {
     )
   })
 
-  it("saves a new broker with no firm when the user picks none", async () => {
+  it("names a new account after its firm when the user gives no account name", async () => {
     show([])
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+    openDialog()
+    pickFirm("Charles Schwab")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          name: "Charles Schwab",
+          globalBrokerId: "gb-schwab",
+        }),
+      ),
     )
-    fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
-      target: { value: "Local bank" },
-    })
+  })
+
+  it("saves a firm that is not listed as the account's own name, with no firm link", async () => {
+    show([])
+    openDialog()
+    expect(screen.queryByLabelText("Firm name *")).not.toBeInTheDocument()
+    pickFirm("Not listed")
+    type("Firm name *", "Local bank")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(saveBroker).toHaveBeenCalled())
+    expect(saveBroker.mock.calls[0][1].name).toBe("Local bank")
     expect(saveBroker.mock.calls[0][1].globalBrokerId).toBeUndefined()
+  })
+
+  it("names a new account with the listed firm's own spelling when the user types it", async () => {
+    show([])
+    openDialog()
+    pickFirm("Not listed")
+    type("Firm name *", "  interactive brokers ")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          name: "Interactive Brokers",
+          globalBrokerId: "gb-ibkr",
+        }),
+      ),
+    )
+  })
+
+  it("keeps the firm name field while the user types, after the firms load", () => {
+    const { rerender } = show([], [])
+    openDialog()
+    type("Firm name *", "Interactive Broker")
+
+    mockUseGlobalBrokers.mockReturnValue({ globalBrokers: firms })
+    rerender(<BrokersPage />)
+    type("Firm name *", "Interactive Brokers")
+
+    expect(screen.getByLabelText("Firm name *")).toHaveValue(
+      "Interactive Brokers",
+    )
+  })
+
+  it("offers the supported firms, then the choice of one that is not listed", () => {
+    show([])
+    openDialog()
+
+    const choices = Array.from(
+      (screen.getByLabelText("Brokerage firm *") as HTMLSelectElement).options,
+    ).map((option) => option.text)
+    expect(choices).toEqual([
+      "Select a firm",
+      "Interactive Brokers",
+      "Charles Schwab",
+      "Not listed",
+    ])
+  })
+
+  it("cannot save a new account that names no firm", () => {
+    show([])
+    openDialog()
+    type("Account name", "Orphan")
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
   })
 
   it("shows the firm a broker is already saved against, and lets the user change it", async () => {
@@ -164,13 +249,19 @@ describe("Brokers page: brokerage firm", () => {
     expect(screen.queryByText("Charles Schwab")).not.toBeInTheDocument()
   })
 
-  it("hides the firm choice when no firms are available", () => {
+  it("lets the user type the firm when there are no supported firms to pick", async () => {
     show([], [])
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
-    )
+    openDialog()
+    expect(screen.queryByLabelText("Brokerage firm *")).not.toBeInTheDocument()
+    type("Firm name *", "Tiger")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
-    expect(screen.queryByLabelText("Brokerage firm")).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ name: "Tiger" }),
+      ),
+    )
   })
 
   it("offers to close an account with a firm, and to delete a broker with none", () => {
