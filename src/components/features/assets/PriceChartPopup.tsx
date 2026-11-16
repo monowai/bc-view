@@ -37,7 +37,8 @@ import {
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { localIsoDate } from "@lib/formatters"
+import { formatDate, localIsoDate } from "@lib/formatters"
+import TargetDistance from "@components/features/watchlists/TargetDistance"
 import { assetResolveKey } from "@utils/api/client/assets"
 import { tradeKey, trnsKey } from "@utils/api/client/trns"
 import { priceHistoryKey, repairSplits } from "@utils/api/client/prices"
@@ -463,46 +464,36 @@ const TradeDot: React.FC<{
 // The watch target is one price, so it draws solid in neutral ink: colour is
 // kept for status, and the SMAs already own the dashed lines.
 const TARGET_COLOR = "#374151"
-// The gap between the closes and the target is shaded as a move: gain above
-// the target line, loss below it.
-const GAIN_COLOR = "#10B981"
-const LOSS_COLOR = "#EF4444"
-const TARGET_FILL_OPACITY = 0.3
+// The gap between the closes and the target is the distance still to go, not a
+// gain or a loss, so it is shaded in the target's own ink.
+const TARGET_FILL_OPACITY = 0.12
 
 /**
- * Whether the last close is over, under or at the watch target, then the
- * target's price and by how much: "Over target $400.00 by 5.00%". Without a
- * close to compare, the target's price alone is said.
+ * The watch target's price, the day it was last hit if it has been, and how far
+ * the last close must move to reach it: "Target $400.00 hit 1 Apr 2026 · ▼ 4.76%".
+ * A hit is history, so it never hides the distance. Without a close to compare,
+ * no distance is said.
  */
-const TargetGap: React.FC<{ price: string; gapPct: number | null }> = ({
-  price,
-  gapPct,
-}) => {
-  const rounded = gapPct === null ? null : Number(gapPct.toFixed(2))
-  const words =
-    rounded === null
-      ? "Target"
-      : rounded > 0
-        ? "Over target"
-        : rounded < 0
-          ? "Under target"
-          : "At target"
-  const tone =
-    rounded === null || rounded === 0
-      ? "text-gray-500"
-      : rounded > 0
-        ? "text-emerald-600"
-        : "text-red-600"
-  return (
-    <div data-testid="target-gap" className="mt-1 text-xs tabular-nums">
-      <span className={tone}>{words}</span>{" "}
-      <span className="font-medium text-gray-700">{price}</span>
-      {rounded !== null && rounded !== 0 && (
-        <span className={tone}> by {Math.abs(rounded).toFixed(2)}%</span>
-      )}
-    </div>
-  )
-}
+const TargetGap: React.FC<{
+  price: string
+  toTarget: number | null
+  hitOn?: string | null
+}> = ({ price, toTarget, hitOn }) => (
+  <div
+    data-testid="target-gap"
+    className="mt-1 text-xs tabular-nums text-gray-500"
+  >
+    {"Target "}
+    <span className="font-medium text-gray-700">{price}</span>{" "}
+    {hitOn && (
+      <span className="font-medium text-amber-800">
+        hit {formatDate(hitOn)}
+        {toTarget !== null && " · "}
+      </span>
+    )}
+    {toTarget !== null && <TargetDistance toTarget={toTarget} />}
+  </div>
+)
 
 const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   asset,
@@ -895,19 +886,6 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     }))
   }, [series, targetLine, indexed])
 
-  // Where the shade turns from gain to loss, as a fraction of its height from
-  // the top. The y scale is linear and the shade spans the closes and the
-  // target, so the target's place among those values is its place in the box.
-  const targetSplit = useMemo(() => {
-    if (targetY === undefined) return 1
-    const values = chartData
-      .map((p) => p.targetGap)
-      .filter((v): v is number => typeof v === "number")
-    const high = Math.max(targetY, ...values)
-    const low = Math.min(targetY, ...values)
-    return high === low ? 1 : (high - targetY) / (high - low)
-  }, [chartData, targetY])
-
   const first = series[0]
   const changePct =
     first && last && first.close !== 0
@@ -919,12 +897,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   // market trades above the limit (a buy limit would not fill; a sell limit
   // would). null until we have both a close and a non-zero limit.
   // The header compares the close with a given limit, else the watch target.
-  const gapPrice = limitPrice ?? watched?.targetPrice ?? undefined
-  const gapLabel = limitPrice === undefined ? "Target" : limitLabel
-  const watchTarget = limitPrice === undefined ? gapPrice : undefined
+  const watchTarget =
+    limitPrice === undefined ? (watched?.targetPrice ?? undefined) : undefined
   const limitGapPct =
-    typeof gapPrice === "number" && gapPrice !== 0 && last
-      ? ((last.close - gapPrice) / gapPrice) * 100
+    typeof limitPrice === "number" && limitPrice !== 0 && last
+      ? ((last.close - limitPrice) / limitPrice) * 100
       : null
 
   const splitEvents = useMemo(
@@ -968,12 +945,17 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               {typeof watchTarget === "number" && (
                 <TargetGap
                   price={`${currencySymbol}${watchTarget.toFixed(2)}`}
-                  gapPct={limitGapPct}
+                  toTarget={
+                    last && last.close !== 0
+                      ? (watchTarget - last.close) / last.close
+                      : null
+                  }
+                  hitOn={watched?.targetHitOn}
                 />
               )}
               {typeof limitPrice === "number" && (
                 <div className="mt-1 text-xs tabular-nums">
-                  <span className="text-gray-500">{gapLabel} </span>
+                  <span className="text-gray-500">{limitLabel} </span>
                   <span className="font-medium text-gray-700">
                     {currencySymbol}
                     {limitPrice.toFixed(2)}
@@ -985,7 +967,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                       }`}
                     >
                       {limitGapPct >= 0 ? "+" : ""}
-                      {limitGapPct.toFixed(2)}% vs {gapLabel.toLowerCase()}
+                      {limitGapPct.toFixed(2)}% vs {limitLabel.toLowerCase()}
                     </span>
                   )}
                 </div>
@@ -1209,20 +1191,6 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                     stopOpacity={0}
                   />
                 </linearGradient>
-                {targetLine && (
-                  <linearGradient
-                    id="targetGapFill"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset={0} stopColor={GAIN_COLOR} />
-                    <stop offset={targetSplit} stopColor={GAIN_COLOR} />
-                    <stop offset={targetSplit} stopColor={LOSS_COLOR} />
-                    <stop offset={1} stopColor={LOSS_COLOR} />
-                  </linearGradient>
-                )}
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis
@@ -1287,7 +1255,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   dataKey="targetGap"
                   baseValue={targetY}
                   stroke="none"
-                  fill="url(#targetGapFill)"
+                  fill={TARGET_COLOR}
                   fillOpacity={TARGET_FILL_OPACITY}
                   activeDot={false}
                   tooltipType="none"
