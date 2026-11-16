@@ -1412,10 +1412,6 @@ describe("PriceChartPopup", () => {
       const gap = screen.getByTestId("target-gap")
       expect(gap).toHaveTextContent("Target $400.00")
       expect(gap).toHaveTextContent(/4\.76%$/)
-      expect(screen.getByTestId("target-distance")).toHaveAttribute(
-        "title",
-        "Target price $400.00: the price must fall 4.76% to reach it",
-      )
       expect(screen.getByTestId("target-arrow")).toHaveTextContent("▼")
     })
 

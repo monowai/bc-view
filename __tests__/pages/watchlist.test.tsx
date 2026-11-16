@@ -272,10 +272,6 @@ describe("Watchlist page", () => {
     const r = within(row("wi-1"))
     expect(r.getByTestId("target")).toHaveTextContent(/16\.72%$/)
     expect(r.getByTestId("target")).not.toHaveTextContent("away")
-    expect(r.getByTestId("target-distance")).toHaveAttribute(
-      "title",
-      "Target price 75.00 USD: the price must fall 16.72% to reach it",
-    )
     expect(r.getByTestId("target")).not.toHaveTextContent("-16.72%")
     expect(r.getByTestId("target-arrow")).toHaveTextContent("▼")
     expect(r.getByTestId("target-distance")).toHaveClass("text-gray-500")

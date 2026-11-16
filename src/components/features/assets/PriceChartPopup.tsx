@@ -489,9 +489,7 @@ const TargetGap: React.FC<{
         hit {formatDate(hitOn)}
       </span>
     ) : (
-      toTarget !== null && (
-        <TargetDistance toTarget={toTarget} targetPrice={price} />
-      )
+      toTarget !== null && <TargetDistance toTarget={toTarget} />
     )}
   </div>
 )
