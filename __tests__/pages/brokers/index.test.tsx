@@ -64,4 +64,12 @@ describe("Brokers Page", () => {
     ).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
   })
+
+  it("offers Import from screenshot from the page header", () => {
+    render(<BrokersPage />)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Import from screenshot" }),
+    )
+    expect(mockPush).toHaveBeenCalledWith("/brokers/import")
+  })
 })

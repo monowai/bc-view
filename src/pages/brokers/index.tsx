@@ -322,6 +322,18 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               ></i>
               <span className="hidden lg:inline">{"Reconcile Holdings"}</span>
             </button>
+            <button
+              type="button"
+              className={SECONDARY_BUTTON}
+              onClick={() => router.push("/brokers/import")}
+              title={"Import from screenshot"}
+              aria-label={"Import from screenshot"}
+            >
+              <i className="fas fa-camera text-gray-500" aria-hidden="true"></i>
+              <span className="hidden lg:inline">
+                {"Import from screenshot"}
+              </span>
+            </button>
             {isAdmin && (
               <button
                 type="button"
