@@ -19,6 +19,7 @@ import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
 import BrokerFirmInput, {
   listedFirm,
 } from "@components/features/brokers/BrokerFirmInput"
+import { usePermissions } from "@hooks/usePermissions"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import EmptyState from "@components/ui/EmptyState"
 
@@ -49,6 +50,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     transferTransactions,
   } = useBrokers()
   const { globalBrokers } = useGlobalBrokers()
+  // The quick add dialog is for admins while the wizard is made right.
+  const { admin: isAdmin } = usePermissions()
+  const openWizard = (): void => {
+    router.push("/tools/open-brokerage")
+  }
 
   const [editingBroker, setEditingBroker] = useState<BrokerWithAccounts | null>(
     null,
@@ -314,10 +320,25 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               ></i>
               <span className="hidden lg:inline">{"Reconcile Holdings"}</span>
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className={SECONDARY_BUTTON}
+                onClick={handleCreate}
+                title={"Add Brokerage Account (admin only)"}
+                aria-label={"Add Brokerage Account (admin only)"}
+              >
+                <i
+                  className="fas fa-user-shield text-gray-500"
+                  aria-hidden="true"
+                ></i>
+                <span className="hidden lg:inline">{"Quick Add"}</span>
+              </button>
+            )}
             <button
               type="button"
               className={`btn-primary btn-primary--sm gap-2 ${FOCUS_RING}`}
-              onClick={handleCreate}
+              onClick={openWizard}
             >
               <span className="hidden sm:inline" aria-hidden="true">
                 <i className="fas fa-plus"></i>
@@ -344,7 +365,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {isCreating && (
         <Dialog
           title={
-            editingBroker ? "Edit Brokerage Account" : "Open Brokerage Account"
+            editingBroker ? "Edit Brokerage Account" : "Add Brokerage Account"
           }
           onClose={handleCancel}
           scrollable
@@ -483,16 +504,6 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   placeholder={"Optional notes"}
                 />
               </div>
-
-              {!editingBroker && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/tools/open-brokerage")}
-                  className={`text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline rounded ${FOCUS_RING}`}
-                >
-                  {"Set up a portfolio and cash accounts too"}
-                </button>
-              )}
             </div>
           )}
 
@@ -584,7 +595,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             action={
               <button
                 type="button"
-                onClick={handleCreate}
+                onClick={openWizard}
                 className={`btn-primary gap-2 ${FOCUS_RING}`}
               >
                 <i className="fas fa-plus" aria-hidden="true"></i>

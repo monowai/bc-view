@@ -10,6 +10,10 @@ const BrokersPage = Brokers as React.ComponentType<any>
 
 const mockPush = jest.fn()
 const mockBack = jest.fn()
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({ admin: true }),
+}))
+
 jest.mock("next/router", () => ({
   useRouter: () => ({ push: mockPush, back: mockBack }),
 }))
@@ -76,7 +80,7 @@ describe("Brokers page", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows an empty state that opens the add dialog", async () => {
+  it("shows an empty state that opens the wizard", async () => {
     hook.brokers = []
     const user = userEvent.setup()
     render(<BrokersPage />)
@@ -85,9 +89,7 @@ describe("Brokers page", () => {
       name: /Open Brokerage Account/,
     })
     await user.click(buttons[buttons.length - 1])
-    expect(
-      screen.getByRole("heading", { name: "Open Brokerage Account" }),
-    ).toBeInTheDocument()
+    expect(mockPush).toHaveBeenCalledWith("/tools/open-brokerage")
   })
 
   it("lists brokers and navigates", async () => {
@@ -108,7 +110,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Open Brokerage Account/ }),
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
       )
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
       await user.type(
@@ -128,7 +130,7 @@ describe("Brokers page", () => {
       )
       await waitFor(() =>
         expect(
-          screen.queryByRole("heading", { name: "Open Brokerage Account" }),
+          screen.queryByRole("heading", { name: "Add Brokerage Account" }),
         ).not.toBeInTheDocument(),
       )
     })
@@ -176,7 +178,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Open Brokerage Account/ }),
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
       )
       await user.click(screen.getByRole("tab", { name: "Settlement" }))
       expect(screen.getByText(/No bank accounts found/)).toBeInTheDocument()
@@ -187,7 +189,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Open Brokerage Account/ }),
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
       )
       await user.type(
         screen.getByPlaceholderText("e.g., Interactive Brokers"),
@@ -196,12 +198,12 @@ describe("Brokers page", () => {
       await user.click(screen.getByRole("button", { name: "Save" }))
       await waitFor(() => expect(hook.saveBroker).toHaveBeenCalled())
       expect(
-        screen.getByRole("heading", { name: "Open Brokerage Account" }),
+        screen.getByRole("heading", { name: "Add Brokerage Account" }),
       ).toBeInTheDocument()
       expect(await screen.findByRole("alert")).toHaveTextContent("nope")
       await user.click(screen.getByRole("button", { name: "Cancel" }))
       expect(
-        screen.queryByRole("heading", { name: "Open Brokerage Account" }),
+        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
       ).not.toBeInTheDocument()
     })
 
@@ -209,11 +211,11 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Open Brokerage Account/ }),
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
       )
       await user.keyboard("{Escape}")
       expect(
-        screen.queryByRole("heading", { name: "Open Brokerage Account" }),
+        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
       ).not.toBeInTheDocument()
     })
   })

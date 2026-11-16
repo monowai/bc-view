@@ -26,32 +26,42 @@ jest.mock("@hooks/useBrokers", () => ({
   }),
 }))
 
+const permissions = { admin: true }
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => permissions,
+}))
+
 describe("Brokers Page", () => {
   afterEach(() => {
     jest.clearAllMocks()
+    permissions.admin = true
   })
 
-  it("opens the account dialog from the one header action", () => {
+  it("opens a brokerage account through the wizard", () => {
+    permissions.admin = false
     render(<BrokersPage />)
     fireEvent.click(
       screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
-    )
-    expect(
-      screen.getByRole("heading", { name: "Open Brokerage Account" }),
-    ).toBeInTheDocument()
-    expect(mockPush).not.toHaveBeenCalled()
-  })
-
-  it("offers the portfolio and cash set-up from the dialog", () => {
-    render(<BrokersPage />)
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
-    )
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Set up a portfolio and cash accounts too",
-      }),
     )
     expect(mockPush).toHaveBeenCalledWith("/tools/open-brokerage")
+  })
+
+  it("does not offer the add dialog to a user who is not an admin", () => {
+    permissions.admin = false
+    render(<BrokersPage />)
+    expect(
+      screen.queryByRole("button", { name: /Add Brokerage Account/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers the add dialog to an admin", () => {
+    render(<BrokersPage />)
+    fireEvent.click(
+      screen.getByRole("button", { name: /Add Brokerage Account/ }),
+    )
+    expect(
+      screen.getByRole("heading", { name: "Add Brokerage Account" }),
+    ).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 })

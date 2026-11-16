@@ -128,7 +128,10 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
-    await user.type(screen.getByLabelText(/Account name/i), "Brand New Broker")
+    await user.type(
+      screen.getByLabelText(/Brokerage firm/i),
+      "Brand New Broker",
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: no inputs in new mode; code + name derive from the
@@ -174,7 +177,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker: create new (existing-broker selection has its own test)
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBKR")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode derives code/name from the broker
@@ -222,7 +225,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBKR")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode, default currency USD
@@ -275,7 +278,7 @@ describe("<OpenBrokerageWizard />", () => {
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
     await user.type(
-      screen.getByLabelText(/Account name/i),
+      screen.getByLabelText(/Brokerage firm/i),
       "Interactive Brokers",
     )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
@@ -313,7 +316,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBRK")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBRK")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — pick existing portfolio (wait for SWR to populate the list
@@ -379,7 +382,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBKR")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode, default currency USD
@@ -430,7 +433,7 @@ describe("<OpenBrokerageWizard />", () => {
     render(<OpenBrokerageWizard />)
 
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBKR")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
     await screen.findByRole("heading", { name: /Portfolio/i })
     await user.click(
@@ -458,7 +461,7 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
-    await user.type(screen.getByLabelText(/Account name/i), "Test Broker")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "Test Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     await screen.findByRole("heading", { name: /Portfolio/i })
@@ -508,7 +511,7 @@ describe("<OpenBrokerageWizard />", () => {
     )
 
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Account name/i), "IBKR")
+    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Zen user with a sole portfolio: no Zen/Master chooser, no picker — the
@@ -557,31 +560,30 @@ describe("<OpenBrokerageWizard />", () => {
     await screen.findByRole("heading", { name: /Done|Complete|Success/i })
   }
 
-  test("names a new broker after the firm the user picks and saves it against that firm", async () => {
+  test("names a new account after the listed firm the user names and saves it against that firm", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await user.selectOptions(
-      await screen.findByLabelText("Brokerage firm"),
-      "gb-schwab",
+    await user.type(
+      await screen.findByLabelText(/Brokerage firm/i),
+      "charles schwab",
     )
-    expect(screen.getByLabelText(/Account name/i)).toHaveValue("Charles Schwab")
     await finishFromBrokerStep(user)
 
     expect(brokerPosts()).toEqual([
-      { name: "Charles Schwab", globalBrokerId: "gb-schwab" },
+      { name: "charles schwab", globalBrokerId: "gb-schwab" },
     ])
   })
 
-  test("keeps the name the user typed when they then pick a firm", async () => {
+  test("saves the account name the user gives, against the firm", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await user.type(screen.getByLabelText(/Account name/i), "Family Trust")
-    await user.selectOptions(
-      await screen.findByLabelText("Brokerage firm"),
-      "gb-schwab",
+    await user.type(
+      await screen.findByLabelText(/Brokerage firm/i),
+      "Charles Schwab",
     )
+    await user.type(screen.getByLabelText(/Account name/i), "Family Trust")
     await finishFromBrokerStep(user)
 
     expect(brokerPosts()).toEqual([
@@ -589,14 +591,25 @@ describe("<OpenBrokerageWizard />", () => {
     ])
   })
 
-  test("saves a new broker with no firm when the user picks none", async () => {
+  test("saves a firm that is not listed as the account's name, with no firm link", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await screen.findByLabelText("Brokerage firm")
-    await user.type(screen.getByLabelText(/Account name/i), "Local Bank")
+    await user.type(
+      await screen.findByLabelText(/Brokerage firm/i),
+      "Local Bank",
+    )
     await finishFromBrokerStep(user)
 
     expect(brokerPosts()).toEqual([{ name: "Local Bank" }])
+  })
+
+  test("cannot go on from an account that names no firm", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    await user.type(screen.getByLabelText(/Account name/i), "Orphan")
+
+    expect(screen.getByRole("button", { name: /Next/i })).toBeDisabled()
   })
 })

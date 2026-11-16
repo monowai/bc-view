@@ -14,6 +14,10 @@ const mockUseBrokers = useBrokers as jest.Mock
 jest.mock("@hooks/useGlobalBrokers")
 const mockUseGlobalBrokers = useGlobalBrokers as jest.Mock
 
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({ admin: true }),
+}))
+
 jest.mock("next/router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 }))
@@ -79,7 +83,7 @@ describe("Brokers page: brokerage firm", () => {
 
   function openDialog(): void {
     fireEvent.click(
-      screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
+      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
     )
   }
 
