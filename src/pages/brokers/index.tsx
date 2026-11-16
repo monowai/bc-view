@@ -17,6 +17,7 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
 import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
 import BrokerFirmInput, {
+  savedFirmName,
   listedFirm,
 } from "@components/features/brokers/BrokerFirmInput"
 import { usePermissions } from "@hooks/usePermissions"
@@ -164,7 +165,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
           ? formData
           : {
               ...formData,
-              name: formData.name.trim() || firmText.trim(),
+              name:
+                formData.name.trim() || savedFirmName(globalBrokers, firmText),
               globalBrokerId: listedFirm(globalBrokers, firmText)?.id,
             },
       )
@@ -444,7 +446,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   placeholder={
                     editingBroker
                       ? undefined
-                      : firmText.trim() || "Defaults to the firm name"
+                      : savedFirmName(globalBrokers, firmText) ||
+                        "Defaults to the firm name"
                   }
                   autoFocus={!!editingBroker}
                 />

@@ -14,6 +14,11 @@ export function listedFirm(
     : undefined
 }
 
+/** The firm's name to save: a listed firm's own spelling, else as typed. */
+export function savedFirmName(firms: GlobalBroker[], typed: string): string {
+  return listedFirm(firms, typed)?.name ?? typed.trim()
+}
+
 interface BrokerFirmInputProps {
   firms: GlobalBroker[]
   /** The firm's name: a listed firm's, or the one the user typed. */
@@ -83,7 +88,11 @@ export default function BrokerFirmInput({
             type="text"
             required
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              // A typed name stays typed, even when it spells a listed firm.
+              setNotListed(true)
+              onChange(e.target.value)
+            }}
             className={inputClassName}
             placeholder={"e.g., Interactive Brokers"}
             autoComplete="off"

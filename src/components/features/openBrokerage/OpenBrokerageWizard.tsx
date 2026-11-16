@@ -18,6 +18,7 @@ import type { Broker, Currency, Portfolio } from "types/beancounter"
 import { activePortfoliosKey } from "@utils/api/client/portfolios"
 import { brokersKey } from "@utils/api/client/brokers"
 import BrokerFirmInput, {
+  savedFirmName,
   listedFirm,
 } from "@components/features/brokers/BrokerFirmInput"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
@@ -140,7 +141,8 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
   const { globalBrokers } = useGlobalBrokers()
 
-  const newAccountName = broker.newName.trim() || broker.newFirm.trim()
+  const newAccountName =
+    broker.newName.trim() || savedFirmName(globalBrokers, broker.newFirm)
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
 
   const { preferences } = useUserPreferences()

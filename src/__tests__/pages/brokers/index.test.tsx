@@ -60,7 +60,7 @@ describe("Brokers page: brokerage firm", () => {
   function show(
     brokers: BrokerWithAccounts[],
     globalBrokers: GlobalBroker[] = firms,
-  ): void {
+  ): ReturnType<typeof render> {
     mockUseBrokers.mockReturnValue({
       brokers,
       accountAssets: [],
@@ -71,7 +71,7 @@ describe("Brokers page: brokerage firm", () => {
       transferTransactions: jest.fn(),
     })
     mockUseGlobalBrokers.mockReturnValue({ globalBrokers })
-    render(<BrokersPage />)
+    return render(<BrokersPage />)
   }
 
   beforeEach(() => {
@@ -140,6 +140,38 @@ describe("Brokers page: brokerage firm", () => {
     await waitFor(() => expect(saveBroker).toHaveBeenCalled())
     expect(saveBroker.mock.calls[0][1].name).toBe("Local bank")
     expect(saveBroker.mock.calls[0][1].globalBrokerId).toBeUndefined()
+  })
+
+  it("names a new account with the listed firm's own spelling when the user types it", async () => {
+    show([])
+    openDialog()
+    pickFirm("Not listed")
+    type("Firm name *", "  interactive brokers ")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          name: "Interactive Brokers",
+          globalBrokerId: "gb-ibkr",
+        }),
+      ),
+    )
+  })
+
+  it("keeps the firm name field while the user types, after the firms load", () => {
+    const { rerender } = show([], [])
+    openDialog()
+    type("Firm name *", "Interactive Broker")
+
+    mockUseGlobalBrokers.mockReturnValue({ globalBrokers: firms })
+    rerender(<BrokersPage />)
+    type("Firm name *", "Interactive Brokers")
+
+    expect(screen.getByLabelText("Firm name *")).toHaveValue(
+      "Interactive Brokers",
+    )
   })
 
   it("offers the supported firms, then the choice of one that is not listed", () => {
