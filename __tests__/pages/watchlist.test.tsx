@@ -254,7 +254,11 @@ describe("Watchlist page", () => {
     )
     expect(r.getByTestId("day-change")).toHaveTextContent("-1.50")
     expect(r.getByTestId("day-change")).toHaveTextContent("-1.23%")
-    expect(r.getByTestId("added")).toHaveTextContent("80.00")
+    expect(r.getByTestId("added")).toHaveTextContent(/^80\.00$/)
+    expect(r.getByTestId("added")).toHaveAttribute(
+      "title",
+      `Added ${formatDate("2026-02-03")}`,
+    )
     expect(r.getByTestId("since-added")).toHaveTextContent("+7.77")
     expect(r.getByTestId("since-added")).toHaveTextContent("+33.33%")
     expect(r.getByTestId("target")).toHaveTextContent("99.00")

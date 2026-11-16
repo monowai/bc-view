@@ -197,7 +197,11 @@ export default function WatchlistItemsTable({
               </td>
               <td className={td}>
                 <MobileLabel>{"Added"}</MobileLabel>
-                <span data-testid="added" className="tabular-nums">
+                <span
+                  data-testid="added"
+                  title={`Added ${formatDate(item.addedOn)}`}
+                  className="tabular-nums"
+                >
                   {formatCurrency(item.addedPrice, dp)}
                   {/* The Price cell names the currency; with no price, say it here. */}
                   {item.price == null && (
@@ -205,9 +209,6 @@ export default function WatchlistItemsTable({
                       {item.currency.code}
                     </span>
                   )}
-                  <span className="block text-xs text-gray-500">
-                    {formatDate(item.addedOn)}
-                  </span>
                 </span>
               </td>
               <td className={td}>
