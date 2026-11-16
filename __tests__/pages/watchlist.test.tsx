@@ -258,7 +258,23 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("since-added")).toHaveTextContent("+7.77")
     expect(r.getByTestId("since-added")).toHaveTextContent("+33.33%")
     expect(r.getByTestId("target")).toHaveTextContent("99.00")
-    expect(r.getByTestId("target")).toHaveTextContent("+44.44%")
+    expect(r.getByTestId("target")).toHaveTextContent("44.44% away")
+    expect(r.getByTestId("target-arrow")).toHaveTextContent("▲")
+  })
+
+  it("shows a target below the price as a distance, not as a loss", async () => {
+    watchlist = makeWatchlist({
+      items: [{ ...priced, targetPrice: 75, toTarget: -0.1672 }, unpriced],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    const r = within(row("wi-1"))
+    expect(r.getByTestId("target")).toHaveTextContent("16.72% away")
+    expect(r.getByTestId("target")).not.toHaveTextContent("-16.72%")
+    expect(r.getByTestId("target-arrow")).toHaveTextContent("▼")
+    expect(r.getByTestId("target-distance")).toHaveClass("text-gray-500")
+    expect(r.getByTestId("target-distance")).not.toHaveClass("text-red-600")
   })
 
   it("quotes a currency pair's figures to 4 places", async () => {

@@ -1404,24 +1404,37 @@ describe("PriceChartPopup", () => {
       expect(domain[1]).toBeGreaterThan(600)
     })
 
-    it("says the last close is over the target, and by how much", () => {
+    it("says how far the last close must fall to reach a target below it", () => {
       mockUseSwr.mockImplementation(makeRouter({}))
       watchedFrom("2026-03-25", 400)
       renderPopup()
 
-      expect(screen.getByTestId("target-gap")).toHaveTextContent(
-        "Over target $400.00 by 5.00%",
-      )
+      const gap = screen.getByTestId("target-gap")
+      expect(gap).toHaveTextContent("Target $400.00")
+      expect(gap).toHaveTextContent("4.76% away")
+      expect(screen.getByTestId("target-arrow")).toHaveTextContent("▼")
     })
 
-    it("says the last close is under the target, and by how much", () => {
+    it("says how far the last close must rise to reach a target above it", () => {
       mockUseSwr.mockImplementation(makeRouter({}))
       watchedFrom("2026-03-25", 450)
       renderPopup()
 
-      expect(screen.getByTestId("target-gap")).toHaveTextContent(
-        "Under target $450.00 by 6.67%",
-      )
+      const gap = screen.getByTestId("target-gap")
+      expect(gap).toHaveTextContent("Target $450.00")
+      expect(gap).toHaveTextContent("7.14% away")
+      expect(screen.getByTestId("target-arrow")).toHaveTextContent("▲")
+    })
+
+    it("gives the distance no gain or loss colour", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watchedFrom("2026-03-25", 400)
+      renderPopup()
+
+      const distance = screen.getByTestId("target-distance")
+      expect(distance).toHaveClass("text-gray-500")
+      expect(distance).not.toHaveClass("text-emerald-600")
+      expect(distance).not.toHaveClass("text-red-600")
     })
 
     it("says the last close is at a target it rounds to", () => {
@@ -1430,9 +1443,26 @@ describe("PriceChartPopup", () => {
       renderPopup()
 
       expect(screen.getByTestId("target-gap")).toHaveTextContent(
-        "At target $420.00",
+        "Target $420.00 at target",
       )
-      expect(screen.getByTestId("target-gap")).not.toHaveTextContent(/ by /)
+      expect(screen.getByTestId("target-gap")).not.toHaveTextContent(/away/)
+    })
+
+    it("says when the target was hit", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watching([
+        makeWatchlistItem({
+          asset,
+          targetPrice: 400,
+          targetOn: "2026-03-25",
+          targetHitOn: "2026-04-01",
+        }),
+      ])
+      renderPopup()
+
+      expect(screen.getByTestId("target-gap")).toHaveTextContent(
+        /Target \$400\.00 hit .*2026/,
+      )
     })
 
     it("shades between the closes and the target over the target's span", () => {
@@ -1443,23 +1473,18 @@ describe("PriceChartPopup", () => {
       expect(lastSeries.map((p) => p.targetGap)).toEqual([null, 410, 420])
       const gap = screen.getByTestId("area-targetGap")
       expect(gap).toHaveAttribute("data-base", "415")
-      expect(gap).toHaveAttribute("data-fill", "url(#targetGapFill)")
     })
 
-    it("turns the shade from gain to loss where the target crosses it", () => {
+    it("shades the gap in the target's neutral ink, above and below it", () => {
       mockUseSwr.mockImplementation(makeRouter({}))
       watchedFrom("2026-03-25", 415)
       const { container } = renderPopup()
 
-      const stops = Array.from(
-        container.querySelectorAll("#targetGapFill stop"),
-      ).map((s) => [s.getAttribute("offset"), s.getAttribute("stop-color")])
-      expect(stops).toEqual([
-        ["0", "#10B981"],
-        ["0.5", "#10B981"],
-        ["0.5", "#EF4444"],
-        ["1", "#EF4444"],
-      ])
+      expect(screen.getByTestId("area-targetGap")).toHaveAttribute(
+        "data-fill",
+        "#374151",
+      )
+      expect(container.querySelector("#targetGapFill")).toBeNull()
     })
 
     it("draws no shade without a target line", () => {

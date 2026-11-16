@@ -16,6 +16,7 @@ import {
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
+import TargetDistance from "./TargetDistance"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 
 const DASH = "–"
@@ -225,13 +226,14 @@ export default function WatchlistItemsTable({
                 ) : (
                   <span data-testid="target" className="tabular-nums">
                     {formatCurrency(item.targetPrice, dp)}
-                    <span
-                      className={`ml-1 text-xs ${item.toTarget == null ? "text-gray-500" : gainLossClass(item.toTarget)}`}
-                    >
-                      {item.toTarget == null
-                        ? `(${DASH})`
-                        : `(${signedPercent(item.toTarget)})`}
-                    </span>
+                    {item.toTarget == null ? (
+                      <span className="ml-1 text-xs text-gray-500">{`(${DASH})`}</span>
+                    ) : (
+                      <TargetDistance
+                        toTarget={item.toTarget}
+                        className="ml-1 text-xs"
+                      />
+                    )}
                   </span>
                 )}
               </td>
