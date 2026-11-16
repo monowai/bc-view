@@ -67,7 +67,7 @@ const FALLBACK_CURRENCIES = [
 // stays compact instead of echoing the full name.
 
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
-  broker: "Broker",
+  broker: "Brokerage account",
   portfolio: "Portfolio",
   funding: "Funding (optional)",
   review: "Review",
@@ -287,7 +287,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-3">
-          {"Done — brokerage opened"}
+          {"Done — brokerage account opened"}
         </h1>
         <p className="text-gray-600 mb-6">
           {`Portfolio ${effMode === "existing" ? (selectedExistingPortfolio?.code ?? "") : derivedCode} ready. `}
@@ -329,7 +329,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 checked={broker.mode === "new"}
                 onChange={() => setBroker({ ...broker, mode: "new" })}
               />
-              <span>Create a new broker</span>
+              <span>Open a new brokerage account</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -340,7 +340,8 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 disabled={brokers.length === 0}
               />
               <span>
-                Use an existing broker {brokers.length === 0 && "(none yet)"}
+                Use a brokerage account you already have{" "}
+                {brokers.length === 0 && "(none yet)"}
               </span>
             </label>
           </fieldset>
@@ -359,7 +360,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                   htmlFor="broker-name"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {"Broker name"}
+                  {"Account name"}
                 </label>
                 <input
                   id="broker-name"
@@ -396,7 +397,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 htmlFor="broker-select"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {"Existing broker"}
+                {"Brokerage account"}
               </label>
               <select
                 id="broker-select"
@@ -424,7 +425,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             // Master user: plain attach-vs-create toggle, no Zen/Master cards.
             <fieldset className="space-y-3">
               <legend className="text-sm text-gray-700 mb-1">
-                {"How would you like to track this brokerage?"}
+                {"How would you like to track this brokerage account?"}
               </legend>
               <label className="flex items-center gap-2">
                 <input
@@ -452,13 +453,13 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           ) : effMode === "existing" ? (
             // Zen user with a sole portfolio: fold in, no chooser.
             <p className="text-sm text-gray-600">
-              {`This brokerage folds into your portfolio "${sole?.name ?? ""}" — one combined view. Its cash lands on a per-broker line (${derivedCode || "BROKER"}-${effectiveCurrency}).`}
+              {`This brokerage account folds into your portfolio "${sole?.name ?? ""}" — one combined view. Its cash lands on a per-brokerage-account line (${derivedCode || "BROKER"}-${effectiveCurrency}).`}
             </p>
           ) : (
             // Zen user with no portfolio yet: create their first, named after
             // the broker.
             <p className="text-sm text-gray-600">
-              {`We'll create your "${brokerName || "broker"}" portfolio to hold this brokerage. Pick its currency below.`}
+              {`We'll create your "${brokerName || "brokerage account"}" portfolio to hold this brokerage account. Pick its currency below.`}
             </p>
           )}
 
@@ -491,7 +492,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    {`Deposits land on a per-broker cash line (e.g. ${derivedCode || "BROKER"}-${effectiveCurrency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
+                    {`Deposits land on a per-brokerage-account cash line (e.g. ${derivedCode || "BROKER"}-${effectiveCurrency}) so the brokerage account's cash stays separate from any existing cash on this portfolio.`}
                   </p>
                 </div>
               )
@@ -508,7 +509,8 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                     </p>
                   ) : (
                     <p className="text-gray-400">
-                      Name your broker first — the portfolio takes its name.
+                      Name your brokerage account first — the portfolio takes
+                      its name.
                     </p>
                   )}
                 </div>
@@ -547,7 +549,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             {
-              "Add a cash account for each currency you expect to trade. Each becomes the broker's default settlement account for that currency. Nothing is opened by default — add only what you need, with an optional opening deposit to seed cash now."
+              "Add a cash account for each currency you expect to trade. Each becomes the brokerage account's default settlement account for that currency. Nothing is opened by default — add only what you need, with an optional opening deposit to seed cash now."
             }
           </p>
 
@@ -623,7 +625,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-4">
           <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm">
             <dl className="grid grid-cols-3 gap-y-2">
-              <dt className="text-gray-500">Broker</dt>
+              <dt className="text-gray-500">Brokerage account</dt>
               <dd className="col-span-2 text-gray-900">
                 {broker.mode === "new"
                   ? `${broker.newName} (new)`

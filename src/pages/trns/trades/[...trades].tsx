@@ -239,7 +239,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         {/* Single-portfolio groups are brokers, so carry the broker icon. */}
         <i
           className="fas fa-university mr-2 text-indigo-400"
-          title="Broker"
+          title="Brokerage account"
         ></i>
         {group.label}
       </span>

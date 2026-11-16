@@ -104,7 +104,7 @@ describe("AssetBrokersTab", () => {
     })
     render(<AssetBrokersTab assetId="asset-1" />)
     expect(
-      screen.getByText("This asset is not held at any broker"),
+      screen.getByText("This asset is not held at any brokerage account"),
     ).toBeInTheDocument()
   })
 

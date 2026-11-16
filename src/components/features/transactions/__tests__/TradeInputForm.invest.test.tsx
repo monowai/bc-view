@@ -175,7 +175,9 @@ describe("TradeInputForm — Invest tab", () => {
   test("the broker can be changed without leaving the tab", () => {
     renderInvestTab()
 
-    const broker = screen.getByLabelText("Broker") as HTMLSelectElement
+    const broker = screen.getByLabelText(
+      "Brokerage account",
+    ) as HTMLSelectElement
     fireEvent.change(broker, { target: { value: "asb" } })
     expect(broker.value).toBe("asb")
   })

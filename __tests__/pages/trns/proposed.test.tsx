@@ -98,7 +98,7 @@ describe("Proposed Transactions broker filter", () => {
     })
     expect(screen.getByText("BBB")).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText("Broker filter"), {
+    fireEvent.change(screen.getByLabelText("Brokerage account filter"), {
       target: { value: "b1" },
     })
 
@@ -139,7 +139,9 @@ describe("Proposed Transactions broker filter", () => {
 
     // Panel content hidden, broker filter still available
     expect(screen.queryByText("Scope")).not.toBeInTheDocument()
-    expect(screen.getByLabelText("Broker filter")).toBeInTheDocument()
+    expect(
+      screen.getByLabelText("Brokerage account filter"),
+    ).toBeInTheDocument()
   })
 
   it("keeps edits and the toolbar when the broker filter matches nothing, and preserves edits across filtering", async () => {
@@ -153,20 +155,22 @@ describe("Proposed Transactions broker filter", () => {
     fireEvent.change(screen.getByDisplayValue("7"), {
       target: { value: "9" },
     })
-    fireEvent.change(screen.getByLabelText("Broker filter"), {
+    fireEvent.change(screen.getByLabelText("Brokerage account filter"), {
       target: { value: "b1" },
     })
     expect(screen.queryByText("BBB")).not.toBeInTheDocument()
 
     // Filter to a broker with no rows: toolbar (and the filter itself) must survive
-    fireEvent.change(screen.getByLabelText("Broker filter"), {
+    fireEvent.change(screen.getByLabelText("Brokerage account filter"), {
       target: { value: "b2" },
     })
     expect(screen.queryByText("AAA")).not.toBeInTheDocument()
-    expect(screen.getByLabelText("Broker filter")).toBeInTheDocument()
+    expect(
+      screen.getByLabelText("Brokerage account filter"),
+    ).toBeInTheDocument()
 
     // Back to ALL: the edit made before filtering is still there
-    fireEvent.change(screen.getByLabelText("Broker filter"), {
+    fireEvent.change(screen.getByLabelText("Brokerage account filter"), {
       target: { value: "ALL" },
     })
     expect(screen.getByDisplayValue("9")).toBeInTheDocument()

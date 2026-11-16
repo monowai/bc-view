@@ -1249,6 +1249,6 @@ describe("buildTradeGroups", () => {
       summary,
     )
 
-    expect(groups.map((g) => g.label)).toEqual(["DBS", "No Broker"])
+    expect(groups.map((g) => g.label)).toEqual(["DBS", "No Account"])
   })
 })

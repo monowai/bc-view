@@ -42,7 +42,7 @@ export default function CostStackPage(): React.ReactElement {
             </h2>
             <p className="text-gray-600 mb-6">
               {
-                "Holdsworth tracks your portfolio across brokers and currencies so you can measure actual drag against the model above — and act on it."
+                "Holdsworth tracks your portfolio across brokerages and currencies so you can measure actual drag against the model above — and act on it."
               }
             </p>
             <Link href="/auth/login" className="btn-primary">

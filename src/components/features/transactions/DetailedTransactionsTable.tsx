@@ -58,7 +58,7 @@ export default function DetailedTransactionsTable({
               />
             </th>
             <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-              Broker
+              Account
             </th>
             <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
               Portfolio
@@ -122,7 +122,7 @@ export default function DetailedTransactionsTable({
                   title={
                     acceptsBroker(trn.trnType)
                       ? undefined
-                      : `Broker not applicable for ${trn.trnType}`
+                      : `Brokerage account not applicable for ${trn.trnType}`
                   }
                   className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >

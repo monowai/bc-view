@@ -79,12 +79,12 @@ describe("TradeInputForm: brokers offered", () => {
     )
 
     const brokerSelect = screen
-      .getByText("-- No broker --")
+      .getByText("-- No account --")
       .closest("select") as HTMLSelectElement
     const offered = within(brokerSelect)
       .getAllByRole("option")
       .map((option) => option.textContent)
 
-    expect(offered).toEqual(["-- No broker --", "IB", "SCB"])
+    expect(offered).toEqual(["-- No account --", "IB", "SCB"])
   })
 })

@@ -1048,7 +1048,7 @@ const OnboardingWizard: React.FC = () => {
           },
     6: {
       title: "Brokerage account",
-      lead: "Optional — set up a broker, attach it to a portfolio, and add an opening cash deposit.",
+      lead: "Optional — set up a brokerage account, attach it to a portfolio, and add an opening cash deposit.",
     },
   }
   const intro = stepIntro[currentStep]

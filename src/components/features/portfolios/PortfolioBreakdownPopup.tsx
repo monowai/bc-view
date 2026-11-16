@@ -77,7 +77,7 @@ const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
                         >
                           <i
                             className="fas fa-university mr-1"
-                            title="Broker"
+                            title="Brokerage account"
                           ></i>
                           {broker}
                           <span className="ml-1 tabular-nums">

@@ -120,7 +120,8 @@ async function registerBrokerSettlementAccounts(
 
 async function ensureBroker(step: BrokerStep): Promise<Broker> {
   if (step.mode === "existing") {
-    if (!step.existingId) throw new Error("Existing broker id required")
+    if (!step.existingId)
+      throw new Error("Existing brokerage account id required")
     // Resolve the broker's name so the per-broker cash asset code
     // (deriveBrokerCode(name)) is correct for existing brokers too — without
     // this the code would collapse to "-{ccy}" on the existing-broker path.
@@ -132,10 +133,11 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
     // Fail fast rather than degrade to an empty name: an empty name collapses
     // the per-broker cash code to "-{ccy}", which two unresolved brokers would
     // then share, mixing their balances.
-    if (!found) throw new Error("Could not resolve the selected broker")
+    if (!found)
+      throw new Error("Could not resolve the selected brokerage account")
     return found
   }
-  if (!step.newName) throw new Error("Broker name required")
+  if (!step.newName) throw new Error("Account name required")
   // Reuse any existing broker with the same name so retrying the wizard
   // after a downstream failure (e.g. duplicate-portfolio-code 409) doesn't
   // collide with the backend's unique broker-name-per-owner constraint.

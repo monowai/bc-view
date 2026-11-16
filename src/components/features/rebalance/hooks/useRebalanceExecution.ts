@@ -252,7 +252,7 @@ export function useRebalanceExecution(
   // Convenience default: if the user has exactly one broker, pre-select it.
   // No reason to make them pick from a single-item list. We only set this
   // once (when brokers first resolve) — if the user has explicitly cleared
-  // the selection back to "No broker" we don't re-apply. Render-phase "store
+  // the selection back to "No account" we don't re-apply. Render-phase "store
   // previous value" pattern (mirrors the prior effect keyed on [brokers])
   // avoids a cascading effect.
   const [prevBrokers, setPrevBrokers] = useState(brokers)

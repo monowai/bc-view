@@ -1408,7 +1408,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-md font-medium text-gray-900">
-                    {"Broker"}
+                    {"Brokerage account"}
                   </h3>
                   <a
                     href="/brokers"
@@ -1419,7 +1419,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   </a>
                 </div>
                 <p className="text-sm text-gray-500 mb-4">
-                  {"Select the broker for all proposed transactions"}
+                  {"Select the brokerage account for all proposed transactions"}
                 </p>
                 <BrokerSelect
                   id="execute-broker"

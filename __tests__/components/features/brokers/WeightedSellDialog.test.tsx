@@ -62,7 +62,9 @@ describe("WeightedSellDialog", () => {
     expect(screen.queryByText("ZERO")).not.toBeInTheDocument()
     // quantity === sum of groups: total is broker-scoped, no cross-broker note
     expect(screen.getByText("175")).toBeInTheDocument()
-    expect(screen.queryByText(/Across all brokers/)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Across all brokerage accounts/),
+    ).not.toBeInTheDocument()
   })
 
   it("shows broker-scoped total and labels the cross-broker figure when they differ", async () => {
@@ -99,7 +101,9 @@ describe("WeightedSellDialog", () => {
     await waitFor(() => expect(screen.getByText("TYLER")).toBeInTheDocument())
     expect(screen.getByText(/Total at IBRK/)).toBeInTheDocument()
     expect(screen.getByText("66")).toBeInTheDocument()
-    expect(screen.getByText("Across all brokers: 96")).toBeInTheDocument()
+    expect(
+      screen.getByText("Across all brokerage accounts: 96"),
+    ).toBeInTheDocument()
   })
 
   it("defaults 'Percent to sell' to 100", async () => {

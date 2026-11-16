@@ -44,7 +44,7 @@ export function useBrokers(): UseBrokersResult {
 
       if (!response.ok) {
         const text = await response.text()
-        throw new Error(text || "Failed to save broker")
+        throw new Error(text || "Failed to save brokerage account")
       }
       await mutate()
     },
@@ -58,7 +58,9 @@ export function useBrokers(): UseBrokersResult {
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
-          errorData?.message || errorData?.error || "Failed to delete broker",
+          errorData?.message ||
+            errorData?.error ||
+            "Failed to delete brokerage account",
         )
       }
       await mutate()

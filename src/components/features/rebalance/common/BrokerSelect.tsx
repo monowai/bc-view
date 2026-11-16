@@ -40,7 +40,7 @@ const BrokerSelect: React.FC<BrokerSelectProps> = ({
     onChange={(e) => onChange(e.target.value || undefined)}
     className={className}
   >
-    <option value="">{"-- No broker --"}</option>
+    <option value="">{"-- No account --"}</option>
     {brokers.map((broker) => (
       <option key={broker.id} value={broker.id}>
         {broker.name}
@@ -64,7 +64,7 @@ export function confirmBrokerSelection(
 ): boolean {
   if (brokerCount > 1 && !selectedBrokerId) {
     return window.confirm(
-      "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
+      "No brokerage account selected. Your proposed transactions won't be tagged with a brokerage account. Continue?",
     )
   }
   return true

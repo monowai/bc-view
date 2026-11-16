@@ -219,7 +219,7 @@ describe("Asset Lookup Page — tabbed layout", () => {
   it("switches to the Brokers tab and renders AssetBrokersTab with the asset id", () => {
     render(<AssetLookupPage />)
 
-    fireEvent.click(screen.getByRole("button", { name: /brokers/i }))
+    fireEvent.click(screen.getByRole("button", { name: /brokerage accounts/i }))
 
     expect(screen.getByTestId("brokers-tab-content")).toBeInTheDocument()
     expect(capturedBrokersTabProps).toEqual({ assetId: "asset-1" })

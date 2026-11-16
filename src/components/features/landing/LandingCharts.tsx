@@ -105,10 +105,10 @@ export function NetWorthChart(): React.ReactElement {
       viewBox="0 0 400 240"
       className="w-full h-auto"
       role="img"
-      aria-label="Illustrative net-worth chart: several broker balances combining into one rising total."
+      aria-label="Illustrative net-worth chart: several brokerage balances combining into one rising total."
       preserveAspectRatio="xMidYMid meet"
     >
-      <title>Net worth across brokers, assets and currencies</title>
+      <title>Net worth across brokerages, assets and currencies</title>
       {/* baseline */}
       <line x1="32" y1="208" x2="384" y2="208" stroke={AXIS} strokeWidth="1" />
       {/* faint contributing broker lines */}

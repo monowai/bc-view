@@ -19,7 +19,7 @@ describe("BrokerSelectionDialog", () => {
         onSkip={jest.fn()}
       />,
     )
-    expect(screen.getByText("Select Broker")).toBeInTheDocument()
+    expect(screen.getByText("Select Brokerage Account")).toBeInTheDocument()
   })
 
   it("badges each broker with the drilldown-consistent broker icon", () => {

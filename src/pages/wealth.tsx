@@ -249,7 +249,7 @@ function WealthDashboard(): React.ReactElement {
               </h1>
               <p className="text-gray-600">
                 {
-                  "Add a portfolio to see your net worth across brokers, assets, and currencies"
+                  "Add a portfolio to see your net worth across brokerages, assets, and currencies"
                 }
               </p>
             </div>
