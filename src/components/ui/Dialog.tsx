@@ -53,7 +53,7 @@ export default function Dialog({
         className={`bg-white text-gray-900 rounded-lg shadow-lg w-full min-w-0 ${maxWidthClasses[maxWidth]} mx-4 z-50 ${scrollable ? "max-h-[90vh] overflow-hidden flex flex-col" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex justify-between items-center border-b p-4">
+        <header className="flex justify-between items-center border-b border-gray-200 p-4">
           <h2 className="text-xl font-semibold min-w-0 flex-1">{title}</h2>
           <button
             className="ml-4 text-gray-500 hover:text-gray-700 text-2xl leading-none"
@@ -70,7 +70,7 @@ export default function Dialog({
         </div>
 
         {footer && (
-          <div className="flex justify-end space-x-2 p-4 border-t">
+          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200">
             {footer}
           </div>
         )}

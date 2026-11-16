@@ -154,8 +154,11 @@ describe("Broker holdings reconciliation page", () => {
     expect(bbb).toBeGreaterThan(aaa)
     expect(screen.queryByText("NASDAQ:ZZZ")).not.toBeInTheDocument()
     expect(screen.getAllByText("12.5").length).toBeGreaterThan(0)
+    // The full name is in the page; the cell clips it and names it on hover.
     expect(
-      screen.getAllByText(/^A very long asset name.*\.\.\.$/).length,
+      screen.getAllByTitle(
+        "A very long asset name that exceeds thirty characters",
+      ).length,
     ).toBeGreaterThan(0)
   })
 
@@ -197,6 +200,18 @@ describe("Broker holdings reconciliation page", () => {
     await user.click(qtyBtn)
     expect(screen.queryAllByText("2026-01-02")).toHaveLength(0)
     expect(screen.queryByText("PORT1")).not.toBeInTheDocument()
+  })
+
+  it("says so when an expanded holding has no transactions at this account", async () => {
+    const user = userEvent.setup()
+    render(<Page />)
+    // BBB has a position and no transaction detail in the trns response.
+    await user.click(screen.getAllByTitle("Click to view transactions")[1])
+    expect(
+      screen.getAllByText(
+        "No transactions are recorded against this brokerage account.",
+      ).length,
+    ).toBeGreaterThan(0)
   })
 
   it("marks assets reconciled and unreconciled", async () => {
@@ -243,6 +258,8 @@ describe("Broker holdings reconciliation page", () => {
     expect(
       screen.getByText("All transactions have brokerage accounts assigned"),
     ).toBeInTheDocument()
-    expect(within(document.body).getByText("Manage")).toBeInTheDocument()
+    expect(
+      within(document.body).getByText("Manage brokerage accounts"),
+    ).toBeInTheDocument()
   })
 })

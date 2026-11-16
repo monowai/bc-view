@@ -17,10 +17,22 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
 import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
-import Spinner from "@components/ui/Spinner"
+import EmptyState from "@components/ui/EmptyState"
 
 // Common currencies for settlement accounts
 const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
+
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+// The one blue action of the page; every other header action is neutral.
+const SECONDARY_BUTTON = `inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors ${FOCUS_RING}`
+const ICON_BUTTON_BASE = `inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 transition-colors ${FOCUS_RING}`
+const ICON_BUTTON = `${ICON_BUTTON_BASE} hover:bg-gray-100 hover:text-gray-900`
+// Red only on the action that removes something.
+const ICON_BUTTON_DANGER = `${ICON_BUTTON_BASE} hover:bg-red-50 hover:text-red-600`
+const FIELD =
+  "w-full border border-gray-300 rounded-md px-3 text-base sm:text-sm text-gray-900 bg-white placeholder:text-gray-400 transition-colors focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+const FIELD_LABEL = "block text-sm font-medium text-gray-700 mb-1"
 
 export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const router = useRouter()
@@ -46,6 +58,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     settlementAccounts: {},
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [transferringBroker, setTransferringBroker] =
     useState<BrokerWithAccounts | null>(null)
   const [targetBrokerId, setTargetBrokerId] = useState<string>("")
@@ -71,6 +84,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     })
     setEditingBroker(null)
     setActiveTab("details")
+    setSaveError(null)
     setIsCreating(true)
   }, [])
 
@@ -89,6 +103,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     })
     setEditingBroker(broker)
     setActiveTab("details")
+    setSaveError(null)
     setIsCreating(true)
   }, [])
 
@@ -123,11 +138,17 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     if (!formData.name.trim()) return
 
     setIsSaving(true)
+    setSaveError(null)
     try {
       await saveBroker(editingBroker?.id, formData)
       handleCancel()
     } catch (err) {
       console.error("Failed to save broker:", err)
+      setSaveError(
+        err instanceof Error && err.message
+          ? err.message
+          : "The brokerage account was not saved. Try again.",
+      )
     } finally {
       setIsSaving(false)
     }
@@ -231,404 +252,408 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {transferSuccess && (
-        <div className="px-4 pt-4">
-          <Alert variant="success">{transferSuccess}</Alert>
-        </div>
-      )}
-      {deleteError && !transferringBroker && (
-        <div className="px-4 pt-4">
-          <Alert>{deleteError}</Alert>
-        </div>
-      )}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => router.back()}
-                className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
-                title={"Back"}
-              >
-                <i className="fas fa-arrow-left text-lg"></i>
-              </button>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {"Brokerage Accounts"}
-              </h1>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                className="bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors flex items-center shadow-sm"
-                onClick={() => router.push("/tools/open-brokerage")}
-                title={"Open Brokerage Account"}
-              >
-                <i className="fas fa-building-columns mr-2"></i>
-                <span className="hidden sm:inline">
-                  {"Open Brokerage Account"}
-                </span>
-              </button>
-              <button
-                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center shadow-sm"
-                onClick={() => router.push("/brokers/NO_BROKER/holdings")}
-                title={"Reconcile Holdings"}
-              >
-                <i className="fas fa-balance-scale mr-2"></i>
-                <span className="hidden sm:inline">{"Reconcile Holdings"}</span>
-              </button>
-              <button
-                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
-                onClick={handleCreate}
-              >
-                <i className="fas fa-plus mr-2"></i>
-                <span className="hidden sm:inline">
-                  {"Add Brokerage Account"}
-                </span>
-                <span className="sm:hidden">{"New"}</span>
-              </button>
-            </div>
+        <div className="px-4 py-3 flex justify-between items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className={`${ICON_BUTTON} -ml-2`}
+              title={"Back"}
+              aria-label={"Back"}
+            >
+              <i className="fas fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-gray-900 truncate">
+              {/* The phone header has no room for the full title beside its actions. */}
+              <span className="sm:hidden">{"Accounts"}</span>
+              <span className="hidden sm:inline">{"Brokerage Accounts"}</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              className={SECONDARY_BUTTON}
+              onClick={() => router.push("/tools/open-brokerage")}
+              title={"Open Brokerage Account"}
+              aria-label={"Open Brokerage Account"}
+            >
+              <i
+                className="fas fa-building-columns text-gray-500"
+                aria-hidden="true"
+              ></i>
+              <span className="hidden lg:inline">
+                {"Open Brokerage Account"}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={SECONDARY_BUTTON}
+              onClick={() => router.push("/brokers/NO_BROKER/holdings")}
+              title={"Reconcile Holdings"}
+              aria-label={"Reconcile Holdings"}
+            >
+              <i
+                className="fas fa-balance-scale text-gray-500"
+                aria-hidden="true"
+              ></i>
+              <span className="hidden lg:inline">{"Reconcile Holdings"}</span>
+            </button>
+            <button
+              type="button"
+              className={`btn-primary btn-primary--sm gap-2 ${FOCUS_RING}`}
+              onClick={handleCreate}
+            >
+              <span className="hidden sm:inline" aria-hidden="true">
+                <i className="fas fa-plus"></i>
+              </span>
+              <span className="hidden sm:inline">
+                {"Add Brokerage Account"}
+              </span>
+              <span className="sm:hidden">{"New"}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Create/Edit Modal */}
-      {isCreating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={handleCancel}
-          ></div>
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 z-50 max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <header className="flex justify-between items-center border-b p-4">
-              <h2 className="text-xl font-semibold">
-                {editingBroker
-                  ? "Edit Brokerage Account"
-                  : "Add Brokerage Account"}
-              </h2>
-              <button
-                className="text-gray-500 hover:text-gray-700 text-2xl p-2"
-                onClick={handleCancel}
-              >
-                &times;
-              </button>
-            </header>
-
-            {/* Tabs */}
-            <div className="flex border-b">
-              <button
-                type="button"
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  activeTab === "details"
-                    ? "border-b-2 border-blue-500 text-blue-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("details")}
-              >
-                {"Details"}
-              </button>
-              <button
-                type="button"
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  activeTab === "settlement"
-                    ? "border-b-2 border-blue-500 text-blue-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("settlement")}
-              >
-                {"Settlement"}
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {activeTab === "details" && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {"Name"} *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={"e.g., Interactive Brokers"}
-                      autoFocus
-                    />
-                  </div>
-
-                  {/* A saved firm can be changed but not removed: the backend
-                      keeps it when the request names none. A saved firm the
-                      list no longer names shows as not listed, as on the card,
-                      and is kept on save. */}
-                  <BrokerFirmSelect
-                    firms={globalBrokers}
-                    value={formData.globalBrokerId ?? ""}
-                    onChange={(globalBrokerId) =>
-                      setFormData({
-                        ...formData,
-                        globalBrokerId: globalBrokerId || undefined,
-                      })
-                    }
-                    allowNone={!firmName(editingBroker?.globalBrokerId)}
-                    selectClassName="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {"Account Number"}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.accountNumber || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          accountNumber: e.target.value,
-                        })
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={"Optional"}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {"Notes"}
-                    </label>
-                    <textarea
-                      value={formData.notes || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      rows={3}
-                      placeholder={"Optional notes"}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "settlement" && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {
-                      "Map currencies to default bank accounts for this brokerage account"
-                    }
-                  </p>
-                  {accountAssets.length === 0 ? (
-                    <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                      <i className="fas fa-info-circle mr-2"></i>
-                      {
-                        "No bank accounts found. Create bank accounts in Assets first."
-                      }
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {SETTLEMENT_CURRENCIES.map((currency) => {
-                        const selectedValue =
-                          formData.settlementAccounts?.[currency] || ""
-                        // Filter accounts that match this currency
-                        const matchingAccounts = accountAssets.filter(
-                          (asset) => getAssetCurrency(asset) === currency,
-                        )
-                        // Ensure selected account is always in the list
-                        const selectedAccount =
-                          selectedValue &&
-                          !matchingAccounts.find((a) => a.id === selectedValue)
-                            ? accountAssets.find((a) => a.id === selectedValue)
-                            : null
-                        return (
-                          <div key={currency} className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                              {currency}
-                            </label>
-                            <select
-                              value={selectedValue}
-                              onChange={(e) =>
-                                handleSettlementAccountChange(
-                                  currency,
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                            >
-                              <option value="">{"Default"}</option>
-                              {selectedAccount && (
-                                <option
-                                  key={selectedAccount.id}
-                                  value={selectedAccount.id}
-                                >
-                                  {selectedAccount.name}
-                                </option>
-                              )}
-                              {matchingAccounts.map((asset) => (
-                                <option key={asset.id} value={asset.id}>
-                                  {asset.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer with buttons */}
-            <div className="flex justify-end space-x-3 p-4 border-t bg-gray-50">
-              <button
-                type="button"
-                className="px-6 py-3 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium"
-                onClick={handleCancel}
-              >
-                {"Cancel"}
-              </button>
-              <button
-                type="button"
-                className={`px-6 py-3 rounded-lg transition-colors text-white font-medium ${
-                  isSaving || !formData.name.trim()
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-500 hover:bg-blue-600"
-                }`}
-                onClick={handleSave}
-                disabled={isSaving || !formData.name.trim()}
-              >
-                {isSaving ? (
-                  <span className="flex items-center">
-                    <Spinner className="mr-2" />
-                    {"Saving..."}
-                  </span>
-                ) : (
-                  "Save"
-                )}
-              </button>
-            </div>
-          </div>
+      {(transferSuccess || (deleteError && !transferringBroker)) && (
+        <div className="max-w-2xl mx-auto px-4 pt-4 space-y-2">
+          {transferSuccess && (
+            <Alert variant="success">{transferSuccess}</Alert>
+          )}
+          {deleteError && !transferringBroker && <Alert>{deleteError}</Alert>}
         </div>
+      )}
+
+      {/* Create/Edit dialog */}
+      {isCreating && (
+        <Dialog
+          title={
+            editingBroker ? "Edit Brokerage Account" : "Add Brokerage Account"
+          }
+          onClose={handleCancel}
+          scrollable
+          footer={
+            <>
+              <Dialog.CancelButton onClick={handleCancel} label={"Cancel"} />
+              <Dialog.SubmitButton
+                onClick={handleSave}
+                label={"Save"}
+                loadingLabel={"Saving..."}
+                isSubmitting={isSaving}
+                disabled={!formData.name.trim()}
+                variant="blue"
+              />
+            </>
+          }
+        >
+          <div
+            role="tablist"
+            aria-label={"Brokerage account sections"}
+            className="sticky -top-4 z-10 -mx-4 -mt-4 flex border-b border-gray-200 bg-white"
+          >
+            {(["details", "settlement"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                id={`broker-tab-${tab}`}
+                aria-selected={activeTab === tab}
+                aria-controls={`broker-panel-${tab}`}
+                className={`flex-1 -mb-px border-b-2 py-3 px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:bg-blue-50 ${
+                  activeTab === tab
+                    ? "border-blue-600 text-blue-700"
+                    : "border-transparent text-gray-500 hover:text-gray-900"
+                }`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === "details" ? "Details" : "Settlement"}
+              </button>
+            ))}
+          </div>
+
+          {saveError && <Alert>{saveError}</Alert>}
+
+          {activeTab === "details" && (
+            <div
+              role="tabpanel"
+              id="broker-panel-details"
+              aria-labelledby="broker-tab-details"
+              className="space-y-4"
+            >
+              <div>
+                <label htmlFor="broker-name" className={FIELD_LABEL}>
+                  {"Name"} *
+                </label>
+                <input
+                  id="broker-name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className={`${FIELD} input-height`}
+                  placeholder={"e.g., Interactive Brokers"}
+                  autoFocus
+                />
+              </div>
+
+              {/* A saved firm can be changed but not removed: the backend
+                  keeps it when the request names none. A saved firm the
+                  list no longer names shows as not listed, as on the card,
+                  and is kept on save. */}
+              <BrokerFirmSelect
+                firms={globalBrokers}
+                value={formData.globalBrokerId ?? ""}
+                onChange={(globalBrokerId) =>
+                  setFormData({
+                    ...formData,
+                    globalBrokerId: globalBrokerId || undefined,
+                  })
+                }
+                allowNone={!firmName(editingBroker?.globalBrokerId)}
+                selectClassName={`${FIELD} input-height`}
+              />
+
+              <div>
+                <label htmlFor="broker-account-number" className={FIELD_LABEL}>
+                  {"Account Number"}
+                </label>
+                <input
+                  id="broker-account-number"
+                  type="text"
+                  value={formData.accountNumber || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      accountNumber: e.target.value,
+                    })
+                  }
+                  className={`${FIELD} input-height font-mono`}
+                  placeholder={"Optional"}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="broker-notes" className={FIELD_LABEL}>
+                  {"Notes"}
+                </label>
+                <textarea
+                  id="broker-notes"
+                  value={formData.notes || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
+                  className={`${FIELD} py-2`}
+                  rows={3}
+                  placeholder={"Optional notes"}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "settlement" && (
+            <div
+              role="tabpanel"
+              id="broker-panel-settlement"
+              aria-labelledby="broker-tab-settlement"
+            >
+              <p className="text-sm text-gray-600 mb-4">
+                {
+                  "Map currencies to default bank accounts for this brokerage account"
+                }
+              </p>
+              {accountAssets.length === 0 ? (
+                <Alert variant="warning">
+                  {
+                    "No bank accounts found. Create bank accounts in Assets first."
+                  }
+                </Alert>
+              ) : (
+                <div className="space-y-2">
+                  {SETTLEMENT_CURRENCIES.map((currency) => {
+                    const selectedValue =
+                      formData.settlementAccounts?.[currency] || ""
+                    // Filter accounts that match this currency
+                    const matchingAccounts = accountAssets.filter(
+                      (asset) => getAssetCurrency(asset) === currency,
+                    )
+                    // Ensure selected account is always in the list
+                    const selectedAccount =
+                      selectedValue &&
+                      !matchingAccounts.find((a) => a.id === selectedValue)
+                        ? accountAssets.find((a) => a.id === selectedValue)
+                        : null
+                    return (
+                      <div key={currency} className="flex items-center gap-3">
+                        <label
+                          htmlFor={`settlement-${currency}`}
+                          className="w-10 shrink-0 font-mono text-sm font-medium text-gray-700"
+                        >
+                          {currency}
+                        </label>
+                        <select
+                          id={`settlement-${currency}`}
+                          value={selectedValue}
+                          onChange={(e) =>
+                            handleSettlementAccountChange(
+                              currency,
+                              e.target.value,
+                            )
+                          }
+                          className={`${FIELD} input-height min-w-0 flex-1`}
+                        >
+                          <option value="">{"Default"}</option>
+                          {selectedAccount && (
+                            <option
+                              key={selectedAccount.id}
+                              value={selectedAccount.id}
+                            >
+                              {selectedAccount.name}
+                            </option>
+                          )}
+                          {matchingAccounts.map((asset) => (
+                            <option key={asset.id} value={asset.id}>
+                              {asset.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </Dialog>
       )}
 
       {/* Broker List */}
       <div className="px-4 py-4">
         {brokers.length === 0 ? (
-          <div className="max-w-md mx-auto text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-building text-2xl text-gray-400"></i>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              {"No brokerage accounts yet"}
-            </h2>
-            <p className="text-gray-600 mb-6">
-              {
-                "Add your brokerage accounts to track where your investments are held."
-              }
-            </p>
-            <button
-              onClick={handleCreate}
-              className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              {"Add Brokerage Account"}
-            </button>
-          </div>
-        ) : (
-          <div className="max-w-2xl mx-auto space-y-3">
-            {brokers.map((broker) => (
-              <div
-                key={broker.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+          <EmptyState
+            icon="fas fa-building-columns"
+            title={"No brokerage accounts yet"}
+            description={
+              "Add your brokerage accounts to track where your investments are held."
+            }
+            action={
+              <button
+                type="button"
+                onClick={handleCreate}
+                className={`btn-primary gap-2 ${FOCUS_RING}`}
               >
-                <div className="flex justify-between items-start">
+                <i className="fas fa-plus" aria-hidden="true"></i>
+                {"Add Brokerage Account"}
+              </button>
+            }
+            className="max-w-md mx-auto"
+          />
+        ) : (
+          <ul className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-lg divide-y divide-gray-200">
+            {brokers.map((broker) => {
+              const firm = firmName(broker.globalBrokerId)
+              const removeLabel = firm ? "Close account" : "Delete"
+              return (
+                <li
+                  key={broker.id}
+                  className="flex items-start justify-between gap-2 py-2 pl-4 pr-2"
+                >
                   <button
                     type="button"
                     onClick={() =>
                       router.push(`/brokers/${broker.id}/holdings`)
                     }
-                    className="flex-1 text-left group cursor-pointer"
+                    className={`group min-w-0 flex-1 rounded-md py-1.5 text-left cursor-pointer ${FOCUS_RING}`}
                   >
-                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {broker.name}
+                    <h3 className="flex items-center gap-2 font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <span className="truncate">{broker.name}</span>
                       {broker.active === false && (
-                        <span className="ml-2 text-xs font-medium text-gray-600 bg-gray-100 rounded px-2 py-0.5">
+                        <span className="shrink-0 text-xs font-medium text-gray-600 bg-gray-100 rounded px-2 py-0.5">
                           {"Inactive"}
                         </span>
                       )}
                     </h3>
-                    {firmName(broker.globalBrokerId) && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        <i className="fas fa-building-columns mr-1 text-gray-400"></i>
-                        {firmName(broker.globalBrokerId)}
-                      </p>
-                    )}
-                    {broker.accountNumber && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        <i className="fas fa-hashtag mr-1 text-gray-400"></i>
-                        {broker.accountNumber}
+                    {(firm || broker.accountNumber) && (
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-gray-600">
+                        {firm && <span>{firm}</span>}
+                        {broker.accountNumber && (
+                          <span className="font-mono tabular-nums">
+                            {broker.accountNumber}
+                          </span>
+                        )}
                       </p>
                     )}
                     {broker.notes && (
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="mt-0.5 text-sm text-gray-500">
                         {broker.notes}
                       </p>
                     )}
                   </button>
-                  <div className="flex items-center space-x-2 ml-4">
+                  <div className="flex shrink-0 items-center">
                     <button
+                      type="button"
                       onClick={() =>
                         router.push(`/brokers/${broker.id}/holdings`)
                       }
-                      className="text-gray-400 hover:text-green-600 p-2 transition-colors"
+                      className={ICON_BUTTON}
                       title={"Reconcile Holdings"}
+                      aria-label={`Reconcile holdings of ${broker.name}`}
                     >
-                      <i className="fas fa-balance-scale"></i>
+                      <i
+                        className="fas fa-balance-scale"
+                        aria-hidden="true"
+                      ></i>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleEdit(broker)}
-                      className="text-gray-400 hover:text-blue-600 p-2 transition-colors"
+                      className={ICON_BUTTON}
                       title={"Edit"}
+                      aria-label={`Edit ${broker.name}`}
                     >
-                      <i className="far fa-edit"></i>
+                      <i className="far fa-edit" aria-hidden="true"></i>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setTransferringBroker(broker)}
-                      className="text-gray-400 hover:text-orange-600 p-2 transition-colors"
+                      className={ICON_BUTTON}
                       title={"Transfer Transactions"}
+                      aria-label={`Transfer transactions of ${broker.name}`}
                     >
-                      <i className="fas fa-exchange-alt"></i>
+                      <i className="fas fa-exchange-alt" aria-hidden="true"></i>
                     </button>
                     {broker.active === false && (
                       <button
+                        type="button"
                         onClick={() => setActive(broker, true)}
-                        className="text-gray-400 hover:text-green-600 p-2 transition-colors"
+                        className={ICON_BUTTON}
                         title={"Reactivate"}
+                        aria-label={`Reactivate ${broker.name}`}
                       >
-                        <i className="fas fa-rotate-left"></i>
+                        <i
+                          className="fas fa-rotate-left"
+                          aria-hidden="true"
+                        ></i>
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => handleDelete(broker)}
-                      className="text-gray-400 hover:text-red-600 p-2 transition-colors"
-                      title={
-                        firmName(broker.globalBrokerId)
-                          ? "Close account"
-                          : "Delete"
-                      }
+                      className={ICON_BUTTON_DANGER}
+                      title={removeLabel}
+                      aria-label={`${removeLabel}: ${broker.name}`}
                     >
-                      <i className="far fa-trash-alt"></i>
+                      <i className="far fa-trash-alt" aria-hidden="true"></i>
                     </button>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              )
+            })}
+          </ul>
         )}
       </div>
 
@@ -661,13 +686,14 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="transfer-target" className={FIELD_LABEL}>
               {"Transfer to"}
             </label>
             <select
+              id="transfer-target"
               value={targetBrokerId}
               onChange={(e) => setTargetBrokerId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className={`${FIELD} input-height`}
             >
               <option value="">{"Select a brokerage account..."}</option>
               {brokers

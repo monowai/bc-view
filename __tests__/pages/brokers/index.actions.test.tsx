@@ -138,7 +138,7 @@ describe("Brokers page", () => {
       render(<BrokersPage />)
       await user.click(screen.getAllByTitle("Edit")[0])
       expect(screen.getByDisplayValue("Alpha Broker")).toBeInTheDocument()
-      await user.click(screen.getByRole("button", { name: "Settlement" }))
+      await user.click(screen.getByRole("tab", { name: "Settlement" }))
       const usd = screen.getByText("USD", { selector: "label" }).parentElement!
       expect(within(usd).getByRole("combobox")).toHaveValue("acc-usd")
       const sgd = screen.getByText("SGD", { selector: "label" }).parentElement!
@@ -164,7 +164,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(screen.getByTitle("Edit"))
-      await user.click(screen.getByRole("button", { name: "Settlement" }))
+      await user.click(screen.getByRole("tab", { name: "Settlement" }))
       const eur = screen.getByText("EUR", { selector: "label" }).parentElement!
       expect(
         within(eur).getByRole("option", { name: "US Bank" }),
@@ -178,7 +178,7 @@ describe("Brokers page", () => {
       await user.click(
         screen.getByRole("button", { name: /Add Brokerage Account/ }),
       )
-      await user.click(screen.getByRole("button", { name: "Settlement" }))
+      await user.click(screen.getByRole("tab", { name: "Settlement" }))
       expect(screen.getByText(/No bank accounts found/)).toBeInTheDocument()
     })
 
@@ -198,7 +198,20 @@ describe("Brokers page", () => {
       expect(
         screen.getByRole("heading", { name: "Add Brokerage Account" }),
       ).toBeInTheDocument()
+      expect(await screen.findByRole("alert")).toHaveTextContent("nope")
       await user.click(screen.getByRole("button", { name: "Cancel" }))
+      expect(
+        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("closes the dialog on Escape", async () => {
+      const user = userEvent.setup()
+      render(<BrokersPage />)
+      await user.click(
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+      )
+      await user.keyboard("{Escape}")
       expect(
         screen.queryByRole("heading", { name: "Add Brokerage Account" }),
       ).not.toBeInTheDocument()
