@@ -1465,6 +1465,22 @@ describe("PriceChartPopup", () => {
       )
     })
 
+    it("still says how far the last close is from a target hit before", () => {
+      mockUseSwr.mockImplementation(makeRouter({}))
+      watching([
+        makeWatchlistItem({
+          asset,
+          targetPrice: 400,
+          targetOn: "2026-03-25",
+          targetHitOn: "2026-04-01",
+        }),
+      ])
+      renderPopup()
+
+      expect(screen.getByTestId("target-gap")).toHaveTextContent(/4\.76%$/)
+      expect(screen.getByTestId("target-arrow")).toHaveTextContent("▼")
+    })
+
     it("shades between the closes and the target over the target's span", () => {
       mockUseSwr.mockImplementation(makeRouter({}))
       watchedFrom("2026-03-25", 415)

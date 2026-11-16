@@ -469,9 +469,10 @@ const TARGET_COLOR = "#374151"
 const TARGET_FILL_OPACITY = 0.12
 
 /**
- * The watch target's price, then either the day it was hit or how far the last
- * close must move to reach it: "Target $400.00 ▼ 4.76%". Without a close
- * to compare, the target's price alone is said.
+ * The watch target's price, the day it was last hit if it has been, and how far
+ * the last close must move to reach it: "Target $400.00 hit 1 Apr 2026 · ▼ 4.76%".
+ * A hit is history, so it never hides the distance. Without a close to compare,
+ * no distance is said.
  */
 const TargetGap: React.FC<{
   price: string
@@ -484,13 +485,13 @@ const TargetGap: React.FC<{
   >
     {"Target "}
     <span className="font-medium text-gray-700">{price}</span>{" "}
-    {hitOn ? (
+    {hitOn && (
       <span className="font-medium text-amber-800">
         hit {formatDate(hitOn)}
+        {toTarget !== null && " · "}
       </span>
-    ) : (
-      toTarget !== null && <TargetDistance toTarget={toTarget} />
     )}
+    {toTarget !== null && <TargetDistance toTarget={toTarget} />}
   </div>
 )
 
