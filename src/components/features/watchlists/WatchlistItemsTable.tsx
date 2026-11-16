@@ -231,6 +231,7 @@ export default function WatchlistItemsTable({
                     ) : (
                       <TargetDistance
                         toTarget={item.toTarget}
+                        targetPrice={`${formatCurrency(item.targetPrice, dp)} ${item.currency.code}`}
                         className="ml-1 text-xs"
                       />
                     )}

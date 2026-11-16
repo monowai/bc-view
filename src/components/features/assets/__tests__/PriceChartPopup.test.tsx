@@ -1411,7 +1411,11 @@ describe("PriceChartPopup", () => {
 
       const gap = screen.getByTestId("target-gap")
       expect(gap).toHaveTextContent("Target $400.00")
-      expect(gap).toHaveTextContent("4.76% away")
+      expect(gap).toHaveTextContent(/4\.76%$/)
+      expect(screen.getByTestId("target-distance")).toHaveAttribute(
+        "title",
+        "Target price $400.00: the price must fall 4.76% to reach it",
+      )
       expect(screen.getByTestId("target-arrow")).toHaveTextContent("▼")
     })
 
@@ -1422,7 +1426,7 @@ describe("PriceChartPopup", () => {
 
       const gap = screen.getByTestId("target-gap")
       expect(gap).toHaveTextContent("Target $450.00")
-      expect(gap).toHaveTextContent("7.14% away")
+      expect(gap).toHaveTextContent(/7\.14%$/)
       expect(screen.getByTestId("target-arrow")).toHaveTextContent("▲")
     })
 
@@ -1445,7 +1449,7 @@ describe("PriceChartPopup", () => {
       expect(screen.getByTestId("target-gap")).toHaveTextContent(
         "Target $420.00 at target",
       )
-      expect(screen.getByTestId("target-gap")).not.toHaveTextContent(/away/)
+      expect(screen.getByTestId("target-gap")).not.toHaveTextContent("%")
     })
 
     it("says when the target was hit", () => {

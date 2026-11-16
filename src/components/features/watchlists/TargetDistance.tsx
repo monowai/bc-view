@@ -4,25 +4,32 @@ import { formatPercent } from "@lib/formatters"
 interface TargetDistanceProps {
   /** (target - price) / price, as a fraction (0.25 = 25%). */
   toTarget: number
+  /** The target as shown to the user, with its currency: "$384.66". */
+  targetPrice: string
   className?: string
 }
 
 /**
  * How far the price must move to reach a watchlist target, and which way:
- * "▼ 16.72% away". A distance is neither a gain nor a loss, so it is never
+ * "▼ 16.72%". The tooltip names the target price. A distance is neither a gain nor a loss, so it is never
  * red or green; the arrow carries the direction.
  */
 export default function TargetDistance({
   toTarget,
+  targetPrice,
   className = "",
 }: TargetDistanceProps): React.ReactElement {
   // Rounded as shown, so a target the price rounds to reads "at target".
   const shown = formatPercent(Math.abs(toTarget))
   const atTarget = Number.parseFloat(shown) === 0
   const falls = toTarget < 0
+  const title = atTarget
+    ? `Target price ${targetPrice}`
+    : `Target price ${targetPrice}: the price must ${falls ? "fall" : "rise"} ${shown} to reach it`
   return (
     <span
       data-testid="target-distance"
+      title={title}
       className={`text-gray-500 tabular-nums ${className}`}
     >
       {atTarget ? (
@@ -35,7 +42,7 @@ export default function TargetDistance({
           <span className="sr-only">
             {falls ? "price must fall" : "price must rise"}
           </span>{" "}
-          {shown} away
+          {shown}
         </>
       )}
     </span>

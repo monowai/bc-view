@@ -470,7 +470,7 @@ const TARGET_FILL_OPACITY = 0.12
 
 /**
  * The watch target's price, then either the day it was hit or how far the last
- * close must move to reach it: "Target $400.00 ▼ 4.76% away". Without a close
+ * close must move to reach it: "Target $400.00 ▼ 4.76%". Without a close
  * to compare, the target's price alone is said.
  */
 const TargetGap: React.FC<{
@@ -489,7 +489,9 @@ const TargetGap: React.FC<{
         hit {formatDate(hitOn)}
       </span>
     ) : (
-      toTarget !== null && <TargetDistance toTarget={toTarget} />
+      toTarget !== null && (
+        <TargetDistance toTarget={toTarget} targetPrice={price} />
+      )
     )}
   </div>
 )
