@@ -138,7 +138,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
           </div>
           <p className="text-xs text-gray-600">
             {"Use "}
-            <strong>Tools → Open Brokerage</strong>
+            <strong>Tools → Open Brokerage Account</strong>
             {" any time to add another brokerage account."}
           </p>
         </div>

@@ -190,7 +190,7 @@ export default function Home(): React.ReactElement {
                   <i className="fas fa-building-columns text-xl text-purple-500"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">
-                  {"Open Brokerage"}
+                  {"Open Brokerage Account"}
                 </h3>
                 <p className="text-gray-500 text-sm">
                   {

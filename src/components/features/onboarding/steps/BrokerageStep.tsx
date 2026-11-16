@@ -73,7 +73,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
           href="/tools/open-brokerage"
           className="text-purple-600 hover:underline"
         >
-          {"Tools → Open Brokerage"}
+          {"Tools → Open Brokerage Account"}
         </Link>
         {"."}
       </p>

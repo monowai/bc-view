@@ -697,7 +697,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             disabled={submitting}
             className="btn-primary btn-primary--sm disabled:opacity-50"
           >
-            {submitting ? "Creating…" : "Open Brokerage"}
+            {submitting ? "Creating…" : "Open Brokerage Account"}
           </button>
         ) : (
           <button
