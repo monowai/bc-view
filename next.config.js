@@ -6,6 +6,10 @@ const path = require("path")
 const nextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
+  experimental: {
+    // Marks this app for `next upgrade --agent=security`: security patch upgrades.
+    agentUpgrade: "security",
+  },
   images: {
     remotePatterns: [
       {
