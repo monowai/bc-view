@@ -77,17 +77,21 @@ describe("Brokers page: brokerage firm", () => {
     holds()
   })
 
-  it("saves a new broker against the firm the user picks", async () => {
-    show([])
+  function openDialog(): void {
     fireEvent.click(
-      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+      screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
     )
-    fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
-      target: { value: "My IB" },
-    })
-    fireEvent.change(screen.getByLabelText("Brokerage firm"), {
-      target: { value: "gb-ibkr" },
-    })
+  }
+
+  function type(label: string, value: string): void {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  }
+
+  it("saves a new account against the listed firm the user names", async () => {
+    show([])
+    openDialog()
+    type("Brokerage firm *", "interactive brokers")
+    type("Account name", "My IB")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
@@ -98,18 +102,53 @@ describe("Brokers page: brokerage firm", () => {
     )
   })
 
-  it("saves a new broker with no firm when the user picks none", async () => {
+  it("names a new account after its firm when the user gives no account name", async () => {
     show([])
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+    openDialog()
+    type("Brokerage firm *", "Charles Schwab")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          name: "Charles Schwab",
+          globalBrokerId: "gb-schwab",
+        }),
+      ),
     )
-    fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
-      target: { value: "Local bank" },
-    })
+  })
+
+  it("saves a firm that is not listed as the account's own name, with no firm link", async () => {
+    show([])
+    openDialog()
+    type("Brokerage firm *", "Local bank")
+    expect(
+      screen.getByText("Not a listed firm. It is saved on your account only."),
+    ).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(saveBroker).toHaveBeenCalled())
+    expect(saveBroker.mock.calls[0][1].name).toBe("Local bank")
     expect(saveBroker.mock.calls[0][1].globalBrokerId).toBeUndefined()
+  })
+
+  it("offers the listed firms as suggestions", () => {
+    show([])
+    openDialog()
+
+    const suggestions = Array.from(
+      document.querySelectorAll("#broker-firm-list option"),
+    ).map((option) => (option as HTMLOptionElement).value)
+    expect(suggestions).toEqual(["Interactive Brokers", "Charles Schwab"])
+  })
+
+  it("cannot save a new account that names no firm", () => {
+    show([])
+    openDialog()
+    type("Account name", "Orphan")
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
   })
 
   it("shows the firm a broker is already saved against, and lets the user change it", async () => {
@@ -164,13 +203,23 @@ describe("Brokers page: brokerage firm", () => {
     expect(screen.queryByText("Charles Schwab")).not.toBeInTheDocument()
   })
 
-  it("hides the firm choice when no firms are available", () => {
+  it("lets the user type a firm when none is listed", async () => {
     show([], [])
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
-    )
+    openDialog()
+    type("Brokerage firm *", "Tiger")
+    expect(
+      screen.queryByText(
+        "Not a listed firm. It is saved on your account only.",
+      ),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
-    expect(screen.queryByLabelText("Brokerage firm")).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(saveBroker).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ name: "Tiger" }),
+      ),
+    )
   })
 
   it("offers to close an account with a firm, and to delete a broker with none", () => {

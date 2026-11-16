@@ -16,6 +16,9 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
 import BrokerFirmSelect from "@components/features/brokers/BrokerFirmSelect"
+import BrokerFirmInput, {
+  listedFirm,
+} from "@components/features/brokers/BrokerFirmInput"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import EmptyState from "@components/ui/EmptyState"
 
@@ -57,6 +60,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     notes: "",
     settlementAccounts: {},
   })
+  // The firm of a new account, as the user typed or picked it.
+  const [firmText, setFirmText] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [transferringBroker, setTransferringBroker] =
@@ -82,6 +87,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       notes: "",
       settlementAccounts: {},
     })
+    setFirmText("")
     setEditingBroker(null)
     setActiveTab("details")
     setSaveError(null)
@@ -134,13 +140,28 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     [],
   )
 
+  // A new account takes its firm from what the user typed: a listed firm is
+  // linked, one that is not listed is the account's own name.
+  const canSave = editingBroker
+    ? formData.name.trim() !== ""
+    : firmText.trim() !== ""
+
   const handleSave = useCallback(async () => {
-    if (!formData.name.trim()) return
+    if (!canSave) return
 
     setIsSaving(true)
     setSaveError(null)
     try {
-      await saveBroker(editingBroker?.id, formData)
+      await saveBroker(
+        editingBroker?.id,
+        editingBroker
+          ? formData
+          : {
+              ...formData,
+              name: formData.name.trim() || firmText.trim(),
+              globalBrokerId: listedFirm(globalBrokers, firmText)?.id,
+            },
+      )
       handleCancel()
     } catch (err) {
       console.error("Failed to save broker:", err)
@@ -152,7 +173,15 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     } finally {
       setIsSaving(false)
     }
-  }, [formData, editingBroker, saveBroker, handleCancel])
+  }, [
+    canSave,
+    formData,
+    firmText,
+    globalBrokers,
+    editingBroker,
+    saveBroker,
+    handleCancel,
+  ])
 
   // A broker that holds a position can be neither closed nor deleted: the user
   // is offered to deactivate it. The server refuses one that has transactions,
@@ -275,21 +304,6 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             <button
               type="button"
               className={SECONDARY_BUTTON}
-              onClick={() => router.push("/tools/open-brokerage")}
-              title={"Open Brokerage Account"}
-              aria-label={"Open Brokerage Account"}
-            >
-              <i
-                className="fas fa-building-columns text-gray-500"
-                aria-hidden="true"
-              ></i>
-              <span className="hidden lg:inline">
-                {"Open Brokerage Account"}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={SECONDARY_BUTTON}
               onClick={() => router.push("/brokers/NO_BROKER/holdings")}
               title={"Reconcile Holdings"}
               aria-label={"Reconcile Holdings"}
@@ -309,9 +323,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 <i className="fas fa-plus"></i>
               </span>
               <span className="hidden sm:inline">
-                {"Add Brokerage Account"}
+                {"Open Brokerage Account"}
               </span>
-              <span className="sm:hidden">{"New"}</span>
+              <span className="sm:hidden">{"Open"}</span>
             </button>
           </div>
         </div>
@@ -330,7 +344,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {isCreating && (
         <Dialog
           title={
-            editingBroker ? "Edit Brokerage Account" : "Add Brokerage Account"
+            editingBroker ? "Edit Brokerage Account" : "Open Brokerage Account"
           }
           onClose={handleCancel}
           scrollable
@@ -342,7 +356,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 label={"Save"}
                 loadingLabel={"Saving..."}
                 isSubmitting={isSaving}
-                disabled={!formData.name.trim()}
+                disabled={!canSave}
                 variant="blue"
               />
             </>
@@ -382,21 +396,36 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               aria-labelledby="broker-tab-details"
               className="space-y-4"
             >
+              {!editingBroker && (
+                <BrokerFirmInput
+                  firms={globalBrokers}
+                  value={firmText}
+                  onChange={setFirmText}
+                  labelClassName={FIELD_LABEL}
+                  inputClassName={`${FIELD} input-height`}
+                />
+              )}
+
               <div>
                 <label htmlFor="broker-name" className={FIELD_LABEL}>
-                  {"Name"} *
+                  {"Account name"}
+                  {editingBroker && " *"}
                 </label>
                 <input
                   id="broker-name"
                   type="text"
-                  required
+                  required={!!editingBroker}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className={`${FIELD} input-height`}
-                  placeholder={"e.g., Interactive Brokers"}
-                  autoFocus
+                  placeholder={
+                    editingBroker
+                      ? undefined
+                      : firmText.trim() || "Defaults to the firm name"
+                  }
+                  autoFocus={!!editingBroker}
                 />
               </div>
 
@@ -404,18 +433,20 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   keeps it when the request names none. A saved firm the
                   list no longer names shows as not listed, as on the card,
                   and is kept on save. */}
-              <BrokerFirmSelect
-                firms={globalBrokers}
-                value={formData.globalBrokerId ?? ""}
-                onChange={(globalBrokerId) =>
-                  setFormData({
-                    ...formData,
-                    globalBrokerId: globalBrokerId || undefined,
-                  })
-                }
-                allowNone={!firmName(editingBroker?.globalBrokerId)}
-                selectClassName={`${FIELD} input-height`}
-              />
+              {editingBroker && (
+                <BrokerFirmSelect
+                  firms={globalBrokers}
+                  value={formData.globalBrokerId ?? ""}
+                  onChange={(globalBrokerId) =>
+                    setFormData({
+                      ...formData,
+                      globalBrokerId: globalBrokerId || undefined,
+                    })
+                  }
+                  allowNone={!firmName(editingBroker.globalBrokerId)}
+                  selectClassName={`${FIELD} input-height`}
+                />
+              )}
 
               <div>
                 <label htmlFor="broker-account-number" className={FIELD_LABEL}>
@@ -452,6 +483,16 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   placeholder={"Optional notes"}
                 />
               </div>
+
+              {!editingBroker && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/tools/open-brokerage")}
+                  className={`text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline rounded ${FOCUS_RING}`}
+                >
+                  {"Set up a portfolio and cash accounts too"}
+                </button>
+              )}
             </div>
           )}
 
@@ -547,7 +588,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 className={`btn-primary gap-2 ${FOCUS_RING}`}
               >
                 <i className="fas fa-plus" aria-hidden="true"></i>
-                {"Add Brokerage Account"}
+                {"Open Brokerage Account"}
               </button>
             }
             className="max-w-md mx-auto"

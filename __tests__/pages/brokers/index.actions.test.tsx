@@ -82,11 +82,11 @@ describe("Brokers page", () => {
     render(<BrokersPage />)
     expect(screen.getByText("No brokerage accounts yet")).toBeInTheDocument()
     const buttons = screen.getAllByRole("button", {
-      name: /Add Brokerage Account/,
+      name: /Open Brokerage Account/,
     })
     await user.click(buttons[buttons.length - 1])
     expect(
-      screen.getByRole("heading", { name: "Add Brokerage Account" }),
+      screen.getByRole("heading", { name: "Open Brokerage Account" }),
     ).toBeInTheDocument()
   })
 
@@ -108,7 +108,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+        screen.getByRole("button", { name: /Open Brokerage Account/ }),
       )
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
       await user.type(
@@ -128,7 +128,7 @@ describe("Brokers page", () => {
       )
       await waitFor(() =>
         expect(
-          screen.queryByRole("heading", { name: "Add Brokerage Account" }),
+          screen.queryByRole("heading", { name: "Open Brokerage Account" }),
         ).not.toBeInTheDocument(),
       )
     })
@@ -176,7 +176,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+        screen.getByRole("button", { name: /Open Brokerage Account/ }),
       )
       await user.click(screen.getByRole("tab", { name: "Settlement" }))
       expect(screen.getByText(/No bank accounts found/)).toBeInTheDocument()
@@ -187,7 +187,7 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+        screen.getByRole("button", { name: /Open Brokerage Account/ }),
       )
       await user.type(
         screen.getByPlaceholderText("e.g., Interactive Brokers"),
@@ -196,12 +196,12 @@ describe("Brokers page", () => {
       await user.click(screen.getByRole("button", { name: "Save" }))
       await waitFor(() => expect(hook.saveBroker).toHaveBeenCalled())
       expect(
-        screen.getByRole("heading", { name: "Add Brokerage Account" }),
+        screen.getByRole("heading", { name: "Open Brokerage Account" }),
       ).toBeInTheDocument()
       expect(await screen.findByRole("alert")).toHaveTextContent("nope")
       await user.click(screen.getByRole("button", { name: "Cancel" }))
       expect(
-        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
+        screen.queryByRole("heading", { name: "Open Brokerage Account" }),
       ).not.toBeInTheDocument()
     })
 
@@ -209,11 +209,11 @@ describe("Brokers page", () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
       await user.click(
-        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+        screen.getByRole("button", { name: /Open Brokerage Account/ }),
       )
       await user.keyboard("{Escape}")
       expect(
-        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
+        screen.queryByRole("heading", { name: "Open Brokerage Account" }),
       ).not.toBeInTheDocument()
     })
   })

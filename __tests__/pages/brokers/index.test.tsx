@@ -31,10 +31,27 @@ describe("Brokers Page", () => {
     jest.clearAllMocks()
   })
 
-  it("offers Open Brokerage from the page header", () => {
+  it("opens the account dialog from the one header action", () => {
     render(<BrokersPage />)
-    const button = screen.getByRole("button", { name: /Open Brokerage/i })
-    fireEvent.click(button)
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
+    )
+    expect(
+      screen.getByRole("heading", { name: "Open Brokerage Account" }),
+    ).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it("offers the portfolio and cash set-up from the dialog", () => {
+    render(<BrokersPage />)
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Open Brokerage Account/ })[0],
+    )
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Set up a portfolio and cash accounts too",
+      }),
+    )
     expect(mockPush).toHaveBeenCalledWith("/tools/open-brokerage")
   })
 })
