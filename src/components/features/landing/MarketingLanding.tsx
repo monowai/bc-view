@@ -70,8 +70,8 @@ const PILLARS: Pillar[] = [
     eyebrow: "Wealth",
     question: "What do I have?",
     title: "See everything you own, in one number.",
-    body: "Net worth across brokers, assets and currencies — converted, reconciled, and kept current so the figure you see is the figure you trust.",
-    points: ["Multi-currency", "Multi-broker", "Multi-asset"],
+    body: "Net worth across brokerages, assets and currencies — converted, reconciled, and kept current so the figure you see is the figure you trust.",
+    points: ["Multi-currency", "Multi-brokerage", "Multi-asset"],
     href: "/learn/wealth",
     chart: <NetWorthChart />,
     panel: "bg-wealth-50",
@@ -206,8 +206,8 @@ export default function MarketingLanding(): React.ReactElement {
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-gray-300">
               Beancounter connects what you have, what you want, and how you get
-              there — across every broker, asset and currency. Start anywhere;
-              everything connects over time.
+              there — across every brokerage, asset and currency. Start
+              anywhere; everything connects over time.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Link

@@ -71,18 +71,22 @@ describe("Brokers page", () => {
     hook.isLoading = false
     hook.error = new Error("boom")
     render(<BrokersPage />)
-    expect(screen.getByText(/Error loading brokers/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Error loading brokerage accounts/),
+    ).toBeInTheDocument()
   })
 
   it("shows an empty state that opens the add dialog", async () => {
     hook.brokers = []
     const user = userEvent.setup()
     render(<BrokersPage />)
-    expect(screen.getByText("No brokers yet")).toBeInTheDocument()
-    const buttons = screen.getAllByRole("button", { name: /Add Broker/ })
+    expect(screen.getByText("No brokerage accounts yet")).toBeInTheDocument()
+    const buttons = screen.getAllByRole("button", {
+      name: /Add Brokerage Account/,
+    })
     await user.click(buttons[buttons.length - 1])
     expect(
-      screen.getByRole("heading", { name: "Add Broker" }),
+      screen.getByRole("heading", { name: "Add Brokerage Account" }),
     ).toBeInTheDocument()
   })
 
@@ -103,7 +107,9 @@ describe("Brokers page", () => {
     it("cannot save without a name, and saves a new broker", async () => {
       const user = userEvent.setup()
       render(<BrokersPage />)
-      await user.click(screen.getByRole("button", { name: /Add Broker/ }))
+      await user.click(
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+      )
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
       await user.type(
         screen.getByPlaceholderText("e.g., Interactive Brokers"),
@@ -122,7 +128,7 @@ describe("Brokers page", () => {
       )
       await waitFor(() =>
         expect(
-          screen.queryByRole("heading", { name: "Add Broker" }),
+          screen.queryByRole("heading", { name: "Add Brokerage Account" }),
         ).not.toBeInTheDocument(),
       )
     })
@@ -169,7 +175,9 @@ describe("Brokers page", () => {
       hook.accountAssets = []
       const user = userEvent.setup()
       render(<BrokersPage />)
-      await user.click(screen.getByRole("button", { name: /Add Broker/ }))
+      await user.click(
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+      )
       await user.click(screen.getByRole("button", { name: "Settlement" }))
       expect(screen.getByText(/No bank accounts found/)).toBeInTheDocument()
     })
@@ -178,7 +186,9 @@ describe("Brokers page", () => {
       hook.saveBroker.mockRejectedValue(new Error("nope"))
       const user = userEvent.setup()
       render(<BrokersPage />)
-      await user.click(screen.getByRole("button", { name: /Add Broker/ }))
+      await user.click(
+        screen.getByRole("button", { name: /Add Brokerage Account/ }),
+      )
       await user.type(
         screen.getByPlaceholderText("e.g., Interactive Brokers"),
         "X",
@@ -186,11 +196,11 @@ describe("Brokers page", () => {
       await user.click(screen.getByRole("button", { name: "Save" }))
       await waitFor(() => expect(hook.saveBroker).toHaveBeenCalled())
       expect(
-        screen.getByRole("heading", { name: "Add Broker" }),
+        screen.getByRole("heading", { name: "Add Brokerage Account" }),
       ).toBeInTheDocument()
       await user.click(screen.getByRole("button", { name: "Cancel" }))
       expect(
-        screen.queryByRole("heading", { name: "Add Broker" }),
+        screen.queryByRole("heading", { name: "Add Brokerage Account" }),
       ).not.toBeInTheDocument()
     })
   })
@@ -202,7 +212,7 @@ describe("Brokers page", () => {
       await user.click(screen.getAllByTitle("Delete")[0])
       expect(
         await screen.findByText(
-          "Delete broker Alpha Broker? It holds no positions.",
+          "Delete brokerage account Alpha Broker? It holds no positions.",
         ),
       ).toBeInTheDocument()
       await user.click(
@@ -279,7 +289,7 @@ describe("Brokers page", () => {
       await confirmDelete(user)
       // generic message contains no 'transaction', so no transfer dialog
       expect(
-        await screen.findByText("Failed to delete broker"),
+        await screen.findByText("Failed to delete brokerage account"),
       ).toBeInTheDocument()
       expect(
         screen.queryByText(/Transfer all transactions/),

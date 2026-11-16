@@ -190,10 +190,12 @@ export default function Home(): React.ReactElement {
                   <i className="fas fa-building-columns text-xl text-purple-500"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">
-                  {"Open Brokerage"}
+                  {"Open Brokerage Account"}
                 </h3>
                 <p className="text-gray-500 text-sm">
-                  {"Add a broker, a brokerage portfolio and your opening cash"}
+                  {
+                    "Add a brokerage account, a brokerage portfolio and your opening cash"
+                  }
                 </p>
               </Link>
               {/* Direct Add - for professional users */}
@@ -250,7 +252,7 @@ export default function Home(): React.ReactElement {
                   Manage Wealth
                 </h2>
                 <p className="text-blue-100 text-sm mb-4">
-                  What do I have? See net worth across brokers, assets and
+                  What do I have? See net worth across brokerages, assets and
                   currencies in one place.
                 </p>
                 <ul className="text-blue-100 text-xs space-y-1">
@@ -258,7 +260,7 @@ export default function Home(): React.ReactElement {
                     <i className="fas fa-check mr-2"></i>Multi-currency
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Multi-broker
+                    <i className="fas fa-check mr-2"></i>Multi-brokerage
                   </li>
                   <li>
                     <i className="fas fa-check mr-2"></i>Multi-asset

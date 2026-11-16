@@ -17,10 +17,15 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
   onSelect,
   onSkip,
 }) => (
-  <Dialog title="Select Broker" onClose={onSkip} maxWidth="md" zClass="z-[60]">
+  <Dialog
+    title="Select Brokerage Account"
+    onClose={onSkip}
+    maxWidth="md"
+    zClass="z-[60]"
+  >
     <p className="text-sm text-gray-600">
-      This position is held across multiple brokers. Select which broker to sell
-      from:
+      This position is held across multiple brokerage accounts. Select which
+      brokerage account to sell from:
     </p>
     <div className="space-y-2">
       {Object.entries(held).map(([brokerName, qty]) => {
@@ -35,7 +40,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
             <span className="font-medium">
               <i
                 className="fas fa-university mr-2 text-indigo-400"
-                title="Broker"
+                title="Brokerage account"
               ></i>
               {brokerName}
             </span>
@@ -51,7 +56,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
       className="w-full mt-4 p-2 text-gray-500 hover:text-gray-700 text-sm"
       onClick={onSkip}
     >
-      {"Skip - sell without specifying broker"}
+      {"Skip - sell without specifying a brokerage account"}
     </button>
   </Dialog>
 )

@@ -152,7 +152,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       }
     } catch (err) {
       console.error("Failed to read broker holdings:", err)
-      setDeleteError("Failed to read the broker's holdings")
+      setDeleteError("Failed to read the brokerage account's holdings")
     }
   }, [])
 
@@ -164,7 +164,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
         await saveBroker(broker.id, { name: broker.name, active })
       } catch (err) {
         setDeleteError(
-          err instanceof Error ? err.message : "Failed to update the broker",
+          err instanceof Error
+            ? err.message
+            : "Failed to update the brokerage account",
         )
       }
     },
@@ -178,7 +180,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       await deleteBroker(deletingBroker.id)
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete broker"
+        err instanceof Error
+          ? err.message
+          : "Failed to delete brokerage account"
       if (errorMessage.toLowerCase().includes("transaction")) {
         setDeactivating({ broker: deletingBroker, why: "has transactions" })
       } else {
@@ -218,7 +222,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const deletingFirm = firmName(deletingBroker?.globalBrokerId)
 
   if (error) {
-    return errorOut("Error loading brokers", error)
+    return errorOut("Error loading brokerage accounts", error)
   }
 
   if (isLoading) {
@@ -250,17 +254,19 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 <i className="fas fa-arrow-left text-lg"></i>
               </button>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {"Brokers"}
+                {"Brokerage Accounts"}
               </h1>
             </div>
             <div className="flex space-x-2">
               <button
                 className="bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition-colors flex items-center shadow-sm"
                 onClick={() => router.push("/tools/open-brokerage")}
-                title={"Open Brokerage"}
+                title={"Open Brokerage Account"}
               >
                 <i className="fas fa-building-columns mr-2"></i>
-                <span className="hidden sm:inline">{"Open Brokerage"}</span>
+                <span className="hidden sm:inline">
+                  {"Open Brokerage Account"}
+                </span>
               </button>
               <button
                 className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center shadow-sm"
@@ -275,7 +281,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 onClick={handleCreate}
               >
                 <i className="fas fa-plus mr-2"></i>
-                <span className="hidden sm:inline">{"Add Broker"}</span>
+                <span className="hidden sm:inline">
+                  {"Add Brokerage Account"}
+                </span>
                 <span className="sm:hidden">{"New"}</span>
               </button>
             </div>
@@ -297,7 +305,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             {/* Header */}
             <header className="flex justify-between items-center border-b p-4">
               <h2 className="text-xl font-semibold">
-                {editingBroker ? "Edit Broker" : "Add Broker"}
+                {editingBroker
+                  ? "Edit Brokerage Account"
+                  : "Add Brokerage Account"}
               </h2>
               <button
                 className="text-gray-500 hover:text-gray-700 text-2xl p-2"
@@ -408,7 +418,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               {activeTab === "settlement" && (
                 <div>
                   <p className="text-sm text-gray-500 mb-4">
-                    {"Map currencies to default bank accounts for this broker"}
+                    {
+                      "Map currencies to default bank accounts for this brokerage account"
+                    }
                   </p>
                   {accountAssets.length === 0 ? (
                     <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
@@ -512,11 +524,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               <i className="fas fa-building text-2xl text-gray-400"></i>
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              {"No brokers yet"}
+              {"No brokerage accounts yet"}
             </h2>
             <p className="text-gray-600 mb-6">
               {
-                "Add brokers/custodians to track where your investments are held."
+                "Add your brokerage accounts to track where your investments are held."
               }
             </p>
             <button
@@ -524,7 +536,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
             >
               <i className="fas fa-plus mr-2"></i>
-              {"Add Broker"}
+              {"Add Brokerage Account"}
             </button>
           </div>
         ) : (
@@ -645,7 +657,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
           {deleteError && <Alert>{deleteError}</Alert>}
 
           <p className="text-gray-600">
-            {`Transfer all transactions from "${transferringBroker.name}" to another broker:`}
+            {`Transfer all transactions from "${transferringBroker.name}" to another brokerage account:`}
           </p>
 
           <div>
@@ -657,7 +669,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               onChange={(e) => setTargetBrokerId(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              <option value="">{"Select a broker..."}</option>
+              <option value="">{"Select a brokerage account..."}</option>
               {brokers
                 .filter((b) => b.id !== transferringBroker.id)
                 .map((broker) => (
@@ -672,7 +684,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
       {deactivating && (
         <ConfirmDialog
-          title={"Deactivate Broker"}
+          title={"Deactivate Brokerage Account"}
           message={`${deactivating.broker.name} ${deactivating.why}, so it cannot be ${firmName(deactivating.broker.globalBrokerId) ? "closed" : "deleted"}. Deactivate it to stop it being offered for a new trade. Its transactions stay.`}
           confirmLabel={"Deactivate"}
           cancelLabel={"Cancel"}
@@ -685,11 +697,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {/* Delete Confirmation */}
       {deletingBroker && (
         <ConfirmDialog
-          title={deletingFirm ? "Close Account" : "Delete Broker"}
+          title={deletingFirm ? "Close Account" : "Delete Brokerage Account"}
           message={
             deletingFirm
               ? `Close your ${deletingFirm} account "${deletingBroker.name}"? Your account details are removed. ${deletingFirm} stays available to add again.`
-              : `Delete broker ${deletingBroker.name}? It holds no positions.`
+              : `Delete brokerage account ${deletingBroker.name}? It holds no positions.`
           }
           confirmLabel={deletingFirm ? "Close account" : "Delete"}
           cancelLabel={"Cancel"}

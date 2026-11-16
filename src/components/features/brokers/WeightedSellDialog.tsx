@@ -228,7 +228,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
             </div>
             {crossesBrokers && (
               <div className="text-xs text-gray-500 mt-0.5">
-                {`Across all brokers: ${trimQty(holding.quantity)}`}
+                {`Across all brokerage accounts: ${trimQty(holding.quantity)}`}
               </div>
             )}
           </div>
@@ -347,7 +347,9 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
                       colSpan={4}
                       className="px-3 py-4 text-center text-sm text-gray-500"
                     >
-                      {"No portfolios hold this position at this broker."}
+                      {
+                        "No portfolios hold this position at this brokerage account."
+                      }
                     </td>
                   </tr>
                 )}

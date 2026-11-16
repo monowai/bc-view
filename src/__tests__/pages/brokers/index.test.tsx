@@ -79,7 +79,9 @@ describe("Brokers page: brokerage firm", () => {
 
   it("saves a new broker against the firm the user picks", async () => {
     show([])
-    fireEvent.click(screen.getAllByRole("button", { name: /Add Broker/ })[0])
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+    )
     fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
       target: { value: "My IB" },
     })
@@ -98,7 +100,9 @@ describe("Brokers page: brokerage firm", () => {
 
   it("saves a new broker with no firm when the user picks none", async () => {
     show([])
-    fireEvent.click(screen.getAllByRole("button", { name: /Add Broker/ })[0])
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+    )
     fireEvent.change(screen.getByPlaceholderText("e.g., Interactive Brokers"), {
       target: { value: "Local bank" },
     })
@@ -162,7 +166,9 @@ describe("Brokers page: brokerage firm", () => {
 
   it("hides the firm choice when no firms are available", () => {
     show([], [])
-    fireEvent.click(screen.getAllByRole("button", { name: /Add Broker/ })[0])
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Add Brokerage Account/ })[0],
+    )
 
     expect(screen.queryByLabelText("Brokerage firm")).not.toBeInTheDocument()
   })
@@ -193,7 +199,9 @@ describe("Brokers page: brokerage firm", () => {
     show([unlinked])
     fireEvent.click(screen.getByTitle("Delete"))
 
-    await screen.findByText("Delete broker Local bank? It holds no positions.")
+    await screen.findByText(
+      "Delete brokerage account Local bank? It holds no positions.",
+    )
     fireEvent.click(screen.getByText("Delete", { selector: "button" }))
 
     await waitFor(() => expect(deleteBroker).toHaveBeenCalledWith("b2"))
@@ -227,7 +235,9 @@ describe("Brokers page: brokerage firm", () => {
     )
     show([unlinked])
     fireEvent.click(screen.getByTitle("Delete"))
-    await screen.findByText("Delete broker Local bank? It holds no positions.")
+    await screen.findByText(
+      "Delete brokerage account Local bank? It holds no positions.",
+    )
     fireEvent.click(screen.getByText("Delete", { selector: "button" }))
 
     expect(
@@ -265,7 +275,9 @@ describe("Brokers page: brokerage firm", () => {
     fireEvent.click(screen.getByTitle("Delete"))
 
     expect(
-      await screen.findByText("Failed to read the broker's holdings"),
+      await screen.findByText(
+        "Failed to read the brokerage account's holdings",
+      ),
     ).toBeInTheDocument()
     expect(deleteBroker).not.toHaveBeenCalled()
     expect(logged).toHaveBeenCalledWith("Failed to read broker holdings:", {

@@ -899,7 +899,9 @@ function AssetLookupPage(): React.ReactElement {
             <AssetBrokersTab assetId={selectedAsset.assetId} />
           ) : (
             <div className="p-8 text-center text-gray-500">
-              <p>{"Resolve this asset first to view broker holdings"}</p>
+              <p>
+                {"Resolve this asset first to view brokerage account holdings"}
+              </p>
             </div>
           )}
         </div>

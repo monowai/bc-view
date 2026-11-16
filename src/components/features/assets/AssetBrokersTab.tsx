@@ -52,7 +52,7 @@ export default function AssetBrokersTab({
     return (
       <div className="p-8 text-center text-gray-500">
         <i className="fas fa-building-columns text-3xl mb-2 text-gray-300"></i>
-        <p>{"This asset is not held at any broker"}</p>
+        <p>{"This asset is not held at any brokerage account"}</p>
       </div>
     )
   }
@@ -63,7 +63,7 @@ export default function AssetBrokersTab({
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {"Broker"}
+              {"Account"}
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               {"Quantity"}
@@ -102,7 +102,7 @@ export default function AssetBrokersTab({
                     title={
                       canSell
                         ? "Sell"
-                        : "Cannot sell — no broker assigned to these holdings"
+                        : "Cannot sell — no brokerage account assigned to these holdings"
                     }
                   >
                     <i className="fas fa-hand-holding-usd mr-1"></i>

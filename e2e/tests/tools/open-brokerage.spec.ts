@@ -2,9 +2,11 @@ import { test, expect } from "@playwright/test"
 import { createTestHelpers, generateTestId } from "../../fixtures/test-data"
 
 test.describe("/tools/open-brokerage", () => {
-  test("renders wizard at the Broker step", async ({ page }) => {
+  test("renders wizard at the Brokerage account step", async ({ page }) => {
     await page.goto("/tools/open-brokerage")
-    await expect(page.getByRole("heading", { name: /^Broker$/i })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: /^Brokerage account$/i }),
+    ).toBeVisible()
     await expect(page.getByText(/Step 1 of 4/i)).toBeVisible()
   })
 
@@ -37,9 +39,9 @@ test.describe("/tools/open-brokerage", () => {
 
       // Step 1 — Broker
       await expect(
-        page.getByRole("heading", { name: /^Broker$/i }),
+        page.getByRole("heading", { name: /^Brokerage account$/i }),
       ).toBeVisible()
-      await page.getByLabel(/Broker name/i).fill(brokerName)
+      await page.getByLabel(/Account name/i).fill(brokerName)
       await page.getByRole("button", { name: "Next →" }).click()
 
       // Step 2 — Portfolio: mode defaults to "attach to existing"; this test
@@ -121,7 +123,7 @@ test.describe("/tools/open-brokerage", () => {
       await page.waitForLoadState("domcontentloaded")
 
       // Step 1 — Broker
-      await page.getByLabel(/Broker name/i).fill(brokerName)
+      await page.getByLabel(/Account name/i).fill(brokerName)
       await page.getByRole("button", { name: "Next →" }).click()
 
       // Step 2 — Portfolio (USD): create-new; name/code derive from broker name

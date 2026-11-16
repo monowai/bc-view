@@ -18,7 +18,7 @@ function makeBroker(
 }
 
 describe("BrokerSelect", () => {
-  it("renders a '-- No broker --' option plus one option per broker", () => {
+  it("renders a '-- No account --' option plus one option per broker", () => {
     const brokers = [
       makeBroker({ id: "b1", name: "IBKR", accountNumber: "U123" }),
       makeBroker({ id: "b2", name: "Schwab" }),
@@ -33,7 +33,7 @@ describe("BrokerSelect", () => {
       />,
     )
 
-    expect(screen.getByText("-- No broker --")).toBeInTheDocument()
+    expect(screen.getByText("-- No account --")).toBeInTheDocument()
     expect(screen.getByText("IBKR (U123)")).toBeInTheDocument()
     expect(screen.getByText("Schwab")).toBeInTheDocument()
   })
@@ -149,7 +149,7 @@ describe("confirmBrokerSelection", () => {
     window.confirm = jest.fn().mockReturnValue(true)
     expect(confirmBrokerSelection(2, undefined)).toBe(true)
     expect(window.confirm).toHaveBeenCalledWith(
-      "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
+      "No brokerage account selected. Your proposed transactions won't be tagged with a brokerage account. Continue?",
     )
 
     window.confirm = jest.fn().mockReturnValue(false)

@@ -14,7 +14,7 @@ export default function LearnWealth(): React.ReactElement {
           </h1>
           <p className="text-gray-600 text-lg leading-relaxed">
             {
-              "See your net worth across brokers, assets and currencies in one place. Multi-currency, multi-broker, multi-asset — all the moving parts, one consistent view."
+              "See your net worth across brokerages, assets and currencies in one place. Multi-currency, multi-brokerage, multi-asset — all the moving parts, one consistent view."
             }
           </p>
         </div>

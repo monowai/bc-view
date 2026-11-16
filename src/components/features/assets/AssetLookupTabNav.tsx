@@ -10,7 +10,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { id: "portfolios", label: "Portfolios", icon: "fa-briefcase" },
-  { id: "brokers", label: "Brokers", icon: "fa-building-columns" },
+  { id: "brokers", label: "Brokerage Accounts", icon: "fa-building-columns" },
   { id: "models", label: "Models", icon: "fa-sitemap" },
 ]
 

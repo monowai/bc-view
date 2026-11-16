@@ -139,7 +139,7 @@ describe("Broker holdings reconciliation page", () => {
     setSwr({ brokers: brokersResponse, errors: { trns: new Error("bad") } })
     render(<Page />)
     expect(
-      screen.getByText(/Error loading broker holdings/),
+      screen.getByText(/Error loading brokerage account holdings/),
     ).toBeInTheDocument()
   })
 
@@ -234,12 +234,14 @@ describe("Broker holdings reconciliation page", () => {
       positions: { data: { positions: {} } },
     })
     const { unmount } = render(<Page />)
-    expect(screen.getByText("No holdings for this broker")).toBeInTheDocument()
+    expect(
+      screen.getByText("No holdings for this brokerage account"),
+    ).toBeInTheDocument()
     unmount()
     routerState.query = { brokerId: "NO_BROKER" }
     render(<Page />)
     expect(
-      screen.getByText("All transactions have brokers assigned"),
+      screen.getByText("All transactions have brokerage accounts assigned"),
     ).toBeInTheDocument()
     expect(within(document.body).getByText("Manage")).toBeInTheDocument()
   })

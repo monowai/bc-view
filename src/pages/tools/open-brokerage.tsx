@@ -7,10 +7,10 @@ function OpenBrokeragePage(): React.ReactElement {
   return (
     <>
       <Head>
-        <title>Open Brokerage | Holdsworth</title>
+        <title>Open Brokerage Account | Holdsworth</title>
         <meta
           name="description"
-          content="Guided wizard to create a broker, a brokerage portfolio, and an optional opening cash deposit (with a paired withdrawal from a source portfolio if you supply one)."
+          content="Guided wizard to create a brokerage account, a brokerage portfolio, and an optional opening cash deposit (with a paired withdrawal from a source portfolio if you supply one)."
         />
       </Head>
       <div className="min-h-screen bg-gray-50">

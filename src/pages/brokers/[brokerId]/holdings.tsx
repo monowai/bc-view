@@ -119,7 +119,7 @@ export default withPageAuthRequired(
 
     if (brokersError || positionsError || transactionsError) {
       return errorOut(
-        "Error loading broker holdings",
+        "Error loading brokerage account holdings",
         brokersError || positionsError || transactionsError,
       )
     }
@@ -497,7 +497,7 @@ export default withPageAuthRequired(
                   <i className="fas fa-arrow-left text-lg"></i>
                 </button>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {"Broker Reconciliation"}
+                  {"Brokerage Account Reconciliation"}
                 </h1>
               </div>
             </div>
@@ -510,14 +510,14 @@ export default withPageAuthRequired(
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {"Select Broker"}
+                  {"Select Brokerage Account"}
                 </label>
                 <select
                   value={brokerId as string}
                   onChange={(e) => handleBrokerChange(e.target.value)}
                   className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  <option value="NO_BROKER">{"No Broker (Unassigned)"}</option>
+                  <option value="NO_BROKER">{"No Account (Unassigned)"}</option>
                   {brokers.map((broker) => (
                     <option key={broker.id} value={broker.id}>
                       {broker.name}
@@ -548,13 +548,13 @@ export default withPageAuthRequired(
                 </div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">
                   {brokerId === "NO_BROKER"
-                    ? "All transactions have brokers assigned"
-                    : "No holdings for this broker"}
+                    ? "All transactions have brokerage accounts assigned"
+                    : "No holdings for this brokerage account"}
                 </h2>
                 <p className="text-gray-600">
                   {brokerId === "NO_BROKER"
-                    ? "Great! All your buy/sell transactions have a broker assigned."
-                    : "This broker has no current positions."}
+                    ? "Great! All your buy/sell transactions have a brokerage account assigned."
+                    : "This brokerage account has no current positions."}
                 </p>
               </div>
             ) : holdings ? (

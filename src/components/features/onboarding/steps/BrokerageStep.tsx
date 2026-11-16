@@ -73,7 +73,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
           href="/tools/open-brokerage"
           className="text-purple-600 hover:underline"
         >
-          {"Tools → Open Brokerage"}
+          {"Tools → Open Brokerage Account"}
         </Link>
         {"."}
       </p>
@@ -96,7 +96,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
               htmlFor="ob-broker"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {"Broker name"}
+              {"Account name"}
             </label>
             <input
               id="ob-broker"
@@ -114,7 +114,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
             </legend>
             <p className="text-xs text-gray-500 mb-2">
               {
-                "We'll open a cash account for each and make it the broker's default settlement account for that currency."
+                "We'll open a cash account for each and make it the brokerage account's default settlement account for that currency."
               }
             </p>
             <div className="flex flex-wrap gap-2">
@@ -164,7 +164,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
 
           {portfolioMode === "existing" ? (
             <p className="text-xs text-gray-500">
-              {`Attaches to your main portfolio ("${defaultPortfolioName}"). Trades settle to per-broker cash lines (e.g. ${brokerCashAssetCode(brokerCode || "BROKER", primaryCurrency)}). Want a dedicated portfolio? Switch to Master Mode.`}
+              {`Attaches to your main portfolio ("${defaultPortfolioName}"). Trades settle to per-brokerage-account cash lines (e.g. ${brokerCashAssetCode(brokerCode || "BROKER", primaryCurrency)}). Want a dedicated portfolio? Switch to Master Mode.`}
             </p>
           ) : (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
@@ -178,7 +178,9 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
                 </p>
               ) : (
                 <p className="text-gray-400">
-                  {"Name your broker first — the portfolio takes its name."}
+                  {
+                    "Name your brokerage account first — the portfolio takes its name."
+                  }
                 </p>
               )}
               <p className="text-gray-500 mt-1">

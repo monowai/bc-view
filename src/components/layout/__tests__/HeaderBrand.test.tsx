@@ -86,10 +86,10 @@ describe("HeaderBrand", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("Tools dropdown has a single Brokers entry (Open Brokerage lives on /brokers)", () => {
+  it("Tools dropdown has a single Brokerage Accounts entry (Open Brokerage lives on /brokers)", () => {
     render(<HeaderBrand />)
     fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
-    const brokers = screen.getByRole("link", { name: /Brokers/i })
+    const brokers = screen.getByRole("link", { name: /Brokerage Accounts/i })
     expect(brokers).toHaveAttribute("href", "/brokers")
     expect(
       screen.queryByRole("link", { name: /Open Brokerage/i }),

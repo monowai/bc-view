@@ -868,7 +868,7 @@ function ProposedTransactions(): React.JSX.Element {
                   {brokerFilter !== "ALL"
                     ? ` · ${
                         brokers.find((b) => b.id === brokerFilter)?.name ??
-                        "broker"
+                        "brokerage account"
                       }`
                     : ""}
                   {aggregateView ? " · aggregated" : ""}
@@ -1011,7 +1011,7 @@ function ProposedTransactions(): React.JSX.Element {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-gray-700">
-                    Aggregate by broker + asset
+                    Aggregate by brokerage account + asset
                   </span>
                 </label>
               </div>
@@ -1102,9 +1102,9 @@ function ProposedTransactions(): React.JSX.Element {
               {/* Broker — display-only filter; always visible with the table */}
               {brokers.length > 0 && (
                 <label className="ml-auto flex items-center gap-2 text-sm text-gray-500">
-                  Broker
+                  Account
                   <select
-                    aria-label="Broker filter"
+                    aria-label="Brokerage account filter"
                     value={brokerFilter}
                     onChange={(e) => setBrokerFilter(e.target.value)}
                     className="h-[34px] px-2 py-1 border border-gray-300 rounded text-sm bg-white text-gray-900"
@@ -1125,7 +1125,7 @@ function ProposedTransactions(): React.JSX.Element {
                 be changed back, and say why the table is empty. */}
             {visibleTransactions.length === 0 && (
               <div className="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-8 rounded text-center">
-                No transactions for the selected broker.
+                No transactions for the selected brokerage account.
               </div>
             )}
 

@@ -755,7 +755,7 @@ const TradeInputForm: React.FC<{
 
   // Auto-select the broker when there's only one — nothing to choose, and it
   // lets the broker's settlement account resolve without a manual pick. Fires
-  // once (guarded by a ref) so that a later explicit "-- No broker --" choice
+  // once (guarded by a ref) so that a later explicit "-- No account --" choice
   // sticks instead of being re-filled. Create-mode only — never an edited trn.
   const brokerAutoSelectedRef = useRef(false)
   useEffect(() => {
@@ -1237,7 +1237,9 @@ const TradeInputForm: React.FC<{
                   {acceptsBroker(type?.value) && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className={labelClass}>{"Broker"}</label>
+                        <label className={labelClass}>
+                          {"Brokerage account"}
+                        </label>
                         <a
                           href="/brokers"
                           target="_blank"
@@ -1255,7 +1257,7 @@ const TradeInputForm: React.FC<{
                             value={field.value || ""}
                             onChange={(e) => field.onChange(e.target.value)}
                           >
-                            <option value="">{"-- No broker --"}</option>
+                            <option value="">{"-- No account --"}</option>
                             {offeredBrokers.map((broker) => (
                               <option key={broker.id} value={broker.id}>
                                 {broker.name}
@@ -1453,7 +1455,7 @@ const TradeInputForm: React.FC<{
                       <div>
                         <div className="flex items-center justify-between">
                           <label htmlFor="invest-broker" className={labelClass}>
-                            {"Broker"}
+                            {"Brokerage account"}
                           </label>
                           <a
                             href="/brokers"
@@ -1473,7 +1475,7 @@ const TradeInputForm: React.FC<{
                               value={field.value || ""}
                               onChange={(e) => field.onChange(e.target.value)}
                             >
-                              <option value="">{"-- No broker --"}</option>
+                              <option value="">{"-- No account --"}</option>
                               {offeredBrokers.map((broker) => (
                                 <option key={broker.id} value={broker.id}>
                                   {broker.name}

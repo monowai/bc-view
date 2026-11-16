@@ -146,7 +146,7 @@ describe("Proposed Transactions IBKR basket export", () => {
       expect(screen.getByText("AAA")).toBeInTheDocument()
     })
 
-    fireEvent.change(screen.getByLabelText("Broker filter"), {
+    fireEvent.change(screen.getByLabelText("Brokerage account filter"), {
       target: { value: "b1" },
     })
     fireEvent.click(screen.getByRole("button", { name: /export ibkr basket/i }))

@@ -90,7 +90,7 @@ export default function AggregatedTransactionsTable({
               />
             </th>
             <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-              Broker
+              Account
             </th>
             <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
               Type

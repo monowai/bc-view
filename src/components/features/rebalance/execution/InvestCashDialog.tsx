@@ -704,7 +704,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 htmlFor="invest-cash-broker"
                 className="text-sm font-medium text-gray-700"
               >
-                {"Broker"}
+                {"Brokerage account"}
               </label>
               <a
                 href="/brokers"

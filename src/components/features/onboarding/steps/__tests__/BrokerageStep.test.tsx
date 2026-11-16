@@ -26,7 +26,7 @@ describe("BrokerageStep", () => {
     renderStep({ portfolioMode: "new" })
     expect(screen.getByRole("checkbox", { name: "SGD" })).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "USD" })).toBeInTheDocument()
-    expect(screen.getByLabelText("Broker name")).toBeInTheDocument()
+    expect(screen.getByLabelText("Account name")).toBeInTheDocument()
     // Shared chooser offers Zen + Master.
     expect(
       screen.getByRole("radio", { name: /Master Mode/i }),

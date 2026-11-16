@@ -53,7 +53,7 @@ test.describe("Marketing landing (logged out) @smoke", () => {
     const charts = page.getByRole("main").getByRole("img")
     await expect(charts).toHaveCount(4)
     await expect(
-      page.getByRole("img", { name: /broker balances combining/i }),
+      page.getByRole("img", { name: /brokerage balances combining/i }),
     ).toBeVisible()
     await expect(
       page.getByRole("img", { name: /work becomes optional/i }),

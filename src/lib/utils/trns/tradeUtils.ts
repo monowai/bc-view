@@ -470,7 +470,7 @@ const sameDateRank = (trnType: string): number =>
  */
 export interface TradeGroup {
   id: string
-  label: string // broker name, or "No Broker"
+  label: string // broker name, or "No Account"
   sortName: string
   summaryId: string // key into the server summary's split-adjusted quantity
   portfolioCode?: string // set only in the aggregated view
@@ -488,7 +488,7 @@ export interface TradeGroup {
  * The split-adjusted quantity is authoritative from the server summary (a
  * SPLIT row carries the ratio, not shares): keyed by broker id for the single
  * view, or by "portfolioId|brokerId" (the portfolio group's broker sub-total)
- * for the aggregated view. "" is the server's "No Broker" key.
+ * for the aggregated view. "" is the server's "No Account" key.
  */
 export const buildTradeGroups = (
   transactions: Transaction[],
@@ -511,7 +511,7 @@ export const buildTradeGroups = (
   const acc: Record<string, Omit<TradeGroup, "totals">> = {}
   transactions.forEach((trn) => {
     const brokerId = trn.broker?.id || ""
-    const brokerName = trn.broker?.name || "No Broker"
+    const brokerName = trn.broker?.name || "No Account"
     if (isMulti) {
       const pid = trn.portfolio?.id || "__no_portfolio__"
       const pCode = trn.portfolio?.code || "Unknown Portfolio"
@@ -520,7 +520,7 @@ export const buildTradeGroups = (
         acc[key] = {
           id: key,
           label: brokerName,
-          // Cluster by portfolio, then broker; "No Broker" (~) sorts last
+          // Cluster by portfolio, then broker; "No Account" (~) sorts last
           // within its portfolio.
           sortName: `${pCode} ${trn.broker ? brokerName : "~"}`,
           summaryId: `${pid}|${brokerId}`,
@@ -557,7 +557,7 @@ export const buildTradeGroups = (
       }
     })
     .sort((a, b) => {
-      // Named groups first (alphabetically), unnamed ("No Broker") last.
+      // Named groups first (alphabetically), unnamed ("No Account") last.
       if (!a.sortName && b.sortName) return 1
       if (a.sortName && !b.sortName) return -1
       // Code-unit order, not localeCompare: the aggregated view's "~" sentinel
