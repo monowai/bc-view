@@ -91,10 +91,16 @@ describe("Brokers page: brokerage firm", () => {
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   }
 
-  it("saves a new account against the listed firm the user names", async () => {
+  function pickFirm(choice: string): void {
+    const firm = screen.getByLabelText("Brokerage firm *") as HTMLSelectElement
+    const option = Array.from(firm.options).find((o) => o.text === choice)
+    fireEvent.change(firm, { target: { value: option?.value } })
+  }
+
+  it("saves a new account against the listed firm the user picks", async () => {
     show([])
     openDialog()
-    type("Brokerage firm *", "interactive brokers")
+    pickFirm("Interactive Brokers")
     type("Account name", "My IB")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
@@ -109,7 +115,7 @@ describe("Brokers page: brokerage firm", () => {
   it("names a new account after its firm when the user gives no account name", async () => {
     show([])
     openDialog()
-    type("Brokerage firm *", "Charles Schwab")
+    pickFirm("Charles Schwab")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
@@ -126,10 +132,9 @@ describe("Brokers page: brokerage firm", () => {
   it("saves a firm that is not listed as the account's own name, with no firm link", async () => {
     show([])
     openDialog()
-    type("Brokerage firm *", "Local bank")
-    expect(
-      screen.getByText("Not a listed firm. It is saved on your account only."),
-    ).toBeInTheDocument()
+    expect(screen.queryByLabelText("Firm name *")).not.toBeInTheDocument()
+    pickFirm("Not listed")
+    type("Firm name *", "Local bank")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(saveBroker).toHaveBeenCalled())
@@ -137,14 +142,19 @@ describe("Brokers page: brokerage firm", () => {
     expect(saveBroker.mock.calls[0][1].globalBrokerId).toBeUndefined()
   })
 
-  it("offers the listed firms as suggestions", () => {
+  it("offers the supported firms, then the choice of one that is not listed", () => {
     show([])
     openDialog()
 
-    const suggestions = Array.from(
-      document.querySelectorAll("#broker-firm-list option"),
-    ).map((option) => (option as HTMLOptionElement).value)
-    expect(suggestions).toEqual(["Interactive Brokers", "Charles Schwab"])
+    const choices = Array.from(
+      (screen.getByLabelText("Brokerage firm *") as HTMLSelectElement).options,
+    ).map((option) => option.text)
+    expect(choices).toEqual([
+      "Select a firm",
+      "Interactive Brokers",
+      "Charles Schwab",
+      "Not listed",
+    ])
   })
 
   it("cannot save a new account that names no firm", () => {
@@ -207,15 +217,11 @@ describe("Brokers page: brokerage firm", () => {
     expect(screen.queryByText("Charles Schwab")).not.toBeInTheDocument()
   })
 
-  it("lets the user type a firm when none is listed", async () => {
+  it("lets the user type the firm when there are no supported firms to pick", async () => {
     show([], [])
     openDialog()
-    type("Brokerage firm *", "Tiger")
-    expect(
-      screen.queryByText(
-        "Not a listed firm. It is saved on your account only.",
-      ),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Brokerage firm *")).not.toBeInTheDocument()
+    type("Firm name *", "Tiger")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>

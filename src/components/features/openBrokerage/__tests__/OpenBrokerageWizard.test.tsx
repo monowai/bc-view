@@ -38,6 +38,18 @@ const existingPortfolios: Pick<
   },
 ]
 
+// The firm is not one of the supported firms: the user says so, then types it.
+async function typeFirm(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+): Promise<void> {
+  await user.selectOptions(
+    await screen.findByLabelText(/Brokerage firm/i),
+    "Not listed",
+  )
+  await user.type(screen.getByLabelText(/Firm name/i), name)
+}
+
 function mockEndpoints(): void {
   fetchMock.mockResponse((req) => handleMock(req))
 }
@@ -128,10 +140,7 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
-    await user.type(
-      screen.getByLabelText(/Brokerage firm/i),
-      "Brand New Broker",
-    )
+    await typeFirm(user, "Brand New Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: no inputs in new mode; code + name derive from the
@@ -177,7 +186,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker: create new (existing-broker selection has its own test)
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
+    await typeFirm(user, "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode derives code/name from the broker
@@ -225,7 +234,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
+    await typeFirm(user, "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode, default currency USD
@@ -277,10 +286,7 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
-    await user.type(
-      screen.getByLabelText(/Brokerage firm/i),
-      "Interactive Brokers",
-    )
+    await typeFirm(user, "Interactive Brokers")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode derives code/name from the broker
@@ -316,7 +322,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBRK")
+    await typeFirm(user, "IBRK")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — pick existing portfolio (wait for SWR to populate the list
@@ -382,7 +388,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
+    await typeFirm(user, "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: Master mode, default currency USD
@@ -433,7 +439,7 @@ describe("<OpenBrokerageWizard />", () => {
     render(<OpenBrokerageWizard />)
 
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
+    await typeFirm(user, "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
     await screen.findByRole("heading", { name: /Portfolio/i })
     await user.click(
@@ -461,7 +467,7 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(
       screen.getByRole("radio", { name: /Open a new brokerage account/i }),
     )
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "Test Broker")
+    await typeFirm(user, "Test Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     await screen.findByRole("heading", { name: /Portfolio/i })
@@ -511,7 +517,7 @@ describe("<OpenBrokerageWizard />", () => {
     )
 
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.type(screen.getByLabelText(/Brokerage firm/i), "IBKR")
+    await typeFirm(user, "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Zen user with a sole portfolio: no Zen/Master chooser, no picker — the
@@ -560,18 +566,18 @@ describe("<OpenBrokerageWizard />", () => {
     await screen.findByRole("heading", { name: /Done|Complete|Success/i })
   }
 
-  test("names a new account after the listed firm the user names and saves it against that firm", async () => {
+  test("names a new account after the listed firm the user picks and saves it against that firm", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await user.type(
+    await user.selectOptions(
       await screen.findByLabelText(/Brokerage firm/i),
-      "charles schwab",
+      "Charles Schwab",
     )
     await finishFromBrokerStep(user)
 
     expect(brokerPosts()).toEqual([
-      { name: "charles schwab", globalBrokerId: "gb-schwab" },
+      { name: "Charles Schwab", globalBrokerId: "gb-schwab" },
     ])
   })
 
@@ -579,7 +585,7 @@ describe("<OpenBrokerageWizard />", () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await user.type(
+    await user.selectOptions(
       await screen.findByLabelText(/Brokerage firm/i),
       "Charles Schwab",
     )
@@ -595,10 +601,7 @@ describe("<OpenBrokerageWizard />", () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    await user.type(
-      await screen.findByLabelText(/Brokerage firm/i),
-      "Local Bank",
-    )
+    await typeFirm(user, "Local Bank")
     await finishFromBrokerStep(user)
 
     expect(brokerPosts()).toEqual([{ name: "Local Bank" }])
