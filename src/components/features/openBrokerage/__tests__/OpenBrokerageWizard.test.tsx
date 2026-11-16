@@ -4,13 +4,18 @@ import userEvent from "@testing-library/user-event"
 import { enableFetchMocks } from "jest-fetch-mock"
 import { SWRConfig } from "swr"
 import OpenBrokerageWizard from "../OpenBrokerageWizard"
-import type { Broker, Portfolio } from "types/beancounter"
+import type { Broker, GlobalBroker, Portfolio } from "types/beancounter"
 
 enableFetchMocks()
 
 const existingBrokers: Broker[] = [
   { id: "broker-ibkr", name: "Interactive Brokers" },
   { id: "broker-dbs", name: "DBS Vickers" },
+]
+
+const firms: GlobalBroker[] = [
+  { id: "gb-ibkr", code: "IBKR", name: "Interactive Brokers" },
+  { id: "gb-schwab", code: "SCHWAB", name: "Charles Schwab" },
 ]
 
 // Two portfolios so the "attach without a pick" path has a genuine unpicked
@@ -39,6 +44,9 @@ function mockEndpoints(): void {
 
 function handleMock(req: Request): Promise<string> {
   const url = req.url
+  if (url.includes("/api/global-brokers")) {
+    return Promise.resolve(JSON.stringify({ data: firms }))
+  }
   if (url.includes("/api/brokers") && req.method === "GET") {
     return Promise.resolve(JSON.stringify({ data: existingBrokers }))
   }
@@ -520,5 +528,75 @@ describe("<OpenBrokerageWizard />", () => {
     expect(
       screen.getByRole("button", { name: /Next|Continue/i }),
     ).not.toBeDisabled()
+  })
+
+  function brokerPosts(): Record<string, unknown>[] {
+    const posts = fetchMock.mock.calls.filter(
+      (c) =>
+        (c[0] as string).includes("/api/brokers") &&
+        (c[1] as RequestInit | undefined)?.method === "POST",
+    )
+    return posts.map((c) => JSON.parse((c[1] as RequestInit).body as string))
+  }
+
+  async function finishFromBrokerStep(
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<void> {
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+    await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+    await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.click(screen.getByRole("button", { name: /Skip|No deposit/i }))
+    await screen.findByRole("heading", { name: /Review/i })
+    await user.click(
+      screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
+    )
+    await screen.findByRole("heading", { name: /Done|Complete|Success/i })
+  }
+
+  test("names a new broker after the firm the user picks and saves it against that firm", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    await user.selectOptions(
+      await screen.findByLabelText("Brokerage firm"),
+      "gb-schwab",
+    )
+    expect(screen.getByLabelText(/Broker name/i)).toHaveValue("Charles Schwab")
+    await finishFromBrokerStep(user)
+
+    expect(brokerPosts()).toEqual([
+      { name: "Charles Schwab", globalBrokerId: "gb-schwab" },
+    ])
+  })
+
+  test("keeps the name the user typed when they then pick a firm", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    await user.type(screen.getByLabelText(/Broker name/i), "Family Trust")
+    await user.selectOptions(
+      await screen.findByLabelText("Brokerage firm"),
+      "gb-schwab",
+    )
+    await finishFromBrokerStep(user)
+
+    expect(brokerPosts()).toEqual([
+      { name: "Family Trust", globalBrokerId: "gb-schwab" },
+    ])
+  })
+
+  test("saves a new broker with no firm when the user picks none", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    await screen.findByLabelText("Brokerage firm")
+    await user.type(screen.getByLabelText(/Broker name/i), "Local Bank")
+    await finishFromBrokerStep(user)
+
+    expect(brokerPosts()).toEqual([{ name: "Local Bank" }])
   })
 })

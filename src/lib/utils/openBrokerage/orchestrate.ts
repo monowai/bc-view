@@ -26,6 +26,8 @@ interface BrokerStep {
   existingId?: string
   newName?: string
   newAccountNumber?: string
+  // The brokerage firm a new broker is saved against; none when not listed.
+  newGlobalBrokerId?: string
 }
 
 interface PortfolioStep {
@@ -146,6 +148,7 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
   const resp = await postJson<{ data: Broker }>(brokersKey, {
     name: step.newName,
     accountNumber: step.newAccountNumber || undefined,
+    globalBrokerId: step.newGlobalBrokerId || undefined,
   })
   return resp.data
 }

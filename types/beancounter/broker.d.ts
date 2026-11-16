@@ -29,6 +29,8 @@ export interface BrokerInput {
   notes?: string
   // The firm this broker is an account with. Left out, a saved firm is kept.
   globalBrokerId?: string
+  // False deactivates the broker, true reactivates it. Left out, it stays as it is.
+  active?: boolean
   // Map of currency code to settlement account asset ID
   settlementAccounts?: Record<string, string>
 }
@@ -59,6 +61,9 @@ export interface BrokerWithAccounts {
   accountNumber?: string
   notes?: string
   globalBrokerId?: string
+  // False once deactivated: kept with its transactions, not offered for a new
+  // trade. Absent (older responses) means active.
+  active?: boolean
   settlementAccounts: SettlementAccountMapping[]
 }
 

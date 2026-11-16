@@ -594,6 +594,19 @@ export const heldQuantityForBroker = (
  * The broker id when a position is held at exactly one brokerage (so the form
  * can default to it), otherwise undefined. `held` is keyed by broker name.
  */
+/**
+ * The brokers a trade may be recorded against: the active ones, and the one the
+ * trade already names, so a trade made before its broker was deactivated still
+ * shows it.
+ */
+export const brokersOfferedForTrade = (
+  brokers: BrokerWithAccounts[],
+  selectedBrokerId: string | undefined,
+): BrokerWithAccounts[] =>
+  brokers.filter(
+    (broker) => broker.active !== false || broker.id === selectedBrokerId,
+  )
+
 export const singleHeldBrokerId = (
   held: Record<string, number> | undefined,
   brokers: BrokerWithAccounts[],

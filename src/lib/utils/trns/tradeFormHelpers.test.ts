@@ -17,6 +17,7 @@ import {
   resolveBrokerCashAssetId,
   resolveSellableQuantity,
   heldQuantityForBroker,
+  brokersOfferedForTrade,
   singleHeldBrokerId,
   deriveTradeToPortfolioFxRate,
 } from "./tradeFormHelpers"
@@ -871,6 +872,32 @@ describe("tradeFormHelpers", () => {
           brokers: brokers as any,
         }),
       ).toBe(false)
+    })
+  })
+
+  describe("brokersOfferedForTrade", () => {
+    const active = { id: "ib", name: "IB", settlementAccounts: [] }
+    const unmarked = { id: "scb", name: "SCB", settlementAccounts: [] }
+    const inactive = {
+      id: "dbs",
+      name: "DBS",
+      active: false,
+      settlementAccounts: [],
+    }
+    const brokers = [active, { ...unmarked }, inactive]
+
+    test("leaves out a deactivated broker", () => {
+      expect(
+        brokersOfferedForTrade(brokers, undefined).map((b) => b.id),
+      ).toEqual(["ib", "scb"])
+    })
+
+    test("keeps a deactivated broker the trade already names", () => {
+      expect(brokersOfferedForTrade(brokers, "dbs").map((b) => b.id)).toEqual([
+        "ib",
+        "scb",
+        "dbs",
+      ])
     })
   })
 
