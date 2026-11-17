@@ -210,7 +210,6 @@ export const MARKET_SOURCE_COPY: Partial<
   Record<ReconcileMarketSource, string>
 > = {
   HELD: "From what this account holds",
-  BROKERAGE: "The brokerage's market",
   LISTED: "The only market that lists it",
 }
 

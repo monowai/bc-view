@@ -191,6 +191,19 @@ async function respond(req: Request): Promise<MockResponseInit> {
     return json({ data: preview((await req.json()) as ShownHoldings) })
   }
   if (url.includes(READ_URL)) return backend.read
+  if (url.includes("/api/assets/search"))
+    return json({
+      data: [
+        {
+          symbol: "ZZZB",
+          name: "Zed Corp",
+          type: "Equity",
+          region: "US",
+          currency: "USD",
+          market: "NYSE",
+        },
+      ],
+    })
   if (url.includes("/api/portfolios"))
     return req.method === "POST"
       ? backend.created
@@ -330,6 +343,10 @@ describe("<StatementImport /> upload", () => {
     const aapl = within(rowFor("AAPL"))
     expect(aapl.getByText("Add 10")).toBeInTheDocument()
     expect(aapl.getByText("Ready to record")).toBeInTheDocument()
+    // A good row shows a tick; its words are the tooltip.
+    expect(aapl.getByTitle("Ready to record")).toContainElement(
+      aapl.getByText("Ready to record"),
+    )
     expect(
       aapl.getByText(/does not match the market value shown/),
     ).toBeInTheDocument()
@@ -727,8 +744,8 @@ describe("<StatementImport /> confirm", () => {
       within(rowFor("VOO")).getByText("From what this account holds"),
     ).toBeInTheDocument()
     expect(
-      within(rowFor("AAPL")).getByText("The brokerage's market"),
-    ).toBeInTheDocument()
+      within(rowFor("AAPL")).queryByText("The brokerage's market"),
+    ).not.toBeInTheDocument()
     expect(screen.getByLabelText("Market for VOO")).toHaveValue("US")
 
     await user.selectOptions(screen.getByLabelText("Market for VOO"), "NASDAQ")
@@ -873,6 +890,37 @@ describe("<StatementImport /> confirm", () => {
       costBasis: 1750,
     })
     expect(recordButton()).toHaveTextContent("Record 3 changes")
+  })
+
+  test("an unresolved asset can be found with the asset search, and its row is checked again", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [{ code: "ZZZ", quantity: 4 }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Search for ZZZ" }))
+    expect(
+      await screen.findByRole("heading", { name: "Find ZZZ" }),
+    ).toBeInTheDocument()
+    const combo = screen.getAllByRole("combobox").at(-1)!
+    await user.type(combo, "zed")
+    await user.click(await screen.findByText(/ZZZB - Zed Corp/))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Find ZZZ" }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.getByLabelText("Code for ZZZB")).toHaveValue("ZZZB")
+    await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].rows).toEqual([
+      { code: "ZZZB", market: "NYSE", quantity: 4 },
+    ])
+    expect(
+      await within(rowFor("ZZZB")).findByText("Enter the cost"),
+    ).toBeInTheDocument()
   })
 
   test("says what is missing on rows that cannot be recorded", async () => {

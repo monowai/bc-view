@@ -150,8 +150,14 @@ export interface StatementImportFlow {
   /** The currency of the portfolio to create on Record. */
   setNewPortfolioCurrency: (currency: string) => void
   recheck: () => Promise<void>
-  /** Check one row again, leaving the others' answers as they are. */
-  recheckRow: (key: string) => Promise<void>
+  /**
+   * Check one row again, leaving the others' answers as they are; `change`
+   * replaces its code and market first, as a pick from the asset search does.
+   */
+  recheckRow: (
+    key: string,
+    change?: { code: string; market: string },
+  ) => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
   /** What Record would send. */
@@ -367,9 +373,23 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
-  const recheckRow = async (key: string): Promise<void> => {
-    const row = session?.rows.find((candidate) => candidate.key === key)
+  const recheckRow = async (
+    key: string,
+    change?: { code: string; market: string },
+  ): Promise<void> => {
+    const found = session?.rows.find((candidate) => candidate.key === key)
+    const row: ImportRow | undefined =
+      found && change ? { ...found, ...change, marketFrom: undefined } : found
     if (!session || !row || !canBeChecked(row)) return
+    if (change) {
+      setSession(
+        (current) =>
+          current && {
+            ...current,
+            rows: current.rows.map((each) => (each.key === key ? row : each)),
+          },
+      )
+    }
     const mine = ++latestCheck.current
     setChecking(true)
     setPreviewError(null)

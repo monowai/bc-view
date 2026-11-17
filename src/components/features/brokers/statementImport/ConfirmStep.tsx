@@ -1,5 +1,7 @@
 import React, { useState } from "react"
 import Alert from "@components/ui/Alert"
+import Dialog from "@components/ui/Dialog"
+import AssetSearch from "@components/features/assets/AssetSearch"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
 import { brokerLabel } from "./BrokerageAccountPicker"
@@ -34,6 +36,8 @@ export default function ConfirmStep({
   const [unfolded, setUnfolded] = useState(
     () => session !== null && totalGap(session.proposal) !== null,
   )
+  // The row whose asset is being looked up with the asset search.
+  const [findingKey, setFindingKey] = useState<string | null>(null)
   if (!session) return null
   const existing =
     "portfolio" in session.target ? session.target.portfolio : null
@@ -60,6 +64,14 @@ export default function ConfirmStep({
     })
     .filter((row) => row.skipped)
   const changes = flow.readyRows.length
+  const findingIndex = session.rows.findIndex((row) => row.key === findingKey)
+  const finding =
+    findingIndex >= 0
+      ? {
+          key: session.rows[findingIndex].key,
+          name: rowName(session.rows[findingIndex], findingIndex),
+        }
+      : null
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -217,7 +229,34 @@ export default function ConfirmStep({
         onEdit={flow.editRow}
         onRemove={flow.removeRow}
         onRecheck={(key) => void flow.recheckRow(key)}
+        onFind={setFindingKey}
       />
+
+      {finding && (
+        <Dialog
+          title={`Find ${finding.name}`}
+          onClose={() => setFindingKey(null)}
+          maxWidth="lg"
+        >
+          <p className="text-sm text-gray-600">
+            Search for the asset by its code or name. The row takes the code and
+            market you pick, and is checked again.
+          </p>
+          <AssetSearch
+            usePortal
+            placeholder={finding.name}
+            onSelect={(option) => {
+              if (!option?.market) return
+              const key = finding.key
+              setFindingKey(null)
+              void flow.recheckRow(key, {
+                code: option.symbol,
+                market: option.market,
+              })
+            }}
+          />
+        </Dialog>
+      )}
 
       {edited && !flow.checking && (
         <Alert variant="info">
