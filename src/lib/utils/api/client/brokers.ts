@@ -48,11 +48,14 @@ export const reconcileCommitUrl = `${reconcilePreviewUrl}/commit`
  * Have a brokerage screenshot read into a `ScreenshotProposal`. Records
  * nothing. Each call is a paid vision-model call: never fire it speculatively.
  */
-export function readScreenshot(file: File): Promise<Response> {
+export function readScreenshot(
+  file: File,
+  signal?: AbortSignal,
+): Promise<Response> {
   const body = new FormData()
   body.append("file", file)
   // No Content-Type: the browser sets it, with the multipart boundary.
-  return fetch(screenshotReadUrl, { method: "POST", body })
+  return fetch(screenshotReadUrl, { method: "POST", body, signal })
 }
 
 /** Preview what recording the shown holdings would do. Read-only. */

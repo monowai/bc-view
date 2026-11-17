@@ -1,5 +1,6 @@
 import React from "react"
 import Alert from "@components/ui/Alert"
+import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
@@ -206,9 +207,23 @@ export default function UploadStep({
       )}
 
       {flow.reading && (
-        <p role="status" className="text-sm text-gray-600">
-          <Spinner label="Reading the image. This can take some time…" />
-        </p>
+        <Dialog
+          title="Reading the image"
+          onClose={flow.cancelRead}
+          footer={
+            <button
+              type="button"
+              onClick={flow.cancelRead}
+              className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          }
+        >
+          <p role="status" className="text-sm text-gray-700">
+            <Spinner label="Reading the image and checking each holding. This can take some time…" />
+          </p>
+        </Dialog>
       )}
 
       <button

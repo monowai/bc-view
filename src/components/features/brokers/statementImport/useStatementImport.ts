@@ -128,6 +128,8 @@ export interface StatementImportFlow {
   newCurrency: string
   chooseNewCurrency: (currency: string) => void
   read: (target: ImportTarget, broker: ImportBroker) => Promise<void>
+  /** Stop waiting for the read; the choices and the file are kept. */
+  cancelRead: () => void
   // Confirm
   session: ImportSession | null
   /** The brokerage account the changes would be recorded at. */
@@ -184,6 +186,8 @@ export function useStatementImport(): StatementImportFlow {
   // State lags a second click by a render; these do not. A second read would
   // be a second paid call, a second record a second request.
   const readInFlight = useRef(false)
+  // Aborts the read in flight when the user cancels it.
+  const readAbort = useRef<AbortController | null>(null)
   const recordInFlight = useRef(false)
   // Only the newest preview asked for may land.
   const latestCheck = useRef(0)
@@ -223,8 +227,10 @@ export function useStatementImport(): StatementImportFlow {
     setReading(true)
     setReadError(null)
     setUnsupported(false)
+    const abort = new AbortController()
+    readAbort.current = abort
     try {
-      const res = await readScreenshot(file)
+      const res = await readScreenshot(file, abort.signal)
       if (!res.ok) {
         setReadError(await readRefusal(res))
         return
@@ -247,6 +253,8 @@ export function useStatementImport(): StatementImportFlow {
       }
       const sent = fresh.rows.filter(canBeChecked)
       const outcome = await fetchPreview(fresh, sent)
+      // Cancelled while the rows were checked: leave the form as it was.
+      if (abort.signal.aborted) return
       setPreviewError("error" in outcome ? outcome.error : null)
       setRecordError(null)
       setSession(
@@ -255,11 +263,17 @@ export function useStatementImport(): StatementImportFlow {
           : fresh,
       )
     } catch {
-      setReadError(UNREACHABLE)
+      // A cancelled read is the user's choice, not a failure.
+      if (!abort.signal.aborted) setReadError(UNREACHABLE)
     } finally {
+      if (readAbort.current === abort) readAbort.current = null
       readInFlight.current = false
       setReading(false)
     }
+  }
+
+  const cancelRead = (): void => {
+    readAbort.current?.abort()
   }
 
   /** Preview `target`'s rows and attach the answer to whatever is on screen by then. */
@@ -460,6 +474,7 @@ export function useStatementImport(): StatementImportFlow {
     unsupported,
     chooseAnotherFile,
     read,
+    cancelRead,
     session,
     brokerId,
     isUnchecked,

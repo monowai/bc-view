@@ -342,6 +342,36 @@ describe("<StatementImport /> upload", () => {
     expect(recordButton()).toBeEnabled()
   })
 
+  test("reading shows in a popover, and Cancel stops waiting and keeps the choices", async () => {
+    fetchMock.mockResponse((req) =>
+      req.url.includes(READ_URL)
+        ? new Promise((_resolve, reject) =>
+            req.signal.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError")),
+            ),
+          )
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await upload(user)
+
+    expect(
+      await screen.findByRole("heading", { name: "Reading the image" }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Reading the image" }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled()
+    expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
+    expect(callsTo(PREVIEW_URL)).toBe(0)
+  })
+
   test("a transactions screenshot records nothing and says why", async () => {
     backend.read = json({
       documentType: "TRANSACTIONS",
