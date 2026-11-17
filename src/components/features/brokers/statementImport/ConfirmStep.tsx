@@ -135,50 +135,21 @@ export default function ConfirmStep({
           <p className="text-xs text-gray-500 mt-1">
             {flow.tradeDateInFuture
               ? "The record date cannot be in the future."
-              : "The date of each change, unless the holding has a held-since date."}
+              : "The date of each change, unless the holding has its own held-since date."}
           </p>
         </div>
         <div className="max-w-xs">
-          <label
-            htmlFor="import-held-since"
-            className="block text-sm font-semibold text-gray-900 mb-1"
+          <button
+            type="button"
+            onClick={() => void flow.suggestHeldSince()}
+            disabled={busy || flow.suggesting || flow.checking}
+            className="py-2 px-3 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
           >
-            Held since
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="import-held-since"
-              type="date"
-              value={session.heldSince}
-              max={todayIso()}
-              disabled={busy}
-              onChange={(event) => flow.setHeldSince(event.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => void flow.suggestHeldSince()}
-              disabled={busy || flow.suggesting || flow.checking}
-              aria-busy={flow.suggesting}
-              className="inline-flex items-center gap-2 py-2 px-3 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
-            >
-              {flow.suggesting ? (
-                <>
-                  <i
-                    className="fas fa-circle-notch fa-spin"
-                    aria-hidden="true"
-                  ></i>
-                  Suggesting…
-                </>
-              ) : (
-                "Suggest dates"
-              )}
-            </button>
-          </div>
+            Suggest dates
+          </button>
           <p className="text-xs text-gray-500 mt-1">
-            {flow.suggesting
-              ? "Fetching each holding's price history. This can take a while."
-              : "Roughly when you bought them, so returns are measured over the right period. Suggest dates guesses each from its cost."}
+            Guesses when you bought each holding being added, from its cost, so
+            returns are measured over the right period.
           </p>
           {flow.suggestNote && (
             <p className="text-xs text-gray-700 mt-1" role="status">
@@ -327,7 +298,6 @@ export default function ConfirmStep({
         onRecheck={(key) => void flow.recheckRow(key)}
         onFind={setFindingKey}
         onHeldSince={flow.setRowHeldSince}
-        importHeldSince={session.heldSince}
       />
 
       {finding && (
@@ -353,6 +323,26 @@ export default function ConfirmStep({
               })
             }}
           />
+        </Dialog>
+      )}
+
+      {flow.suggesting && (
+        <Dialog
+          title="Suggesting dates"
+          onClose={flow.cancelSuggest}
+          footer={
+            <button
+              type="button"
+              onClick={flow.cancelSuggest}
+              className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          }
+        >
+          <p role="status" className="text-sm text-gray-700">
+            <Spinner label="Asking the stock market nicely for your price history. It likes to play hard to get…" />
+          </p>
         </Dialog>
       )}
 

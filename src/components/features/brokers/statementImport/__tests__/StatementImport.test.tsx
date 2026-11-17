@@ -1339,7 +1339,7 @@ describe("<StatementImport /> record", () => {
     )
   })
 
-  test("a held-since date dates every added holding, a row can override it, and reductions keep the record date", async () => {
+  test("a row's held-since date dates its add; other adds and reductions take the record date", async () => {
     backend.read = json({
       ...holdingsProposal,
       rows: [
@@ -1351,7 +1351,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.type(screen.getByLabelText("Held since"), "2018-05-01")
+    expect(screen.queryByLabelText("Held since")).not.toBeInTheDocument()
     await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -1361,7 +1361,7 @@ describe("<StatementImport /> record", () => {
       confirmed.rows.map((row) => [row.assetId, row.tradeDate]),
     )
     expect(byAsset["a-AAPL"]).toBe("2016-02-03")
-    expect(byAsset["a-NFLX"]).toBe("2018-05-01")
+    expect(byAsset["a-NFLX"]).toBeUndefined()
     expect(byAsset["a-TSLA"]).toBeUndefined()
     expect(confirmed.tradeDate).toBe(todayIso())
   })
@@ -1407,13 +1407,54 @@ describe("<StatementImport /> record", () => {
     await user.click(screen.getByRole("button", { name: "Suggest dates" }))
 
     expect(
-      await screen.findByRole("button", { name: /Suggesting/ }),
-    ).toBeDisabled()
+      await screen.findByRole("heading", { name: "Suggesting dates" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /Asking the stock market nicely for your price history\. It likes to play hard to get/,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument()
     answer(backend.heldSince)
     expect(
       await screen.findByText("Suggested a date for 1 holding."),
     ).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Suggest dates" })).toBeEnabled()
+    expect(
+      screen.queryByRole("heading", { name: "Suggesting dates" }),
+    ).not.toBeInTheDocument()
+  })
+
+  test("cancelling Suggest dates leaves the dates as they were", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await screen.findByRole("heading", { name: "Suggesting dates" })
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+    answer(backend.heldSince)
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Suggesting dates" }),
+      ).not.toBeInTheDocument(),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Suggest dates" }),
+      ).toBeEnabled(),
+    )
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+    expect(
+      screen.queryByText("Suggested a date for 1 holding."),
+    ).not.toBeInTheDocument()
   })
 
   test("Suggest dates names a holding new to Beancounter, which has no price history yet", async () => {

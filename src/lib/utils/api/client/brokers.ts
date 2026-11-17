@@ -79,6 +79,9 @@ export function commitReconcile(
 }
 
 /** When each holding was probably opened, from its cost per share. Records nothing. */
-export function suggestHeldSince(request: HeldSinceRequest): Promise<Response> {
-  return fetch(heldSinceUrl, jsonInit("POST", request))
+export function suggestHeldSince(
+  request: HeldSinceRequest,
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetch(heldSinceUrl, { ...jsonInit("POST", request), signal })
 }

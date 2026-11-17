@@ -31,8 +31,6 @@ interface HoldingsTableProps {
   onFind: (key: string) => void
   /** Set when an added holding was opened. */
   onHeldSince: (key: string, heldSince: string) => void
-  /** The import's held-since date, used by rows without their own. */
-  importHeldSince: string
 }
 
 const inputClass =
@@ -41,15 +39,6 @@ const cellClass = "px-2 py-2 align-top"
 
 /** Statuses about the asset itself, which the asset search can resolve. */
 const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
-
-/**
- * Where an added holding's held-since date comes from: the image, a guess, or
- * the import's date when the row has none of its own.
- */
-function heldSinceNote(row: ImportRow, importHeldSince: string): string {
-  if (row.heldSince) return row.heldSinceHint ?? ""
-  return importHeldSince ? `Import's date, ${importHeldSince}` : ""
-}
 
 /**
  * A row's status: a green tick when it is good, a ? that opens the asset
@@ -126,7 +115,6 @@ export default function HoldingsTable({
   onRecheck,
   onFind,
   onHeldSince,
-  importHeldSince,
 }: HoldingsTableProps): React.ReactElement {
   const today = todayIso()
   const { data } = useSwr<{ data: Market[] }>(
@@ -267,9 +255,9 @@ export default function HoldingsTable({
                         }
                         className={`${inputClass} w-36`}
                       />
-                      {heldSinceNote(row, importHeldSince) && (
+                      {row.heldSince && row.heldSinceHint && (
                         <span className="block text-xs text-gray-500 mt-1">
-                          {heldSinceNote(row, importHeldSince)}
+                          {row.heldSinceHint}
                         </span>
                       )}
                     </>
