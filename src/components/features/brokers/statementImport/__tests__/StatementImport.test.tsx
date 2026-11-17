@@ -477,6 +477,59 @@ describe("<StatementImport /> upload", () => {
     )
   })
 
+  test("a screenshot on the clipboard as an item, not a file, is pasted too", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    const pasted = new File(["png-bytes"], "image.png", { type: "image/png" })
+
+    fireEvent.paste(document, {
+      clipboardData: {
+        files: [],
+        items: [{ kind: "file", type: "image/png", getAsFile: () => pasted }],
+      },
+    })
+
+    expect(await screen.findByText(/Pasted image chosen/)).toBeInTheDocument()
+  })
+
+  test("an image dropped on the drop zone is chosen", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    const dropped = new File(["png-bytes"], "dropped.png", {
+      type: "image/png",
+    })
+
+    fireEvent.drop(screen.getByTestId("image-drop-zone"), {
+      dataTransfer: {
+        files: [dropped],
+        items: [{ kind: "file", type: "image/png", getAsFile: () => dropped }],
+        types: ["Files"],
+      },
+    })
+
+    expect(await screen.findByText(/dropped\.png/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+    )
+  })
+
+  test("an attached image can be removed", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+    )
+
+    await user.click(screen.getByRole("button", { name: "Remove image" }))
+
+    expect(screen.queryByText(/holdings\.png/)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+  })
+
   test("pasting text is left alone", async () => {
     renderImport()
     await screen.findByRole("option", { name: "Charles Schwab" })

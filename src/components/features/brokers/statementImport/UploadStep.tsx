@@ -6,7 +6,7 @@ import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import type { BrokerWithAccounts } from "types/beancounter"
 import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
-import { IMAGE_TYPES } from "./statementRows"
+import ImageDropZone from "./ImageDropZone"
 import type { StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
@@ -15,6 +15,24 @@ import {
   FALLBACK_CURRENCY,
   newPortfolioFor,
 } from "./newPortfolio"
+
+/**
+ * The image on the clipboard. A copied file arrives in `files`; a screenshot
+ * copied straight to the clipboard often arrives only as an item.
+ */
+function clipboardImage(data: DataTransfer | null): File | null {
+  if (!data) return null
+  const isImage = (file: File | null): file is File =>
+    Boolean(file?.type.startsWith("image/"))
+  const fromFiles = Array.from(data.files ?? []).find(isImage)
+  if (fromFiles) return fromFiles
+  return (
+    Array.from(data.items ?? [])
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .find(isImage) ?? null
+  )
+}
 
 /** What is chosen: the user's own pick, else the only one there is. */
 function preselect(chosen: string, ids: string[]): string {
@@ -93,9 +111,7 @@ export default function UploadStep({
   const { pasteFile, reading } = flow
   useEffect(() => {
     const onPaste = (event: ClipboardEvent): void => {
-      const image = Array.from(event.clipboardData?.files ?? []).find((file) =>
-        file.type.startsWith("image/"),
-      )
+      const image = clipboardImage(event.clipboardData)
       if (!image || reading) return
       event.preventDefault()
       pasteFile(image)
@@ -183,25 +199,15 @@ export default function UploadStep({
         >
           Image
         </label>
-        <input
+        <ImageDropZone
           key={flow.fileInputKey}
           id="import-screenshot"
-          type="file"
-          aria-required="true"
-          accept={IMAGE_TYPES}
+          file={flow.file}
+          pasted={flow.pasted}
           disabled={flow.reading}
-          onChange={(event) => flow.chooseFile(event.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-gray-700"
+          onChoose={flow.chooseFile}
+          onRemove={flow.chooseAnotherFile}
         />
-        {flow.pasted && flow.file && (
-          <p className="text-sm text-gray-900 mt-1">
-            {`Pasted image chosen (${Math.max(1, Math.round(flow.file.size / 1024))} KB).`}
-          </p>
-        )}
-        <p className="text-xs text-gray-500 mt-1">
-          PNG, JPEG, WebP or GIF, up to 8 MB. Or paste an image with Ctrl+V (⌘V
-          on a Mac).
-        </p>
       </div>
 
       {flow.fileError && <Alert>{flow.fileError}</Alert>}
