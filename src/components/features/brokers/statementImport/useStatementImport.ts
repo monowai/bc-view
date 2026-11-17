@@ -5,10 +5,14 @@ import {
 import { useRef, useState } from "react"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
+import { holdingByIdKey } from "@utils/api/client/holdings"
 import {
+  brokersWithAccountsKey,
   commitReconcile,
+  createBroker,
   previewReconcile,
   readScreenshot,
+  suggestHeldSince as suggestHeldSinceRequest,
 } from "@utils/api/client/brokers"
 import { readServerMessage } from "@utils/api/client/request"
 import { todayIso } from "@utils/formatters"
@@ -16,6 +20,7 @@ import type {
   Broker,
   ConfirmedHoldings,
   ConfirmedRow,
+  HeldSinceResponse,
   Portfolio,
   ReconcilePreview,
   ReconcilePreviewResponse,
@@ -35,13 +40,13 @@ import {
   UNREACHABLE,
 } from "./statementRows"
 import type { NewPortfolio } from "./newPortfolio"
+import type { ImportAccount } from "./newAccount"
 
 type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
 
 /** Where the holdings are recorded: a portfolio, or one to create on Record. */
 export type ImportTarget =
   { portfolio: ImportPortfolio } | { create: NewPortfolio }
-type ImportBroker = Pick<Broker, "id" | "name" | "accountNumber">
 
 /** One screenshot that was read, and what the user has done with it since. */
 interface ImportSession {
@@ -55,8 +60,10 @@ interface ImportSession {
   /** Each row's editable values as they were last checked. */
   checked: Record<string, string>
   /** The brokerage account the holdings are checked and recorded against. */
-  broker: ImportBroker
+  account: ImportAccount
   tradeDate: string
+  /** When the holdings were opened, for every added row without its own; "" for none. */
+  heldSince: string
 }
 
 interface ImportResult {
@@ -81,7 +88,12 @@ async function fetchPreview(
           "portfolio" in session.target
             ? session.target.portfolio.id
             : undefined,
-        brokerId: session.broker.id,
+        brokerId:
+          "broker" in session.account ? session.account.broker.id : undefined,
+        globalBrokerId:
+          "createAccount" in session.account
+            ? session.account.createAccount.globalBrokerId
+            : undefined,
         brokerName: session.proposal.brokerName ?? undefined,
         accountNumber: session.proposal.accountNumber ?? undefined,
         rows: sent.map(toShownHolding),
@@ -138,10 +150,18 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
+  /**
+   * The name and number given for an account to create. The name is null
+   * until the user edits it, so the firm's name can stand in; "" once cleared.
+   */
+  newAccountName: string | null
+  chooseNewAccountName: (name: string) => void
+  newAccountNumber: string
+  chooseNewAccountNumber: (accountNumber: string) => void
   /** The currency chosen for a portfolio to create; "" for the firm's. */
   newCurrency: string
   chooseNewCurrency: (currency: string) => void
-  read: (target: ImportTarget, broker: ImportBroker) => Promise<void>
+  read: (target: ImportTarget, account: ImportAccount) => Promise<void>
   /** Stop waiting for the read; the choices and the file are kept. */
   cancelRead: () => void
   // Confirm
@@ -170,6 +190,13 @@ export interface StatementImportFlow {
   ) => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
+  /** The import's held-since date, and one row's own. */
+  setHeldSince: (heldSince: string) => void
+  setRowHeldSince: (key: string, heldSince: string) => void
+  /** Fill empty held-since dates from each added holding's cost. */
+  suggestHeldSince: () => Promise<void>
+  suggesting: boolean
+  suggestError: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -189,6 +216,10 @@ export interface StatementImportFlow {
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
   const [newCurrency, setNewCurrency] = useState("")
+  const [newAccountName, setNewAccountName] = useState<string | null>(null)
+  const [newAccountNumber, setNewAccountNumber] = useState("")
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -252,7 +283,7 @@ export function useStatementImport(): StatementImportFlow {
 
   const read = async (
     target: ImportTarget,
-    broker: ImportBroker,
+    account: ImportAccount,
   ): Promise<void> => {
     if (!file || readInFlight.current) return
     readInFlight.current = true
@@ -275,13 +306,14 @@ export function useStatementImport(): StatementImportFlow {
       const fresh: ImportSession = {
         uploadId: crypto.randomUUID(),
         target,
-        broker,
+        account,
         proposal,
         rows: toImportRows(proposal),
         preview: null,
         previewByKey: {},
         checked: {},
         tradeDate: todayIso(),
+        heldSince: "",
       }
       const sent = fresh.rows.filter(canBeChecked)
       const outcome = await fetchPreview(fresh, sent, abort.signal)
@@ -433,17 +465,110 @@ export function useStatementImport(): StatementImportFlow {
     setSession((current) => current && { ...current, tradeDate })
   }
 
+  const setHeldSince = (heldSince: string): void => {
+    setSession((current) => current && { ...current, heldSince })
+  }
+
+  const setRowHeldSince = (key: string, heldSince: string): void => {
+    setSession(
+      (current) =>
+        current && {
+          ...current,
+          rows: current.rows.map((row) =>
+            row.key === key
+              ? { ...row, heldSince, heldSinceHint: undefined }
+              : row,
+          ),
+        },
+    )
+  }
+
+  const suggestHeldSince = async (): Promise<void> => {
+    if (!session) return
+    // Added holdings with a cost and no date of their own yet.
+    const asked = session.rows.flatMap((row) => {
+      const preview = session.previewByKey[row.key]
+      if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
+        return []
+      if (!preview.cost || !preview.quantity) return []
+      return [
+        {
+          key: row.key,
+          assetId: preview.assetId,
+          costPerShare: preview.cost / preview.quantity,
+        },
+      ]
+    })
+    if (asked.length === 0) return
+    const { uploadId } = session
+    setSuggesting(true)
+    setSuggestError(null)
+    try {
+      const res = await suggestHeldSinceRequest({
+        rows: asked.map(({ assetId, costPerShare }) => ({
+          assetId,
+          costPerShare,
+        })),
+      })
+      if (!res.ok) {
+        setSuggestError(
+          (await readServerMessage(res)) ||
+            `Dates could not be suggested (error ${res.status}). Enter them yourself, or try again.`,
+        )
+        return
+      }
+      const { data } = (await res.json()) as HeldSinceResponse
+      const byAsset = new Map(data.map((each) => [each.assetId, each]))
+      const keys = new Map(asked.map((each) => [each.key, each.assetId]))
+      // Suggestions for an upload since discarded or re-read are dropped.
+      setSession((current) =>
+        current?.uploadId !== uploadId
+          ? current
+          : {
+              ...current,
+              rows: current.rows.map((row) => {
+                const suggestion = byAsset.get(keys.get(row.key) ?? "")
+                if (!suggestion || row.heldSince) return row
+                return {
+                  ...row,
+                  heldSince: suggestion.heldSince ?? "",
+                  heldSinceHint: suggestion.before
+                    ? `Before ${suggestion.before}`
+                    : undefined,
+                }
+              }),
+            },
+      )
+    } catch {
+      setSuggestError(UNREACHABLE)
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
   const isUnchecked = (row: ImportRow): boolean =>
     signature(row) !== (session?.checked[row.key] ?? "")
 
   const rows = session?.rows ?? []
   const stale = !session?.preview || rows.some(isUnchecked)
-  const brokerId = session?.broker.id ?? ""
+  const brokerId =
+    session && "broker" in session.account ? session.account.broker.id : ""
   const readyRows = rows
     .filter((row) => !isUnchecked(row))
-    .map((row) => toConfirmedRow(session?.previewByKey[row.key]))
+    .map((row) => {
+      const confirmed = toConfirmedRow(session?.previewByKey[row.key])
+      // An added holding carries when it was opened; a reduction, the record date.
+      const heldSince = row.heldSince || session?.heldSince
+      return confirmed?.trnType === "ADD" && heldSince
+        ? { ...confirmed, tradeDate: heldSince }
+        : confirmed
+    })
     .filter((row): row is ConfirmedRow => row !== null)
-  const tradeDateInFuture = (session?.tradeDate ?? "") > todayIso()
+  const today = todayIso()
+  const tradeDateInFuture =
+    (session?.tradeDate ?? "") > today ||
+    (session?.heldSince ?? "") > today ||
+    rows.some((row) => row.heldSince > today)
   const canRecord =
     !stale &&
     !checking &&
@@ -487,17 +612,70 @@ export function useStatementImport(): StatementImportFlow {
     return created.id
   }
 
+  /**
+   * The id of the brokerage account to record against, creating it first when
+   * asked to. A created account replaces the request, so a retry does not
+   * create another. Null, with the reason shown, when it cannot be created.
+   */
+  const accountFor = async (current: ImportSession): Promise<string | null> => {
+    if ("broker" in current.account) return current.account.broker.id
+    const { name, accountNumber, globalBrokerId } =
+      current.account.createAccount
+    const res = await createBroker({
+      name,
+      accountNumber: accountNumber || undefined,
+      globalBrokerId,
+    })
+    if (!res.ok) {
+      setRecordError(
+        (await readServerMessage(res)) ||
+          `The brokerage account could not be created (error ${res.status}). Nothing was recorded.`,
+      )
+      return null
+    }
+    const created = ((await res.json()) as { data?: Broker }).data
+    if (!created?.id) {
+      setRecordError(
+        "Beancounter did not return the brokerage account it was asked to create. Nothing was recorded. Check your brokerage accounts before trying again.",
+      )
+      return null
+    }
+    setSession((now) =>
+      now?.uploadId === current.uploadId
+        ? { ...now, account: { broker: created } }
+        : now,
+    )
+    await mutate(brokersWithAccountsKey)
+    return created.id
+  }
+
+  /**
+   * Value the portfolio now, so its market value reflects what was recorded.
+   * svc-position values a portfolio when its holdings are read, and publishes
+   * the result to svc-data. In the background: recording has already succeeded.
+   */
+  const valuePortfolio = async (portfolioId: string): Promise<void> => {
+    try {
+      await fetch(holdingByIdKey(portfolioId, "today"))
+      await mutate(portfoliosKey)
+    } catch {
+      // The scheduled valuation catches up; nothing the user needs to act on.
+    }
+  }
+
   const record = async (): Promise<void> => {
     if (!session || !canRecord || recordInFlight.current) return
     recordInFlight.current = true
     setRecording(true)
     setRecordError(null)
     try {
+      const accountId = await accountFor(session)
+      if (!accountId) return
       const portfolioId = await portfolioFor(session)
       if (!portfolioId) return
       const confirmed: ConfirmedHoldings = {
         portfolioId,
-        brokerId,
+        brokerId: accountId,
         uploadId: session.uploadId,
         tradeDate: session.tradeDate || undefined,
         rows: readyRows,
@@ -511,10 +689,11 @@ export function useStatementImport(): StatementImportFlow {
         return
       }
       const saved = (await res.json()) as TrnResponse
+      void valuePortfolio(portfolioId)
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
         warnings: saved.warnings ?? [],
-        brokerId,
+        brokerId: accountId,
       })
     } catch {
       setRecordError(UNREACHABLE)
@@ -525,6 +704,8 @@ export function useStatementImport(): StatementImportFlow {
   }
 
   const reset = (): void => {
+    setNewAccountName(null)
+    setNewAccountNumber("")
     latestCheck.current++
     setSession(null)
     setResult(null)
@@ -543,6 +724,10 @@ export function useStatementImport(): StatementImportFlow {
     choosePortfolio: setPortfolioId,
     newCurrency,
     chooseNewCurrency: setNewCurrency,
+    newAccountName,
+    chooseNewAccountName: setNewAccountName,
+    newAccountNumber,
+    chooseNewAccountNumber: setNewAccountNumber,
     chosenFirmId,
     chooseFirm: setChosenFirmId,
     chosenBrokerId,
@@ -573,6 +758,11 @@ export function useStatementImport(): StatementImportFlow {
     recheckRow,
     setTradeDate,
     tradeDateInFuture,
+    setHeldSince,
+    setRowHeldSince,
+    suggestHeldSince,
+    suggesting,
+    suggestError,
     readyRows,
     canRecord,
     recording,

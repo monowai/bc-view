@@ -4,7 +4,7 @@ import Dialog from "@components/ui/Dialog"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
-import { brokerLabel } from "./BrokerageAccountPicker"
+import { accountLabel, namedAs } from "./newAccount"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
 import {
@@ -115,8 +115,43 @@ export default function ConfirmStep({
           <p className="text-xs text-gray-500 mt-1">
             {flow.tradeDateInFuture
               ? "The record date cannot be in the future."
-              : "The date the recorded transactions carry."}
+              : "The date of each change, unless the holding has a held-since date."}
           </p>
+        </div>
+        <div className="max-w-xs">
+          <label
+            htmlFor="import-held-since"
+            className="block text-sm font-semibold text-gray-900 mb-1"
+          >
+            Held since
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="import-held-since"
+              type="date"
+              value={session.heldSince}
+              max={todayIso()}
+              disabled={busy}
+              onChange={(event) => flow.setHeldSince(event.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => void flow.suggestHeldSince()}
+              disabled={busy || flow.suggesting || flow.checking}
+              className="py-2 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60 whitespace-nowrap"
+            >
+              Suggest dates
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {flow.suggesting
+              ? "Looking at each holding's price history…"
+              : "Roughly when you bought them, so returns are measured over the right period. Rows can differ."}
+          </p>
+          {flow.suggestError && (
+            <Alert className="mt-2">{flow.suggestError}</Alert>
+          )}
         </div>
         <button
           type="button"
@@ -140,7 +175,7 @@ export default function ConfirmStep({
         className="bg-white rounded-xl shadow-sm border border-gray-200 text-sm"
       >
         <summary className="cursor-pointer p-4 font-semibold text-gray-900">
-          {`${brokerLabel(session.broker)} · ${
+          {`${accountLabel(session.account)} · ${
             existing ? portfolioLabel(existing) : `Create ${toCreate?.name}`
           } · ${session.rows.length} ${session.rows.length === 1 ? "row" : "rows"} read`}
         </summary>
@@ -152,7 +187,7 @@ export default function ConfirmStep({
               <h3 className="font-semibold text-gray-900 mb-1">
                 Brokerage account
               </h3>
-              <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+              <p className="text-gray-900">{accountLabel(session.account)}</p>
             </div>
             <div>
               <label
@@ -170,7 +205,9 @@ export default function ConfirmStep({
                   if (id === CREATE_PORTFOLIO) {
                     void flow.changePortfolio({
                       create: newPortfolioFor(
-                        session.broker,
+                        "broker" in session.account
+                          ? session.account.broker
+                          : namedAs(session.account.createAccount),
                         portfolios.map((each) => each.code),
                         flow.newCurrency ||
                           toCreate?.currency ||
@@ -230,6 +267,8 @@ export default function ConfirmStep({
         onRemove={flow.removeRow}
         onRecheck={(key) => void flow.recheckRow(key)}
         onFind={setFindingKey}
+        onHeldSince={flow.setRowHeldSince}
+        importHeldSince={session.heldSince}
       />
 
       {finding && (

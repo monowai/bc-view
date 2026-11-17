@@ -26,6 +26,7 @@ enableFetchMocks()
 const READ_URL = "/api/agent/screenshot"
 const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
+const HELD_SINCE_URL = "/api/brokers/reconcile/held-since"
 
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
@@ -158,6 +159,10 @@ interface Backend {
   brokers: unknown[]
   /** What creating a portfolio answers. */
   created: MockResponseInit
+  /** What creating a brokerage account answers. */
+  createdAccount: MockResponseInit
+  /** What the held-since suggestion answers. */
+  heldSince: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
 }
@@ -182,6 +187,7 @@ function preview(shown: ShownHoldings): ReconcilePreview {
 
 async function respond(req: Request): Promise<MockResponseInit> {
   const url = req.url
+  if (url.includes(HELD_SINCE_URL)) return backend.heldSince
   if (url.includes(COMMIT_URL)) {
     const next =
       backend.commits.length > 1 ? backend.commits.shift() : backend.commits[0]
@@ -217,7 +223,10 @@ async function respond(req: Request): Promise<MockResponseInit> {
     })
   if (url.includes("/api/global-brokers"))
     return json({ data: [ibkrFirm, schwabFirm] })
-  if (url.includes("/api/brokers")) return json({ data: backend.brokers })
+  if (url.includes("/api/brokers"))
+    return req.method === "POST"
+      ? backend.createdAccount
+      : json({ data: backend.brokers })
   if (url.includes("/api/markets"))
     return json({ data: [{ code: "US" }, { code: "NASDAQ" }, { code: "SGX" }] })
   return json({ data: [] })
@@ -261,9 +270,9 @@ async function chooseAccount(
   await user.selectOptions(screen.getByLabelText("Brokerage account"), brokerId)
 }
 
-/** Choose the IBKR account, the Growth portfolio and a file, then press Read image. */
+/** Choose the IBKR account, the Growth portfolio and a file, then press Continue. */
 async function upload(user: UserEvent): Promise<void> {
-  const read = screen.getByRole("button", { name: "Read image" })
+  const read = screen.getByRole("button", { name: "Continue" })
   await chooseAccount(user, "gb-ibkr", "b-ibkr")
   await screen.findByRole("option", { name: /Growth/ })
   await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
@@ -293,6 +302,18 @@ beforeEach(() => {
     brokers: [ibkr, schwab],
     created: json({
       data: [{ id: "pf-new", code: "IBKR-MAIN", name: "IBKR" }],
+    }),
+    heldSince: json({
+      data: [{ assetId: "a-AAPL", heldSince: "2017-06-30", before: null }],
+    }),
+    createdAccount: json({
+      data: {
+        id: "b-new",
+        name: "Interactive Brokers",
+        accountNumber: "U999",
+        globalBrokerId: "gb-ibkr",
+        settlementAccounts: [],
+      },
     }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
   }
@@ -390,7 +411,7 @@ describe("<StatementImport /> upload", () => {
       ).not.toBeInTheDocument(),
     )
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     expect(callsTo(PREVIEW_URL)).toBe(0)
   })
@@ -445,7 +466,7 @@ describe("<StatementImport /> upload", () => {
     expect(
       screen.queryByText(/Transaction screenshots are not supported yet/),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
 
   test.each([
@@ -492,7 +513,7 @@ describe("<StatementImport /> upload", () => {
     fireEvent.paste(document, { clipboardData: { files: [pasted] } })
 
     expect(await screen.findByText(/Pasted image chosen/)).toBeInTheDocument()
-    const read = screen.getByRole("button", { name: "Read image" })
+    const read = screen.getByRole("button", { name: "Continue" })
     await waitFor(() => expect(read).toBeEnabled())
     await user.click(read)
     await screen.findByRole("heading", { name: "Confirm what was read" })
@@ -539,7 +560,7 @@ describe("<StatementImport /> upload", () => {
 
     expect(await screen.findByText(/dropped\.png/)).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
     )
   })
 
@@ -549,13 +570,13 @@ describe("<StatementImport /> upload", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
     )
 
     await user.click(screen.getByRole("button", { name: "Remove image" }))
 
     expect(screen.queryByText(/holdings\.png/)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
 
   test("pasting text is left alone", async () => {
@@ -565,6 +586,22 @@ describe("<StatementImport /> upload", () => {
     fireEvent.paste(document, { clipboardData: { files: [] } })
 
     expect(screen.queryByText(/Pasted image chosen/)).not.toBeInTheDocument()
+  })
+
+  test("while Continue is off, it says which step it waits on", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    const read = screen.getByRole("button", { name: "Continue" })
+
+    expect(read).toBeDisabled()
+    expect(read).toHaveAccessibleDescription("Finish step 1 first.")
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    expect(read).toHaveAccessibleDescription("Finish step 4 first.")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+
+    await waitFor(() => expect(read).toBeEnabled())
+    expect(screen.queryByText(/Finish step/)).not.toBeInTheDocument()
   })
 
   test("an image over 8 MB is refused without being sent", async () => {
@@ -578,7 +615,7 @@ describe("<StatementImport /> upload", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /larger than 8 MB/,
     )
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(0)
     // The input is emptied, so it does not show the refused file.
     expect(
@@ -591,12 +628,12 @@ describe("<StatementImport /> upload", () => {
     renderImport()
 
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    const read = screen.getByRole("button", { name: "Read image" })
+    const read = screen.getByRole("button", { name: "Continue" })
     expect(screen.getByLabelText("Brokerage")).toBeRequired()
     expect(screen.getByLabelText("Brokerage account")).toBeRequired()
     expect(
-      screen.getByRole("link", { name: /Add a brokerage account/ }),
-    ).toHaveAttribute("href", "/brokers")
+      screen.queryByRole("link", { name: /Add a brokerage account/ }),
+    ).not.toBeInTheDocument()
 
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.click(read)
@@ -644,7 +681,7 @@ describe("<StatementImport /> upload", () => {
     ).not.toBeInTheDocument()
     await user.selectOptions(account, "b-schwab")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
@@ -661,7 +698,7 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe("b-ibkr")
@@ -686,7 +723,7 @@ describe("<StatementImport /> new portfolio", () => {
     renderImport()
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
   }
 
@@ -742,7 +779,7 @@ describe("<StatementImport /> new portfolio", () => {
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -783,7 +820,7 @@ describe("<StatementImport /> new portfolio", () => {
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -822,6 +859,109 @@ describe("<StatementImport /> new portfolio", () => {
   })
 })
 
+describe("<StatementImport /> new brokerage account", () => {
+  async function chooseCreateAccount(user: UserEvent): Promise<void> {
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+    await user.selectOptions(
+      screen.getByLabelText("Brokerage account"),
+      "__NEW_ACCOUNT__",
+    )
+  }
+
+  test("an account is created at the chosen firm on Record, before its portfolio", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+
+    expect(screen.getByLabelText("Account name")).toHaveValue(
+      "Interactive Brokers",
+    )
+    await user.type(screen.getByLabelText("Account number"), "U999")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    const [shown] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
+    expect(shown.brokerId).toBeUndefined()
+    expect(shown.globalBrokerId).toBe("gb-ibkr")
+    expect(bodiesSentTo<unknown>("/api/brokers")).toEqual([])
+
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    expect(bodiesSentTo<unknown>("/api/brokers")).toEqual([
+      {
+        name: "Interactive Brokers",
+        accountNumber: "U999",
+        globalBrokerId: "gb-ibkr",
+      },
+    ])
+    expect(bodiesSentTo<unknown>("/api/portfolios")).toEqual([
+      {
+        data: [
+          {
+            code: "INTERACTIVE-BROKERS",
+            name: "Interactive Brokers (U999)",
+            currency: "USD",
+            base: "USD",
+          },
+        ],
+      },
+    ])
+    const [confirmed] = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)
+    expect(confirmed.brokerId).toBe("b-new")
+    expect(confirmed.portfolioId).toBe("pf-new")
+    expect(
+      screen.getByRole("link", { name: /holdings at this brokerage account/i }),
+    ).toHaveAttribute("href", "/brokers/b-new/holdings")
+  })
+
+  test("a cleared account name stays cleared and holds Continue back", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+
+    await user.clear(screen.getByLabelText("Account name"))
+
+    expect(screen.getByLabelText("Account name")).toHaveValue("")
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
+  })
+
+  test("a firm with no accounts yet offers to create one", async () => {
+    backend.brokers = [schwab]
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+
+    expect(screen.getByLabelText("Brokerage account")).toHaveValue(
+      "__NEW_ACCOUNT__",
+    )
+  })
+
+  test("an account that cannot be created records nothing and says why", async () => {
+    backend.createdAccount = json(
+      { message: "Broker with name 'Interactive Brokers' already exists" },
+      400,
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    await user.click(recordButton())
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Broker with name 'Interactive Brokers' already exists",
+    )
+    expect(callsTo("/api/portfolios")).toBe(0)
+    expect(callsTo(COMMIT_URL)).toBe(0)
+  })
+})
+
 describe("<StatementImport /> confirm", () => {
   test("shows the portfolio, and choosing another checks and records there", async () => {
     backend.portfolios = [growth, income]
@@ -831,7 +971,7 @@ describe("<StatementImport /> confirm", () => {
     await screen.findByRole("option", { name: /Income/ })
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     const portfolio = screen.getByLabelText("Portfolio")
@@ -1160,6 +1300,113 @@ describe("<StatementImport /> record", () => {
     })
   })
 
+  test("recording values the portfolio, so its market value is current", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    await waitFor(() =>
+      expect(callsTo("/api/holdings/id/pf-1?asAt=today")).toBe(1),
+    )
+  })
+
+  test("a held-since date dates every added holding, a row can override it, and reductions keep the record date", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        { code: "AAPL", quantity: 10, costBasis: 1200 },
+        { code: "NFLX", quantity: 4, costBasis: 400 },
+        { code: "TSLA", quantity: 5 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.type(screen.getByLabelText("Held since"), "2018-05-01")
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    const [confirmed] = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)
+    const byAsset = Object.fromEntries(
+      confirmed.rows.map((row) => [row.assetId, row.tradeDate]),
+    )
+    expect(byAsset["a-AAPL"]).toBe("2016-02-03")
+    expect(byAsset["a-NFLX"]).toBe("2018-05-01")
+    expect(byAsset["a-TSLA"]).toBeUndefined()
+    expect(confirmed.tradeDate).toBe(todayIso())
+  })
+
+  test("Suggest dates fills empty held-since dates from each holding's cost", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+        "2017-06-30",
+      ),
+    )
+    expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
+      { rows: [{ assetId: "a-AAPL", costPerShare: 120 }] },
+    ])
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+    const aapl = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].rows.find(
+      (row) => row.assetId === "a-AAPL",
+    )
+    expect(aapl?.tradeDate).toBe("2017-06-30")
+  })
+
+  test("a cost below every known price says the holding is older than the prices", async () => {
+    backend.heldSince = json({
+      data: [{ assetId: "a-AAPL", heldSince: null, before: "2011-11-18" }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    expect(
+      await within(rowFor("AAPL")).findByText(
+        "Before 2011-11-18. Record date applies until you enter one",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+  })
+
+  test("dates suggested for a discarded upload do not fill the next one", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(1))
+
+    await user.click(
+      screen.getByRole("button", { name: "Discard and start again" }),
+    )
+    await upload(user)
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    answer(backend.heldSince)
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Suggest dates" }),
+      ).toBeEnabled(),
+    )
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+  })
+
   test("the trade date chosen is the one sent", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
@@ -1239,7 +1486,7 @@ describe("<StatementImport /> record", () => {
     await user.click(
       screen.getByRole("button", { name: "Import another screenshot" }),
     )
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(1)
   })
 

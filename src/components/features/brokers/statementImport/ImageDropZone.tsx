@@ -45,25 +45,28 @@ export default function ImageDropZone({
       <div
         {...getRootProps()}
         data-testid="image-drop-zone"
-        className={`rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm cursor-pointer transition-colors ${
+        className={`flex items-center gap-4 rounded-lg border-2 border-dashed px-5 py-4 text-sm cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
           isDragActive
             ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 bg-gray-50 hover:border-gray-400"
+            : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/60"
         } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
       >
         <input {...getInputProps({ id })} />
-        <i
-          className="fas fa-image text-2xl text-gray-400 mb-2"
+        <span
           aria-hidden="true"
-        ></i>
-        <p className="text-gray-700">
-          {isDragActive
-            ? "Drop the image here"
-            : "Drop an image here, paste one with Ctrl+V (⌘V on a Mac), or click to choose a file"}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          PNG, JPEG, WebP or GIF, up to 8 MB.
-        </p>
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white border border-gray-200 text-gray-500"
+        >
+          <i className="fas fa-image"></i>
+        </span>
+        <span className="min-w-0">
+          <span className="block font-medium text-gray-900">
+            {isDragActive ? "Drop the image here" : "Drop an image here"}
+          </span>
+          <span className="block text-gray-600 mt-0.5">
+            or paste one with Ctrl+V (⌘V on a Mac), or click to choose a file.
+            PNG, JPEG, WebP or GIF, up to 8 MB.
+          </span>
+        </span>
       </div>
       {file && (
         <div className="flex items-center justify-between gap-2 mt-2 text-sm text-gray-900">
