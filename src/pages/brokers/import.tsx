@@ -8,7 +8,7 @@ function BrokerageImportPage(): React.ReactElement {
   return (
     <>
       <Head>
-        <title>Import from screenshot | Holdsworth</title>
+        <title>Import from image | Holdsworth</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -22,7 +22,7 @@ function BrokerageImportPage(): React.ReactElement {
               <i className="fas fa-arrow-left text-lg" aria-hidden="true"></i>
             </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Import from screenshot
+              Import from image
             </h1>
           </div>
         </div>

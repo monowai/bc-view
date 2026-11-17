@@ -319,7 +319,7 @@ describe("<StatementImport /> upload", () => {
     expect(within(read).getByText("13 Nov 2026")).toBeInTheDocument()
     expect(within(read).getByText("25,000.50")).toBeInTheDocument()
 
-    expect(screen.getByText(/IBKR Main/)).toBeInTheDocument()
+    expect(screen.getByText("IBKR Main (U1234482)")).toBeInTheDocument()
 
     const aapl = within(rowFor("AAPL"))
     expect(aapl.getByText("Add 10")).toBeInTheDocument()
@@ -333,8 +333,8 @@ describe("<StatementImport /> upload", () => {
     expect(voo.getByText("Matches what is held")).toBeInTheDocument()
     expect(within(rowFor("MSFT")).getByText("Enter the cost")).toBeVisible()
 
-    expect(screen.getByLabelText("Trade date")).toHaveValue(todayIso())
-    expect(screen.getByLabelText("Trade date")).toHaveAttribute(
+    expect(screen.getByLabelText("Record date")).toHaveValue(todayIso())
+    expect(screen.getByLabelText("Record date")).toHaveAttribute(
       "max",
       todayIso(),
     )
@@ -732,11 +732,53 @@ describe("<StatementImport /> confirm", () => {
       screen.getByText("The rows could not be checked"),
     ).toBeInTheDocument()
     expect(
-      within(rowFor("AAPL")).getByText("Not checked yet. Press Re-check."),
+      within(rowFor("AAPL")).getByText("Not checked yet. Press Recheck."),
     ).toBeInTheDocument()
     expect(
       screen.queryByText(/Changed since the last check/),
     ).not.toBeInTheDocument()
+  })
+
+  test("one row can be rechecked on its own, leaving the others as they were", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const quantity = screen.getByLabelText("Quantity for AAPL")
+    await user.clear(quantity)
+    await user.type(quantity, "25")
+    await user.click(screen.getByRole("button", { name: "Recheck AAPL" }))
+
+    expect(
+      await within(rowFor("AAPL")).findByText("Add 25"),
+    ).toBeInTheDocument()
+    const [, single] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
+    expect(single.rows.map((row) => row.code)).toEqual(["AAPL"])
+    expect(within(rowFor("TSLA")).getByText("Reduce 3")).toBeInTheDocument()
+    expect(
+      screen.getByRole("region", {
+        name: "Held at this account but not on the screenshot",
+      }),
+    ).toHaveTextContent("NVDA")
+    expect(recordButton()).toBeEnabled()
+  })
+
+  test("what was read and where it is recorded fold away, open when the totals do not add up", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const folded = screen
+      .getByText(/IBKR Main \(U1234482\) · Growth \(GROWTH\)/)
+      .closest("details")
+    expect(folded).toHaveAttribute("open")
+  })
+
+  test("what was read folds away when the totals add up", async () => {
+    backend.read = json({ ...holdingsProposal, totalShown: undefined })
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const folded = screen
+      .getByText(/IBKR Main \(U1234482\) · Growth \(GROWTH\)/)
+      .closest("details")
+    expect(folded).not.toHaveAttribute("open")
   })
 
   test("editing marks the preview stale until it is re-checked", async () => {
@@ -755,7 +797,7 @@ describe("<StatementImport /> confirm", () => {
     // Typing asked the server nothing.
     expect(callsTo(PREVIEW_URL)).toBe(1)
 
-    await user.click(screen.getByRole("button", { name: "Re-check" }))
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
 
     expect(
       await within(rowFor("AAPL")).findByText("Add 25"),
@@ -784,7 +826,7 @@ describe("<StatementImport /> confirm", () => {
     )
 
     await user.type(screen.getByLabelText("Cost for MSFT"), "1,750")
-    await user.click(screen.getByRole("button", { name: "Re-check" }))
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
 
     expect(
       await within(rowFor("MSFT")).findByText("Ready to record"),
@@ -822,7 +864,7 @@ describe("<StatementImport /> confirm", () => {
     await user.click(screen.getByRole("button", { name: "Remove TSLA" }))
     expect(screen.queryByLabelText("Quantity for TSLA")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Re-check" }))
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
     await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
     expect(
       bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].rows.map((row) => row.code),
@@ -896,7 +938,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    const tradeDate = screen.getByLabelText("Trade date")
+    const tradeDate = screen.getByLabelText("Record date")
     await user.clear(tradeDate)
     await user.type(tradeDate, "2020-02-03")
     await user.click(recordButton())
@@ -924,7 +966,7 @@ describe("<StatementImport /> record", () => {
     const cost = screen.getByLabelText("Cost for AAPL")
     await user.clear(cost)
     await user.type(cost, "1300")
-    await user.click(screen.getByRole("button", { name: "Re-check" }))
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
     await waitFor(() => expect(recordButton()).toBeEnabled())
     await user.click(recordButton())
 

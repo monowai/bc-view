@@ -327,12 +327,12 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               type="button"
               className={SECONDARY_BUTTON}
               onClick={() => router.push(IMAGE_IMPORT_PATH)}
-              title={"Import from screenshot"}
-              aria-label={"Import from screenshot"}
+              title={"Import from image"}
+              aria-label={"Import from image"}
             >
               <i className="fas fa-camera text-gray-500" aria-hidden="true"></i>
               <span className="hidden lg:inline">
-                {"Import from screenshot"}
+                {"Import from image"}
               </span>
             </button>
             {isAdmin && (

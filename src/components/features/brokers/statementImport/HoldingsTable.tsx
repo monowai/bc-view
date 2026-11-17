@@ -26,6 +26,7 @@ interface HoldingsTableProps {
   disabled: boolean
   onEdit: (key: string, field: EditableField, value: string) => void
   onRemove: (key: string) => void
+  onRecheck: (key: string) => void
 }
 
 const inputClass =
@@ -61,6 +62,7 @@ export default function HoldingsTable({
   disabled,
   onEdit,
   onRemove,
+  onRecheck,
 }: HoldingsTableProps): React.ReactElement {
   const { data } = useSwr<{ data: Market[] }>(
     marketsKey,
@@ -132,6 +134,16 @@ export default function HoldingsTable({
                     }
                     className={`${inputClass} w-24 uppercase`}
                   />
+                  <button
+                    type="button"
+                    aria-label={`Recheck ${name}`}
+                    title="Recheck this row"
+                    disabled={disabled || checking || !row.code.trim()}
+                    onClick={() => onRecheck(row.key)}
+                    className="ml-1 p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                  >
+                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
+                  </button>
                   {(preview?.assetName || row.name) && (
                     <span className="block text-xs text-gray-500 mt-1">
                       {preview?.assetName || row.name}

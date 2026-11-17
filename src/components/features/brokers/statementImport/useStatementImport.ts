@@ -146,6 +146,8 @@ export interface StatementImportFlow {
   /** The currency of the portfolio to create on Record. */
   setNewPortfolioCurrency: (currency: string) => void
   recheck: () => Promise<void>
+  /** Check one row again, leaving the others' answers as they are. */
+  recheckRow: (key: string) => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
   /** What Record would send. */
@@ -351,6 +353,34 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
+  const recheckRow = async (key: string): Promise<void> => {
+    const row = session?.rows.find((candidate) => candidate.key === key)
+    if (!session || !row || !canBeChecked(row)) return
+    const mine = ++latestCheck.current
+    setChecking(true)
+    setPreviewError(null)
+    const outcome = await fetchPreview(session, [row])
+    if (mine !== latestCheck.current) return
+    setChecking(false)
+    if ("error" in outcome) {
+      setPreviewError(outcome.error)
+      return
+    }
+    setSession((current) => {
+      if (current?.uploadId !== session.uploadId) return current
+      const attached = attachPreview(current.rows, [row], outcome.preview)
+      return {
+        ...current,
+        rows: attached.rows,
+        previewByKey: { ...current.previewByKey, ...attached.previewByKey },
+        checked: { ...current.checked, ...attached.checked },
+        // One row says nothing about what else is held: keep the full
+        // check's list, or show none until a full check answers.
+        preview: current.preview ?? { ...outcome.preview, notShown: [] },
+      }
+    })
+  }
+
   const recheck = async (): Promise<void> => {
     if (session) await check(session)
   }
@@ -486,6 +516,7 @@ export function useStatementImport(): StatementImportFlow {
     changePortfolio,
     setNewPortfolioCurrency,
     recheck,
+    recheckRow,
     setTradeDate,
     tradeDateInFuture,
     readyRows,

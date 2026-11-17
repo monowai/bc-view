@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
@@ -12,7 +12,7 @@ import {
 } from "./newPortfolio"
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
-import ReadSummary from "./ReadSummary"
+import ReadSummary, { totalGap } from "./ReadSummary"
 import { rowName } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
 
@@ -30,6 +30,10 @@ export default function ConfirmStep({
 }): React.ReactElement | null {
   const { session } = flow
   const { portfolios } = useActivePortfolios()
+  // Folded unless the read rows do not add up to the total shown.
+  const [unfolded, setUnfolded] = useState(
+    () => session !== null && totalGap(session.proposal) !== null,
+  )
   if (!session) return null
   const existing =
     "portfolio" in session.target ? session.target.portfolio : null
@@ -79,72 +83,128 @@ export default function ConfirmStep({
         </button>
       </div>
 
-      <ReadSummary proposal={session.proposal} />
-
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm grid gap-4 sm:grid-cols-2">
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-1">
-            Brokerage account
-          </h3>
-          <p className="text-gray-900">{brokerLabel(session.broker)}</p>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-4">
         <div>
           <label
-            htmlFor="confirm-portfolio"
-            className="block font-semibold text-gray-900 mb-1"
+            htmlFor="import-record-date"
+            className="block text-sm font-semibold text-gray-900 mb-1"
           >
-            Portfolio
+            Record date
           </label>
-          <select
-            id="confirm-portfolio"
-            value={existing ? existing.id : CREATE_PORTFOLIO}
-            disabled={busy || flow.checking}
-            onChange={(event) => {
-              const id = event.target.value
-              if (id === CREATE_PORTFOLIO) {
-                void flow.changePortfolio({
-                  create: newPortfolioFor(
-                    session.broker,
-                    portfolios.map((each) => each.code),
-                    flow.newCurrency || toCreate?.currency || FALLBACK_CURRENCY,
-                  ),
-                })
-                return
-              }
-              const chosen = portfolios.find((each) => each.id === id)
-              if (chosen) void flow.changePortfolio({ portfolio: chosen })
-            }}
-            className={fieldClass}
-          >
-            <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
-            {/* The portfolio read into stays listed while the list loads. */}
-            {existing && !portfolios.some((p) => p.id === existing.id) && (
-              <option value={existing.id}>{portfolioLabel(existing)}</option>
-            )}
-            {portfolios.map((portfolio) => (
-              <option key={portfolio.id} value={portfolio.id}>
-                {portfolioLabel(portfolio)}
-              </option>
-            ))}
-          </select>
-          <p className="text-gray-600 mt-1">
-            {existing
-              ? "The changes are recorded here."
-              : `${toCreate?.name} is created when you record.`}
+          <input
+            id="import-record-date"
+            type="date"
+            value={session.tradeDate}
+            max={todayIso()}
+            disabled={busy}
+            onChange={(event) => flow.setTradeDate(event.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            {flow.tradeDateInFuture
+              ? "The record date cannot be in the future."
+              : "The date the recorded transactions carry."}
           </p>
-          {toCreate && (
-            <div className="mt-2">
-              <CurrencySelect
-                id="confirm-currency"
-                value={toCreate.currency}
-                disabled={busy}
-                className={fieldClass}
-                onChange={flow.setNewPortfolioCurrency}
-              />
-            </div>
-          )}
         </div>
-      </section>
+        <button
+          type="button"
+          onClick={() => void flow.recheck()}
+          disabled={flow.checking || busy}
+          className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-60 mb-5"
+        >
+          <i className="fas fa-rotate-right mr-2" aria-hidden="true"></i>
+          Recheck
+        </button>
+        {flow.checking && (
+          <span role="status" className="text-sm text-gray-600 mb-6">
+            <Spinner label="Checking against your holdings…" />
+          </span>
+        )}
+      </div>
+
+      <details
+        open={unfolded}
+        onToggle={(event) => setUnfolded(event.currentTarget.open)}
+        className="bg-white rounded-xl shadow-sm border border-gray-200 text-sm"
+      >
+        <summary className="cursor-pointer p-4 font-semibold text-gray-900">
+          {`${brokerLabel(session.broker)} · ${
+            existing ? portfolioLabel(existing) : `Create ${toCreate?.name}`
+          } · ${session.rows.length} ${session.rows.length === 1 ? "row" : "rows"} read`}
+        </summary>
+        <div className="px-4 pb-4 space-y-4">
+          <ReadSummary proposal={session.proposal} />
+
+          <section className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-1">
+                Brokerage account
+              </h3>
+              <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+            </div>
+            <div>
+              <label
+                htmlFor="confirm-portfolio"
+                className="block font-semibold text-gray-900 mb-1"
+              >
+                Portfolio
+              </label>
+              <select
+                id="confirm-portfolio"
+                value={existing ? existing.id : CREATE_PORTFOLIO}
+                disabled={busy || flow.checking}
+                onChange={(event) => {
+                  const id = event.target.value
+                  if (id === CREATE_PORTFOLIO) {
+                    void flow.changePortfolio({
+                      create: newPortfolioFor(
+                        session.broker,
+                        portfolios.map((each) => each.code),
+                        flow.newCurrency ||
+                          toCreate?.currency ||
+                          FALLBACK_CURRENCY,
+                      ),
+                    })
+                    return
+                  }
+                  const chosen = portfolios.find((each) => each.id === id)
+                  if (chosen) void flow.changePortfolio({ portfolio: chosen })
+                }}
+                className={fieldClass}
+              >
+                <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
+                {/* The portfolio read into stays listed while the list loads. */}
+                {existing && !portfolios.some((p) => p.id === existing.id) && (
+                  <option value={existing.id}>
+                    {portfolioLabel(existing)}
+                  </option>
+                )}
+                {portfolios.map((portfolio) => (
+                  <option key={portfolio.id} value={portfolio.id}>
+                    {portfolioLabel(portfolio)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-gray-600 mt-1">
+                {existing
+                  ? "The changes are recorded here."
+                  : `${toCreate?.name} is created when you record.`}
+              </p>
+              {toCreate && (
+                <div className="mt-2">
+                  <CurrencySelect
+                    id="confirm-currency"
+                    value={toCreate.currency}
+                    disabled={busy}
+                    className={fieldClass}
+                    onChange={flow.setNewPortfolioCurrency}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </details>
 
       {flow.previewError && <Alert>{flow.previewError}</Alert>}
 
@@ -156,11 +216,12 @@ export default function ConfirmStep({
         disabled={busy}
         onEdit={flow.editRow}
         onRemove={flow.removeRow}
+        onRecheck={(key) => void flow.recheckRow(key)}
       />
 
       {edited && !flow.checking && (
         <Alert variant="info">
-          You have changed some rows. Press Re-check to see what would be
+          You have changed some rows. Press Recheck to see what would be
           recorded.
         </Alert>
       )}
@@ -182,40 +243,9 @@ export default function ConfirmStep({
       <NotShownList notShown={session.preview?.notShown ?? []} />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
-        <div>
-          <label
-            htmlFor="import-trade-date"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Trade date
-          </label>
-          <input
-            id="import-trade-date"
-            type="date"
-            value={session.tradeDate}
-            max={todayIso()}
-            disabled={busy}
-            onChange={(event) => flow.setTradeDate(event.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {flow.tradeDateInFuture
-              ? "The trade date cannot be in the future."
-              : "The date the recorded transactions carry."}
-          </p>
-        </div>
-
         {flow.recordError && <Alert>{flow.recordError}</Alert>}
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void flow.recheck()}
-            disabled={flow.checking || busy}
-            className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-60"
-          >
-            Re-check
-          </button>
           <button
             type="button"
             onClick={() => void flow.record()}
@@ -224,11 +254,9 @@ export default function ConfirmStep({
           >
             {`Record ${changes} ${changes === 1 ? "change" : "changes"}`}
           </button>
-          {(flow.checking || busy) && (
+          {busy && (
             <span role="status" className="text-sm text-gray-600">
-              <Spinner
-                label={busy ? "Recording…" : "Checking against your holdings…"}
-              />
+              <Spinner label="Recording…" />
             </span>
           )}
         </div>
