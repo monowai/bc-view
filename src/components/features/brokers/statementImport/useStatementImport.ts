@@ -174,6 +174,8 @@ export function useStatementImport(): StatementImportFlow {
     if (chosen && chosen.size > MAX_SCREENSHOT_BYTES) {
       setFile(null)
       setFileError(SCREENSHOT_TOO_LARGE)
+      // Empty the input too, so it does not show a file that was refused.
+      setFileInputKey((key) => key + 1)
       return
     }
     setFileError(null)

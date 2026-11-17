@@ -1,5 +1,6 @@
 import React from "react"
 import Link from "next/link"
+import Alert from "@components/ui/Alert"
 import { useBrokers } from "@hooks/useBrokers"
 import type { MatchedBroker } from "types/beancounter"
 
@@ -22,7 +23,7 @@ export default function BrokerageAccountPicker({
   disabled,
   onChoose,
 }: BrokerageAccountPickerProps): React.ReactElement {
-  const { brokers } = useBrokers()
+  const { brokers, error } = useBrokers()
   const choices = brokers.filter(
     (broker) => broker.active !== false || broker.id === chosenId,
   )
@@ -61,6 +62,11 @@ export default function BrokerageAccountPicker({
               </option>
             ))}
           </select>
+          {error && (
+            <Alert className="mt-2">
+              Your brokerage accounts could not be loaded. Reload the page.
+            </Alert>
+          )}
           <p className="mt-2 text-gray-600">
             Not listed?{" "}
             <Link href="/brokers" className="text-blue-600 underline">

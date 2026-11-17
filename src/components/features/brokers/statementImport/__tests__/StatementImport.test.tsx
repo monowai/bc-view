@@ -350,6 +350,10 @@ describe("<StatementImport /> upload", () => {
       screen.getByRole("button", { name: "Read screenshot" }),
     ).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(0)
+    // The input is emptied, so it does not show the refused file.
+    expect(
+      (screen.getByLabelText("Screenshot") as HTMLInputElement).files,
+    ).toHaveLength(0)
   })
 })
 
@@ -379,6 +383,47 @@ describe("<StatementImport /> confirm", () => {
       "VOO",
       "TSLA",
     ])
+  })
+
+  test("a chosen account whose check failed is not asked for again", async () => {
+    backend.matches = false
+    const user = userEvent.setup()
+    await readHoldings(user)
+    fetchMock.mockResponse((req) =>
+      req.url.includes(PREVIEW_URL)
+        ? Promise.resolve(
+            json({ message: "The rows could not be checked" }, 500),
+          )
+        : respond(req),
+    )
+
+    await user.selectOptions(
+      screen.getByLabelText(/Brokerage account/),
+      "b-schwab",
+    )
+
+    expect(
+      await screen.findByText("The rows could not be checked"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("Choose the brokerage account before recording."),
+    ).not.toBeInTheDocument()
+    expect(recordButton()).toBeDisabled()
+  })
+
+  test("says when the brokerage accounts could not be loaded", async () => {
+    backend.matches = false
+    fetchMock.mockResponse((req) =>
+      req.url.includes("/api/brokers") && !req.url.includes(PREVIEW_URL)
+        ? Promise.resolve(json({ message: "down" }, 500))
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      await screen.findByText(/brokerage accounts could not be loaded/),
+    ).toBeInTheDocument()
   })
 
   test("editing marks the preview stale until it is re-checked", async () => {

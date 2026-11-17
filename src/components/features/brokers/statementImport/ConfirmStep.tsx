@@ -154,7 +154,7 @@ export default function ConfirmStep({
             </span>
           )}
         </div>
-        {!flow.brokerId && !flow.checking && (
+        {!flow.brokerId && !flow.checking && !session.chosenBrokerId && (
           <p className="text-sm text-gray-600">
             Choose the brokerage account before recording.
           </p>
