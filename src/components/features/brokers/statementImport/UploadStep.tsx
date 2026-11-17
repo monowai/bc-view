@@ -395,7 +395,7 @@ export default function UploadStep({
           }
         >
           <p role="status" className="text-sm text-gray-700">
-            <Spinner label="Reading the image and checking each holding. This can take some time…" />
+            <Spinner label="Processing… Please enjoy this awkward silence while I squint at your data." />
           </p>
         </Dialog>
       )}
