@@ -75,6 +75,15 @@ describe("HeaderBrand", () => {
     )
   })
 
+  it("Wealth dropdown links to the image import", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
+    expect(screen.getByRole("link", { name: /^Import$/i })).toHaveAttribute(
+      "href",
+      "/brokers/import",
+    )
+  })
+
   it("hides the Portfolios link in zen mode (single portfolio)", () => {
     mockPortfolios = [{ id: "pf-1" }]
     render(<HeaderBrand />)

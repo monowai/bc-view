@@ -23,7 +23,6 @@ import { currencyOptions, toCurrency, toCurrencyOption } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { portfolioInputSchema } from "@lib/portfolio/schema"
-import { portfolioReturnTarget } from "@lib/portfolio/returnTo"
 import TrnDropZone from "@components/ui/DropZone"
 import Alert from "@components/ui/Alert"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -98,11 +97,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         globalMutate(portfoliosKey),
       ])
       if (post) {
-        // A page that sent the user here to make a portfolio gets it back.
-        await router.push(
-          portfolioReturnTarget(router.query.returnTo, saved.id) ??
-            `/portfolios/${saved.id}`,
-        )
+        await router.push(`/portfolios/${saved.id}`)
       } else {
         setSaveState({ kind: "success" })
       }

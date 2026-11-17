@@ -4,11 +4,20 @@ import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
 import { brokerLabel } from "./BrokerageAccountPicker"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
+import CurrencySelect from "./CurrencySelect"
+import {
+  CREATE_PORTFOLIO,
+  FALLBACK_CURRENCY,
+  newPortfolioFor,
+} from "./newPortfolio"
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
 import ReadSummary from "./ReadSummary"
 import { rowName } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
+
+const fieldClass =
+  "w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
 /**
  * Step 2: what was read, beside what is held, for the user to correct and
@@ -22,6 +31,9 @@ export default function ConfirmStep({
   const { session } = flow
   const { portfolios } = useActivePortfolios()
   if (!session) return null
+  const existing =
+    "portfolio" in session.target ? session.target.portfolio : null
+  const toCreate = "create" in session.target ? session.target.create : null
 
   const busy = flow.recording
   const edited = session.preview !== null && session.rows.some(flow.isUnchecked)
@@ -85,21 +97,29 @@ export default function ConfirmStep({
           </label>
           <select
             id="confirm-portfolio"
-            value={session.portfolio.id}
+            value={existing ? existing.id : CREATE_PORTFOLIO}
             disabled={busy || flow.checking}
             onChange={(event) => {
-              const chosen = portfolios.find(
-                (portfolio) => portfolio.id === event.target.value,
-              )
-              if (chosen) void flow.changePortfolio(chosen)
+              const id = event.target.value
+              if (id === CREATE_PORTFOLIO) {
+                void flow.changePortfolio({
+                  create: newPortfolioFor(
+                    session.broker,
+                    portfolios.map((each) => each.code),
+                    flow.newCurrency || toCreate?.currency || FALLBACK_CURRENCY,
+                  ),
+                })
+                return
+              }
+              const chosen = portfolios.find((each) => each.id === id)
+              if (chosen) void flow.changePortfolio({ portfolio: chosen })
             }}
-            className="w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fieldClass}
           >
+            <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
             {/* The portfolio read into stays listed while the list loads. */}
-            {!portfolios.some((p) => p.id === session.portfolio.id) && (
-              <option value={session.portfolio.id}>
-                {portfolioLabel(session.portfolio)}
-              </option>
+            {existing && !portfolios.some((p) => p.id === existing.id) && (
+              <option value={existing.id}>{portfolioLabel(existing)}</option>
             )}
             {portfolios.map((portfolio) => (
               <option key={portfolio.id} value={portfolio.id}>
@@ -107,7 +127,22 @@ export default function ConfirmStep({
               </option>
             ))}
           </select>
-          <p className="text-gray-600 mt-1">The changes are recorded here.</p>
+          <p className="text-gray-600 mt-1">
+            {existing
+              ? "The changes are recorded here."
+              : `${toCreate?.name} is created when you record.`}
+          </p>
+          {toCreate && (
+            <div className="mt-2">
+              <CurrencySelect
+                id="confirm-currency"
+                value={toCreate.currency}
+                disabled={busy}
+                className={fieldClass}
+                onChange={flow.setNewPortfolioCurrency}
+              />
+            </div>
+          )}
         </div>
       </section>
 

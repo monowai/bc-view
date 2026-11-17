@@ -1,31 +1,23 @@
 import React from "react"
-import Link from "next/link"
-import { useRouter } from "next/router"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
-import {
-  newPortfolioHref,
-  SCREENSHOT_IMPORT_PATH,
-} from "@lib/portfolio/returnTo"
 import type { BrokerWithAccounts } from "types/beancounter"
 import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
 import { IMAGE_TYPES } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
+import CurrencySelect from "./CurrencySelect"
+import {
+  CREATE_PORTFOLIO,
+  FALLBACK_CURRENCY,
+  newPortfolioFor,
+} from "./newPortfolio"
 
-/**
- * What is chosen: the user's own pick, else the one the address names (the
- * new-portfolio page sends the user back that way), else the only one there is.
- */
-function preselect(
-  chosen: string,
-  named: string | string[] | undefined,
-  ids: string[],
-): string {
+/** What is chosen: the user's own pick, else the only one there is. */
+function preselect(chosen: string, ids: string[]): string {
   if (chosen) return chosen
-  if (typeof named === "string" && ids.includes(named)) return named
   return ids.length === 1 ? ids[0] : ""
 }
 
@@ -54,18 +46,16 @@ export default function UploadStep({
 }: {
   flow: StatementImportFlow
 }): React.ReactElement {
-  const { query } = useRouter()
   const { portfolios, error } = useActivePortfolios()
   const { globalBrokers: firms } = useGlobalBrokers()
   const { brokers: allBrokers, error: brokersError } = useBrokers()
   const active = allBrokers.filter((broker) => broker.active !== false)
-  // An account named or the only one there is also names its firm.
+  // The account chosen, or the only one there is, also names its firm.
   const named = active.find(
     (candidate) =>
       candidate.id ===
       preselect(
         flow.chosenBrokerId,
-        query.broker,
         active.map((each) => each.id),
       ),
   )
@@ -74,38 +64,42 @@ export default function UploadStep({
   const brokers = offeredAt(active, firmId)
   const brokerId = preselect(
     named && brokers.includes(named) ? named.id : "",
-    undefined,
     brokers.map((candidate) => candidate.id),
   )
   const broker = brokers.find((candidate) => candidate.id === brokerId)
-  const selectedId = preselect(
-    flow.portfolioId,
-    query.portfolio,
-    portfolios.map((candidate) => candidate.id),
-  )
-  // The new-portfolio page comes back here, keeping the account chosen.
-  const newPortfolio = newPortfolioHref(
-    brokerId
-      ? `${SCREENSHOT_IMPORT_PATH}?broker=${encodeURIComponent(brokerId)}`
-      : SCREENSHOT_IMPORT_PATH,
-  )
+  // Creating a portfolio is the default; an existing one is the user's choice.
+  const selectedId = flow.portfolioId || CREATE_PORTFOLIO
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
-  const canRead = Boolean(portfolio && broker && flow.file) && !flow.reading
+  const creating = selectedId === CREATE_PORTFOLIO
+  const firmCurrency = firms.find((firm) => firm.id === firmId)?.config
+    ?.currency
+  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
+  const target =
+    broker && (creating || portfolio)
+      ? portfolio
+        ? { portfolio }
+        : {
+            create: newPortfolioFor(
+              broker,
+              portfolios.map((each) => each.code),
+              currency,
+            ),
+          }
+      : undefined
+  const canRead = Boolean(target && broker && flow.file) && !flow.reading
 
   return (
     <form
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (portfolio && broker && canRead) void flow.read(portfolio, broker)
+        if (target && broker && canRead) void flow.read(target, broker)
       }}
     >
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">
-          Upload a screenshot
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Upload an image</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Take a screenshot of the holdings page of your brokerage account.
+          Upload an image of the holdings page of your brokerage account.
           Beancounter reads it and shows you what it found. Nothing is recorded
           until you confirm.
         </p>
@@ -142,7 +136,7 @@ export default function UploadStep({
           disabled={flow.reading}
           className={fieldClass}
         >
-          <option value="">Choose a portfolio…</option>
+          <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
           {portfolios.map((option) => (
             <option key={option.id} value={option.id}>
               {portfolioLabel(option)}
@@ -150,12 +144,21 @@ export default function UploadStep({
           ))}
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          The changes are recorded in this portfolio. Not listed?{" "}
-          <Link href={newPortfolio} className="text-blue-600 underline">
-            New portfolio
-          </Link>
+          {creating
+            ? "A portfolio named for the brokerage account is created when you record."
+            : "The changes are recorded in this portfolio."}
         </p>
       </div>
+
+      {creating && (
+        <CurrencySelect
+          id="import-currency"
+          value={currency}
+          disabled={flow.reading}
+          className={fieldClass}
+          onChange={flow.chooseNewCurrency}
+        />
+      )}
 
       <div>
         <label
@@ -204,7 +207,7 @@ export default function UploadStep({
 
       {flow.reading && (
         <p role="status" className="text-sm text-gray-600">
-          <Spinner label="Reading the screenshot. This can take some time…" />
+          <Spinner label="Reading the image. This can take some time…" />
         </p>
       )}
 
@@ -213,7 +216,7 @@ export default function UploadStep({
         disabled={!canRead || flow.unsupported}
         className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        Read screenshot
+        Read image
       </button>
     </form>
   )

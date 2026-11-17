@@ -23,7 +23,7 @@ import BrokerFirmInput, {
 import { usePermissions } from "@hooks/usePermissions"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import EmptyState from "@components/ui/EmptyState"
-import { SCREENSHOT_IMPORT_PATH } from "@lib/portfolio/returnTo"
+import { IMAGE_IMPORT_PATH } from "@lib/holdings/importPath"
 
 // Common currencies for settlement accounts
 const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
@@ -326,7 +326,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             <button
               type="button"
               className={SECONDARY_BUTTON}
-              onClick={() => router.push(SCREENSHOT_IMPORT_PATH)}
+              onClick={() => router.push(IMAGE_IMPORT_PATH)}
               title={"Import from screenshot"}
               aria-label={"Import from screenshot"}
             >

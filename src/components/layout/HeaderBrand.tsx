@@ -6,6 +6,7 @@ import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
+import { IMAGE_IMPORT_PATH } from "@lib/holdings/importPath"
 import PayslipModal from "@components/features/independence/PayslipModal"
 
 // Sentinel `action` values for nav items that open a modal instead of
@@ -44,6 +45,7 @@ const navSections: NavSection[] = [
         zenHidden: true,
       },
       { href: "/watchlist", label: "Watchlist", icon: "fa-eye" },
+      { href: IMAGE_IMPORT_PATH, label: "Import", icon: "fa-file-import" },
       { href: "/accounts", label: "Assets", icon: "fa-gem" },
       { href: "/allocation", label: "Allocation", icon: "fa-chart-bar" },
     ],

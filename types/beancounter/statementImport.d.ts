@@ -57,7 +57,8 @@ export interface ShownHolding {
 
 /** Request body of POST /brokers/reconcile. */
 export interface ShownHoldings {
-  portfolioId: string
+  /** Absent for a portfolio the user will create when recording. */
+  portfolioId?: string
   /** The user's brokerage account, once they have chosen it. */
   brokerId?: string
   brokerName?: string

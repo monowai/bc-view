@@ -3,6 +3,8 @@ import {
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
 import { useRef, useState } from "react"
+import { useSWRConfig } from "swr"
+import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import {
   commitReconcile,
   previewReconcile,
@@ -32,15 +34,20 @@ import {
   toShownHolding,
   UNREACHABLE,
 } from "./statementRows"
+import type { NewPortfolio } from "./newPortfolio"
 
 type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
+
+/** Where the holdings are recorded: a portfolio, or one to create on Record. */
+export type ImportTarget =
+  { portfolio: ImportPortfolio } | { create: NewPortfolio }
 type ImportBroker = Pick<Broker, "id" | "name" | "accountNumber">
 
 /** One screenshot that was read, and what the user has done with it since. */
 interface ImportSession {
   /** Made once per read, so a retry or a double click records once. */
   uploadId: string
-  portfolio: ImportPortfolio
+  target: ImportTarget
   proposal: ScreenshotProposal
   rows: ImportRow[]
   preview: ReconcilePreview | null
@@ -68,7 +75,8 @@ async function fetchPreview(
 ): Promise<PreviewOutcome> {
   try {
     const res = await previewReconcile({
-      portfolioId: session.portfolio.id,
+      portfolioId:
+        "portfolio" in session.target ? session.target.portfolio.id : undefined,
       brokerId: session.broker.id,
       brokerName: session.proposal.brokerName ?? undefined,
       accountNumber: session.proposal.accountNumber ?? undefined,
@@ -116,7 +124,10 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
-  read: (portfolio: ImportPortfolio, broker: ImportBroker) => Promise<void>
+  /** The currency chosen for a portfolio to create; "" for the firm's. */
+  newCurrency: string
+  chooseNewCurrency: (currency: string) => void
+  read: (target: ImportTarget, broker: ImportBroker) => Promise<void>
   // Confirm
   session: ImportSession | null
   /** The brokerage account the changes would be recorded at. */
@@ -129,7 +140,9 @@ export interface StatementImportFlow {
   editRow: (key: string, field: EditableField, value: string) => void
   removeRow: (key: string) => void
   /** Record in another portfolio; the rows are checked again. */
-  changePortfolio: (portfolio: ImportPortfolio) => Promise<void>
+  changePortfolio: (target: ImportTarget) => Promise<void>
+  /** The currency of the portfolio to create on Record. */
+  setNewPortfolioCurrency: (currency: string) => void
   recheck: () => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
@@ -151,6 +164,8 @@ export interface StatementImportFlow {
  */
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
+  const [newCurrency, setNewCurrency] = useState("")
+  const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -200,7 +215,7 @@ export function useStatementImport(): StatementImportFlow {
   }
 
   const read = async (
-    portfolio: ImportPortfolio,
+    target: ImportTarget,
     broker: ImportBroker,
   ): Promise<void> => {
     if (!file || readInFlight.current) return
@@ -221,7 +236,7 @@ export function useStatementImport(): StatementImportFlow {
       }
       const fresh: ImportSession = {
         uploadId: crypto.randomUUID(),
-        portfolio,
+        target,
         broker,
         proposal,
         rows: toImportRows(proposal),
@@ -294,18 +309,32 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
-  const changePortfolio = async (portfolio: ImportPortfolio): Promise<void> => {
+  const changePortfolio = async (target: ImportTarget): Promise<void> => {
     if (!session) return
     // The old preview was for the old portfolio: drop it until the new one arrives.
     const next: ImportSession = {
       ...session,
-      portfolio,
+      target,
       preview: null,
       previewByKey: {},
       checked: {},
     }
     setSession(next)
     await check(next)
+  }
+
+  const setNewPortfolioCurrency = (currency: string): void => {
+    setNewCurrency(currency)
+    setSession(
+      (current) =>
+        current &&
+        ("create" in current.target
+          ? {
+              ...current,
+              target: { create: { ...current.target.create, currency } },
+            }
+          : current),
+    )
   }
 
   const recheck = async (): Promise<void> => {
@@ -334,19 +363,51 @@ export function useStatementImport(): StatementImportFlow {
     !tradeDateInFuture &&
     readyRows.length > 0
 
+  /**
+   * The id of the portfolio to record in, creating it first when asked to.
+   * A created portfolio replaces the request, so a retry does not create
+   * another. Null, with the reason shown, when it cannot be created.
+   */
+  const portfolioFor = async (
+    current: ImportSession,
+  ): Promise<string | null> => {
+    if ("portfolio" in current.target) return current.target.portfolio.id
+    const { code, name, currency } = current.target.create
+    const res = await createPortfolios({
+      data: [{ code, name, currency, base: currency }],
+    })
+    if (!res.ok) {
+      setRecordError(
+        (await readServerMessage(res)) ||
+          `The portfolio could not be created (error ${res.status}). Nothing was recorded.`,
+      )
+      return null
+    }
+    const created = ((await res.json()) as { data: Portfolio[] }).data[0]
+    setSession((now) =>
+      now?.uploadId === current.uploadId
+        ? { ...now, target: { portfolio: created } }
+        : now,
+    )
+    await mutate(portfoliosKey)
+    return created.id
+  }
+
   const record = async (): Promise<void> => {
     if (!session || !canRecord || recordInFlight.current) return
     recordInFlight.current = true
     setRecording(true)
     setRecordError(null)
-    const confirmed: ConfirmedHoldings = {
-      portfolioId: session.portfolio.id,
-      brokerId,
-      uploadId: session.uploadId,
-      tradeDate: session.tradeDate || undefined,
-      rows: readyRows,
-    }
     try {
+      const portfolioId = await portfolioFor(session)
+      if (!portfolioId) return
+      const confirmed: ConfirmedHoldings = {
+        portfolioId,
+        brokerId,
+        uploadId: session.uploadId,
+        tradeDate: session.tradeDate || undefined,
+        rows: readyRows,
+      }
       const res = await commitReconcile(confirmed)
       if (!res.ok) {
         setRecordError(
@@ -384,6 +445,8 @@ export function useStatementImport(): StatementImportFlow {
   return {
     portfolioId,
     choosePortfolio: setPortfolioId,
+    newCurrency,
+    chooseNewCurrency: setNewCurrency,
     chosenFirmId,
     chooseFirm: setChosenFirmId,
     chosenBrokerId,
@@ -406,6 +469,7 @@ export function useStatementImport(): StatementImportFlow {
     editRow,
     removeRow,
     changePortfolio,
+    setNewPortfolioCurrency,
     recheck,
     setTradeDate,
     tradeDateInFuture,

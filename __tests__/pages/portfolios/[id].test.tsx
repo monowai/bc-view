@@ -227,41 +227,4 @@ describe("Manage portfolio page", () => {
       currency: "USD",
     })
   })
-
-  it.each([
-    [
-      "/brokers/import?broker=b-1",
-      "/brokers/import?broker=b-1&portfolio=new-1",
-    ],
-    ["/brokers/import", "/brokers/import?portfolio=new-1"],
-    ["https://evil.example/brokers/import", "/portfolios/new-1"],
-    ["//evil.example/brokers/import", "/portfolios/new-1"],
-    ["/brokers/import/../admin", "/portfolios/new-1"],
-    ["/holdings/X", "/portfolios/new-1"],
-  ])(
-    "a new portfolio asked for with returnTo %s goes to %s",
-    async (returnTo, expected) => {
-      routerState.query = { id: "__NEW__", returnTo }
-      ;(global.fetch as jest.Mock).mockReturnValue(
-        respond(true, {
-          data: [{ ...portfolio, id: "new-1", code: "NEWONE" }],
-        }),
-      )
-      const user = userEvent.setup()
-      render(<Page />)
-      await user.type(
-        screen.getByPlaceholderText("Unique short identifier"),
-        "NEWONE",
-      )
-      await user.type(
-        screen.getByPlaceholderText("Descriptive name"),
-        "Brand new one",
-      )
-      await user.click(screen.getByRole("button", { name: "Submit" }))
-
-      await waitFor(() =>
-        expect(routerState.push).toHaveBeenCalledWith(expected),
-      )
-    },
-  )
 })
