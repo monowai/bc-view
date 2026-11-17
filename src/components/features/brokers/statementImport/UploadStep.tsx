@@ -4,10 +4,10 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
-import type { BrokerWithAccounts } from "types/beancounter"
+import type { BrokerWithAccounts, Portfolio } from "types/beancounter"
 import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
 import ImageDropZone from "./ImageDropZone"
-import type { StatementImportFlow } from "./useStatementImport"
+import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
 import {
@@ -56,6 +56,22 @@ function offeredAt(
   )
 }
 
+/**
+ * Where the read is recorded: a portfolio to create when Create Portfolio is
+ * chosen, else the chosen portfolio. None until an account is chosen.
+ */
+function importTarget(
+  broker: BrokerWithAccounts | undefined,
+  creating: boolean,
+  portfolio: Portfolio | undefined,
+  codesInUse: string[],
+  currency: string,
+): ImportTarget | undefined {
+  if (!broker) return undefined
+  if (creating) return { create: newPortfolioFor(broker, codesInUse, currency) }
+  return portfolio ? { portfolio } : undefined
+}
+
 const fieldClass =
   "w-full border border-gray-300 rounded-lg px-3 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
@@ -93,18 +109,13 @@ export default function UploadStep({
   const firmCurrency = firms.find((firm) => firm.id === firmId)?.config
     ?.currency
   const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
-  const target =
-    broker && (creating || portfolio)
-      ? portfolio
-        ? { portfolio }
-        : {
-            create: newPortfolioFor(
-              broker,
-              portfolios.map((each) => each.code),
-              currency,
-            ),
-          }
-      : undefined
+  const target = importTarget(
+    broker,
+    creating,
+    portfolio,
+    portfolios.map((each) => each.code),
+    currency,
+  )
   const canRead = Boolean(target && broker && flow.file) && !flow.reading
 
   // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.

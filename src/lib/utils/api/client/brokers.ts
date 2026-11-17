@@ -59,8 +59,11 @@ export function readScreenshot(
 }
 
 /** Preview what recording the shown holdings would do. Read-only. */
-export function previewReconcile(shown: ShownHoldings): Promise<Response> {
-  return fetch(reconcilePreviewUrl, jsonInit("POST", shown))
+export function previewReconcile(
+  shown: ShownHoldings,
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetch(reconcilePreviewUrl, { ...jsonInit("POST", shown), signal })
 }
 
 /** Record the confirmed rows. All or nothing; one `uploadId` records once. */

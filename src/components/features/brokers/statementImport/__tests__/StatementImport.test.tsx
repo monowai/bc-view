@@ -395,6 +395,34 @@ describe("<StatementImport /> upload", () => {
     expect(callsTo(PREVIEW_URL)).toBe(0)
   })
 
+  test("Cancel while the rows are checked stops the check too", async () => {
+    fetchMock.mockResponse((req) =>
+      req.url.includes(PREVIEW_URL)
+        ? new Promise((_resolve, reject) =>
+            req.signal.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError")),
+            ),
+          )
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await upload(user)
+
+    await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(1))
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Reading the image" }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "Confirm what was read" }),
+    ).not.toBeInTheDocument()
+  })
+
   test("a transactions screenshot records nothing and says why", async () => {
     backend.read = json({
       documentType: "TRANSACTIONS",
@@ -747,6 +775,51 @@ describe("<StatementImport /> new portfolio", () => {
     )
     expect(callsTo(COMMIT_URL)).toBe(0)
   })
+
+  test("the next import starts again in the firm's currency", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    await screen.findByRole("option", { name: "NZD" })
+    await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+    await user.click(
+      screen.getByRole("button", { name: "Import another screenshot" }),
+    )
+
+    expect(await screen.findByLabelText("Currency")).toHaveValue("USD")
+  })
+
+  test("a creation that returns no portfolio records nothing and says why", async () => {
+    backend.created = json({ data: [] })
+    const user = userEvent.setup()
+    await readIntoNewPortfolio(user)
+    await user.click(recordButton())
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "did not return the portfolio",
+    )
+    expect(callsTo(COMMIT_URL)).toBe(0)
+  })
+
+  test("currencies that cannot be loaded say so", async () => {
+    fetchMock.mockResponse((req) =>
+      req.url.includes("/api/currencies")
+        ? Promise.resolve(json({ message: "down" }, 500))
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The currencies could not be loaded, so only USD can be chosen",
+    )
+  })
 })
 
 describe("<StatementImport /> confirm", () => {
@@ -787,6 +860,21 @@ describe("<StatementImport /> confirm", () => {
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].rows[0].code).toBe(
       "BRK.B",
     )
+  })
+
+  test("a share class typed with a slash is checked with the dot too", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const code = screen.getByLabelText("Code for TSLA")
+    await user.clear(code)
+    await user.type(code, "BRK/B")
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
+
+    await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
+    expect(
+      bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].rows.map((row) => row.code),
+    ).toContain("BRK.B")
   })
 
   test("a market svc-data worked out says where it came from, until it is changed", async () => {

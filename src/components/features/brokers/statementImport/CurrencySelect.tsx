@@ -17,7 +17,10 @@ export default function CurrencySelect({
   className: string
   onChange: (currency: string) => void
 }): React.ReactElement {
-  const { data } = useSwr<{ data: Currency[] }>(ccyKey, simpleFetcher(ccyKey))
+  const { data, error } = useSwr<{ data: Currency[] }, Error>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
   const codes = (data?.data ?? []).map((currency) => currency.code)
   // The chosen currency stays listed while the list loads.
   const options = codes.includes(value) ? codes : [value, ...codes]
@@ -45,6 +48,11 @@ export default function CurrencySelect({
       <p className="text-xs text-gray-500 mt-1">
         The new portfolio reports and keeps its costs in this currency.
       </p>
+      {error && (
+        <p role="alert" className="text-xs text-red-600 mt-1">
+          {`The currencies could not be loaded, so only ${value} can be chosen. Reload the page to choose another.`}
+        </p>
+      )}
     </div>
   )
 }

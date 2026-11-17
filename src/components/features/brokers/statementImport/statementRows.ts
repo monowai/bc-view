@@ -49,11 +49,14 @@ const text = (value: number | null | undefined): string =>
 const printed = (value: number | null | undefined): number | undefined =>
   value == null ? undefined : value
 
+/** A code as Beancounter writes it: a share class is BRK.B, not BRK/B. */
+const beancounterCode = (code: string): string =>
+  code.trim().replace(/\//g, ".")
+
 export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
   return proposal.rows.map((row, index) => ({
     key: `row-${index}`,
-    // A statement writes a share class as BRK/B; Beancounter writes BRK.B.
-    code: (row.code?.trim() ?? "").replace(/\//g, "."),
+    code: beancounterCode(row.code ?? ""),
     market: "",
     quantity: text(row.quantity),
     cost: text(row.costBasis),
@@ -89,7 +92,8 @@ export const canBeChecked = (row: ImportRow): boolean => row.code.trim() !== ""
 
 /** A row as the preview endpoint takes it. Blank fields are left out. */
 export function toShownHolding(row: ImportRow): ShownHolding {
-  const shown: ShownHolding = { code: row.code.trim() }
+  // A code typed by hand is sent as one read from the statement is.
+  const shown: ShownHolding = { code: beancounterCode(row.code) }
   const market = row.market.trim()
   if (market) shown.market = market
   const quantity = parseAmount(row.quantity)

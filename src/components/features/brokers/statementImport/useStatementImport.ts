@@ -72,16 +72,22 @@ type PreviewOutcome = { preview: ReconcilePreview } | { error: string }
 async function fetchPreview(
   session: ImportSession,
   sent: ImportRow[],
+  signal?: AbortSignal,
 ): Promise<PreviewOutcome> {
   try {
-    const res = await previewReconcile({
-      portfolioId:
-        "portfolio" in session.target ? session.target.portfolio.id : undefined,
-      brokerId: session.broker.id,
-      brokerName: session.proposal.brokerName ?? undefined,
-      accountNumber: session.proposal.accountNumber ?? undefined,
-      rows: sent.map(toShownHolding),
-    })
+    const res = await previewReconcile(
+      {
+        portfolioId:
+          "portfolio" in session.target
+            ? session.target.portfolio.id
+            : undefined,
+        brokerId: session.broker.id,
+        brokerName: session.proposal.brokerName ?? undefined,
+        accountNumber: session.proposal.accountNumber ?? undefined,
+        rows: sent.map(toShownHolding),
+      },
+      signal,
+    )
     if (!res.ok) {
       return {
         error:
@@ -106,6 +112,10 @@ function withPreview(
 
 export interface StatementImportFlow {
   // Upload
+  /**
+   * The portfolio chosen on the upload step, or CREATE_PORTFOLIO. Once an
+   * image is read, `session.target` holds where the holdings are recorded.
+   */
   portfolioId: string
   choosePortfolio: (portfolioId: string) => void
   /** The brokerage firm chosen; "" when none is. */
@@ -274,7 +284,7 @@ export function useStatementImport(): StatementImportFlow {
         tradeDate: todayIso(),
       }
       const sent = fresh.rows.filter(canBeChecked)
-      const outcome = await fetchPreview(fresh, sent)
+      const outcome = await fetchPreview(fresh, sent, abort.signal)
       // Cancelled while the rows were checked: leave the form as it was.
       if (abort.signal.aborted) return
       setPreviewError("error" in outcome ? outcome.error : null)
@@ -461,7 +471,13 @@ export function useStatementImport(): StatementImportFlow {
       )
       return null
     }
-    const created = ((await res.json()) as { data: Portfolio[] }).data[0]
+    const created = ((await res.json()) as { data?: Portfolio[] }).data?.[0]
+    if (!created) {
+      setRecordError(
+        "Beancounter did not return the portfolio it was asked to create. Nothing was recorded. Check your portfolios before trying again.",
+      )
+      return null
+    }
     setSession((now) =>
       now?.uploadId === current.uploadId
         ? { ...now, target: { portfolio: created } }
@@ -517,6 +533,8 @@ export function useStatementImport(): StatementImportFlow {
     setRecordError(null)
     setReadError(null)
     setUnsupported(false)
+    // The next import's portfolio takes its firm's currency unless chosen again.
+    setNewCurrency("")
     clearFile()
   }
 
