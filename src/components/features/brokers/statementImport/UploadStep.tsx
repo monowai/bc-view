@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import Alert from "@components/ui/Alert"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
@@ -89,6 +89,21 @@ export default function UploadStep({
       : undefined
   const canRead = Boolean(target && broker && flow.file) && !flow.reading
 
+  // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.
+  const { pasteFile, reading } = flow
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      const image = Array.from(event.clipboardData?.files ?? []).find((file) =>
+        file.type.startsWith("image/"),
+      )
+      if (!image || reading) return
+      event.preventDefault()
+      pasteFile(image)
+    }
+    document.addEventListener("paste", onPaste)
+    return () => document.removeEventListener("paste", onPaste)
+  }, [pasteFile, reading])
+
   return (
     <form
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
@@ -178,8 +193,14 @@ export default function UploadStep({
           onChange={(event) => flow.chooseFile(event.target.files?.[0] ?? null)}
           className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-gray-700"
         />
+        {flow.pasted && flow.file && (
+          <p className="text-sm text-gray-900 mt-1">
+            {`Pasted image chosen (${Math.max(1, Math.round(flow.file.size / 1024))} KB).`}
+          </p>
+        )}
         <p className="text-xs text-gray-500 mt-1">
-          PNG, JPEG, WebP or GIF, up to 8 MB.
+          PNG, JPEG, WebP or GIF, up to 8 MB. Or paste an image with Ctrl+V (⌘V
+          on a Mac).
         </p>
       </div>
 

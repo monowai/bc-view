@@ -1,5 +1,11 @@
 import React from "react"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import userEvent, { UserEvent } from "@testing-library/user-event"
 import { enableFetchMocks, MockResponseInit } from "jest-fetch-mock"
 import { SWRConfig } from "swr"
@@ -431,6 +437,37 @@ describe("<StatementImport /> upload", () => {
       expect(callsTo(PREVIEW_URL)).toBe(0)
     },
   )
+
+  test("an image pasted from the clipboard is read like a chosen file", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    const pasted = new File(["png-bytes"], "image.png", { type: "image/png" })
+
+    fireEvent.paste(document, { clipboardData: { files: [pasted] } })
+
+    expect(await screen.findByText(/Pasted image chosen/)).toBeInTheDocument()
+    const read = screen.getByRole("button", { name: "Read image" })
+    await waitFor(() => expect(read).toBeEnabled())
+    await user.click(read)
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    const [, readInit] = fetchMock.mock.calls.find(
+      ([called]) => called === READ_URL,
+    )!
+    expect(((readInit?.body as FormData).get("file") as File).name).toBe(
+      "image.png",
+    )
+  })
+
+  test("pasting text is left alone", async () => {
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+
+    fireEvent.paste(document, { clipboardData: { files: [] } })
+
+    expect(screen.queryByText(/Pasted image chosen/)).not.toBeInTheDocument()
+  })
 
   test("an image over 8 MB is refused without being sent", async () => {
     const user = userEvent.setup()

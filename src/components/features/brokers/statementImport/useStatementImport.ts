@@ -118,6 +118,10 @@ export interface StatementImportFlow {
   /** Changes when the file input must be emptied. */
   fileInputKey: number
   chooseFile: (file: File | null) => void
+  /** Use an image pasted from the clipboard, as if it were chosen. */
+  pasteFile: (file: File) => void
+  /** The file was pasted, so the file input shows none. */
+  pasted: boolean
   fileError: string | null
   reading: boolean
   readError: string | null
@@ -174,6 +178,7 @@ export function useStatementImport(): StatementImportFlow {
   const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
+  const [pasted, setPasted] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [reading, setReading] = useState(false)
   const [readError, setReadError] = useState<string | null>(null)
@@ -195,12 +200,14 @@ export function useStatementImport(): StatementImportFlow {
   const latestCheck = useRef(0)
 
   const clearFile = (): void => {
+    setPasted(false)
     setFile(null)
     setFileError(null)
     setFileInputKey((key) => key + 1)
   }
 
   const chooseFile = (chosen: File | null): void => {
+    setPasted(false)
     setReadError(null)
     setUnsupported(false)
     if (chosen && chosen.size > MAX_SCREENSHOT_BYTES) {
@@ -212,6 +219,13 @@ export function useStatementImport(): StatementImportFlow {
     }
     setFileError(null)
     setFile(chosen)
+  }
+
+  const pasteFile = (image: File): void => {
+    chooseFile(image)
+    // The input cannot show a pasted file: empty it, and say what was pasted.
+    setFileInputKey((key) => key + 1)
+    if (image.size <= MAX_SCREENSHOT_BYTES) setPasted(true)
   }
 
   const chooseAnotherFile = (): void => {
@@ -498,6 +512,8 @@ export function useStatementImport(): StatementImportFlow {
     file,
     fileInputKey,
     chooseFile,
+    pasteFile,
+    pasted,
     fileError,
     reading,
     readError,
