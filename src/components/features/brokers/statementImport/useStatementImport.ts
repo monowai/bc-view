@@ -2,7 +2,7 @@ import {
   MAX_SCREENSHOT_BYTES,
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import { holdingByIdKey } from "@utils/api/client/holdings"
@@ -195,9 +195,10 @@ export interface StatementImportFlow {
   /** The import's held-since date, and one row's own. */
   setHeldSince: (heldSince: string) => void
   setRowHeldSince: (key: string, heldSince: string) => void
-  /** Held-since dates are being guessed from each added holding's cost. */
-  guessing: boolean
-  guessError: string | null
+  /** Fill empty held-since dates by guessing from each added holding's cost. */
+  suggestHeldSince: () => Promise<void>
+  suggesting: boolean
+  suggestError: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -219,8 +220,8 @@ export function useStatementImport(): StatementImportFlow {
   const [newCurrency, setNewCurrency] = useState("")
   const [newAccountName, setNewAccountName] = useState<string | null>(null)
   const [newAccountNumber, setNewAccountNumber] = useState("")
-  const [guesses, setGuesses] = useState(0)
-  const [guessError, setGuessError] = useState<string | null>(null)
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -246,8 +247,6 @@ export function useStatementImport(): StatementImportFlow {
   const recordInFlight = useRef(false)
   // Only the newest preview asked for may land.
   const latestCheck = useRef(0)
-  // Each row's asset is guessed for once, so a date the user clears stays clear.
-  const guessed = useRef(new Set<string>())
 
   const clearFile = (): void => {
     setPasted(false)
@@ -490,15 +489,13 @@ export function useStatementImport(): StatementImportFlow {
    * Guess when each added holding was opened, from its cost and the asset's
    * price history. Rows with a date, read or entered, are left as they are.
    */
-  const guessHeldSince = async (target: ImportSession): Promise<void> => {
-    const asked = target.rows.flatMap((row) => {
-      const preview = target.previewByKey[row.key]
+  const suggestHeldSince = async (): Promise<void> => {
+    if (!session) return
+    const asked = session.rows.flatMap((row) => {
+      const preview = session.previewByKey[row.key]
       if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
         return []
       if (!preview.cost || !preview.quantity) return []
-      const once = `${target.uploadId}|${row.key}|${preview.assetId}`
-      if (guessed.current.has(once)) return []
-      guessed.current.add(once)
       return [
         {
           key: row.key,
@@ -508,9 +505,9 @@ export function useStatementImport(): StatementImportFlow {
       ]
     })
     if (asked.length === 0) return
-    const { uploadId } = target
-    setGuesses((count) => count + 1)
-    setGuessError(null)
+    const { uploadId } = session
+    setSuggesting(true)
+    setSuggestError(null)
     try {
       const res = await suggestHeldSinceRequest({
         rows: asked.map(({ assetId, costPerShare }) => ({
@@ -519,7 +516,7 @@ export function useStatementImport(): StatementImportFlow {
         })),
       })
       if (!res.ok) {
-        setGuessError(
+        setSuggestError(
           (await readServerMessage(res)) ||
             `Held-since dates could not be guessed (error ${res.status}). Enter them yourself.`,
         )
@@ -549,16 +546,11 @@ export function useStatementImport(): StatementImportFlow {
             },
       )
     } catch {
-      setGuessError(UNREACHABLE)
+      setSuggestError(UNREACHABLE)
     } finally {
-      setGuesses((count) => count - 1)
+      setSuggesting(false)
     }
   }
-
-  // Each answer from a check can name added holdings not yet guessed for.
-  useEffect(() => {
-    if (session) void guessHeldSince(session)
-  }, [session])
 
   const isUnchecked = (row: ImportRow): boolean =>
     signature(row) !== (session?.checked[row.key] ?? "")
@@ -774,8 +766,9 @@ export function useStatementImport(): StatementImportFlow {
     tradeDateInFuture,
     setHeldSince,
     setRowHeldSince,
-    guessing: guesses > 0,
-    guessError,
+    suggestHeldSince,
+    suggesting,
+    suggestError,
     readyRows,
     canRecord,
     recording,
