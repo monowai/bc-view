@@ -34,6 +34,10 @@ export interface ImportRow {
   cost: string
   /** The asset's name as printed, to tell rows apart. */
   name: string
+  /** When the holding was opened (yyyy-mm-dd); "" for the import's date. */
+  heldSince: string
+  /** Why no date was suggested, e.g. "Before 2011-11-18". */
+  heldSinceHint?: string
   /** Where svc-data found `market`; absent once the user chooses it. */
   marketFrom?: ReconcileMarketSource | null
   /** Printed figures the user does not edit; sent so the server can cross-check. */
@@ -61,6 +65,7 @@ export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
     quantity: text(row.quantity),
     cost: text(row.costBasis),
     name: row.name?.trim() ?? "",
+    heldSince: "",
     printed: {
       costPerShare: printed(row.costPerShare),
       price: printed(row.price),

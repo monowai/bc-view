@@ -12,6 +12,7 @@ import {
   createBroker,
   previewReconcile,
   readScreenshot,
+  suggestHeldSince as suggestHeldSinceRequest,
 } from "@utils/api/client/brokers"
 import { readServerMessage } from "@utils/api/client/request"
 import { todayIso } from "@utils/formatters"
@@ -19,6 +20,7 @@ import type {
   Broker,
   ConfirmedHoldings,
   ConfirmedRow,
+  HeldSinceResponse,
   Portfolio,
   ReconcilePreview,
   ReconcilePreviewResponse,
@@ -60,6 +62,8 @@ interface ImportSession {
   /** The brokerage account the holdings are checked and recorded against. */
   account: ImportAccount
   tradeDate: string
+  /** When the holdings were opened, for every added row without its own; "" for none. */
+  heldSince: string
 }
 
 interface ImportResult {
@@ -183,6 +187,13 @@ export interface StatementImportFlow {
   ) => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
+  /** The import's held-since date, and one row's own. */
+  setHeldSince: (heldSince: string) => void
+  setRowHeldSince: (key: string, heldSince: string) => void
+  /** Fill empty held-since dates from each added holding's cost. */
+  suggestHeldSince: () => Promise<void>
+  suggesting: boolean
+  suggestError: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -204,6 +215,8 @@ export function useStatementImport(): StatementImportFlow {
   const [newCurrency, setNewCurrency] = useState("")
   const [newAccountName, setNewAccountName] = useState("")
   const [newAccountNumber, setNewAccountNumber] = useState("")
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -297,6 +310,7 @@ export function useStatementImport(): StatementImportFlow {
         previewByKey: {},
         checked: {},
         tradeDate: todayIso(),
+        heldSince: "",
       }
       const sent = fresh.rows.filter(canBeChecked)
       const outcome = await fetchPreview(fresh, sent, abort.signal)
@@ -448,6 +462,84 @@ export function useStatementImport(): StatementImportFlow {
     setSession((current) => current && { ...current, tradeDate })
   }
 
+  const setHeldSince = (heldSince: string): void => {
+    setSession((current) => current && { ...current, heldSince })
+  }
+
+  const setRowHeldSince = (key: string, heldSince: string): void => {
+    setSession(
+      (current) =>
+        current && {
+          ...current,
+          rows: current.rows.map((row) =>
+            row.key === key
+              ? { ...row, heldSince, heldSinceHint: undefined }
+              : row,
+          ),
+        },
+    )
+  }
+
+  const suggestHeldSince = async (): Promise<void> => {
+    if (!session) return
+    // Added holdings with a cost and no date of their own yet.
+    const asked = session.rows.flatMap((row) => {
+      const preview = session.previewByKey[row.key]
+      if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
+        return []
+      if (!preview.cost || !preview.quantity) return []
+      return [
+        {
+          key: row.key,
+          assetId: preview.assetId,
+          costPerShare: preview.cost / preview.quantity,
+        },
+      ]
+    })
+    if (asked.length === 0) return
+    setSuggesting(true)
+    setSuggestError(null)
+    try {
+      const res = await suggestHeldSinceRequest({
+        rows: asked.map(({ assetId, costPerShare }) => ({
+          assetId,
+          costPerShare,
+        })),
+      })
+      if (!res.ok) {
+        setSuggestError(
+          (await readServerMessage(res)) ||
+            `Dates could not be suggested (error ${res.status}). Enter them yourself, or try again.`,
+        )
+        return
+      }
+      const { data } = (await res.json()) as HeldSinceResponse
+      const byAsset = new Map(data.map((each) => [each.assetId, each]))
+      const keys = new Map(asked.map((each) => [each.key, each.assetId]))
+      setSession(
+        (current) =>
+          current && {
+            ...current,
+            rows: current.rows.map((row) => {
+              const suggestion = byAsset.get(keys.get(row.key) ?? "")
+              if (!suggestion || row.heldSince) return row
+              return {
+                ...row,
+                heldSince: suggestion.heldSince ?? "",
+                heldSinceHint: suggestion.before
+                  ? `Before ${suggestion.before}`
+                  : undefined,
+              }
+            }),
+          },
+      )
+    } catch {
+      setSuggestError(UNREACHABLE)
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
   const isUnchecked = (row: ImportRow): boolean =>
     signature(row) !== (session?.checked[row.key] ?? "")
 
@@ -457,9 +549,20 @@ export function useStatementImport(): StatementImportFlow {
     session && "broker" in session.account ? session.account.broker.id : ""
   const readyRows = rows
     .filter((row) => !isUnchecked(row))
-    .map((row) => toConfirmedRow(session?.previewByKey[row.key]))
+    .map((row) => {
+      const confirmed = toConfirmedRow(session?.previewByKey[row.key])
+      // An added holding carries when it was opened; a reduction, the record date.
+      const heldSince = row.heldSince || session?.heldSince
+      return confirmed?.trnType === "ADD" && heldSince
+        ? { ...confirmed, tradeDate: heldSince }
+        : confirmed
+    })
     .filter((row): row is ConfirmedRow => row !== null)
-  const tradeDateInFuture = (session?.tradeDate ?? "") > todayIso()
+  const today = todayIso()
+  const tradeDateInFuture =
+    (session?.tradeDate ?? "") > today ||
+    (session?.heldSince ?? "") > today ||
+    rows.some((row) => row.heldSince > today)
   const canRecord =
     !stale &&
     !checking &&
@@ -649,6 +752,11 @@ export function useStatementImport(): StatementImportFlow {
     recheckRow,
     setTradeDate,
     tradeDateInFuture,
+    setHeldSince,
+    setRowHeldSince,
+    suggestHeldSince,
+    suggesting,
+    suggestError,
     readyRows,
     canRecord,
     recording,

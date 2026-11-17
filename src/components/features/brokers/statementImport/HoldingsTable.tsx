@@ -1,7 +1,7 @@
 import React from "react"
 import useSwr from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { formatQuantity } from "@utils/formatters"
+import { formatQuantity, todayIso } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
   chooseAmong,
@@ -29,6 +29,10 @@ interface HoldingsTableProps {
   onRecheck: (key: string) => void
   /** Look the row's asset up with the asset search. */
   onFind: (key: string) => void
+  /** Set when an added holding was opened. */
+  onHeldSince: (key: string, heldSince: string) => void
+  /** The import's held-since date, used by rows without their own. */
+  importHeldSince: string
 }
 
 const inputClass =
@@ -112,7 +116,10 @@ export default function HoldingsTable({
   onRemove,
   onRecheck,
   onFind,
+  onHeldSince,
+  importHeldSince,
 }: HoldingsTableProps): React.ReactElement {
+  const today = todayIso()
   const { data } = useSwr<{ data: Market[] }>(
     marketsKey,
     simpleFetcher(marketsKey),
@@ -148,6 +155,9 @@ export default function HoldingsTable({
             </th>
             <th scope="col" className="px-2 py-2">
               Change
+            </th>
+            <th scope="col" className="px-2 py-2">
+              Held since
             </th>
             <th scope="col" className="px-2 py-2">
               Cost of holding
@@ -241,6 +251,34 @@ export default function HoldingsTable({
                   {preview && (
                     <span className="font-medium text-gray-900">
                       {describeChange(preview)}
+                    </span>
+                  )}
+                </td>
+                <td className={cellClass}>
+                  {preview?.trnType === "ADD" ? (
+                    <>
+                      <input
+                        type="date"
+                        aria-label={`Held since for ${name}`}
+                        value={row.heldSince}
+                        max={today}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          onHeldSince(row.key, event.target.value)
+                        }
+                        className={`${inputClass} w-36`}
+                      />
+                      {(row.heldSinceHint ||
+                        (!row.heldSince && importHeldSince)) && (
+                        <span className="block text-xs text-gray-500 mt-1">
+                          {row.heldSinceHint ??
+                            `Import's date, ${importHeldSince}`}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-400" aria-hidden="true">
+                      —
                     </span>
                   )}
                 </td>

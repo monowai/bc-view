@@ -5,7 +5,11 @@
  * return the raw `Response`, so each caller keeps its own error wording.
  */
 import { jsonInit } from "@utils/api/client/request"
-import type { ConfirmedHoldings, ShownHoldings } from "types/beancounter"
+import type {
+  ConfirmedHoldings,
+  HeldSinceRequest,
+  ShownHoldings,
+} from "types/beancounter"
 
 export const brokersKey = "/api/brokers"
 export const brokersWithAccountsKey = `${brokersKey}?includeAccounts=true`
@@ -43,6 +47,7 @@ export function transferBrokerHoldings(
 export const screenshotReadUrl = "/api/agent/screenshot"
 export const reconcilePreviewUrl = `${brokersKey}/reconcile`
 export const reconcileCommitUrl = `${reconcilePreviewUrl}/commit`
+export const heldSinceUrl = `${reconcilePreviewUrl}/held-since`
 
 /**
  * Have a brokerage screenshot read into a `ScreenshotProposal`. Records
@@ -71,4 +76,9 @@ export function commitReconcile(
   confirmed: ConfirmedHoldings,
 ): Promise<Response> {
   return fetch(reconcileCommitUrl, jsonInit("POST", confirmed))
+}
+
+/** When each holding was probably opened, from its cost per share. Records nothing. */
+export function suggestHeldSince(request: HeldSinceRequest): Promise<Response> {
+  return fetch(heldSinceUrl, jsonInit("POST", request))
 }

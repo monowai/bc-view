@@ -26,6 +26,7 @@ enableFetchMocks()
 const READ_URL = "/api/agent/screenshot"
 const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
+const HELD_SINCE_URL = "/api/brokers/reconcile/held-since"
 
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
@@ -160,6 +161,8 @@ interface Backend {
   created: MockResponseInit
   /** What creating a brokerage account answers. */
   createdAccount: MockResponseInit
+  /** What the held-since suggestion answers. */
+  heldSince: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
 }
@@ -184,6 +187,7 @@ function preview(shown: ShownHoldings): ReconcilePreview {
 
 async function respond(req: Request): Promise<MockResponseInit> {
   const url = req.url
+  if (url.includes(HELD_SINCE_URL)) return backend.heldSince
   if (url.includes(COMMIT_URL)) {
     const next =
       backend.commits.length > 1 ? backend.commits.shift() : backend.commits[0]
@@ -298,6 +302,9 @@ beforeEach(() => {
     brokers: [ibkr, schwab],
     created: json({
       data: [{ id: "pf-new", code: "IBKR-MAIN", name: "IBKR" }],
+    }),
+    heldSince: json({
+      data: [{ assetId: "a-AAPL", heldSince: "2017-06-30", before: null }],
     }),
     createdAccount: json({
       data: {
@@ -1291,6 +1298,70 @@ describe("<StatementImport /> record", () => {
     await waitFor(() =>
       expect(callsTo("/api/holdings/id/pf-1?asAt=today")).toBe(1),
     )
+  })
+
+  test("a held-since date dates every added holding, a row can override it, and reductions keep the record date", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        { code: "AAPL", quantity: 10, costBasis: 1200 },
+        { code: "NFLX", quantity: 4, costBasis: 400 },
+        { code: "TSLA", quantity: 5 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.type(screen.getByLabelText("Held since"), "2018-05-01")
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    const [confirmed] = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)
+    const byAsset = Object.fromEntries(
+      confirmed.rows.map((row) => [row.assetId, row.tradeDate]),
+    )
+    expect(byAsset["a-AAPL"]).toBe("2016-02-03")
+    expect(byAsset["a-NFLX"]).toBe("2018-05-01")
+    expect(byAsset["a-TSLA"]).toBeUndefined()
+    expect(confirmed.tradeDate).toBe(todayIso())
+  })
+
+  test("Suggest dates fills empty held-since dates from each holding's cost", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+        "2017-06-30",
+      ),
+    )
+    expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
+      { rows: [{ assetId: "a-AAPL", costPerShare: 120 }] },
+    ])
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+    const aapl = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].rows.find(
+      (row) => row.assetId === "a-AAPL",
+    )
+    expect(aapl?.tradeDate).toBe("2017-06-30")
+  })
+
+  test("a cost below every known price says the holding is older than the prices", async () => {
+    backend.heldSince = json({
+      data: [{ assetId: "a-AAPL", heldSince: null, before: "2011-11-18" }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    expect(
+      await within(rowFor("AAPL")).findByText("Before 2011-11-18"),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
   })
 
   test("the trade date chosen is the one sent", async () => {

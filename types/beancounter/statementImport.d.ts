@@ -146,6 +146,25 @@ export interface ConfirmedRow {
   quantity: number
   /** Total cost of `quantity`; an ADD needs one. */
   cost?: number
+  /** This row's date, e.g. when the holding was opened; the submission's when absent. */
+  tradeDate?: string
+}
+
+/** Request body of POST /brokers/reconcile/held-since. */
+export interface HeldSinceRequest {
+  rows: { assetId: string; costPerShare: number }[]
+}
+
+/** When a holding was probably opened: the last day the price stood at its cost. */
+export interface HeldSinceSuggestion {
+  assetId: string
+  heldSince: string | null
+  /** The earliest price known, when the cost is below every price since. */
+  before: string | null
+}
+
+export interface HeldSinceResponse {
+  data: HeldSinceSuggestion[]
 }
 
 /**
