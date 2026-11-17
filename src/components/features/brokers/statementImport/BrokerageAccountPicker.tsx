@@ -14,8 +14,6 @@ interface BrokerageAccountPickerProps {
   brokers: Broker[]
   /** The account chosen; "" when none is. */
   chosenId: string
-  /** The chosen account will be linked to the chosen firm on Read. */
-  linking: boolean
   /** The accounts could not be loaded. */
   failed: boolean
   disabled: boolean
@@ -33,7 +31,6 @@ export default function BrokerageAccountPicker({
   firmId,
   brokers,
   chosenId,
-  linking,
   failed,
   disabled,
   className,
@@ -42,7 +39,6 @@ export default function BrokerageAccountPicker({
 }: BrokerageAccountPickerProps): React.ReactElement {
   const firm = firms.find((candidate) => candidate.id === firmId)
   const market = firm?.config?.market
-  const account = brokers.find((candidate) => candidate.id === chosenId)
 
   return (
     <>
@@ -102,11 +98,6 @@ export default function BrokerageAccountPicker({
           <Alert className="mt-2">
             Your brokerage accounts could not be loaded. Reload the page.
           </Alert>
-        )}
-        {linking && account && firm && (
-          <p className="text-xs text-gray-700 mt-1">
-            {`${account.name} will be linked to ${firm.name} when the screenshot is read.`}
-          </p>
         )}
         <p className="text-xs text-gray-500 mt-1">
           The holdings are recorded against this account. Not listed?{" "}

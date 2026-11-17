@@ -153,8 +153,6 @@ interface Backend {
   /** What the read endpoint answers. */
   read: MockResponseInit
   brokers: unknown[]
-  /** What linking an account to a firm answers. */
-  linked: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
 }
@@ -191,10 +189,7 @@ async function respond(req: Request): Promise<MockResponseInit> {
   if (url.includes("/api/portfolios")) return json({ data: backend.portfolios })
   if (url.includes("/api/global-brokers"))
     return json({ data: [ibkrFirm, schwabFirm] })
-  if (url.includes("/api/brokers"))
-    return req.method === "PATCH"
-      ? backend.linked
-      : json({ data: backend.brokers })
+  if (url.includes("/api/brokers")) return json({ data: backend.brokers })
   if (url.includes("/api/markets"))
     return json({ data: [{ code: "US" }, { code: "NASDAQ" }, { code: "SGX" }] })
   return json({ data: [] })
@@ -242,7 +237,7 @@ async function chooseAccount(
 async function upload(user: UserEvent): Promise<void> {
   const read = screen.getByRole("button", { name: "Read screenshot" })
   await chooseAccount(user, "gb-ibkr", "b-ibkr")
-  await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+  await user.upload(screen.getByLabelText("Image"), screenshot())
   await waitFor(() => expect(read).toBeEnabled())
   await user.click(read)
 }
@@ -267,7 +262,6 @@ beforeEach(() => {
     portfolios: [growth],
     read: json(holdingsProposal),
     brokers: [ibkr, schwab],
-    linked: json({ data: { ...schwab, globalBrokerId: "gb-schwab" } }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
   }
   fetchMock.mockResponse(respond)
@@ -341,7 +335,7 @@ describe("<StatementImport /> upload", () => {
     renderImport()
 
     await screen.findByRole("option", { name: /Income/ })
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     const read = screen.getByRole("button", { name: "Read screenshot" })
     expect(read).toBeDisabled()
 
@@ -421,7 +415,7 @@ describe("<StatementImport /> upload", () => {
     const big = screenshot()
     Object.defineProperty(big, "size", { value: 8 * 1024 * 1024 + 1 })
 
-    await user.upload(screen.getByLabelText("Screenshot"), big)
+    await user.upload(screen.getByLabelText("Image"), big)
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /larger than 8 MB/,
@@ -432,7 +426,7 @@ describe("<StatementImport /> upload", () => {
     expect(callsTo(READ_URL)).toBe(0)
     // The input is emptied, so it does not show the refused file.
     expect(
-      (screen.getByLabelText("Screenshot") as HTMLInputElement).files,
+      (screen.getByLabelText("Image") as HTMLInputElement).files,
     ).toHaveLength(0)
   })
 
@@ -440,7 +434,7 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
 
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     const read = screen.getByRole("button", { name: "Read screenshot" })
     expect(screen.getByLabelText("Brokerage")).toBeRequired()
     expect(screen.getByLabelText("Brokerage account")).toBeRequired()
@@ -455,7 +449,6 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByText("IBKR Main (U1234482)")).toBeInTheDocument()
     expect(screen.queryByLabelText("Brokerage account")).not.toBeInTheDocument()
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe("b-ibkr")
-    expect(callsTo("/api/brokers/b-ibkr")).toBe(0)
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     expect(bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].brokerId).toBe(
@@ -463,62 +456,27 @@ describe("<StatementImport /> upload", () => {
     )
   })
 
-  test("a brokerage offers its own accounts and those not linked to any", async () => {
+  test("a brokerage offers only the accounts at that firm", async () => {
     const user = userEvent.setup()
     renderImport()
 
     await screen.findByRole("option", { name: "Charles Schwab" })
     expect(screen.getByLabelText("Brokerage account")).toBeDisabled()
-    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-schwab")
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
 
     const account = screen.getByLabelText("Brokerage account")
     expect(
-      within(account).getByRole("option", { name: /Schwab Joint/ }),
+      within(account).getByRole("option", { name: /IBKR Main/ }),
     ).toBeInTheDocument()
     expect(
-      within(account).queryByRole("option", { name: /IBKR Main/ }),
+      within(account).queryByRole("option", { name: /Schwab Joint/ }),
     ).not.toBeInTheDocument()
     expect(
       screen.getByText(/Holdings are looked up on the US market/),
     ).toBeInTheDocument()
   })
 
-  test("reading links an account to the brokerage chosen for it", async () => {
-    const user = userEvent.setup()
-    renderImport()
-
-    await chooseAccount(user, "gb-schwab", "b-schwab")
-    expect(
-      screen.getByText(/Schwab Joint will be linked to Charles Schwab/),
-    ).toBeInTheDocument()
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
-    await screen.findByRole("heading", { name: "Confirm what was read" })
-
-    expect(bodiesSentTo<unknown>("/api/brokers/b-schwab")).toEqual([
-      { name: "Schwab Joint", globalBrokerId: "gb-schwab" },
-    ])
-    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
-      "b-schwab",
-    )
-  })
-
-  test("an account that cannot be linked is not read", async () => {
-    backend.linked = json({ message: "Brokerage firm not found" }, 400)
-    const user = userEvent.setup()
-    renderImport()
-
-    await chooseAccount(user, "gb-schwab", "b-schwab")
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Brokerage firm not found",
-    )
-    expect(callsTo(READ_URL)).toBe(0)
-  })
-
-  test("another brokerage offers only accounts not linked to a firm, and links nothing", async () => {
+  test("another brokerage offers only the accounts at no listed firm", async () => {
     const user = userEvent.setup()
     renderImport()
 
@@ -529,11 +487,10 @@ describe("<StatementImport /> upload", () => {
       within(account).queryByRole("option", { name: /IBKR Main/ }),
     ).not.toBeInTheDocument()
     await user.selectOptions(account, "b-schwab")
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
-    expect(callsTo("/api/brokers/b-schwab")).toBe(0)
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
       "b-schwab",
     )
@@ -547,7 +504,7 @@ describe("<StatementImport /> upload", () => {
     await screen.findByRole("option", { name: /IBKR Main/ })
     expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -571,7 +528,7 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
 
-    await chooseAccount(user, "gb-schwab", "b-schwab")
+    await chooseAccount(user, "__OTHER__", "b-schwab")
 
     expect(screen.getByRole("link", { name: "New portfolio" })).toHaveAttribute(
       "href",
@@ -590,7 +547,7 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     expect(screen.getByLabelText("Portfolio")).toHaveValue("pf-2")
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -608,7 +565,7 @@ describe("<StatementImport /> confirm", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await screen.findByRole("option", { name: /Income/ })
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
-    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.upload(screen.getByLabelText("Image"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -821,11 +778,6 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    expect(
-      within(rowFor("NOK")).getByText(
-        "New to Beancounter: added when you record",
-      ),
-    ).toBeInTheDocument()
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
 

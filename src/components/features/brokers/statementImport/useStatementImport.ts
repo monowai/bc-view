@@ -3,13 +3,10 @@ import {
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
 import { useRef, useState } from "react"
-import { useSWRConfig } from "swr"
 import {
-  brokersWithAccountsKey,
   commitReconcile,
   previewReconcile,
   readScreenshot,
-  updateBroker,
 } from "@utils/api/client/brokers"
 import { readServerMessage } from "@utils/api/client/request"
 import { todayIso } from "@utils/formatters"
@@ -119,12 +116,7 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
-  /** Read the screenshot, first linking the account to `linkFirmId` when given. */
-  read: (
-    portfolio: ImportPortfolio,
-    broker: ImportBroker,
-    linkFirmId: string | null,
-  ) => Promise<void>
+  read: (portfolio: ImportPortfolio, broker: ImportBroker) => Promise<void>
   // Confirm
   session: ImportSession | null
   /** The brokerage account the changes would be recorded at. */
@@ -161,7 +153,6 @@ export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
-  const { mutate } = useSWRConfig()
   const [file, setFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -208,29 +199,9 @@ export function useStatementImport(): StatementImportFlow {
     clearFile()
   }
 
-  /** Save the firm on the account, so the firm's market applies; null when saved. */
-  const link = async (
-    broker: ImportBroker,
-    firmId: string,
-  ): Promise<string | null> => {
-    const res = await updateBroker(broker.id, {
-      name: broker.name,
-      globalBrokerId: firmId,
-    })
-    if (!res.ok) {
-      return (
-        (await readServerMessage(res)) ||
-        `${broker.name} could not be linked to its brokerage (error ${res.status}). Try again.`
-      )
-    }
-    await mutate(brokersWithAccountsKey)
-    return null
-  }
-
   const read = async (
     portfolio: ImportPortfolio,
     broker: ImportBroker,
-    linkFirmId: string | null,
   ): Promise<void> => {
     if (!file || readInFlight.current) return
     readInFlight.current = true
@@ -238,13 +209,6 @@ export function useStatementImport(): StatementImportFlow {
     setReadError(null)
     setUnsupported(false)
     try {
-      if (linkFirmId) {
-        const refused = await link(broker, linkFirmId)
-        if (refused) {
-          setReadError(refused)
-          return
-        }
-      }
       const res = await readScreenshot(file)
       if (!res.ok) {
         setReadError(await readRefusal(res))

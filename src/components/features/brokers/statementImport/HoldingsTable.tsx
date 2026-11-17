@@ -7,9 +7,7 @@ import {
   chooseAmong,
   describeChange,
   ImportRow,
-  isNewListing,
   MARKET_SOURCE_COPY,
-  NEW_LISTING,
   NEEDS_CODE,
   NEVER_CHECKED,
   NOT_CHECKED,
@@ -137,11 +135,6 @@ export default function HoldingsTable({
                   {(preview?.assetName || row.name) && (
                     <span className="block text-xs text-gray-500 mt-1">
                       {preview?.assetName || row.name}
-                    </span>
-                  )}
-                  {isNewListing(preview) && (
-                    <span className="block text-xs text-blue-700 mt-1">
-                      {NEW_LISTING}
                     </span>
                   )}
                 </td>

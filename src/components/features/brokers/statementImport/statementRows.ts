@@ -174,13 +174,6 @@ function assetNamed(
   return null
 }
 
-/** A listing the asset search found that Beancounter does not have yet. */
-export const isNewListing = (
-  preview: ReconcilePreviewRow | undefined,
-): boolean => Boolean(preview && !preview.assetId && preview.assetCode)
-
-export const NEW_LISTING = "New to Beancounter: added when you record"
-
 /** The transaction a READY row becomes, or null when it is not recordable. */
 export function toConfirmedRow(
   preview: ReconcilePreviewRow | undefined,

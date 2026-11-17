@@ -30,18 +30,18 @@ function preselect(
 }
 
 /**
- * The accounts offered once a firm is chosen: its own and those linked to no
- * firm yet. Another brokerage offers only the unlinked ones.
+ * The accounts offered once a firm is chosen: those at that firm. Another
+ * brokerage offers the accounts at no listed firm.
  */
 function offeredAt(
   brokers: BrokerWithAccounts[],
   firmId: string,
 ): BrokerWithAccounts[] {
   if (firmId === "") return []
-  return brokers.filter(
-    (broker) =>
-      !broker.globalBrokerId ||
-      (firmId !== OTHER_FIRM && broker.globalBrokerId === firmId),
+  return brokers.filter((broker) =>
+    firmId === OTHER_FIRM
+      ? !broker.globalBrokerId
+      : broker.globalBrokerId === firmId,
   )
 }
 
@@ -69,7 +69,8 @@ export default function UploadStep({
         active.map((each) => each.id),
       ),
   )
-  const firmId = flow.chosenFirmId || named?.globalBrokerId || ""
+  const firmId =
+    flow.chosenFirmId || (named ? named.globalBrokerId || OTHER_FIRM : "")
   const brokers = offeredAt(active, firmId)
   const brokerId = preselect(
     named && brokers.includes(named) ? named.id : "",
@@ -77,9 +78,6 @@ export default function UploadStep({
     brokers.map((candidate) => candidate.id),
   )
   const broker = brokers.find((candidate) => candidate.id === brokerId)
-  // An account linked to no firm is linked to the one chosen when it is read.
-  const linkFirmId =
-    broker && !broker.globalBrokerId && firmId !== OTHER_FIRM ? firmId : null
   const selectedId = preselect(
     flow.portfolioId,
     query.portfolio,
@@ -99,8 +97,7 @@ export default function UploadStep({
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (portfolio && broker && canRead)
-          void flow.read(portfolio, broker, linkFirmId)
+        if (portfolio && broker && canRead) void flow.read(portfolio, broker)
       }}
     >
       <div>
@@ -123,7 +120,6 @@ export default function UploadStep({
         firmId={firmId}
         brokers={brokers}
         chosenId={brokerId}
-        linking={linkFirmId !== null}
         failed={Boolean(brokersError)}
         disabled={flow.reading}
         className={fieldClass}
@@ -166,7 +162,7 @@ export default function UploadStep({
           htmlFor="import-screenshot"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Screenshot
+          Image
         </label>
         <input
           key={flow.fileInputKey}
