@@ -32,7 +32,12 @@ export default function ConfirmStep({
         key: row.key,
         name: rowName(row, index),
         skipped: preview?.status !== "READY" && preview?.status !== "UNCHANGED",
-        reason: rowStatus(row, preview, unchecked),
+        reason: rowStatus(
+          row,
+          preview,
+          unchecked,
+          row.key in session.previewByKey,
+        ),
       }
     })
     .filter((row) => row.skipped)

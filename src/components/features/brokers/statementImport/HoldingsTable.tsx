@@ -7,6 +7,7 @@ import {
   describeChange,
   ImportRow,
   NEEDS_CODE,
+  NEVER_CHECKED,
   NOT_CHECKED,
   rowName,
   STATUS_COPY,
@@ -34,8 +35,11 @@ export function rowStatus(
   row: ImportRow,
   preview: ReconcilePreviewRow | undefined,
   unchecked: boolean,
+  /** Some check has answered for this row, though maybe not for its values now. */
+  everChecked: boolean,
 ): string {
   if (!row.code.trim()) return NEEDS_CODE
+  if (!everChecked) return NEVER_CHECKED
   if (unchecked || !preview) return NOT_CHECKED
   return STATUS_COPY[preview.status]
 }
@@ -202,7 +206,12 @@ export default function HoldingsTable({
                   >
                     {checking && !preview && row.code.trim()
                       ? "Checking…"
-                      : rowStatus(row, preview, unchecked)}
+                      : rowStatus(
+                          row,
+                          preview,
+                          unchecked,
+                          row.key in previewByKey,
+                        )}
                   </span>
                   {preview?.warnings.map((warning) => (
                     <span

@@ -7,12 +7,13 @@ import Spinner from "@components/ui/Spinner"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { portfoliosKey } from "@utils/api/client/portfolios"
 import { useBrokers } from "@hooks/useBrokers"
+import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import {
   newPortfolioHref,
   SCREENSHOT_IMPORT_PATH,
 } from "@lib/portfolio/returnTo"
-import type { Portfolio } from "types/beancounter"
-import BrokerageAccountPicker from "./BrokerageAccountPicker"
+import type { BrokerWithAccounts, Portfolio } from "types/beancounter"
+import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
 import { IMAGE_TYPES } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
 
@@ -30,10 +31,26 @@ function preselect(
   return ids.length === 1 ? ids[0] : ""
 }
 
+/**
+ * The accounts offered once a firm is chosen: its own and those linked to no
+ * firm yet. Another brokerage offers only the unlinked ones.
+ */
+function offeredAt(
+  brokers: BrokerWithAccounts[],
+  firmId: string,
+): BrokerWithAccounts[] {
+  if (firmId === "") return []
+  return brokers.filter(
+    (broker) =>
+      !broker.globalBrokerId ||
+      (firmId !== OTHER_FIRM && broker.globalBrokerId === firmId),
+  )
+}
+
 const fieldClass =
   "w-full border border-gray-300 rounded-lg px-3 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
-/** Step 1: choose the brokerage account, the portfolio and the image, then have it read. */
+/** Step 1: choose the brokerage, the account, the portfolio and the image, then have it read. */
 export default function UploadStep({
   flow,
 }: {
@@ -44,14 +61,30 @@ export default function UploadStep({
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
+  const { globalBrokers: firms } = useGlobalBrokers()
   const { brokers: allBrokers, error: brokersError } = useBrokers()
-  const brokers = allBrokers.filter((broker) => broker.active !== false)
+  const active = allBrokers.filter((broker) => broker.active !== false)
+  // An account named or the only one there is also names its firm.
+  const named = active.find(
+    (candidate) =>
+      candidate.id ===
+      preselect(
+        flow.chosenBrokerId,
+        query.broker,
+        active.map((each) => each.id),
+      ),
+  )
+  const firmId = flow.chosenFirmId || named?.globalBrokerId || ""
+  const brokers = offeredAt(active, firmId)
   const brokerId = preselect(
-    flow.chosenBrokerId,
-    query.broker,
+    named && brokers.includes(named) ? named.id : "",
+    undefined,
     brokers.map((candidate) => candidate.id),
   )
   const broker = brokers.find((candidate) => candidate.id === brokerId)
+  // An account linked to no firm is linked to the one chosen when it is read.
+  const linkFirmId =
+    broker && !broker.globalBrokerId && firmId !== OTHER_FIRM ? firmId : null
   const portfolios = (data?.data ?? []).filter(
     (portfolio) => portfolio.active !== false,
   )
@@ -74,7 +107,8 @@ export default function UploadStep({
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (portfolio && broker && canRead) void flow.read(portfolio, broker)
+        if (portfolio && broker && canRead)
+          void flow.read(portfolio, broker, linkFirmId)
       }}
     >
       <div>
@@ -93,11 +127,15 @@ export default function UploadStep({
       )}
 
       <BrokerageAccountPicker
+        firms={firms}
+        firmId={firmId}
         brokers={brokers}
         chosenId={brokerId}
+        linking={linkFirmId !== null}
         failed={Boolean(brokersError)}
         disabled={flow.reading}
         className={fieldClass}
+        onChooseFirm={flow.chooseFirm}
         onChoose={flow.chooseBroker}
       />
 
@@ -178,7 +216,7 @@ export default function UploadStep({
 
       {flow.reading && (
         <p role="status" className="text-sm text-gray-600">
-          <Spinner label="Reading the screenshot. This takes several seconds…" />
+          <Spinner label="Reading the screenshot. This can take up to a minute…" />
         </p>
       )}
 

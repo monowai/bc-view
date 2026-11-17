@@ -189,7 +189,9 @@ export const STATUS_COPY: Record<ReconcileRowStatus, string> = {
 }
 
 export const NEEDS_CODE = "Enter the code"
-export const NOT_CHECKED = "Changed since the last check"
+export const NOT_CHECKED = "Changed since the last check. Press Re-check."
+/** No check has answered for the row yet, for example because the check failed. */
+export const NEVER_CHECKED = "Not checked yet. Press Re-check."
 
 export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
   MARKET_VALUE_MISMATCH:

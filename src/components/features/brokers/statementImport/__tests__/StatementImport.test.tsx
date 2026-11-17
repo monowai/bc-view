@@ -27,7 +27,25 @@ const COMMIT_URL = "/api/brokers/reconcile/commit"
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
 
-const ibkr = { id: "b-ibkr", name: "IBKR Main", accountNumber: "U1234482" }
+const ibkrFirm = {
+  id: "gb-ibkr",
+  code: "IBKR",
+  name: "Interactive Brokers",
+  config: { market: "US" },
+}
+const schwabFirm = {
+  id: "gb-schwab",
+  code: "SCHWAB",
+  name: "Charles Schwab",
+  config: { market: "US" },
+}
+const ibkr = {
+  id: "b-ibkr",
+  name: "IBKR Main",
+  accountNumber: "U1234482",
+  globalBrokerId: "gb-ibkr",
+}
+/** Not linked to a brokerage firm. */
 const schwab = { id: "b-schwab", name: "Schwab Joint", accountNumber: "9911" }
 
 const holdingsProposal: ScreenshotProposal = {
@@ -103,6 +121,8 @@ interface Backend {
   /** What the read endpoint answers. */
   read: MockResponseInit
   brokers: unknown[]
+  /** What linking an account to a firm answers. */
+  linked: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
 }
@@ -137,7 +157,12 @@ async function respond(req: Request): Promise<MockResponseInit> {
   }
   if (url.includes(READ_URL)) return backend.read
   if (url.includes("/api/portfolios")) return json({ data: backend.portfolios })
-  if (url.includes("/api/brokers")) return json({ data: backend.brokers })
+  if (url.includes("/api/global-brokers"))
+    return json({ data: [ibkrFirm, schwabFirm] })
+  if (url.includes("/api/brokers"))
+    return req.method === "PATCH"
+      ? backend.linked
+      : json({ data: backend.brokers })
   if (url.includes("/api/markets"))
     return json({ data: [{ code: "US" }, { code: "NASDAQ" }, { code: "SGX" }] })
   return json({ data: [] })
@@ -164,11 +189,27 @@ function renderImport(): void {
 const screenshot = (): File =>
   new File(["png-bytes"], "holdings.png", { type: "image/png" })
 
+const ACCOUNT_NAMES: Record<string, RegExp> = {
+  "b-ibkr": /IBKR Main/,
+  "b-schwab": /Schwab Joint/,
+}
+
+/** Choose the brokerage firm, then the account at it. */
+async function chooseAccount(
+  user: UserEvent,
+  firmId: string,
+  brokerId: string,
+): Promise<void> {
+  await screen.findByRole("option", { name: "Charles Schwab" })
+  await user.selectOptions(screen.getByLabelText("Brokerage"), firmId)
+  await screen.findByRole("option", { name: ACCOUNT_NAMES[brokerId] })
+  await user.selectOptions(screen.getByLabelText("Brokerage account"), brokerId)
+}
+
 /** Choose the IBKR account and a file, then press Read screenshot. */
 async function upload(user: UserEvent): Promise<void> {
   const read = screen.getByRole("button", { name: "Read screenshot" })
-  await screen.findByRole("option", { name: /IBKR Main/ })
-  await user.selectOptions(screen.getByLabelText("Brokerage account"), "b-ibkr")
+  await chooseAccount(user, "gb-ibkr", "b-ibkr")
   await user.upload(screen.getByLabelText("Screenshot"), screenshot())
   await waitFor(() => expect(read).toBeEnabled())
   await user.click(read)
@@ -194,6 +235,7 @@ beforeEach(() => {
     portfolios: [growth],
     read: json(holdingsProposal),
     brokers: [ibkr, schwab],
+    linked: json({ data: { ...schwab, globalBrokerId: "gb-schwab" } }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
   }
   fetchMock.mockResponse(respond)
@@ -271,11 +313,7 @@ describe("<StatementImport /> upload", () => {
     const read = screen.getByRole("button", { name: "Read screenshot" })
     expect(read).toBeDisabled()
 
-    await screen.findByRole("option", { name: /IBKR Main/ })
-    await user.selectOptions(
-      screen.getByLabelText("Brokerage account"),
-      "b-ibkr",
-    )
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-2")
     await user.click(read)
     await screen.findByRole("heading", { name: "Confirm what was read" })
@@ -370,46 +408,118 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
 
-    await screen.findByRole("option", { name: /Schwab Joint/ })
     await user.upload(screen.getByLabelText("Screenshot"), screenshot())
     const read = screen.getByRole("button", { name: "Read screenshot" })
-    const account = screen.getByLabelText("Brokerage account")
-    expect(account).toBeRequired()
-    expect(read).toBeDisabled()
+    expect(screen.getByLabelText("Brokerage")).toBeRequired()
+    expect(screen.getByLabelText("Brokerage account")).toBeRequired()
     expect(
       screen.getByRole("link", { name: /Add a brokerage account/ }),
     ).toHaveAttribute("href", "/brokers")
 
-    await user.selectOptions(account, "b-schwab")
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.click(read)
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
-    expect(screen.getByText("Schwab Joint (9911)")).toBeInTheDocument()
+    expect(screen.getByText("IBKR Main (U1234482)")).toBeInTheDocument()
     expect(screen.queryByLabelText("Brokerage account")).not.toBeInTheDocument()
-    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
-      "b-schwab",
-    )
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe("b-ibkr")
+    expect(callsTo("/api/brokers/b-ibkr")).toBe(0)
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     expect(bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].brokerId).toBe(
-      "b-schwab",
+      "b-ibkr",
     )
   })
 
-  test("with one brokerage account it is already chosen", async () => {
-    backend.brokers = [schwab]
+  test("a brokerage offers its own accounts and those not linked to any", async () => {
     const user = userEvent.setup()
     renderImport()
 
-    await screen.findByRole("option", { name: /Schwab Joint/ })
-    expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-schwab")
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    expect(screen.getByLabelText("Brokerage account")).toBeDisabled()
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-schwab")
+
+    const account = screen.getByLabelText("Brokerage account")
+    expect(
+      within(account).getByRole("option", { name: /Schwab Joint/ }),
+    ).toBeInTheDocument()
+    expect(
+      within(account).queryByRole("option", { name: /IBKR Main/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/Holdings are looked up on the US market/),
+    ).toBeInTheDocument()
+  })
+
+  test("reading links an account to the brokerage chosen for it", async () => {
+    const user = userEvent.setup()
+    renderImport()
+
+    await chooseAccount(user, "gb-schwab", "b-schwab")
+    expect(
+      screen.getByText(/Schwab Joint will be linked to Charles Schwab/),
+    ).toBeInTheDocument()
     await user.upload(screen.getByLabelText("Screenshot"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
+    expect(bodiesSentTo<unknown>("/api/brokers/b-schwab")).toEqual([
+      { name: "Schwab Joint", globalBrokerId: "gb-schwab" },
+    ])
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
       "b-schwab",
     )
+  })
+
+  test("an account that cannot be linked is not read", async () => {
+    backend.linked = json({ message: "Brokerage firm not found" }, 400)
+    const user = userEvent.setup()
+    renderImport()
+
+    await chooseAccount(user, "gb-schwab", "b-schwab")
+    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Brokerage firm not found",
+    )
+    expect(callsTo(READ_URL)).toBe(0)
+  })
+
+  test("another brokerage offers only accounts not linked to a firm, and links nothing", async () => {
+    const user = userEvent.setup()
+    renderImport()
+
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "__OTHER__")
+    const account = screen.getByLabelText("Brokerage account")
+    expect(
+      within(account).queryByRole("option", { name: /IBKR Main/ }),
+    ).not.toBeInTheDocument()
+    await user.selectOptions(account, "b-schwab")
+    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    expect(callsTo("/api/brokers/b-schwab")).toBe(0)
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
+      "b-schwab",
+    )
+  })
+
+  test("with one brokerage account it and its brokerage are already chosen", async () => {
+    backend.brokers = [ibkr]
+    const user = userEvent.setup()
+    renderImport()
+
+    await screen.findByRole("option", { name: /IBKR Main/ })
+    expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
+    expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
+    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe("b-ibkr")
   })
 
   test("says when the brokerage accounts could not be loaded", async () => {
@@ -429,11 +539,7 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
 
-    await screen.findByRole("option", { name: /Schwab Joint/ })
-    await user.selectOptions(
-      screen.getByLabelText("Brokerage account"),
-      "b-schwab",
-    )
+    await chooseAccount(user, "gb-schwab", "b-schwab")
 
     expect(screen.getByRole("link", { name: "New portfolio" })).toHaveAttribute(
       "href",
@@ -443,13 +549,14 @@ describe("<StatementImport /> upload", () => {
 
   test("the portfolio and account named in the address are already chosen", async () => {
     backend.portfolios = [growth, income]
-    routerState.query = { portfolio: "pf-2", broker: "b-schwab" }
+    routerState.query = { portfolio: "pf-2", broker: "b-ibkr" }
     const user = userEvent.setup()
     renderImport()
 
-    await screen.findByRole("option", { name: /Schwab Joint/ })
+    await screen.findByRole("option", { name: /IBKR Main/ })
     await screen.findByRole("option", { name: /Income/ })
-    expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-schwab")
+    expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
+    expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     expect(screen.getByLabelText("Portfolio")).toHaveValue("pf-2")
     await user.upload(screen.getByLabelText("Screenshot"), screenshot())
     await user.click(screen.getByRole("button", { name: "Read screenshot" }))
@@ -457,11 +564,33 @@ describe("<StatementImport /> upload", () => {
 
     const [shown] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
     expect(shown.portfolioId).toBe("pf-2")
-    expect(shown.brokerId).toBe("b-schwab")
+    expect(shown.brokerId).toBe("b-ibkr")
   })
 })
 
 describe("<StatementImport /> confirm", () => {
+  test("rows that were never checked say so, not that they changed", async () => {
+    fetchMock.mockResponse((req) =>
+      req.url.includes(PREVIEW_URL)
+        ? Promise.resolve(
+            json({ message: "The rows could not be checked" }, 500),
+          )
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      screen.getByText("The rows could not be checked"),
+    ).toBeInTheDocument()
+    expect(
+      within(rowFor("AAPL")).getByText("Not checked yet. Press Re-check."),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Changed since the last check/),
+    ).not.toBeInTheDocument()
+  })
+
   test("editing marks the preview stale until it is re-checked", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
