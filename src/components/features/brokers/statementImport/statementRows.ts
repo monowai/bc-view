@@ -248,12 +248,18 @@ export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
     "Market value less cost does not match the gain or loss shown",
 }
 
-/** The proposed change in plain words: "Add 10", "Reduce 3", "No change". */
+/** The proposed change as a signed quantity: "+10", "-3", or "No change". */
 export function describeChange(preview: ReconcilePreviewRow): string {
   if (preview.status === "UNCHANGED") return "No change"
   if (!preview.trnType || preview.quantity == null) return ""
-  const verb = preview.trnType === "ADD" ? "Add" : "Reduce"
-  return `${verb} ${formatQuantity(preview.quantity)}`
+  const sign = preview.trnType === "ADD" ? "+" : "-"
+  return `${sign}${formatQuantity(preview.quantity)}`
+}
+
+/** Green for a holding added to, red for one reduced. */
+export function changeColour(preview: ReconcilePreviewRow): string {
+  if (preview.status === "UNCHANGED" || !preview.trnType) return "text-gray-900"
+  return preview.trnType === "ADD" ? "text-emerald-700" : "text-red-700"
 }
 
 interface RefusalBody {

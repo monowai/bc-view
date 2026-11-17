@@ -362,7 +362,7 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByText("IBKR Main (U1234482)")).toBeInTheDocument()
 
     const aapl = within(rowFor("AAPL"))
-    expect(aapl.getByText("Add 10")).toBeInTheDocument()
+    expect(aapl.getByText("+10")).toHaveClass("text-emerald-700")
     expect(aapl.getByText("Ready to record")).toBeInTheDocument()
     // A good row shows a tick; its words are the tooltip.
     expect(aapl.getByTitle("Ready to record")).toContainElement(
@@ -371,7 +371,7 @@ describe("<StatementImport /> upload", () => {
     expect(
       aapl.getByText(/does not match the market value shown/),
     ).toBeInTheDocument()
-    expect(within(rowFor("TSLA")).getByText("Reduce 3")).toBeInTheDocument()
+    expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     const voo = within(rowFor("VOO"))
     expect(voo.getByText("No change")).toBeInTheDocument()
     expect(voo.getByText("Matches what is held")).toBeInTheDocument()
@@ -1110,12 +1110,10 @@ describe("<StatementImport /> confirm", () => {
     await user.type(quantity, "25")
     await user.click(screen.getByRole("button", { name: "Recheck AAPL" }))
 
-    expect(
-      await within(rowFor("AAPL")).findByText("Add 25"),
-    ).toBeInTheDocument()
+    expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     const [, single] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
     expect(single.rows.map((row) => row.code)).toEqual(["AAPL"])
-    expect(within(rowFor("TSLA")).getByText("Reduce 3")).toBeInTheDocument()
+    expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     expect(
       screen.getByRole("region", {
         name: "Held at this account but not on the screenshot",
@@ -1155,15 +1153,13 @@ describe("<StatementImport /> confirm", () => {
     await user.type(cost, "3000.50")
 
     expect(recordButton()).toBeDisabled()
-    expect(within(rowFor("AAPL")).queryByText("Add 10")).not.toBeInTheDocument()
+    expect(within(rowFor("AAPL")).queryByText("+10")).not.toBeInTheDocument()
     // Typing asked the server nothing.
     expect(callsTo(PREVIEW_URL)).toBe(1)
 
     await user.click(screen.getByRole("button", { name: "Recheck" }))
 
-    expect(
-      await within(rowFor("AAPL")).findByText("Add 25"),
-    ).toBeInTheDocument()
+    expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     expect(recordButton()).toBeEnabled()
     const rechecked = bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1]
     expect(rechecked.rows[0]).toEqual({

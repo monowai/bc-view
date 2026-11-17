@@ -5,6 +5,7 @@ import { formatQuantity, todayIso } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
   chooseAmong,
+  changeColour,
   describeChange,
   ImportRow,
   MARKET_SOURCE_COPY,
@@ -236,7 +237,9 @@ export default function HoldingsTable({
                 </td>
                 <td className={cellClass}>
                   {preview && (
-                    <span className="font-medium text-gray-900">
+                    <span
+                      className={`font-medium tabular-nums ${changeColour(preview)}`}
+                    >
                       {describeChange(preview)}
                     </span>
                   )}
