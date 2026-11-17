@@ -4,8 +4,10 @@ import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { formatCurrency, formatQuantity } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
+  chooseAmong,
   describeChange,
   ImportRow,
+  MARKET_SOURCE_COPY,
   NEEDS_CODE,
   NEVER_CHECKED,
   NOT_CHECKED,
@@ -41,6 +43,9 @@ export function rowStatus(
   if (!row.code.trim()) return NEEDS_CODE
   if (!everChecked) return NEVER_CHECKED
   if (unchecked || !preview) return NOT_CHECKED
+  const listedOn = preview.listedOn ?? []
+  if (preview.status === "NEEDS_MARKET" && listedOn.length > 1)
+    return chooseAmong(listedOn)
   return STATUS_COPY[preview.status]
 }
 
@@ -150,6 +155,11 @@ export default function HoldingsTable({
                       </option>
                     ))}
                   </select>
+                  {row.marketFrom && MARKET_SOURCE_COPY[row.marketFrom] && (
+                    <span className="block text-xs text-gray-500 mt-1">
+                      {MARKET_SOURCE_COPY[row.marketFrom]}
+                    </span>
+                  )}
                 </td>
                 <td className={cellClass}>
                   <input

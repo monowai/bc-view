@@ -75,6 +75,9 @@ export type ReconcileRowStatus =
 
 export type ReconcileRowWarning = "MARKET_VALUE_MISMATCH" | "GAIN_LOSS_MISMATCH"
 
+/** Where svc-data found a row's market, strongest first. */
+export type ReconcileMarketSource = "SHOWN" | "HELD" | "BROKERAGE" | "LISTED"
+
 export type ReconcileTrnType = "ADD" | "REDUCE"
 
 /** A shown holding beside what is held, and the change that would close the gap. */
@@ -94,6 +97,10 @@ export interface ReconcilePreviewRow {
   cost: number | null
   status: ReconcileRowStatus
   warnings: ReconcileRowWarning[]
+  /** Where `market` came from; null when there is none. */
+  marketSource?: ReconcileMarketSource | null
+  /** The markets that list `code`, when svc-data looked them up. */
+  listedOn?: string[]
 }
 
 /** The user's own brokerage account that a screenshot belongs to. */

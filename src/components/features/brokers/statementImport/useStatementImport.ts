@@ -307,7 +307,12 @@ export function useStatementImport(): StatementImportFlow {
         current && {
           ...current,
           rows: current.rows.map((row) =>
-            row.key === key ? { ...row, [field]: value } : row,
+            row.key !== key
+              ? row
+              : // A market the user chooses is theirs, not svc-data's guess.
+                field === "market"
+                ? { ...row, market: value, marketFrom: undefined }
+                : { ...row, [field]: value },
           ),
         },
     )

@@ -8,6 +8,7 @@ import { formatQuantity } from "@utils/formatters"
 import type {
   ConfirmedRow,
   ReconcilePreview,
+  ReconcileMarketSource,
   ReconcilePreviewRow,
   ReconcileRowStatus,
   ReconcileRowWarning,
@@ -33,6 +34,8 @@ export interface ImportRow {
   cost: string
   /** The asset's name as printed, to tell rows apart. */
   name: string
+  /** Where svc-data found `market`; absent once the user chooses it. */
+  marketFrom?: ReconcileMarketSource | null
   /** Printed figures the user does not edit; sent so the server can cross-check. */
   printed: Pick<
     ShownHolding,
@@ -139,12 +142,14 @@ export function attachPreview(
   const previewByKey: Record<string, ReconcilePreviewRow> = {}
   const checked: Record<string, string> = {}
   const markets: Record<string, string> = {}
+  const sources: Record<string, ReconcileMarketSource | null> = {}
   sent.forEach((row, index) => {
     const answer = preview.rows[index]
     if (!answer) return
     const market = row.market.trim() || answer.market || ""
     previewByKey[row.key] = answer
     markets[row.key] = market
+    sources[row.key] = answer.marketSource ?? null
     checked[row.key] = signature({ ...row, market })
   })
   return {
@@ -152,7 +157,7 @@ export function attachPreview(
     checked,
     rows: rows.map((row) =>
       !row.market.trim() && markets[row.key]
-        ? { ...row, market: markets[row.key] }
+        ? { ...row, market: markets[row.key], marketFrom: sources[row.key] }
         : row,
     ),
   }
@@ -186,6 +191,24 @@ export const STATUS_COPY: Record<ReconcileRowStatus, string> = {
   NEEDS_MARKET: "Choose the market",
   UNRESOLVED: "Beancounter does not know this asset on that market",
   NEEDS_COST: "Enter the cost",
+}
+
+/** Why svc-data chose a market the user did not name. */
+export const MARKET_SOURCE_COPY: Partial<
+  Record<ReconcileMarketSource, string>
+> = {
+  HELD: "From what this account holds",
+  BROKERAGE: "The brokerage's market",
+  LISTED: "The only market that lists it",
+}
+
+/** "Listed on ASX and US. Choose the market." for a code on several markets. */
+export function chooseAmong(markets: string[]): string {
+  const named =
+    markets.length > 1
+      ? `${markets.slice(0, -1).join(", ")} and ${markets[markets.length - 1]}`
+      : markets.join("")
+  return `Listed on ${named}. Choose the market.`
 }
 
 export const NEEDS_CODE = "Enter the code"

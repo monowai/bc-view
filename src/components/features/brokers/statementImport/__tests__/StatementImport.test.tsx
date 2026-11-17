@@ -75,11 +75,32 @@ const holdingsProposal: ScreenshotProposal = {
 const HELD: Record<string, number> = { VOO: 3, TSLA: 8, NVDA: 7 }
 
 function previewRow(row: ShownHolding): ReconcilePreviewRow {
+  if (row.code === "DUAL" && !row.market)
+    return {
+      code: row.code,
+      market: null,
+      assetId: null,
+      assetName: null,
+      shown: row.quantity ?? null,
+      held: 0,
+      trnType: null,
+      quantity: null,
+      cost: null,
+      status: "NEEDS_MARKET",
+      warnings: [],
+      marketSource: null,
+      listedOn: ["ASX", "US"],
+    }
   const market = row.market ?? "US"
   const held = HELD[row.code] ?? 0
   const base = {
     code: row.code,
     market,
+    marketSource: row.market
+      ? ("SHOWN" as const)
+      : row.code in HELD
+        ? ("HELD" as const)
+        : ("BROKERAGE" as const),
     assetId: `a-${row.code}`,
     assetName: row.code,
     shown: row.quantity ?? null,
@@ -569,6 +590,41 @@ describe("<StatementImport /> upload", () => {
 })
 
 describe("<StatementImport /> confirm", () => {
+  test("a market svc-data worked out says where it came from, until it is changed", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      within(rowFor("VOO")).getByText("From what this account holds"),
+    ).toBeInTheDocument()
+    expect(
+      within(rowFor("AAPL")).getByText("The brokerage's market"),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Market for VOO")).toHaveValue("US")
+
+    await user.selectOptions(screen.getByLabelText("Market for VOO"), "NASDAQ")
+
+    expect(
+      within(rowFor("VOO")).queryByText("From what this account holds"),
+    ).not.toBeInTheDocument()
+  })
+
+  test("a code listed on several markets names them for the user to choose", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [{ code: "DUAL", quantity: 4 }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      within(rowFor("DUAL")).getByText(
+        "Listed on ASX and US. Choose the market.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Market for DUAL")).toHaveValue("")
+  })
+
   test("rows that were never checked say so, not that they changed", async () => {
     fetchMock.mockResponse((req) =>
       req.url.includes(PREVIEW_URL)
