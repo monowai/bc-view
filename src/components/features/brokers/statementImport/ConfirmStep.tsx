@@ -139,16 +139,32 @@ export default function ConfirmStep({
               type="button"
               onClick={() => void flow.suggestHeldSince()}
               disabled={busy || flow.suggesting || flow.checking}
-              className="py-2 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60 whitespace-nowrap"
+              aria-busy={flow.suggesting}
+              className="inline-flex items-center gap-2 py-2 px-3 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
             >
-              Suggest dates
+              {flow.suggesting ? (
+                <>
+                  <i
+                    className="fas fa-circle-notch fa-spin"
+                    aria-hidden="true"
+                  ></i>
+                  Suggesting…
+                </>
+              ) : (
+                "Suggest dates"
+              )}
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">
             {flow.suggesting
-              ? "Looking at each holding's price history…"
+              ? "Fetching each holding's price history. This can take a while."
               : "Roughly when you bought them, so returns are measured over the right period. Suggest dates guesses each from its cost."}
           </p>
+          {flow.suggestNote && (
+            <p className="text-xs text-gray-700 mt-1" role="status">
+              {flow.suggestNote}
+            </p>
+          )}
           {flow.suggestError && (
             <Alert className="mt-2">{flow.suggestError}</Alert>
           )}

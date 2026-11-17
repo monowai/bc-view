@@ -224,7 +224,6 @@ export const STATUS_COPY: Record<ReconcileRowStatus, string> = {
 export const MARKET_SOURCE_COPY: Partial<
   Record<ReconcileMarketSource, string>
 > = {
-  HELD: "From what this account holds",
   LISTED: "The only market that lists it",
 }
 

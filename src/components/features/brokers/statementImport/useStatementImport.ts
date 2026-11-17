@@ -116,6 +116,27 @@ async function fetchPreview(
   }
 }
 
+/** "Suggested dates for 3 holdings. No date could be suggested for T." */
+function suggestedNote(
+  found: number,
+  missed: string[],
+  unknown: string[],
+): string {
+  const said =
+    found === 0
+      ? ""
+      : found === 1
+        ? "Suggested a date for 1 holding."
+        : `Suggested dates for ${found} holdings.`
+  const none = missed.length
+    ? `No date could be suggested for ${missed.join(", ")}.`
+    : ""
+  const unpriced = unknown.length
+    ? `No price history yet for ${unknown.join(", ")}: enter ${unknown.length === 1 ? "its date" : "their dates"}.`
+    : ""
+  return [said, none, unpriced].filter(Boolean).join(" ")
+}
+
 function withPreview(
   session: ImportSession,
   sent: ImportRow[],
@@ -199,6 +220,8 @@ export interface StatementImportFlow {
   suggestHeldSince: () => Promise<void>
   suggesting: boolean
   suggestError: string | null
+  /** What the last Suggest dates found, in words for the user. */
+  suggestNote: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -222,6 +245,7 @@ export function useStatementImport(): StatementImportFlow {
   const [newAccountNumber, setNewAccountNumber] = useState("")
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [suggestNote, setSuggestNote] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -499,15 +523,30 @@ export function useStatementImport(): StatementImportFlow {
       return [
         {
           key: row.key,
+          code: row.code.trim(),
           assetId: preview.assetId,
           costPerShare: preview.cost / preview.quantity,
         },
       ]
     })
-    if (asked.length === 0) return
+    // A listing new to Beancounter is created on Record: no prices to go on yet.
+    const unknown = session.rows
+      .filter((row) => {
+        const preview = session.previewByKey[row.key]
+        return !row.heldSince && preview?.trnType === "ADD" && !preview.assetId
+      })
+      .map((row) => row.code.trim())
+    if (asked.length === 0) {
+      setSuggestNote(
+        suggestedNote(0, [], unknown) ||
+          "Every added holding already has a date.",
+      )
+      return
+    }
     const { uploadId } = session
     setSuggesting(true)
     setSuggestError(null)
+    setSuggestNote(null)
     try {
       const res = await suggestHeldSinceRequest({
         rows: asked.map(({ assetId, costPerShare }) => ({
@@ -525,6 +564,15 @@ export function useStatementImport(): StatementImportFlow {
       const { data } = (await res.json()) as HeldSinceResponse
       const byAsset = new Map(data.map((each) => [each.assetId, each]))
       const keys = new Map(asked.map((each) => [each.key, each.assetId]))
+      const missed = asked
+        .filter((each) => {
+          const answer = byAsset.get(each.assetId)
+          return !answer?.heldSince && !answer?.before
+        })
+        .map((each) => each.code)
+      setSuggestNote(
+        suggestedNote(asked.length - missed.length, missed, unknown),
+      )
       // Guesses for an upload since discarded or re-read are dropped.
       setSession((current) =>
         current?.uploadId !== uploadId
@@ -769,6 +817,7 @@ export function useStatementImport(): StatementImportFlow {
     suggestHeldSince,
     suggesting,
     suggestError,
+    suggestNote,
     readyRows,
     canRecord,
     recording,

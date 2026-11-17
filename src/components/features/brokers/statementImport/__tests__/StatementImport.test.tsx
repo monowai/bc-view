@@ -1017,20 +1017,11 @@ describe("<StatementImport /> confirm", () => {
     ).toContain("BRK.B")
   })
 
-  test("a market svc-data worked out says where it came from, until it is changed", async () => {
+  test("a market taken from what the account holds is filled in without a note", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    expect(
-      within(rowFor("VOO")).getByText("From what this account holds"),
-    ).toBeInTheDocument()
-    expect(
-      within(rowFor("AAPL")).queryByText("The brokerage's market"),
-    ).not.toBeInTheDocument()
     expect(screen.getByLabelText("Market for VOO")).toHaveValue("US")
-
-    await user.selectOptions(screen.getByLabelText("Market for VOO"), "NASDAQ")
-
     expect(
       within(rowFor("VOO")).queryByText("From what this account holds"),
     ).not.toBeInTheDocument()
@@ -1363,6 +1354,69 @@ describe("<StatementImport /> record", () => {
       (row) => row.assetId === "a-AAPL",
     )
     expect(aapl?.tradeDate).toBe("2017-06-30")
+  })
+
+  test("Suggest dates says it is working, then what it found", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    expect(
+      await screen.findByRole("button", { name: /Suggesting/ }),
+    ).toBeDisabled()
+    answer(backend.heldSince)
+    expect(
+      await screen.findByText("Suggested a date for 1 holding."),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Suggest dates" })).toBeEnabled()
+  })
+
+  test("Suggest dates names a holding new to Beancounter, which has no price history yet", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        ...holdingsProposal.rows,
+        { code: "NOK", quantity: 100, costBasis: 400 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    expect(
+      await screen.findByText(
+        "Suggested a date for 1 holding. No price history yet for NOK: enter its date.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  test("Suggest dates says so when there is nothing to suggest", async () => {
+    backend.heldSince = json({
+      data: [{ assetId: "a-AAPL", heldSince: null, before: null }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+
+    expect(
+      await screen.findByText("No date could be suggested for AAPL."),
+    ).toBeInTheDocument()
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    expect(
+      await screen.findByText("Every added holding already has a date."),
+    ).toBeInTheDocument()
   })
 
   test("a date read from the image is used, and Suggest dates leaves it alone", async () => {

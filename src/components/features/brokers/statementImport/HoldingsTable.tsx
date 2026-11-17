@@ -175,7 +175,7 @@ export default function HoldingsTable({
               Status
             </th>
             <th scope="col" className="px-2 py-2">
-              <span className="sr-only">Remove</span>
+              <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -201,16 +201,6 @@ export default function HoldingsTable({
                     }
                     className={`${inputClass} w-24 uppercase`}
                   />
-                  <button
-                    type="button"
-                    aria-label={`Recheck ${name}`}
-                    title="Recheck this row"
-                    disabled={disabled || checking || !row.code.trim()}
-                    onClick={() => onRecheck(row.key)}
-                    className="ml-1 p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
-                  >
-                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
-                  </button>
                   {(preview?.assetName || row.name) && (
                     <span className="block text-xs text-gray-500 mt-1">
                       {preview?.assetName || row.name}
@@ -328,7 +318,17 @@ export default function HoldingsTable({
                     </span>
                   ))}
                 </td>
-                <td className={cellClass}>
+                <td className={`${cellClass} whitespace-nowrap`}>
+                  <button
+                    type="button"
+                    aria-label={`Recheck ${name}`}
+                    title="Recheck this row"
+                    disabled={disabled || checking || !row.code.trim()}
+                    onClick={() => onRecheck(row.key)}
+                    className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                  >
+                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
+                  </button>
                   <button
                     type="button"
                     aria-label={`Remove ${name}`}
