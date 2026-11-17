@@ -3,6 +3,7 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
 import { brokerLabel } from "./BrokerageAccountPicker"
+import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
 import ReadSummary from "./ReadSummary"
@@ -19,6 +20,7 @@ export default function ConfirmStep({
   flow: StatementImportFlow
 }): React.ReactElement | null {
   const { session } = flow
+  const { portfolios } = useActivePortfolios()
   if (!session) return null
 
   const busy = flow.recording
@@ -51,7 +53,8 @@ export default function ConfirmStep({
             Confirm what was read
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {`Check each row against your screenshot. Changes are recorded in ${session.portfolio.name} (${session.portfolio.code}). Nothing is recorded until you press Record.`}
+            Check each row against your screenshot. Nothing is recorded until
+            you press Record.
           </p>
         </div>
         <button
@@ -66,9 +69,46 @@ export default function ConfirmStep({
 
       <ReadSummary proposal={session.proposal} />
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm">
-        <h3 className="font-semibold text-gray-900 mb-1">Brokerage account</h3>
-        <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm grid gap-4 sm:grid-cols-2">
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">
+            Brokerage account
+          </h3>
+          <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+        </div>
+        <div>
+          <label
+            htmlFor="confirm-portfolio"
+            className="block font-semibold text-gray-900 mb-1"
+          >
+            Portfolio
+          </label>
+          <select
+            id="confirm-portfolio"
+            value={session.portfolio.id}
+            disabled={busy || flow.checking}
+            onChange={(event) => {
+              const chosen = portfolios.find(
+                (portfolio) => portfolio.id === event.target.value,
+              )
+              if (chosen) void flow.changePortfolio(chosen)
+            }}
+            className="w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {/* The portfolio read into stays listed while the list loads. */}
+            {!portfolios.some((p) => p.id === session.portfolio.id) && (
+              <option value={session.portfolio.id}>
+                {portfolioLabel(session.portfolio)}
+              </option>
+            )}
+            {portfolios.map((portfolio) => (
+              <option key={portfolio.id} value={portfolio.id}>
+                {portfolioLabel(portfolio)}
+              </option>
+            ))}
+          </select>
+          <p className="text-gray-600 mt-1">The changes are recorded here.</p>
+        </div>
       </section>
 
       {flow.previewError && <Alert>{flow.previewError}</Alert>}

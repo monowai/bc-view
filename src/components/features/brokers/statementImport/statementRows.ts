@@ -52,7 +52,8 @@ const printed = (value: number | null | undefined): number | undefined =>
 export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
   return proposal.rows.map((row, index) => ({
     key: `row-${index}`,
-    code: row.code?.trim() ?? "",
+    // A statement writes a share class as BRK/B; Beancounter writes BRK.B.
+    code: (row.code?.trim() ?? "").replace(/\//g, "."),
     market: "",
     quantity: text(row.quantity),
     cost: text(row.costBasis),
@@ -163,20 +164,38 @@ export function attachPreview(
   }
 }
 
+/** Beancounter's asset, or the market and code a listing new to it is created under. */
+function assetNamed(
+  preview: ReconcilePreviewRow,
+): Pick<ConfirmedRow, "assetId" | "market" | "code"> | null {
+  if (preview.assetId) return { assetId: preview.assetId }
+  if (preview.market && preview.assetCode)
+    return { market: preview.market, code: preview.assetCode }
+  return null
+}
+
+/** A listing the asset search found that Beancounter does not have yet. */
+export const isNewListing = (
+  preview: ReconcilePreviewRow | undefined,
+): boolean => Boolean(preview && !preview.assetId && preview.assetCode)
+
+export const NEW_LISTING = "New to Beancounter: added when you record"
+
 /** The transaction a READY row becomes, or null when it is not recordable. */
 export function toConfirmedRow(
   preview: ReconcilePreviewRow | undefined,
 ): ConfirmedRow | null {
   if (
     preview?.status !== "READY" ||
-    !preview.assetId ||
     !preview.trnType ||
     preview.quantity == null
   ) {
     return null
   }
+  const named = assetNamed(preview)
+  if (!named) return null
   const row: ConfirmedRow = {
-    assetId: preview.assetId,
+    ...named,
     trnType: preview.trnType,
     quantity: preview.quantity,
   }

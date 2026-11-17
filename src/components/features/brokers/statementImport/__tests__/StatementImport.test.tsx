@@ -112,6 +112,17 @@ function previewRow(row: ShownHolding): ReconcilePreviewRow {
   }
   if (row.quantity === undefined)
     return { ...base, status: "NEEDS_QUANTITY" as const }
+  if (row.code === "NOK")
+    return {
+      ...base,
+      assetId: null,
+      assetCode: "NOK",
+      assetName: "Nokia Corp ADR",
+      trnType: "ADD",
+      quantity: row.quantity,
+      cost: row.costBasis ?? null,
+      status: row.costBasis === undefined ? "NEEDS_COST" : "READY",
+    }
   if (row.code === "ZZZ")
     return { ...base, assetId: null, assetName: null, status: "UNRESOLVED" }
   const difference = row.quantity - held
@@ -590,6 +601,45 @@ describe("<StatementImport /> upload", () => {
 })
 
 describe("<StatementImport /> confirm", () => {
+  test("shows the portfolio, and choosing another checks and records there", async () => {
+    backend.portfolios = [growth, income]
+    const user = userEvent.setup()
+    renderImport()
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    await screen.findByRole("option", { name: /Income/ })
+    await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
+    await user.upload(screen.getByLabelText("Screenshot"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read screenshot" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    const portfolio = screen.getByLabelText("Portfolio")
+    expect(portfolio).toHaveValue("pf-1")
+    await user.selectOptions(portfolio, "pf-2")
+
+    await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].portfolioId).toBe("pf-2")
+    await waitFor(() => expect(recordButton()).toBeEnabled())
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].portfolioId).toBe(
+      "pf-2",
+    )
+  })
+
+  test("a share class printed with a slash reads with the dot Beancounter uses", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [{ code: "BRK/B", quantity: 2 }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(screen.getByLabelText("Code for BRK.B")).toHaveValue("BRK.B")
+    expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].rows[0].code).toBe(
+      "BRK.B",
+    )
+  })
+
   test("a market svc-data worked out says where it came from, until it is changed", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
@@ -763,6 +813,27 @@ describe("<StatementImport /> confirm", () => {
 })
 
 describe("<StatementImport /> record", () => {
+  test("a listing new to Beancounter is recorded by its market and code", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [{ code: "NOK", quantity: 110, costBasis: 336 }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      within(rowFor("NOK")).getByText(
+        "New to Beancounter: added when you record",
+      ),
+    ).toBeInTheDocument()
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    expect(bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].rows).toEqual([
+      { market: "US", code: "NOK", trnType: "ADD", quantity: 110, cost: 336 },
+    ])
+  })
+
   test("Record sends only the ready rows, once", async () => {
     const user = userEvent.setup()
     await readHoldings(user)

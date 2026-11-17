@@ -1,13 +1,15 @@
 import React from "react"
 import useSwr from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { formatCurrency, formatQuantity } from "@utils/formatters"
+import { formatQuantity } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
   chooseAmong,
   describeChange,
   ImportRow,
+  isNewListing,
   MARKET_SOURCE_COPY,
+  NEW_LISTING,
   NEEDS_CODE,
   NEVER_CHECKED,
   NOT_CHECKED,
@@ -137,6 +139,11 @@ export default function HoldingsTable({
                       {preview?.assetName || row.name}
                     </span>
                   )}
+                  {isNewListing(preview) && (
+                    <span className="block text-xs text-blue-700 mt-1">
+                      {NEW_LISTING}
+                    </span>
+                  )}
                 </td>
                 <td className={cellClass}>
                   <select
@@ -179,16 +186,9 @@ export default function HoldingsTable({
                 </td>
                 <td className={cellClass}>
                   {preview && (
-                    <>
-                      <span className="font-medium text-gray-900">
-                        {describeChange(preview)}
-                      </span>
-                      {preview.trnType === "ADD" && preview.cost != null && (
-                        <span className="block text-xs text-gray-500">
-                          {`at a cost of ${formatCurrency(preview.cost)}`}
-                        </span>
-                      )}
-                    </>
+                    <span className="font-medium text-gray-900">
+                      {describeChange(preview)}
+                    </span>
                   )}
                 </td>
                 <td className={cellClass}>

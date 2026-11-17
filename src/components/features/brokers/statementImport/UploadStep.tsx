@@ -1,21 +1,19 @@
 import React from "react"
 import Link from "next/link"
 import { useRouter } from "next/router"
-import useSwr from "swr"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import { portfoliosKey } from "@utils/api/client/portfolios"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import {
   newPortfolioHref,
   SCREENSHOT_IMPORT_PATH,
 } from "@lib/portfolio/returnTo"
-import type { BrokerWithAccounts, Portfolio } from "types/beancounter"
+import type { BrokerWithAccounts } from "types/beancounter"
 import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
 import { IMAGE_TYPES } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
+import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 
 /**
  * What is chosen: the user's own pick, else the one the address names (the
@@ -57,10 +55,7 @@ export default function UploadStep({
   flow: StatementImportFlow
 }): React.ReactElement {
   const { query } = useRouter()
-  const { data, error } = useSwr<{ data: Portfolio[] }>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  )
+  const { portfolios, error } = useActivePortfolios()
   const { globalBrokers: firms } = useGlobalBrokers()
   const { brokers: allBrokers, error: brokersError } = useBrokers()
   const active = allBrokers.filter((broker) => broker.active !== false)
@@ -85,9 +80,6 @@ export default function UploadStep({
   // An account linked to no firm is linked to the one chosen when it is read.
   const linkFirmId =
     broker && !broker.globalBrokerId && firmId !== OTHER_FIRM ? firmId : null
-  const portfolios = (data?.data ?? []).filter(
-    (portfolio) => portfolio.active !== false,
-  )
   const selectedId = preselect(
     flow.portfolioId,
     query.portfolio,
@@ -157,7 +149,7 @@ export default function UploadStep({
           <option value="">Choose a portfolio…</option>
           {portfolios.map((option) => (
             <option key={option.id} value={option.id}>
-              {`${option.name} (${option.code})`}
+              {portfolioLabel(option)}
             </option>
           ))}
         </select>
@@ -216,7 +208,7 @@ export default function UploadStep({
 
       {flow.reading && (
         <p role="status" className="text-sm text-gray-600">
-          <Spinner label="Reading the screenshot. This can take up to a minute…" />
+          <Spinner label="Reading the screenshot. This can take some time…" />
         </p>
       )}
 

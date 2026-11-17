@@ -136,6 +136,8 @@ export interface StatementImportFlow {
   previewError: string | null
   editRow: (key: string, field: EditableField, value: string) => void
   removeRow: (key: string) => void
+  /** Record in another portfolio; the rows are checked again. */
+  changePortfolio: (portfolio: ImportPortfolio) => Promise<void>
   recheck: () => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
@@ -328,6 +330,20 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
+  const changePortfolio = async (portfolio: ImportPortfolio): Promise<void> => {
+    if (!session) return
+    // The old preview was for the old portfolio: drop it until the new one arrives.
+    const next: ImportSession = {
+      ...session,
+      portfolio,
+      preview: null,
+      previewByKey: {},
+      checked: {},
+    }
+    setSession(next)
+    await check(next)
+  }
+
   const recheck = async (): Promise<void> => {
     if (session) await check(session)
   }
@@ -425,6 +441,7 @@ export function useStatementImport(): StatementImportFlow {
     previewError,
     editRow,
     removeRow,
+    changePortfolio,
     recheck,
     setTradeDate,
     tradeDateInFuture,

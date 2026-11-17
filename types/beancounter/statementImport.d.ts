@@ -84,7 +84,10 @@ export type ReconcileTrnType = "ADD" | "REDUCE"
 export interface ReconcilePreviewRow {
   code: string
   market: string | null
+  /** Null for a listing Beancounter does not have yet; recording creates it. */
   assetId: string | null
+  /** The code Beancounter knows the asset by, e.g. BRK.B for a shown BRK/B. */
+  assetCode?: string | null
   assetName: string | null
   shown: number | null
   /** Netted across all the user's portfolios at the brokerage account. */
@@ -131,8 +134,11 @@ export interface ReconcilePreviewResponse {
   data: ReconcilePreview
 }
 
+/** Names its asset by `assetId`, or by `market` and `code` for a listing new to Beancounter. */
 export interface ConfirmedRow {
-  assetId: string
+  assetId?: string
+  market?: string
+  code?: string
   trnType: ReconcileTrnType
   quantity: number
   /** Total cost of `quantity`; an ADD needs one. */
