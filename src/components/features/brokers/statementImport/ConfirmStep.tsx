@@ -21,6 +21,15 @@ import type { StatementImportFlow } from "./useStatementImport"
 const fieldClass =
   "w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
+/** "Needs a look: 2 will not be recorded · 24 held but not on the image" */
+function issueSummary(blocked: number, notShown: number): string {
+  const parts = [
+    blocked > 0 ? `${blocked} will not be recorded` : "",
+    notShown > 0 ? `${notShown} held but not on the image` : "",
+  ].filter(Boolean)
+  return `Needs a look: ${parts.join(" · ")}`
+}
+
 /**
  * Step 2: what was read, beside what is held, for the user to correct and
  * confirm. Nothing is recorded until Record is pressed.
@@ -64,6 +73,17 @@ export default function ConfirmStep({
     })
     .filter((row) => row.skipped)
   const changes = flow.readyRows.length
+  // Rows that Record acts on first, then rows with an issue, then rows that
+  // match what is held. Ordered by the last check, so a row moves only when
+  // it is checked again, not while it is being edited.
+  const rank = (status: string | undefined): number =>
+    status === "READY" ? 0 : status === "UNCHANGED" ? 2 : 1
+  const ordered = [...session.rows].sort(
+    (a, b) =>
+      rank(session.previewByKey[a.key]?.status) -
+      rank(session.previewByKey[b.key]?.status),
+  )
+  const notShown = session.preview?.notShown ?? []
   const findingIndex = session.rows.findIndex((row) => row.key === findingKey)
   const finding =
     findingIndex >= 0
@@ -271,10 +291,33 @@ export default function ConfirmStep({
         </div>
       </details>
 
+      {(blocked.length > 0 || notShown.length > 0) && (
+        <details className="bg-white rounded-xl shadow-sm border border-gray-200 text-sm">
+          <summary className="cursor-pointer p-4 font-semibold text-gray-900">
+            {issueSummary(blocked.length, notShown.length)}
+          </summary>
+          <div className="px-4 pb-4 space-y-4">
+            {blocked.length > 0 && (
+              <section aria-label="Will not be recorded">
+                <h3 className="font-semibold text-gray-900">
+                  Will not be recorded
+                </h3>
+                <ul className="mt-2 space-y-1 text-gray-900">
+                  {blocked.map((row) => (
+                    <li key={row.key}>{`${row.name}: ${row.reason}`}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <NotShownList notShown={notShown} />
+          </div>
+        </details>
+      )}
+
       {flow.previewError && <Alert>{flow.previewError}</Alert>}
 
       <HoldingsTable
-        rows={session.rows}
+        rows={ordered}
         previewByKey={session.previewByKey}
         isUnchecked={flow.isUnchecked}
         checking={flow.checking}
@@ -319,22 +362,6 @@ export default function ConfirmStep({
           recorded.
         </Alert>
       )}
-
-      {blocked.length > 0 && (
-        <section
-          aria-label="Will not be recorded"
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm"
-        >
-          <h3 className="font-semibold text-gray-900">Will not be recorded</h3>
-          <ul className="mt-2 space-y-1 text-gray-900">
-            {blocked.map((row) => (
-              <li key={row.key}>{`${row.name}: ${row.reason}`}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <NotShownList notShown={session.preview?.notShown ?? []} />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
         {flow.recordError && <Alert>{flow.recordError}</Alert>}

@@ -137,6 +137,27 @@ function suggestedNote(
   return [said, none, unpriced].filter(Boolean).join(" ")
 }
 
+/**
+ * Why Suggest dates had nothing to do: only holdings being added take a date,
+ * and a holding that matches what is held is not added.
+ */
+function nothingToDate(session: ImportSession): string {
+  const statuses = session.rows.map(
+    (row) => session.previewByKey[row.key]?.status,
+  )
+  const adding = session.rows.some(
+    (row) => session.previewByKey[row.key]?.trnType === "ADD",
+  )
+  const matching = statuses.filter((status) => status === "UNCHANGED").length
+  const said = adding
+    ? "Every holding being added already has a date."
+    : "No holding is being added, so none takes a date."
+  if (matching === 0) return said
+  return matching === 1
+    ? `${said} 1 holding already matches what is held, so takes no date.`
+    : `${said} ${matching} holdings already match what is held, so take no date.`
+}
+
 function withPreview(
   session: ImportSession,
   sent: ImportRow[],
@@ -537,10 +558,7 @@ export function useStatementImport(): StatementImportFlow {
       })
       .map((row) => row.code.trim())
     if (asked.length === 0) {
-      setSuggestNote(
-        suggestedNote(0, [], unknown) ||
-          "Every added holding already has a date.",
-      )
+      setSuggestNote(suggestedNote(0, [], unknown) || nothingToDate(session))
       return
     }
     const { uploadId } = session

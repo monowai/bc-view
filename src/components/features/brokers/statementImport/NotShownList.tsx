@@ -13,10 +13,7 @@ export default function NotShownList({
 }): React.ReactElement | null {
   if (notShown.length === 0) return null
   return (
-    <section
-      aria-label="Held at this account but not on the screenshot"
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm"
-    >
+    <section aria-label="Held at this account but not on the screenshot">
       <h3 className="font-semibold text-gray-900">
         Held at this account but not on the screenshot
       </h3>

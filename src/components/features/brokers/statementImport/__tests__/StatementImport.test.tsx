@@ -1017,6 +1017,42 @@ describe("<StatementImport /> confirm", () => {
     ).toContain("BRK.B")
   })
 
+  test("rows that will be recorded come first, then rows with an issue, then rows that match", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label")),
+    ).toEqual([
+      "Code for AAPL",
+      "Code for TSLA",
+      "Code for MSFT",
+      "Code for Mystery Fund",
+      "Code for VOO",
+    ])
+  })
+
+  test("issues sit folded between the portfolio and the holdings", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const issues = screen.getByText(/^Needs a look/).closest("details")
+    expect(issues).not.toBeNull()
+    expect(issues).not.toHaveAttribute("open")
+    expect(
+      within(issues as HTMLElement).getByRole("region", {
+        name: "Will not be recorded",
+      }),
+    ).toBeInTheDocument()
+    const table = screen.getByRole("table")
+    expect(
+      (issues as HTMLElement).compareDocumentPosition(table) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   test("a market taken from what the account holds is filled in without a note", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
@@ -1415,7 +1451,9 @@ describe("<StatementImport /> record", () => {
     await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
     await user.click(screen.getByRole("button", { name: "Suggest dates" }))
     expect(
-      await screen.findByText("Every added holding already has a date."),
+      await screen.findByText(
+        "Every holding being added already has a date. 1 holding already matches what is held, so takes no date.",
+      ),
     ).toBeInTheDocument()
   })
 
