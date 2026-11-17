@@ -1,49 +1,148 @@
-import React from "react"
-import useSwr from "swr"
+import React, { useEffect } from "react"
 import Alert from "@components/ui/Alert"
+import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import { portfoliosKey } from "@utils/api/client/portfolios"
-import type { Portfolio } from "types/beancounter"
-import { IMAGE_TYPES } from "./statementRows"
-import type { StatementImportFlow } from "./useStatementImport"
+import { useBrokers } from "@hooks/useBrokers"
+import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
+import type { BrokerWithAccounts, Portfolio } from "types/beancounter"
+import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
+import ImageDropZone from "./ImageDropZone"
+import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
+import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
+import CurrencySelect from "./CurrencySelect"
+import {
+  CREATE_PORTFOLIO,
+  FALLBACK_CURRENCY,
+  newPortfolioFor,
+} from "./newPortfolio"
+
+/**
+ * The image on the clipboard. A copied file arrives in `files`; a screenshot
+ * copied straight to the clipboard often arrives only as an item.
+ */
+function clipboardImage(data: DataTransfer | null): File | null {
+  if (!data) return null
+  const isImage = (file: File | null): file is File =>
+    Boolean(file?.type.startsWith("image/"))
+  const fromFiles = Array.from(data.files ?? []).find(isImage)
+  if (fromFiles) return fromFiles
+  return (
+    Array.from(data.items ?? [])
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .find(isImage) ?? null
+  )
+}
+
+/** What is chosen: the user's own pick, else the only one there is. */
+function preselect(chosen: string, ids: string[]): string {
+  if (chosen) return chosen
+  return ids.length === 1 ? ids[0] : ""
+}
+
+/**
+ * The accounts offered once a firm is chosen: those at that firm. Another
+ * brokerage offers the accounts at no listed firm.
+ */
+function offeredAt(
+  brokers: BrokerWithAccounts[],
+  firmId: string,
+): BrokerWithAccounts[] {
+  if (firmId === "") return []
+  return brokers.filter((broker) =>
+    firmId === OTHER_FIRM
+      ? !broker.globalBrokerId
+      : broker.globalBrokerId === firmId,
+  )
+}
+
+/**
+ * Where the read is recorded: a portfolio to create when Create Portfolio is
+ * chosen, else the chosen portfolio. None until an account is chosen.
+ */
+function importTarget(
+  broker: BrokerWithAccounts | undefined,
+  creating: boolean,
+  portfolio: Portfolio | undefined,
+  codesInUse: string[],
+  currency: string,
+): ImportTarget | undefined {
+  if (!broker) return undefined
+  if (creating) return { create: newPortfolioFor(broker, codesInUse, currency) }
+  return portfolio ? { portfolio } : undefined
+}
 
 const fieldClass =
   "w-full border border-gray-300 rounded-lg px-3 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
-/** Step 1: choose the portfolio and the image, then have it read. */
+/** Step 1: choose the brokerage, the account, the portfolio and the image, then have it read. */
 export default function UploadStep({
   flow,
 }: {
   flow: StatementImportFlow
 }): React.ReactElement {
-  const { data, error } = useSwr<{ data: Portfolio[] }>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
+  const { portfolios, error } = useActivePortfolios()
+  const { globalBrokers: firms } = useGlobalBrokers()
+  const { brokers: allBrokers, error: brokersError } = useBrokers()
+  const active = allBrokers.filter((broker) => broker.active !== false)
+  // The account chosen, or the only one there is, also names its firm.
+  const named = active.find(
+    (candidate) =>
+      candidate.id ===
+      preselect(
+        flow.chosenBrokerId,
+        active.map((each) => each.id),
+      ),
   )
-  const portfolios = (data?.data ?? []).filter(
-    (portfolio) => portfolio.active !== false,
+  const firmId =
+    flow.chosenFirmId || (named ? named.globalBrokerId || OTHER_FIRM : "")
+  const brokers = offeredAt(active, firmId)
+  const brokerId = preselect(
+    named && brokers.includes(named) ? named.id : "",
+    brokers.map((candidate) => candidate.id),
   )
-  // With one portfolio there is nothing to choose.
-  const selectedId =
-    flow.portfolioId || (portfolios.length === 1 ? portfolios[0].id : "")
+  const broker = brokers.find((candidate) => candidate.id === brokerId)
+  // Creating a portfolio is the default; an existing one is the user's choice.
+  const selectedId = flow.portfolioId || CREATE_PORTFOLIO
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
-  const canRead = Boolean(portfolio && flow.file) && !flow.reading
+  const creating = selectedId === CREATE_PORTFOLIO
+  const firmCurrency = firms.find((firm) => firm.id === firmId)?.config
+    ?.currency
+  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
+  const target = importTarget(
+    broker,
+    creating,
+    portfolio,
+    portfolios.map((each) => each.code),
+    currency,
+  )
+  const canRead = Boolean(target && broker && flow.file) && !flow.reading
+
+  // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.
+  const { pasteFile, reading } = flow
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      const image = clipboardImage(event.clipboardData)
+      if (!image || reading) return
+      event.preventDefault()
+      pasteFile(image)
+    }
+    document.addEventListener("paste", onPaste)
+    return () => document.removeEventListener("paste", onPaste)
+  }, [pasteFile, reading])
 
   return (
     <form
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (portfolio && canRead) void flow.read(portfolio)
+        if (target && broker && canRead) void flow.read(target, broker)
       }}
     >
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">
-          Upload a screenshot
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Upload an image</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Take a screenshot of the holdings page of your brokerage account.
+          Upload an image of the holdings page of your brokerage account.
           Beancounter reads it and shows you what it found. Nothing is recorded
           until you confirm.
         </p>
@@ -52,6 +151,18 @@ export default function UploadStep({
       {error && (
         <Alert>Your portfolios could not be loaded. Reload the page.</Alert>
       )}
+
+      <BrokerageAccountPicker
+        firms={firms}
+        firmId={firmId}
+        brokers={brokers}
+        chosenId={brokerId}
+        failed={Boolean(brokersError)}
+        disabled={flow.reading}
+        className={fieldClass}
+        onChooseFirm={flow.chooseFirm}
+        onChoose={flow.chooseBroker}
+      />
 
       <div>
         <label
@@ -68,38 +179,46 @@ export default function UploadStep({
           disabled={flow.reading}
           className={fieldClass}
         >
-          <option value="">Choose a portfolio…</option>
+          <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
           {portfolios.map((option) => (
             <option key={option.id} value={option.id}>
-              {`${option.name} (${option.code})`}
+              {portfolioLabel(option)}
             </option>
           ))}
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          The changes are recorded in this portfolio.
+          {creating
+            ? "A portfolio named for the brokerage account is created when you record."
+            : "The changes are recorded in this portfolio."}
         </p>
       </div>
+
+      {creating && (
+        <CurrencySelect
+          id="import-currency"
+          value={currency}
+          disabled={flow.reading}
+          className={fieldClass}
+          onChange={flow.chooseNewCurrency}
+        />
+      )}
 
       <div>
         <label
           htmlFor="import-screenshot"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Screenshot
+          Image
         </label>
-        <input
+        <ImageDropZone
           key={flow.fileInputKey}
           id="import-screenshot"
-          type="file"
-          aria-required="true"
-          accept={IMAGE_TYPES}
+          file={flow.file}
+          pasted={flow.pasted}
           disabled={flow.reading}
-          onChange={(event) => flow.chooseFile(event.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-gray-700"
+          onChoose={flow.chooseFile}
+          onRemove={flow.chooseAnotherFile}
         />
-        <p className="text-xs text-gray-500 mt-1">
-          PNG, JPEG, WebP or GIF, up to 8 MB.
-        </p>
       </div>
 
       {flow.fileError && <Alert>{flow.fileError}</Alert>}
@@ -126,9 +245,23 @@ export default function UploadStep({
       )}
 
       {flow.reading && (
-        <p role="status" className="text-sm text-gray-600">
-          <Spinner label="Reading the screenshot. This takes several seconds…" />
-        </p>
+        <Dialog
+          title="Reading the image"
+          onClose={flow.cancelRead}
+          footer={
+            <button
+              type="button"
+              onClick={flow.cancelRead}
+              className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          }
+        >
+          <p role="status" className="text-sm text-gray-700">
+            <Spinner label="Reading the image and checking each holding. This can take some time…" />
+          </p>
+        </Dialog>
       )}
 
       <button
@@ -136,7 +269,7 @@ export default function UploadStep({
         disabled={!canRead || flow.unsupported}
         className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        Read screenshot
+        Read image
       </button>
     </form>
   )

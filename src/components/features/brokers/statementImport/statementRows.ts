@@ -8,6 +8,7 @@ import { formatQuantity } from "@utils/formatters"
 import type {
   ConfirmedRow,
   ReconcilePreview,
+  ReconcileMarketSource,
   ReconcilePreviewRow,
   ReconcileRowStatus,
   ReconcileRowWarning,
@@ -33,6 +34,8 @@ export interface ImportRow {
   cost: string
   /** The asset's name as printed, to tell rows apart. */
   name: string
+  /** Where svc-data found `market`; absent once the user chooses it. */
+  marketFrom?: ReconcileMarketSource | null
   /** Printed figures the user does not edit; sent so the server can cross-check. */
   printed: Pick<
     ShownHolding,
@@ -46,10 +49,14 @@ const text = (value: number | null | undefined): string =>
 const printed = (value: number | null | undefined): number | undefined =>
   value == null ? undefined : value
 
+/** A code as Beancounter writes it: a share class is BRK.B, not BRK/B. */
+const beancounterCode = (code: string): string =>
+  code.trim().replace(/\//g, ".")
+
 export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
   return proposal.rows.map((row, index) => ({
     key: `row-${index}`,
-    code: row.code?.trim() ?? "",
+    code: beancounterCode(row.code ?? ""),
     market: "",
     quantity: text(row.quantity),
     cost: text(row.costBasis),
@@ -85,7 +92,8 @@ export const canBeChecked = (row: ImportRow): boolean => row.code.trim() !== ""
 
 /** A row as the preview endpoint takes it. Blank fields are left out. */
 export function toShownHolding(row: ImportRow): ShownHolding {
-  const shown: ShownHolding = { code: row.code.trim() }
+  // A code typed by hand is sent as one read from the statement is.
+  const shown: ShownHolding = { code: beancounterCode(row.code) }
   const market = row.market.trim()
   if (market) shown.market = market
   const quantity = parseAmount(row.quantity)
@@ -139,12 +147,14 @@ export function attachPreview(
   const previewByKey: Record<string, ReconcilePreviewRow> = {}
   const checked: Record<string, string> = {}
   const markets: Record<string, string> = {}
+  const sources: Record<string, ReconcileMarketSource | null> = {}
   sent.forEach((row, index) => {
     const answer = preview.rows[index]
     if (!answer) return
     const market = row.market.trim() || answer.market || ""
     previewByKey[row.key] = answer
     markets[row.key] = market
+    sources[row.key] = answer.marketSource ?? null
     checked[row.key] = signature({ ...row, market })
   })
   return {
@@ -152,10 +162,20 @@ export function attachPreview(
     checked,
     rows: rows.map((row) =>
       !row.market.trim() && markets[row.key]
-        ? { ...row, market: markets[row.key] }
+        ? { ...row, market: markets[row.key], marketFrom: sources[row.key] }
         : row,
     ),
   }
+}
+
+/** Beancounter's asset, or the market and code a listing new to it is created under. */
+function assetNamed(
+  preview: ReconcilePreviewRow,
+): Pick<ConfirmedRow, "assetId" | "market" | "code"> | null {
+  if (preview.assetId) return { assetId: preview.assetId }
+  if (preview.market && preview.assetCode)
+    return { market: preview.market, code: preview.assetCode }
+  return null
 }
 
 /** The transaction a READY row becomes, or null when it is not recordable. */
@@ -164,14 +184,15 @@ export function toConfirmedRow(
 ): ConfirmedRow | null {
   if (
     preview?.status !== "READY" ||
-    !preview.assetId ||
     !preview.trnType ||
     preview.quantity == null
   ) {
     return null
   }
+  const named = assetNamed(preview)
+  if (!named) return null
   const row: ConfirmedRow = {
-    assetId: preview.assetId,
+    ...named,
     trnType: preview.trnType,
     quantity: preview.quantity,
   }
@@ -188,8 +209,27 @@ export const STATUS_COPY: Record<ReconcileRowStatus, string> = {
   NEEDS_COST: "Enter the cost",
 }
 
+/** Why svc-data chose a market the user did not name. */
+export const MARKET_SOURCE_COPY: Partial<
+  Record<ReconcileMarketSource, string>
+> = {
+  HELD: "From what this account holds",
+  LISTED: "The only market that lists it",
+}
+
+/** "Listed on ASX and US. Choose the market." for a code on several markets. */
+export function chooseAmong(markets: string[]): string {
+  const named =
+    markets.length > 1
+      ? `${markets.slice(0, -1).join(", ")} and ${markets[markets.length - 1]}`
+      : markets.join("")
+  return `Listed on ${named}. Choose the market.`
+}
+
 export const NEEDS_CODE = "Enter the code"
-export const NOT_CHECKED = "Changed since the last check"
+export const NOT_CHECKED = "Changed since the last check. Press Recheck."
+/** No check has answered for the row yet, for example because the check failed. */
+export const NEVER_CHECKED = "Not checked yet. Press Recheck."
 
 export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
   MARKET_VALUE_MISMATCH:

@@ -57,7 +57,8 @@ export interface ShownHolding {
 
 /** Request body of POST /brokers/reconcile. */
 export interface ShownHoldings {
-  portfolioId: string
+  /** Absent for a portfolio the user will create when recording. */
+  portfolioId?: string
   /** The user's brokerage account, once they have chosen it. */
   brokerId?: string
   brokerName?: string
@@ -75,13 +76,19 @@ export type ReconcileRowStatus =
 
 export type ReconcileRowWarning = "MARKET_VALUE_MISMATCH" | "GAIN_LOSS_MISMATCH"
 
+/** Where svc-data found a row's market, strongest first. */
+export type ReconcileMarketSource = "SHOWN" | "HELD" | "BROKERAGE" | "LISTED"
+
 export type ReconcileTrnType = "ADD" | "REDUCE"
 
 /** A shown holding beside what is held, and the change that would close the gap. */
 export interface ReconcilePreviewRow {
   code: string
   market: string | null
+  /** Null for a listing Beancounter does not have yet; recording creates it. */
   assetId: string | null
+  /** The code Beancounter knows the asset by, e.g. BRK.B for a shown BRK/B. */
+  assetCode?: string | null
   assetName: string | null
   shown: number | null
   /** Netted across all the user's portfolios at the brokerage account. */
@@ -94,6 +101,10 @@ export interface ReconcilePreviewRow {
   cost: number | null
   status: ReconcileRowStatus
   warnings: ReconcileRowWarning[]
+  /** Where `market` came from; null when there is none. */
+  marketSource?: ReconcileMarketSource | null
+  /** The markets that list `code`, when svc-data looked them up. */
+  listedOn?: string[]
 }
 
 /** The user's own brokerage account that a screenshot belongs to. */
@@ -124,8 +135,11 @@ export interface ReconcilePreviewResponse {
   data: ReconcilePreview
 }
 
+/** Names its asset by `assetId`, or by `market` and `code` for a listing new to Beancounter. */
 export interface ConfirmedRow {
-  assetId: string
+  assetId?: string
+  market?: string
+  code?: string
   trnType: ReconcileTrnType
   quantity: number
   /** Total cost of `quantity`; an ADD needs one. */

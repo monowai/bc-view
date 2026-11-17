@@ -1,12 +1,15 @@
 import React from "react"
 import useSwr from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { formatCurrency, formatQuantity } from "@utils/formatters"
+import { formatQuantity } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
+  chooseAmong,
   describeChange,
   ImportRow,
+  MARKET_SOURCE_COPY,
   NEEDS_CODE,
+  NEVER_CHECKED,
   NOT_CHECKED,
   rowName,
   STATUS_COPY,
@@ -23,20 +26,75 @@ interface HoldingsTableProps {
   disabled: boolean
   onEdit: (key: string, field: EditableField, value: string) => void
   onRemove: (key: string) => void
+  onRecheck: (key: string) => void
+  /** Look the row's asset up with the asset search. */
+  onFind: (key: string) => void
 }
 
 const inputClass =
   "w-full border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 const cellClass = "px-2 py-2 align-top"
 
+/** Statuses about the asset itself, which the asset search can resolve. */
+const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
+
+/**
+ * A row's status: a green tick when it is good, a ? that opens the asset
+ * search when the asset is the problem, otherwise what is missing. The words
+ * stay for assistive technology and as the tooltip.
+ */
+function RowStatusCell({
+  name,
+  preview,
+  text,
+  disabled,
+  onFind,
+}: {
+  name: string
+  preview: ReconcilePreviewRow | undefined
+  text: string
+  disabled: boolean
+  onFind: () => void
+}): React.ReactElement {
+  if (preview?.status === "READY" || preview?.status === "UNCHANGED") {
+    return (
+      <span className="text-green-600" title={text}>
+        <i className="fas fa-circle-check text-lg" aria-hidden="true"></i>
+        <span className="sr-only">{text}</span>
+      </span>
+    )
+  }
+  if (preview && ASSET_ISSUES.has(preview.status)) {
+    return (
+      <button
+        type="button"
+        aria-label={`Search for ${name}`}
+        title={text}
+        disabled={disabled}
+        onClick={onFind}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-bold hover:bg-amber-200 disabled:opacity-50"
+      >
+        ?<span className="sr-only">{text}</span>
+      </button>
+    )
+  }
+  return <span className="text-amber-700">{text}</span>
+}
+
 /** What a row's last check said, or why there is nothing to say yet. */
 export function rowStatus(
   row: ImportRow,
   preview: ReconcilePreviewRow | undefined,
   unchecked: boolean,
+  /** Some check has answered for this row, though maybe not for its values now. */
+  everChecked: boolean,
 ): string {
   if (!row.code.trim()) return NEEDS_CODE
+  if (!everChecked) return NEVER_CHECKED
   if (unchecked || !preview) return NOT_CHECKED
+  const listedOn = preview.listedOn ?? []
+  if (preview.status === "NEEDS_MARKET" && listedOn.length > 1)
+    return chooseAmong(listedOn)
   return STATUS_COPY[preview.status]
 }
 
@@ -52,6 +110,8 @@ export default function HoldingsTable({
   disabled,
   onEdit,
   onRemove,
+  onRecheck,
+  onFind,
 }: HoldingsTableProps): React.ReactElement {
   const { data } = useSwr<{ data: Market[] }>(
     marketsKey,
@@ -109,7 +169,6 @@ export default function HoldingsTable({
               row.market && !marketCodes.includes(row.market)
                 ? [row.market, ...marketCodes]
                 : marketCodes
-            const recordable = preview?.status === "READY"
             return (
               <tr key={row.key}>
                 <td className={cellClass}>
@@ -123,6 +182,16 @@ export default function HoldingsTable({
                     }
                     className={`${inputClass} w-24 uppercase`}
                   />
+                  <button
+                    type="button"
+                    aria-label={`Recheck ${name}`}
+                    title="Recheck this row"
+                    disabled={disabled || checking || !row.code.trim()}
+                    onClick={() => onRecheck(row.key)}
+                    className="ml-1 p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                  >
+                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
+                  </button>
                   {(preview?.assetName || row.name) && (
                     <span className="block text-xs text-gray-500 mt-1">
                       {preview?.assetName || row.name}
@@ -146,6 +215,11 @@ export default function HoldingsTable({
                       </option>
                     ))}
                   </select>
+                  {row.marketFrom && MARKET_SOURCE_COPY[row.marketFrom] && (
+                    <span className="block text-xs text-gray-500 mt-1">
+                      {MARKET_SOURCE_COPY[row.marketFrom]}
+                    </span>
+                  )}
                 </td>
                 <td className={cellClass}>
                   <input
@@ -165,16 +239,9 @@ export default function HoldingsTable({
                 </td>
                 <td className={cellClass}>
                   {preview && (
-                    <>
-                      <span className="font-medium text-gray-900">
-                        {describeChange(preview)}
-                      </span>
-                      {preview.trnType === "ADD" && preview.cost != null && (
-                        <span className="block text-xs text-gray-500">
-                          {`at a cost of ${formatCurrency(preview.cost)}`}
-                        </span>
-                      )}
-                    </>
+                    <span className="font-medium text-gray-900">
+                      {describeChange(preview)}
+                    </span>
                   )}
                 </td>
                 <td className={cellClass}>
@@ -191,19 +258,22 @@ export default function HoldingsTable({
                   />
                 </td>
                 <td className={cellClass}>
-                  <span
-                    className={
-                      recordable
-                        ? "text-green-700"
-                        : preview?.status === "UNCHANGED"
-                          ? "text-gray-600"
-                          : "text-amber-700"
+                  <RowStatusCell
+                    name={name}
+                    preview={preview}
+                    text={
+                      checking && !preview && row.code.trim()
+                        ? "Checking…"
+                        : rowStatus(
+                            row,
+                            preview,
+                            unchecked,
+                            row.key in previewByKey,
+                          )
                     }
-                  >
-                    {checking && !preview && row.code.trim()
-                      ? "Checking…"
-                      : rowStatus(row, preview, unchecked)}
-                  </span>
+                    disabled={disabled || checking}
+                    onFind={() => onFind(row.key)}
+                  />
                   {preview?.warnings.map((warning) => (
                     <span
                       key={warning}

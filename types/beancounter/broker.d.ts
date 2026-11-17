@@ -17,6 +17,13 @@ export interface GlobalBroker {
   id: string
   code: string
   name: string
+  /** What Beancounter knows about the firm beyond its name. */
+  config?: {
+    /** The market its listed holdings trade on; "" when not known. */
+    market?: string
+    currency?: string
+    aliases?: string[]
+  }
 }
 
 export interface GlobalBrokersResponse {
