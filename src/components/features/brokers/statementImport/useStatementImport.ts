@@ -6,7 +6,9 @@ import { useRef, useState } from "react"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import {
+  brokersWithAccountsKey,
   commitReconcile,
+  createBroker,
   previewReconcile,
   readScreenshot,
 } from "@utils/api/client/brokers"
@@ -35,13 +37,13 @@ import {
   UNREACHABLE,
 } from "./statementRows"
 import type { NewPortfolio } from "./newPortfolio"
+import type { ImportAccount } from "./newAccount"
 
 type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
 
 /** Where the holdings are recorded: a portfolio, or one to create on Record. */
 export type ImportTarget =
   { portfolio: ImportPortfolio } | { create: NewPortfolio }
-type ImportBroker = Pick<Broker, "id" | "name" | "accountNumber">
 
 /** One screenshot that was read, and what the user has done with it since. */
 interface ImportSession {
@@ -55,7 +57,7 @@ interface ImportSession {
   /** Each row's editable values as they were last checked. */
   checked: Record<string, string>
   /** The brokerage account the holdings are checked and recorded against. */
-  broker: ImportBroker
+  account: ImportAccount
   tradeDate: string
 }
 
@@ -81,7 +83,12 @@ async function fetchPreview(
           "portfolio" in session.target
             ? session.target.portfolio.id
             : undefined,
-        brokerId: session.broker.id,
+        brokerId:
+          "broker" in session.account ? session.account.broker.id : undefined,
+        globalBrokerId:
+          "createAccount" in session.account
+            ? session.account.createAccount.globalBrokerId
+            : undefined,
         brokerName: session.proposal.brokerName ?? undefined,
         accountNumber: session.proposal.accountNumber ?? undefined,
         rows: sent.map(toShownHolding),
@@ -138,10 +145,15 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
+  /** The name and number given for an account to create; "" when not given. */
+  newAccountName: string
+  chooseNewAccountName: (name: string) => void
+  newAccountNumber: string
+  chooseNewAccountNumber: (accountNumber: string) => void
   /** The currency chosen for a portfolio to create; "" for the firm's. */
   newCurrency: string
   chooseNewCurrency: (currency: string) => void
-  read: (target: ImportTarget, broker: ImportBroker) => Promise<void>
+  read: (target: ImportTarget, account: ImportAccount) => Promise<void>
   /** Stop waiting for the read; the choices and the file are kept. */
   cancelRead: () => void
   // Confirm
@@ -189,6 +201,8 @@ export interface StatementImportFlow {
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
   const [newCurrency, setNewCurrency] = useState("")
+  const [newAccountName, setNewAccountName] = useState("")
+  const [newAccountNumber, setNewAccountNumber] = useState("")
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -252,7 +266,7 @@ export function useStatementImport(): StatementImportFlow {
 
   const read = async (
     target: ImportTarget,
-    broker: ImportBroker,
+    account: ImportAccount,
   ): Promise<void> => {
     if (!file || readInFlight.current) return
     readInFlight.current = true
@@ -275,7 +289,7 @@ export function useStatementImport(): StatementImportFlow {
       const fresh: ImportSession = {
         uploadId: crypto.randomUUID(),
         target,
-        broker,
+        account,
         proposal,
         rows: toImportRows(proposal),
         preview: null,
@@ -438,7 +452,8 @@ export function useStatementImport(): StatementImportFlow {
 
   const rows = session?.rows ?? []
   const stale = !session?.preview || rows.some(isUnchecked)
-  const brokerId = session?.broker.id ?? ""
+  const brokerId =
+    session && "broker" in session.account ? session.account.broker.id : ""
   const readyRows = rows
     .filter((row) => !isUnchecked(row))
     .map((row) => toConfirmedRow(session?.previewByKey[row.key]))
@@ -487,17 +502,56 @@ export function useStatementImport(): StatementImportFlow {
     return created.id
   }
 
+  /**
+   * The id of the brokerage account to record against, creating it first when
+   * asked to. A created account replaces the request, so a retry does not
+   * create another. Null, with the reason shown, when it cannot be created.
+   */
+  const accountFor = async (current: ImportSession): Promise<string | null> => {
+    if ("broker" in current.account) return current.account.broker.id
+    const { name, accountNumber, globalBrokerId } =
+      current.account.createAccount
+    const res = await createBroker({
+      name,
+      accountNumber: accountNumber || undefined,
+      globalBrokerId,
+    })
+    if (!res.ok) {
+      setRecordError(
+        (await readServerMessage(res)) ||
+          `The brokerage account could not be created (error ${res.status}). Nothing was recorded.`,
+      )
+      return null
+    }
+    const created = ((await res.json()) as { data?: Broker }).data
+    if (!created?.id) {
+      setRecordError(
+        "Beancounter did not return the brokerage account it was asked to create. Nothing was recorded. Check your brokerage accounts before trying again.",
+      )
+      return null
+    }
+    setSession((now) =>
+      now?.uploadId === current.uploadId
+        ? { ...now, account: { broker: created } }
+        : now,
+    )
+    await mutate(brokersWithAccountsKey)
+    return created.id
+  }
+
   const record = async (): Promise<void> => {
     if (!session || !canRecord || recordInFlight.current) return
     recordInFlight.current = true
     setRecording(true)
     setRecordError(null)
     try {
+      const accountId = await accountFor(session)
+      if (!accountId) return
       const portfolioId = await portfolioFor(session)
       if (!portfolioId) return
       const confirmed: ConfirmedHoldings = {
         portfolioId,
-        brokerId,
+        brokerId: accountId,
         uploadId: session.uploadId,
         tradeDate: session.tradeDate || undefined,
         rows: readyRows,
@@ -514,7 +568,7 @@ export function useStatementImport(): StatementImportFlow {
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
         warnings: saved.warnings ?? [],
-        brokerId,
+        brokerId: accountId,
       })
     } catch {
       setRecordError(UNREACHABLE)
@@ -525,6 +579,8 @@ export function useStatementImport(): StatementImportFlow {
   }
 
   const reset = (): void => {
+    setNewAccountName("")
+    setNewAccountNumber("")
     latestCheck.current++
     setSession(null)
     setResult(null)
@@ -543,6 +599,10 @@ export function useStatementImport(): StatementImportFlow {
     choosePortfolio: setPortfolioId,
     newCurrency,
     chooseNewCurrency: setNewCurrency,
+    newAccountName,
+    chooseNewAccountName: setNewAccountName,
+    newAccountNumber,
+    chooseNewAccountNumber: setNewAccountNumber,
     chosenFirmId,
     chooseFirm: setChosenFirmId,
     chosenBrokerId,

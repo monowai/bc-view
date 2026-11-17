@@ -4,8 +4,9 @@ import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
-import type { BrokerWithAccounts, Portfolio } from "types/beancounter"
+import type { Broker, BrokerWithAccounts, Portfolio } from "types/beancounter"
 import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
+import { CREATE_ACCOUNT, namedAs, type ImportAccount } from "./newAccount"
 import ImageDropZone from "./ImageDropZone"
 import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
@@ -61,7 +62,7 @@ function offeredAt(
  * chosen, else the chosen portfolio. None until an account is chosen.
  */
 function importTarget(
-  broker: BrokerWithAccounts | undefined,
+  broker: Pick<Broker, "name" | "accountNumber"> | undefined,
   creating: boolean,
   portfolio: Portfolio | undefined,
   codesInUse: string[],
@@ -97,11 +98,33 @@ export default function UploadStep({
   const firmId =
     flow.chosenFirmId || (named ? named.globalBrokerId || OTHER_FIRM : "")
   const brokers = offeredAt(active, firmId)
-  const brokerId = preselect(
-    named && brokers.includes(named) ? named.id : "",
-    brokers.map((candidate) => candidate.id),
-  )
+  // Creating an account is chosen, or the default at a firm with none yet.
+  const brokerId =
+    flow.chosenBrokerId === CREATE_ACCOUNT
+      ? CREATE_ACCOUNT
+      : preselect(
+          named && brokers.includes(named) ? named.id : "",
+          brokers.map((candidate) => candidate.id),
+        ) || (firmId && brokers.length === 0 ? CREATE_ACCOUNT : "")
   const broker = brokers.find((candidate) => candidate.id === brokerId)
+  const creatingAccount = brokerId === CREATE_ACCOUNT
+  const firm = firms.find((candidate) => candidate.id === firmId)
+  const newAccountName = flow.newAccountName || firm?.name || ""
+  const account: ImportAccount | undefined = creatingAccount
+    ? newAccountName.trim()
+      ? {
+          createAccount: {
+            name: newAccountName.trim(),
+            accountNumber: flow.newAccountNumber.trim(),
+            globalBrokerId: firm?.id,
+          },
+        }
+      : undefined
+    : broker && { broker }
+  // What a new portfolio is named after: the account, or the one to create.
+  const accountNaming =
+    account &&
+    ("broker" in account ? account.broker : namedAs(account.createAccount))
   // Creating a portfolio is the default; an existing one is the user's choice.
   const selectedId = flow.portfolioId || CREATE_PORTFOLIO
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
@@ -110,13 +133,13 @@ export default function UploadStep({
     ?.currency
   const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
   const target = importTarget(
-    broker,
+    accountNaming,
     creating,
     portfolio,
     portfolios.map((each) => each.code),
     currency,
   )
-  const canRead = Boolean(target && broker && flow.file) && !flow.reading
+  const canRead = Boolean(target && account && flow.file) && !flow.reading
 
   // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.
   const { pasteFile, reading } = flow
@@ -136,7 +159,7 @@ export default function UploadStep({
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (target && broker && canRead) void flow.read(target, broker)
+        if (target && account && canRead) void flow.read(target, account)
       }}
     >
       <div>
@@ -163,6 +186,52 @@ export default function UploadStep({
         onChooseFirm={flow.chooseFirm}
         onChoose={flow.chooseBroker}
       />
+
+      {creatingAccount && (
+        <fieldset className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="import-account-name"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Account name
+            </label>
+            <input
+              id="import-account-name"
+              type="text"
+              required
+              value={newAccountName}
+              disabled={flow.reading}
+              onChange={(event) =>
+                flow.chooseNewAccountName(event.target.value)
+              }
+              className={fieldClass}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="import-account-number"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Account number
+            </label>
+            <input
+              id="import-account-number"
+              type="text"
+              value={flow.newAccountNumber}
+              disabled={flow.reading}
+              onChange={(event) =>
+                flow.chooseNewAccountNumber(event.target.value)
+              }
+              placeholder="Optional"
+              className={fieldClass}
+            />
+          </div>
+          <p className="text-xs text-gray-500 sm:col-span-2">
+            The account is created when you record.
+          </p>
+        </fieldset>
+      )}
 
       <div>
         <label

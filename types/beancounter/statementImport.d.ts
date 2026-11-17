@@ -61,6 +61,8 @@ export interface ShownHoldings {
   portfolioId?: string
   /** The user's brokerage account, once they have chosen it. */
   brokerId?: string
+  /** The firm of an account the user will create on record (no brokerId). */
+  globalBrokerId?: string
   brokerName?: string
   accountNumber?: string
   rows: ShownHolding[]

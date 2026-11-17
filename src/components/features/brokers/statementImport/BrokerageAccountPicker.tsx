@@ -2,6 +2,7 @@ import React from "react"
 import Link from "next/link"
 import Alert from "@components/ui/Alert"
 import type { Broker, GlobalBroker } from "types/beancounter"
+import { CREATE_ACCOUNT } from "./newAccount"
 
 /** The Brokerage choice for a firm Beancounter does not list. */
 export const OTHER_FIRM = "__OTHER__"
@@ -88,6 +89,7 @@ export default function BrokerageAccountPicker({
           className={className}
         >
           <option value="">Choose a brokerage account…</option>
+          <option value={CREATE_ACCOUNT}>Create Brokerage Account</option>
           {brokers.map((broker) => (
             <option key={broker.id} value={broker.id}>
               {brokerLabel(broker)}

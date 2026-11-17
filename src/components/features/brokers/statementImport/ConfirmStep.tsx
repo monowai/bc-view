@@ -4,7 +4,7 @@ import Dialog from "@components/ui/Dialog"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
-import { brokerLabel } from "./BrokerageAccountPicker"
+import { accountLabel, namedAs } from "./newAccount"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
 import {
@@ -140,7 +140,7 @@ export default function ConfirmStep({
         className="bg-white rounded-xl shadow-sm border border-gray-200 text-sm"
       >
         <summary className="cursor-pointer p-4 font-semibold text-gray-900">
-          {`${brokerLabel(session.broker)} · ${
+          {`${accountLabel(session.account)} · ${
             existing ? portfolioLabel(existing) : `Create ${toCreate?.name}`
           } · ${session.rows.length} ${session.rows.length === 1 ? "row" : "rows"} read`}
         </summary>
@@ -152,7 +152,7 @@ export default function ConfirmStep({
               <h3 className="font-semibold text-gray-900 mb-1">
                 Brokerage account
               </h3>
-              <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+              <p className="text-gray-900">{accountLabel(session.account)}</p>
             </div>
             <div>
               <label
@@ -170,7 +170,9 @@ export default function ConfirmStep({
                   if (id === CREATE_PORTFOLIO) {
                     void flow.changePortfolio({
                       create: newPortfolioFor(
-                        session.broker,
+                        "broker" in session.account
+                          ? session.account.broker
+                          : namedAs(session.account.createAccount),
                         portfolios.map((each) => each.code),
                         flow.newCurrency ||
                           toCreate?.currency ||

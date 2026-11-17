@@ -158,6 +158,8 @@ interface Backend {
   brokers: unknown[]
   /** What creating a portfolio answers. */
   created: MockResponseInit
+  /** What creating a brokerage account answers. */
+  createdAccount: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
 }
@@ -217,7 +219,10 @@ async function respond(req: Request): Promise<MockResponseInit> {
     })
   if (url.includes("/api/global-brokers"))
     return json({ data: [ibkrFirm, schwabFirm] })
-  if (url.includes("/api/brokers")) return json({ data: backend.brokers })
+  if (url.includes("/api/brokers"))
+    return req.method === "POST"
+      ? backend.createdAccount
+      : json({ data: backend.brokers })
   if (url.includes("/api/markets"))
     return json({ data: [{ code: "US" }, { code: "NASDAQ" }, { code: "SGX" }] })
   return json({ data: [] })
@@ -293,6 +298,15 @@ beforeEach(() => {
     brokers: [ibkr, schwab],
     created: json({
       data: [{ id: "pf-new", code: "IBKR-MAIN", name: "IBKR" }],
+    }),
+    createdAccount: json({
+      data: {
+        id: "b-new",
+        name: "Interactive Brokers",
+        accountNumber: "U999",
+        globalBrokerId: "gb-ibkr",
+        settlementAccounts: [],
+      },
     }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
   }
@@ -819,6 +833,97 @@ describe("<StatementImport /> new portfolio", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The currencies could not be loaded, so only USD can be chosen",
     )
+  })
+})
+
+describe("<StatementImport /> new brokerage account", () => {
+  async function chooseCreateAccount(user: UserEvent): Promise<void> {
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+    await user.selectOptions(
+      screen.getByLabelText("Brokerage account"),
+      "__NEW_ACCOUNT__",
+    )
+  }
+
+  test("an account is created at the chosen firm on Record, before its portfolio", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+
+    expect(screen.getByLabelText("Account name")).toHaveValue(
+      "Interactive Brokers",
+    )
+    await user.type(screen.getByLabelText("Account number"), "U999")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    const [shown] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
+    expect(shown.brokerId).toBeUndefined()
+    expect(shown.globalBrokerId).toBe("gb-ibkr")
+    expect(bodiesSentTo<unknown>("/api/brokers")).toEqual([])
+
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    expect(bodiesSentTo<unknown>("/api/brokers")).toEqual([
+      {
+        name: "Interactive Brokers",
+        accountNumber: "U999",
+        globalBrokerId: "gb-ibkr",
+      },
+    ])
+    expect(bodiesSentTo<unknown>("/api/portfolios")).toEqual([
+      {
+        data: [
+          {
+            code: "INTERACTIVE-BROKERS",
+            name: "Interactive Brokers (U999)",
+            currency: "USD",
+            base: "USD",
+          },
+        ],
+      },
+    ])
+    const [confirmed] = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)
+    expect(confirmed.brokerId).toBe("b-new")
+    expect(confirmed.portfolioId).toBe("pf-new")
+    expect(
+      screen.getByRole("link", { name: /holdings at this brokerage account/i }),
+    ).toHaveAttribute("href", "/brokers/b-new/holdings")
+  })
+
+  test("a firm with no accounts yet offers to create one", async () => {
+    backend.brokers = [schwab]
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+
+    expect(screen.getByLabelText("Brokerage account")).toHaveValue(
+      "__NEW_ACCOUNT__",
+    )
+  })
+
+  test("an account that cannot be created records nothing and says why", async () => {
+    backend.createdAccount = json(
+      { message: "Broker with name 'Interactive Brokers' already exists" },
+      400,
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    await user.click(recordButton())
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Broker with name 'Interactive Brokers' already exists",
+    )
+    expect(callsTo("/api/portfolios")).toBe(0)
+    expect(callsTo(COMMIT_URL)).toBe(0)
   })
 })
 
