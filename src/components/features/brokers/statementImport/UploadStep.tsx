@@ -1,41 +1,80 @@
 import React from "react"
+import Link from "next/link"
+import { useRouter } from "next/router"
 import useSwr from "swr"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { portfoliosKey } from "@utils/api/client/portfolios"
+import { useBrokers } from "@hooks/useBrokers"
+import {
+  newPortfolioHref,
+  SCREENSHOT_IMPORT_PATH,
+} from "@lib/portfolio/returnTo"
 import type { Portfolio } from "types/beancounter"
+import BrokerageAccountPicker from "./BrokerageAccountPicker"
 import { IMAGE_TYPES } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
+
+/**
+ * What is chosen: the user's own pick, else the one the address names (the
+ * new-portfolio page sends the user back that way), else the only one there is.
+ */
+function preselect(
+  chosen: string,
+  named: string | string[] | undefined,
+  ids: string[],
+): string {
+  if (chosen) return chosen
+  if (typeof named === "string" && ids.includes(named)) return named
+  return ids.length === 1 ? ids[0] : ""
+}
 
 const fieldClass =
   "w-full border border-gray-300 rounded-lg px-3 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
-/** Step 1: choose the portfolio and the image, then have it read. */
+/** Step 1: choose the brokerage account, the portfolio and the image, then have it read. */
 export default function UploadStep({
   flow,
 }: {
   flow: StatementImportFlow
 }): React.ReactElement {
+  const { query } = useRouter()
   const { data, error } = useSwr<{ data: Portfolio[] }>(
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
+  const { brokers: allBrokers, error: brokersError } = useBrokers()
+  const brokers = allBrokers.filter((broker) => broker.active !== false)
+  const brokerId = preselect(
+    flow.chosenBrokerId,
+    query.broker,
+    brokers.map((candidate) => candidate.id),
+  )
+  const broker = brokers.find((candidate) => candidate.id === brokerId)
   const portfolios = (data?.data ?? []).filter(
     (portfolio) => portfolio.active !== false,
   )
-  // With one portfolio there is nothing to choose.
-  const selectedId =
-    flow.portfolioId || (portfolios.length === 1 ? portfolios[0].id : "")
+  const selectedId = preselect(
+    flow.portfolioId,
+    query.portfolio,
+    portfolios.map((candidate) => candidate.id),
+  )
+  // The new-portfolio page comes back here, keeping the account chosen.
+  const newPortfolio = newPortfolioHref(
+    brokerId
+      ? `${SCREENSHOT_IMPORT_PATH}?broker=${encodeURIComponent(brokerId)}`
+      : SCREENSHOT_IMPORT_PATH,
+  )
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
-  const canRead = Boolean(portfolio && flow.file) && !flow.reading
+  const canRead = Boolean(portfolio && broker && flow.file) && !flow.reading
 
   return (
     <form
       className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (portfolio && canRead) void flow.read(portfolio)
+        if (portfolio && broker && canRead) void flow.read(portfolio, broker)
       }}
     >
       <div>
@@ -52,6 +91,15 @@ export default function UploadStep({
       {error && (
         <Alert>Your portfolios could not be loaded. Reload the page.</Alert>
       )}
+
+      <BrokerageAccountPicker
+        brokers={brokers}
+        chosenId={brokerId}
+        failed={Boolean(brokersError)}
+        disabled={flow.reading}
+        className={fieldClass}
+        onChoose={flow.chooseBroker}
+      />
 
       <div>
         <label
@@ -76,7 +124,10 @@ export default function UploadStep({
           ))}
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          The changes are recorded in this portfolio.
+          The changes are recorded in this portfolio. Not listed?{" "}
+          <Link href={newPortfolio} className="text-blue-600 underline">
+            New portfolio
+          </Link>
         </p>
       </div>
 

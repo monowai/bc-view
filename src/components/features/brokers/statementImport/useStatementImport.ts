@@ -11,6 +11,7 @@ import {
 import { readServerMessage } from "@utils/api/client/request"
 import { todayIso } from "@utils/formatters"
 import type {
+  Broker,
   ConfirmedHoldings,
   ConfirmedRow,
   Portfolio,
@@ -33,6 +34,7 @@ import {
 } from "./statementRows"
 
 type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
+type ImportBroker = Pick<Broker, "id" | "name" | "accountNumber">
 
 /** One screenshot that was read, and what the user has done with it since. */
 interface ImportSession {
@@ -45,8 +47,8 @@ interface ImportSession {
   previewByKey: Record<string, ReconcilePreviewRow>
   /** Each row's editable values as they were last checked. */
   checked: Record<string, string>
-  /** The brokerage account the user picked; "" while the server's match stands. */
-  chosenBrokerId: string
+  /** The brokerage account the holdings are checked and recorded against. */
+  broker: ImportBroker
   tradeDate: string
 }
 
@@ -67,7 +69,7 @@ async function fetchPreview(
   try {
     const res = await previewReconcile({
       portfolioId: session.portfolio.id,
-      brokerId: session.chosenBrokerId || undefined,
+      brokerId: session.broker.id,
       brokerName: session.proposal.brokerName ?? undefined,
       accountNumber: session.proposal.accountNumber ?? undefined,
       rows: sent.map(toShownHolding),
@@ -98,6 +100,9 @@ export interface StatementImportFlow {
   // Upload
   portfolioId: string
   choosePortfolio: (portfolioId: string) => void
+  /** The brokerage account chosen; "" when none is. */
+  chosenBrokerId: string
+  chooseBroker: (brokerId: string) => void
   file: File | null
   /** Changes when the file input must be emptied. */
   fileInputKey: number
@@ -108,7 +113,7 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
-  read: (portfolio: ImportPortfolio) => Promise<void>
+  read: (portfolio: ImportPortfolio, broker: ImportBroker) => Promise<void>
   // Confirm
   session: ImportSession | null
   /** The brokerage account the changes would be recorded at. */
@@ -120,7 +125,6 @@ export interface StatementImportFlow {
   previewError: string | null
   editRow: (key: string, field: EditableField, value: string) => void
   removeRow: (key: string) => void
-  chooseBroker: (brokerId: string) => Promise<void>
   recheck: () => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
@@ -142,6 +146,7 @@ export interface StatementImportFlow {
  */
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
+  const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -188,7 +193,10 @@ export function useStatementImport(): StatementImportFlow {
     clearFile()
   }
 
-  const read = async (portfolio: ImportPortfolio): Promise<void> => {
+  const read = async (
+    portfolio: ImportPortfolio,
+    broker: ImportBroker,
+  ): Promise<void> => {
     if (!file || readInFlight.current) return
     readInFlight.current = true
     setReading(true)
@@ -208,12 +216,12 @@ export function useStatementImport(): StatementImportFlow {
       const fresh: ImportSession = {
         uploadId: crypto.randomUUID(),
         portfolio,
+        broker,
         proposal,
         rows: toImportRows(proposal),
         preview: null,
         previewByKey: {},
         checked: {},
-        chosenBrokerId: "",
         tradeDate: todayIso(),
       }
       const sent = fresh.rows.filter(canBeChecked)
@@ -275,21 +283,6 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
-  const chooseBroker = async (chosenBrokerId: string): Promise<void> => {
-    if (!session) return
-    // What is held differs by brokerage account, so the old preview says
-    // nothing about this one: drop it until the new one arrives.
-    const next: ImportSession = {
-      ...session,
-      chosenBrokerId,
-      preview: null,
-      previewByKey: {},
-      checked: {},
-    }
-    setSession(next)
-    await check(next)
-  }
-
   const recheck = async (): Promise<void> => {
     if (session) await check(session)
   }
@@ -303,14 +296,13 @@ export function useStatementImport(): StatementImportFlow {
 
   const rows = session?.rows ?? []
   const stale = !session?.preview || rows.some(isUnchecked)
-  const brokerId = session?.preview?.broker?.id ?? ""
+  const brokerId = session?.broker.id ?? ""
   const readyRows = rows
     .filter((row) => !isUnchecked(row))
     .map((row) => toConfirmedRow(session?.previewByKey[row.key]))
     .filter((row): row is ConfirmedRow => row !== null)
   const tradeDateInFuture = (session?.tradeDate ?? "") > todayIso()
   const canRecord =
-    brokerId !== "" &&
     !stale &&
     !checking &&
     !recording &&
@@ -367,6 +359,8 @@ export function useStatementImport(): StatementImportFlow {
   return {
     portfolioId,
     choosePortfolio: setPortfolioId,
+    chosenBrokerId,
+    chooseBroker: setChosenBrokerId,
     file,
     fileInputKey,
     chooseFile,
@@ -384,7 +378,6 @@ export function useStatementImport(): StatementImportFlow {
     previewError,
     editRow,
     removeRow,
-    chooseBroker,
     recheck,
     setTradeDate,
     tradeDateInFuture,

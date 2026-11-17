@@ -2,7 +2,7 @@ import React from "react"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { todayIso } from "@utils/formatters"
-import BrokerageAccountPicker from "./BrokerageAccountPicker"
+import { brokerLabel } from "./BrokerageAccountPicker"
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
 import ReadSummary from "./ReadSummary"
@@ -61,12 +61,10 @@ export default function ConfirmStep({
 
       <ReadSummary proposal={session.proposal} />
 
-      <BrokerageAccountPicker
-        matched={session.preview?.broker ?? null}
-        chosenId={session.chosenBrokerId}
-        disabled={busy || flow.checking}
-        onChoose={(brokerId) => void flow.chooseBroker(brokerId)}
-      />
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-sm">
+        <h3 className="font-semibold text-gray-900 mb-1">Brokerage account</h3>
+        <p className="text-gray-900">{brokerLabel(session.broker)}</p>
+      </section>
 
       {flow.previewError && <Alert>{flow.previewError}</Alert>}
 
@@ -154,11 +152,6 @@ export default function ConfirmStep({
             </span>
           )}
         </div>
-        {!flow.brokerId && !flow.checking && !session.chosenBrokerId && (
-          <p className="text-sm text-gray-600">
-            Choose the brokerage account before recording.
-          </p>
-        )}
       </div>
     </div>
   )
