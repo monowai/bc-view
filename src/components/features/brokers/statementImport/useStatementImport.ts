@@ -150,8 +150,11 @@ export interface StatementImportFlow {
   /** The screenshot read shows transactions, which are not imported yet. */
   unsupported: boolean
   chooseAnotherFile: () => void
-  /** The name and number given for an account to create; "" when not given. */
-  newAccountName: string
+  /**
+   * The name and number given for an account to create. The name is null
+   * until the user edits it, so the firm's name can stand in; "" once cleared.
+   */
+  newAccountName: string | null
   chooseNewAccountName: (name: string) => void
   newAccountNumber: string
   chooseNewAccountNumber: (accountNumber: string) => void
@@ -213,7 +216,7 @@ export interface StatementImportFlow {
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
   const [newCurrency, setNewCurrency] = useState("")
-  const [newAccountName, setNewAccountName] = useState("")
+  const [newAccountName, setNewAccountName] = useState<string | null>(null)
   const [newAccountNumber, setNewAccountNumber] = useState("")
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
@@ -497,6 +500,7 @@ export function useStatementImport(): StatementImportFlow {
       ]
     })
     if (asked.length === 0) return
+    const { uploadId } = session
     setSuggesting(true)
     setSuggestError(null)
     try {
@@ -516,22 +520,24 @@ export function useStatementImport(): StatementImportFlow {
       const { data } = (await res.json()) as HeldSinceResponse
       const byAsset = new Map(data.map((each) => [each.assetId, each]))
       const keys = new Map(asked.map((each) => [each.key, each.assetId]))
-      setSession(
-        (current) =>
-          current && {
-            ...current,
-            rows: current.rows.map((row) => {
-              const suggestion = byAsset.get(keys.get(row.key) ?? "")
-              if (!suggestion || row.heldSince) return row
-              return {
-                ...row,
-                heldSince: suggestion.heldSince ?? "",
-                heldSinceHint: suggestion.before
-                  ? `Before ${suggestion.before}`
-                  : undefined,
-              }
-            }),
-          },
+      // Suggestions for an upload since discarded or re-read are dropped.
+      setSession((current) =>
+        current?.uploadId !== uploadId
+          ? current
+          : {
+              ...current,
+              rows: current.rows.map((row) => {
+                const suggestion = byAsset.get(keys.get(row.key) ?? "")
+                if (!suggestion || row.heldSince) return row
+                return {
+                  ...row,
+                  heldSince: suggestion.heldSince ?? "",
+                  heldSinceHint: suggestion.before
+                    ? `Before ${suggestion.before}`
+                    : undefined,
+                }
+              }),
+            },
       )
     } catch {
       setSuggestError(UNREACHABLE)
@@ -698,7 +704,7 @@ export function useStatementImport(): StatementImportFlow {
   }
 
   const reset = (): void => {
-    setNewAccountName("")
+    setNewAccountName(null)
     setNewAccountNumber("")
     latestCheck.current++
     setSession(null)

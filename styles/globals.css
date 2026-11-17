@@ -169,6 +169,7 @@ body {
   .btn-primary:hover {
     background-color: var(--color-primary-hover);
   }
+
   /* Unavailable, not gone: still the primary action, so it keeps its blue at
      half strength rather than turning gray, and does not respond to hover. */
   .btn-primary:disabled {
@@ -176,6 +177,7 @@ body {
     cursor: not-allowed;
     box-shadow: none;
   }
+
   .btn-primary:disabled:hover {
     background-color: var(--color-primary);
   }

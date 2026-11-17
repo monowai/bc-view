@@ -43,6 +43,19 @@ const cellClass = "px-2 py-2 align-top"
 const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
 
 /**
+ * What an added holding's held-since date will be. A hint ("Before …") is not
+ * a date, so it also says which date applies until the user enters one.
+ */
+function heldSinceNote(row: ImportRow, importHeldSince: string): string {
+  if (row.heldSince) return row.heldSinceHint ?? ""
+  const fallback = importHeldSince
+    ? `Import's date, ${importHeldSince}`
+    : "Record date"
+  if (!row.heldSinceHint) return importHeldSince && fallback
+  return `${row.heldSinceHint}. ${fallback} applies until you enter one`
+}
+
+/**
  * A row's status: a green tick when it is good, a ? that opens the asset
  * search when the asset is the problem, otherwise what is missing. The words
  * stay for assistive technology and as the tooltip.
@@ -268,11 +281,9 @@ export default function HoldingsTable({
                         }
                         className={`${inputClass} w-36`}
                       />
-                      {(row.heldSinceHint ||
-                        (!row.heldSince && importHeldSince)) && (
+                      {heldSinceNote(row, importHeldSince) && (
                         <span className="block text-xs text-gray-500 mt-1">
-                          {row.heldSinceHint ??
-                            `Import's date, ${importHeldSince}`}
+                          {heldSinceNote(row, importHeldSince)}
                         </span>
                       )}
                     </>

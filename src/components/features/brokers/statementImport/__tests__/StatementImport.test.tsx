@@ -917,6 +917,18 @@ describe("<StatementImport /> new brokerage account", () => {
     ).toHaveAttribute("href", "/brokers/b-new/holdings")
   })
 
+  test("a cleared account name stays cleared and holds Continue back", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+
+    await user.clear(screen.getByLabelText("Account name"))
+
+    expect(screen.getByLabelText("Account name")).toHaveValue("")
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
+  })
+
   test("a firm with no accounts yet offers to create one", async () => {
     backend.brokers = [schwab]
     const user = userEvent.setup()
@@ -1359,8 +1371,39 @@ describe("<StatementImport /> record", () => {
     await user.click(screen.getByRole("button", { name: "Suggest dates" }))
 
     expect(
-      await within(rowFor("AAPL")).findByText("Before 2011-11-18"),
+      await within(rowFor("AAPL")).findByText(
+        "Before 2011-11-18. Record date applies until you enter one",
+      ),
     ).toBeInTheDocument()
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+  })
+
+  test("dates suggested for a discarded upload do not fill the next one", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(1))
+
+    await user.click(
+      screen.getByRole("button", { name: "Discard and start again" }),
+    )
+    await upload(user)
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    answer(backend.heldSince)
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Suggest dates" }),
+      ).toBeEnabled(),
+    )
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
   })
 

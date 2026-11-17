@@ -116,7 +116,8 @@ export default function UploadStep({
   const broker = brokers.find((candidate) => candidate.id === brokerId)
   const creatingAccount = brokerId === CREATE_ACCOUNT
   const firm = firms.find((candidate) => candidate.id === firmId)
-  const newAccountName = flow.newAccountName || firm?.name || ""
+  // The firm's name until the user edits it; a cleared name stays cleared.
+  const newAccountName = flow.newAccountName ?? firm?.name ?? ""
   const account: ImportAccount | undefined = creatingAccount
     ? newAccountName.trim()
       ? {
