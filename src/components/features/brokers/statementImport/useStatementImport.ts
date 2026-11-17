@@ -5,6 +5,7 @@ import {
 import { useRef, useState } from "react"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
+import { holdingByIdKey } from "@utils/api/client/holdings"
 import {
   brokersWithAccountsKey,
   commitReconcile,
@@ -539,6 +540,20 @@ export function useStatementImport(): StatementImportFlow {
     return created.id
   }
 
+  /**
+   * Value the portfolio now, so its market value reflects what was recorded.
+   * svc-position values a portfolio when its holdings are read, and publishes
+   * the result to svc-data. In the background: recording has already succeeded.
+   */
+  const valuePortfolio = async (portfolioId: string): Promise<void> => {
+    try {
+      await fetch(holdingByIdKey(portfolioId, "today"))
+      await mutate(portfoliosKey)
+    } catch {
+      // The scheduled valuation catches up; nothing the user needs to act on.
+    }
+  }
+
   const record = async (): Promise<void> => {
     if (!session || !canRecord || recordInFlight.current) return
     recordInFlight.current = true
@@ -565,6 +580,7 @@ export function useStatementImport(): StatementImportFlow {
         return
       }
       const saved = (await res.json()) as TrnResponse
+      void valuePortfolio(portfolioId)
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
         warnings: saved.warnings ?? [],

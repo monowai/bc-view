@@ -1281,6 +1281,18 @@ describe("<StatementImport /> record", () => {
     })
   })
 
+  test("recording values the portfolio, so its market value is current", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    await waitFor(() =>
+      expect(callsTo("/api/holdings/id/pf-1?asAt=today")).toBe(1),
+    )
+  })
+
   test("the trade date chosen is the one sent", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
