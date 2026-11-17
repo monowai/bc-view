@@ -609,8 +609,8 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByLabelText("Brokerage")).toBeRequired()
     expect(screen.getByLabelText("Brokerage account")).toBeRequired()
     expect(
-      screen.getByRole("link", { name: /Add a brokerage account/ }),
-    ).toHaveAttribute("href", "/brokers")
+      screen.queryByRole("link", { name: /Add a brokerage account/ }),
+    ).not.toBeInTheDocument()
 
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.click(read)

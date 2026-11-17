@@ -5,7 +5,12 @@ import Spinner from "@components/ui/Spinner"
 import { useBrokers } from "@hooks/useBrokers"
 import { useGlobalBrokers } from "@hooks/useGlobalBrokers"
 import type { Broker, BrokerWithAccounts, Portfolio } from "types/beancounter"
-import BrokerageAccountPicker, { OTHER_FIRM } from "./BrokerageAccountPicker"
+import {
+  AccountSelect,
+  BrokerageSelect,
+  OTHER_FIRM,
+} from "./BrokerageAccountPicker"
+import ImportSection from "./ImportSection"
 import { CREATE_ACCOUNT, namedAs, type ImportAccount } from "./newAccount"
 import ImageDropZone from "./ImageDropZone"
 import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
@@ -74,7 +79,9 @@ function importTarget(
 }
 
 const fieldClass =
-  "w-full border border-gray-300 rounded-lg px-3 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+  "w-full h-10 border border-gray-300 rounded-md px-3 text-base sm:text-sm bg-white text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:bg-gray-50 disabled:text-gray-400 transition-colors duration-150"
+
+const labelClass = "block text-xs font-medium text-gray-700 mb-1"
 
 /** Step 1: choose the brokerage, the account, the portfolio and the image, then have it read. */
 export default function UploadStep({
@@ -154,164 +161,215 @@ export default function UploadStep({
     return () => document.removeEventListener("paste", onPaste)
   }, [pasteFile, reading])
 
+  // Each section is done once its choice is made; the first not done is current.
+  const done = [
+    firmId !== "",
+    Boolean(account),
+    Boolean(target),
+    Boolean(flow.file),
+  ]
+  const current = done.indexOf(false)
+
   return (
     <form
-      className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4"
+      className="max-w-5xl mx-auto bg-white rounded-lg border border-gray-200"
       onSubmit={(event) => {
         event.preventDefault()
         if (target && account && canRead) void flow.read(target, account)
       }}
     >
-      <div>
+      <div className="px-5 pt-5 pb-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Upload an image</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-gray-600 mt-1 max-w-prose">
           Upload an image of the holdings page of your brokerage account.
           Beancounter reads it and shows you what it found. Nothing is recorded
           until you confirm.
         </p>
+        {error && (
+          <Alert className="mt-3">
+            Your portfolios could not be loaded. Reload the page.
+          </Alert>
+        )}
       </div>
 
-      {error && (
-        <Alert>Your portfolios could not be loaded. Reload the page.</Alert>
-      )}
+      <div className="grid lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
+        <ImportSection
+          step={1}
+          title="Brokerage"
+          lead="The firm the account is with."
+          done={done[0]}
+          current={current === 0}
+        >
+          <BrokerageSelect
+            firms={firms}
+            firmId={firmId}
+            disabled={flow.reading}
+            className={fieldClass}
+            onChoose={flow.chooseFirm}
+          />
+        </ImportSection>
 
-      <BrokerageAccountPicker
-        firms={firms}
-        firmId={firmId}
-        brokers={brokers}
-        chosenId={brokerId}
-        failed={Boolean(brokersError)}
-        disabled={flow.reading}
-        className={fieldClass}
-        onChooseFirm={flow.chooseFirm}
-        onChoose={flow.chooseBroker}
-      />
-
-      {creatingAccount && (
-        <fieldset className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="import-account-name"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Account name
-            </label>
-            <input
-              id="import-account-name"
-              type="text"
-              required
-              value={newAccountName}
+        <ImportSection
+          step={2}
+          title="Brokerage account"
+          lead="Where the holdings are recorded."
+          done={done[1]}
+          current={current === 1}
+        >
+          <div className="space-y-3">
+            <AccountSelect
+              brokers={brokers}
+              chosenId={brokerId}
+              firmChosen={firmId !== ""}
+              failed={Boolean(brokersError)}
               disabled={flow.reading}
-              onChange={(event) =>
-                flow.chooseNewAccountName(event.target.value)
-              }
               className={fieldClass}
+              onChoose={flow.chooseBroker}
             />
+            {creatingAccount && (
+              <fieldset className="space-y-3">
+                <legend className="sr-only">New brokerage account</legend>
+                <div>
+                  <label htmlFor="import-account-name" className={labelClass}>
+                    Account name
+                  </label>
+                  <input
+                    id="import-account-name"
+                    type="text"
+                    required
+                    value={newAccountName}
+                    disabled={flow.reading}
+                    onChange={(event) =>
+                      flow.chooseNewAccountName(event.target.value)
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="import-account-number" className={labelClass}>
+                    Account number
+                  </label>
+                  <input
+                    id="import-account-number"
+                    type="text"
+                    value={flow.newAccountNumber}
+                    disabled={flow.reading}
+                    onChange={(event) =>
+                      flow.chooseNewAccountNumber(event.target.value)
+                    }
+                    placeholder="Optional"
+                    className={fieldClass}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  The account is created when you record.
+                </p>
+              </fieldset>
+            )}
           </div>
-          <div>
-            <label
-              htmlFor="import-account-number"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Account number
+        </ImportSection>
+
+        <ImportSection
+          step={3}
+          title="Portfolio"
+          lead="The portfolio the changes go into."
+          done={done[2]}
+          current={current === 2}
+        >
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="import-portfolio" className="sr-only">
+                Portfolio
+              </label>
+              <select
+                id="import-portfolio"
+                required
+                value={selectedId}
+                onChange={(event) => flow.choosePortfolio(event.target.value)}
+                disabled={flow.reading}
+                className={fieldClass}
+              >
+                <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
+                {portfolios.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {portfolioLabel(option)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1.5">
+                {creating
+                  ? "Named for the brokerage account, and created when you record."
+                  : "The changes are recorded in this portfolio."}
+              </p>
+            </div>
+            {creating && (
+              <CurrencySelect
+                id="import-currency"
+                value={currency}
+                disabled={flow.reading}
+                className={fieldClass}
+                onChange={flow.chooseNewCurrency}
+              />
+            )}
+          </div>
+        </ImportSection>
+      </div>
+
+      <ImportSection
+        step={4}
+        title="Image"
+        lead="A screenshot of the account's holdings page."
+        done={done[3]}
+        current={current === 3}
+        className="border-t border-gray-200"
+      >
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="space-y-3">
+            <label htmlFor="import-screenshot" className="sr-only">
+              Image
             </label>
-            <input
-              id="import-account-number"
-              type="text"
-              value={flow.newAccountNumber}
+            <ImageDropZone
+              key={flow.fileInputKey}
+              id="import-screenshot"
+              file={flow.file}
+              pasted={flow.pasted}
               disabled={flow.reading}
-              onChange={(event) =>
-                flow.chooseNewAccountNumber(event.target.value)
-              }
-              placeholder="Optional"
-              className={fieldClass}
+              onChoose={flow.chooseFile}
+              onRemove={flow.chooseAnotherFile}
             />
+            {flow.fileError && <Alert>{flow.fileError}</Alert>}
+            {flow.readError && <Alert>{flow.readError}</Alert>}
+            {flow.unsupported && (
+              <Alert variant="warning">
+                <p>
+                  This screenshot shows a list of transactions. Transaction
+                  screenshots are not supported yet, so nothing was recorded.
+                </p>
+                <p className="mt-1">
+                  Upload a holdings screenshot instead: the page that lists what
+                  you hold and how many.
+                </p>
+                <button
+                  type="button"
+                  onClick={flow.chooseAnotherFile}
+                  className="mt-2 underline font-medium"
+                >
+                  Choose another file
+                </button>
+              </Alert>
+            )}
           </div>
-          <p className="text-xs text-gray-500 sm:col-span-2">
-            The account is created when you record.
-          </p>
-        </fieldset>
-      )}
-
-      <div>
-        <label
-          htmlFor="import-portfolio"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Portfolio
-        </label>
-        <select
-          id="import-portfolio"
-          required
-          value={selectedId}
-          onChange={(event) => flow.choosePortfolio(event.target.value)}
-          disabled={flow.reading}
-          className={fieldClass}
-        >
-          <option value={CREATE_PORTFOLIO}>Create Portfolio</option>
-          {portfolios.map((option) => (
-            <option key={option.id} value={option.id}>
-              {portfolioLabel(option)}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-gray-500 mt-1">
-          {creating
-            ? "A portfolio named for the brokerage account is created when you record."
-            : "The changes are recorded in this portfolio."}
-        </p>
-      </div>
-
-      {creating && (
-        <CurrencySelect
-          id="import-currency"
-          value={currency}
-          disabled={flow.reading}
-          className={fieldClass}
-          onChange={flow.chooseNewCurrency}
-        />
-      )}
-
-      <div>
-        <label
-          htmlFor="import-screenshot"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Image
-        </label>
-        <ImageDropZone
-          key={flow.fileInputKey}
-          id="import-screenshot"
-          file={flow.file}
-          pasted={flow.pasted}
-          disabled={flow.reading}
-          onChoose={flow.chooseFile}
-          onRemove={flow.chooseAnotherFile}
-        />
-      </div>
-
-      {flow.fileError && <Alert>{flow.fileError}</Alert>}
-      {flow.readError && <Alert>{flow.readError}</Alert>}
-
-      {flow.unsupported && (
-        <Alert variant="warning">
-          <p>
-            This screenshot shows a list of transactions. Transaction
-            screenshots are not supported yet, so nothing was recorded.
-          </p>
-          <p className="mt-1">
-            Upload a holdings screenshot instead: the page that lists what you
-            hold and how many.
-          </p>
-          <button
-            type="button"
-            onClick={flow.chooseAnotherFile}
-            className="mt-2 underline font-medium"
-          >
-            Choose another file
-          </button>
-        </Alert>
-      )}
+          <div className="flex lg:block">
+            <button
+              type="submit"
+              disabled={!canRead || flow.unsupported}
+              className="btn-primary w-full lg:w-auto lg:min-w-40 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              Read image
+            </button>
+          </div>
+        </div>
+      </ImportSection>
 
       {flow.reading && (
         <Dialog
@@ -332,14 +390,6 @@ export default function UploadStep({
           </p>
         </Dialog>
       )}
-
-      <button
-        type="submit"
-        disabled={!canRead || flow.unsupported}
-        className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-      >
-        Read image
-      </button>
     </form>
   )
 }
