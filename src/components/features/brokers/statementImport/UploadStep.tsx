@@ -169,6 +169,8 @@ export default function UploadStep({
     Boolean(flow.file),
   ]
   const current = done.indexOf(false)
+  // The step Continue waits on, named under the button while it is off.
+  const waitingOn = current >= 0 && !flow.reading ? current + 1 : null
 
   return (
     <form
@@ -359,14 +361,20 @@ export default function UploadStep({
               </Alert>
             )}
           </div>
-          <div className="flex lg:block">
+          <div className="flex flex-col items-stretch lg:items-end gap-1.5">
             <button
               type="submit"
               disabled={!canRead || flow.unsupported}
-              className="btn-primary w-full lg:w-auto lg:min-w-40 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:cursor-not-allowed"
+              aria-describedby={waitingOn ? "import-read-hint" : undefined}
+              className="btn-primary justify-center w-full lg:w-auto lg:min-w-40"
             >
-              Read image
+              Continue
             </button>
+            {waitingOn && (
+              <p id="import-read-hint" className="text-xs text-gray-500">
+                {`Finish step ${waitingOn} first.`}
+              </p>
+            )}
           </div>
         </div>
       </ImportSection>

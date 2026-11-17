@@ -266,9 +266,9 @@ async function chooseAccount(
   await user.selectOptions(screen.getByLabelText("Brokerage account"), brokerId)
 }
 
-/** Choose the IBKR account, the Growth portfolio and a file, then press Read image. */
+/** Choose the IBKR account, the Growth portfolio and a file, then press Continue. */
 async function upload(user: UserEvent): Promise<void> {
-  const read = screen.getByRole("button", { name: "Read image" })
+  const read = screen.getByRole("button", { name: "Continue" })
   await chooseAccount(user, "gb-ibkr", "b-ibkr")
   await screen.findByRole("option", { name: /Growth/ })
   await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
@@ -404,7 +404,7 @@ describe("<StatementImport /> upload", () => {
       ).not.toBeInTheDocument(),
     )
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     expect(callsTo(PREVIEW_URL)).toBe(0)
   })
@@ -459,7 +459,7 @@ describe("<StatementImport /> upload", () => {
     expect(
       screen.queryByText(/Transaction screenshots are not supported yet/),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
 
   test.each([
@@ -506,7 +506,7 @@ describe("<StatementImport /> upload", () => {
     fireEvent.paste(document, { clipboardData: { files: [pasted] } })
 
     expect(await screen.findByText(/Pasted image chosen/)).toBeInTheDocument()
-    const read = screen.getByRole("button", { name: "Read image" })
+    const read = screen.getByRole("button", { name: "Continue" })
     await waitFor(() => expect(read).toBeEnabled())
     await user.click(read)
     await screen.findByRole("heading", { name: "Confirm what was read" })
@@ -553,7 +553,7 @@ describe("<StatementImport /> upload", () => {
 
     expect(await screen.findByText(/dropped\.png/)).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
     )
   })
 
@@ -563,13 +563,13 @@ describe("<StatementImport /> upload", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Read image" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
     )
 
     await user.click(screen.getByRole("button", { name: "Remove image" }))
 
     expect(screen.queryByText(/holdings\.png/)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
 
   test("pasting text is left alone", async () => {
@@ -579,6 +579,22 @@ describe("<StatementImport /> upload", () => {
     fireEvent.paste(document, { clipboardData: { files: [] } })
 
     expect(screen.queryByText(/Pasted image chosen/)).not.toBeInTheDocument()
+  })
+
+  test("while Continue is off, it says which step it waits on", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    const read = screen.getByRole("button", { name: "Continue" })
+
+    expect(read).toBeDisabled()
+    expect(read).toHaveAccessibleDescription("Finish step 1 first.")
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    expect(read).toHaveAccessibleDescription("Finish step 4 first.")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+
+    await waitFor(() => expect(read).toBeEnabled())
+    expect(screen.queryByText(/Finish step/)).not.toBeInTheDocument()
   })
 
   test("an image over 8 MB is refused without being sent", async () => {
@@ -592,7 +608,7 @@ describe("<StatementImport /> upload", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /larger than 8 MB/,
     )
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(0)
     // The input is emptied, so it does not show the refused file.
     expect(
@@ -605,7 +621,7 @@ describe("<StatementImport /> upload", () => {
     renderImport()
 
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    const read = screen.getByRole("button", { name: "Read image" })
+    const read = screen.getByRole("button", { name: "Continue" })
     expect(screen.getByLabelText("Brokerage")).toBeRequired()
     expect(screen.getByLabelText("Brokerage account")).toBeRequired()
     expect(
@@ -658,7 +674,7 @@ describe("<StatementImport /> upload", () => {
     ).not.toBeInTheDocument()
     await user.selectOptions(account, "b-schwab")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe(
@@ -675,7 +691,7 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     expect(bodiesSentTo<ShownHoldings>(PREVIEW_URL)[0].brokerId).toBe("b-ibkr")
@@ -700,7 +716,7 @@ describe("<StatementImport /> new portfolio", () => {
     renderImport()
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
   }
 
@@ -756,7 +772,7 @@ describe("<StatementImport /> new portfolio", () => {
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -797,7 +813,7 @@ describe("<StatementImport /> new portfolio", () => {
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -856,7 +872,7 @@ describe("<StatementImport /> new brokerage account", () => {
     )
     await user.type(screen.getByLabelText("Account number"), "U999")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     const [shown] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
@@ -915,7 +931,7 @@ describe("<StatementImport /> new brokerage account", () => {
     renderImport()
     await chooseCreateAccount(user)
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
 
@@ -936,7 +952,7 @@ describe("<StatementImport /> confirm", () => {
     await screen.findByRole("option", { name: /Income/ })
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
     await user.upload(screen.getByLabelText("Image"), screenshot())
-    await user.click(screen.getByRole("button", { name: "Read image" }))
+    await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
     const portfolio = screen.getByLabelText("Portfolio")
@@ -1344,7 +1360,7 @@ describe("<StatementImport /> record", () => {
     await user.click(
       screen.getByRole("button", { name: "Import another screenshot" }),
     )
-    expect(screen.getByRole("button", { name: "Read image" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(1)
   })
 
