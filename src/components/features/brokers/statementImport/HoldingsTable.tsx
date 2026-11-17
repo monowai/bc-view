@@ -43,16 +43,12 @@ const cellClass = "px-2 py-2 align-top"
 const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
 
 /**
- * What an added holding's held-since date will be. A hint ("Before …") is not
- * a date, so it also says which date applies until the user enters one.
+ * Where an added holding's held-since date comes from: the image, a guess, or
+ * the import's date when the row has none of its own.
  */
 function heldSinceNote(row: ImportRow, importHeldSince: string): string {
   if (row.heldSince) return row.heldSinceHint ?? ""
-  const fallback = importHeldSince
-    ? `Import's date, ${importHeldSince}`
-    : "Record date"
-  if (!row.heldSinceHint) return importHeldSince && fallback
-  return `${row.heldSinceHint}. ${fallback} applies until you enter one`
+  return importHeldSince ? `Import's date, ${importHeldSince}` : ""
 }
 
 /**

@@ -2,7 +2,7 @@ import {
   MAX_SCREENSHOT_BYTES,
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import { holdingByIdKey } from "@utils/api/client/holdings"
@@ -31,6 +31,8 @@ import type {
 import {
   attachPreview,
   canBeChecked,
+  GUESSED_BEFORE_PRICES,
+  GUESSED_FROM_COST,
   ImportRow,
   readRefusal,
   signature,
@@ -193,10 +195,9 @@ export interface StatementImportFlow {
   /** The import's held-since date, and one row's own. */
   setHeldSince: (heldSince: string) => void
   setRowHeldSince: (key: string, heldSince: string) => void
-  /** Fill empty held-since dates from each added holding's cost. */
-  suggestHeldSince: () => Promise<void>
-  suggesting: boolean
-  suggestError: string | null
+  /** Held-since dates are being guessed from each added holding's cost. */
+  guessing: boolean
+  guessError: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -218,8 +219,8 @@ export function useStatementImport(): StatementImportFlow {
   const [newCurrency, setNewCurrency] = useState("")
   const [newAccountName, setNewAccountName] = useState<string | null>(null)
   const [newAccountNumber, setNewAccountNumber] = useState("")
-  const [suggesting, setSuggesting] = useState(false)
-  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [guesses, setGuesses] = useState(0)
+  const [guessError, setGuessError] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -245,6 +246,8 @@ export function useStatementImport(): StatementImportFlow {
   const recordInFlight = useRef(false)
   // Only the newest preview asked for may land.
   const latestCheck = useRef(0)
+  // Each row's asset is guessed for once, so a date the user clears stays clear.
+  const guessed = useRef(new Set<string>())
 
   const clearFile = (): void => {
     setPasted(false)
@@ -483,14 +486,19 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
-  const suggestHeldSince = async (): Promise<void> => {
-    if (!session) return
-    // Added holdings with a cost and no date of their own yet.
-    const asked = session.rows.flatMap((row) => {
-      const preview = session.previewByKey[row.key]
+  /**
+   * Guess when each added holding was opened, from its cost and the asset's
+   * price history. Rows with a date, read or entered, are left as they are.
+   */
+  const guessHeldSince = async (target: ImportSession): Promise<void> => {
+    const asked = target.rows.flatMap((row) => {
+      const preview = target.previewByKey[row.key]
       if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
         return []
       if (!preview.cost || !preview.quantity) return []
+      const once = `${target.uploadId}|${row.key}|${preview.assetId}`
+      if (guessed.current.has(once)) return []
+      guessed.current.add(once)
       return [
         {
           key: row.key,
@@ -500,9 +508,9 @@ export function useStatementImport(): StatementImportFlow {
       ]
     })
     if (asked.length === 0) return
-    const { uploadId } = session
-    setSuggesting(true)
-    setSuggestError(null)
+    const { uploadId } = target
+    setGuesses((count) => count + 1)
+    setGuessError(null)
     try {
       const res = await suggestHeldSinceRequest({
         rows: asked.map(({ assetId, costPerShare }) => ({
@@ -511,40 +519,46 @@ export function useStatementImport(): StatementImportFlow {
         })),
       })
       if (!res.ok) {
-        setSuggestError(
+        setGuessError(
           (await readServerMessage(res)) ||
-            `Dates could not be suggested (error ${res.status}). Enter them yourself, or try again.`,
+            `Held-since dates could not be guessed (error ${res.status}). Enter them yourself.`,
         )
         return
       }
       const { data } = (await res.json()) as HeldSinceResponse
       const byAsset = new Map(data.map((each) => [each.assetId, each]))
       const keys = new Map(asked.map((each) => [each.key, each.assetId]))
-      // Suggestions for an upload since discarded or re-read are dropped.
+      // Guesses for an upload since discarded or re-read are dropped.
       setSession((current) =>
         current?.uploadId !== uploadId
           ? current
           : {
               ...current,
               rows: current.rows.map((row) => {
-                const suggestion = byAsset.get(keys.get(row.key) ?? "")
-                if (!suggestion || row.heldSince) return row
+                const guess = byAsset.get(keys.get(row.key) ?? "")
+                const heldSince = guess?.heldSince ?? guess?.before
+                if (!heldSince || row.heldSince) return row
                 return {
                   ...row,
-                  heldSince: suggestion.heldSince ?? "",
-                  heldSinceHint: suggestion.before
-                    ? `Before ${suggestion.before}`
-                    : undefined,
+                  heldSince,
+                  heldSinceHint: guess?.heldSince
+                    ? GUESSED_FROM_COST
+                    : GUESSED_BEFORE_PRICES,
                 }
               }),
             },
       )
     } catch {
-      setSuggestError(UNREACHABLE)
+      setGuessError(UNREACHABLE)
     } finally {
-      setSuggesting(false)
+      setGuesses((count) => count - 1)
     }
   }
+
+  // Each answer from a check can name added holdings not yet guessed for.
+  useEffect(() => {
+    if (session) void guessHeldSince(session)
+  }, [session])
 
   const isUnchecked = (row: ImportRow): boolean =>
     signature(row) !== (session?.checked[row.key] ?? "")
@@ -760,9 +774,8 @@ export function useStatementImport(): StatementImportFlow {
     tradeDateInFuture,
     setHeldSince,
     setRowHeldSince,
-    suggestHeldSince,
-    suggesting,
-    suggestError,
+    guessing: guesses > 0,
+    guessError,
     readyRows,
     canRecord,
     recording,

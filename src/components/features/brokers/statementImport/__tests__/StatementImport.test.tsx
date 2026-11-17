@@ -1280,6 +1280,7 @@ describe("<StatementImport /> record", () => {
   })
 
   test("Record sends only the ready rows, once", async () => {
+    backend.heldSince = json({ data: [] })
     const user = userEvent.setup()
     await readHoldings(user)
 
@@ -1325,7 +1326,10 @@ describe("<StatementImport /> record", () => {
     await readHoldings(user)
 
     await user.type(screen.getByLabelText("Held since"), "2018-05-01")
-    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    const aapl = screen.getByLabelText("Held since for AAPL")
+    await waitFor(() => expect(aapl).toHaveValue("2017-06-30"))
+    await user.clear(aapl)
+    await user.type(aapl, "2016-02-03")
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
 
@@ -1339,20 +1343,24 @@ describe("<StatementImport /> record", () => {
     expect(confirmed.tradeDate).toBe(todayIso())
   })
 
-  test("Suggest dates fills empty held-since dates from each holding's cost", async () => {
+  test("held-since dates are guessed from each holding's cost once the rows are read", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
-
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
 
     await waitFor(() =>
       expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
         "2017-06-30",
       ),
     )
+    expect(
+      within(rowFor("AAPL")).getByText("Guessed from the cost"),
+    ).toBeInTheDocument()
     expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
       { rows: [{ assetId: "a-AAPL", costPerShare: 120 }] },
     ])
+    expect(
+      screen.queryByRole("button", { name: "Suggest dates" }),
+    ).not.toBeInTheDocument()
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     const aapl = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].rows.find(
@@ -1361,35 +1369,71 @@ describe("<StatementImport /> record", () => {
     expect(aapl?.tradeDate).toBe("2017-06-30")
   })
 
-  test("a cost below every known price says the holding is older than the prices", async () => {
+  test("a date read from the image is used, not guessed", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: holdingsProposal.rows.map((row) =>
+        row.code === "AAPL" ? { ...row, tradeDate: "2015-03-02" } : row,
+      ),
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+      "2015-03-02",
+    )
+    expect(
+      within(rowFor("AAPL")).getByText("Read from the image"),
+    ).toBeInTheDocument()
+    expect(callsTo(HELD_SINCE_URL)).toBe(0)
+  })
+
+  test("a cost below every known price guesses the earliest price's date", async () => {
     backend.heldSince = json({
       data: [{ assetId: "a-AAPL", heldSince: null, before: "2011-11-18" }],
     })
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
-
+    await waitFor(() =>
+      expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+        "2011-11-18",
+      ),
+    )
     expect(
-      await within(rowFor("AAPL")).findByText(
-        "Before 2011-11-18. Record date applies until you enter one",
+      within(rowFor("AAPL")).getByText(
+        "Guessed: bought before the earliest price",
       ),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
   })
 
-  test("dates suggested for a discarded upload do not fill the next one", async () => {
-    let answer: (init: MockResponseInit) => void = () => undefined
+  test("a guessed date the user clears is not guessed again on Recheck", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const aapl = screen.getByLabelText("Held since for AAPL")
+    await waitFor(() => expect(aapl).toHaveValue("2017-06-30"))
+
+    await user.clear(aapl)
+    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Recheck" })).toBeEnabled(),
+    )
+
+    expect(callsTo(HELD_SINCE_URL)).toBe(1)
+    expect(aapl).toHaveValue("")
+  })
+
+  test("dates guessed for a discarded upload do not fill the next one", async () => {
+    const answers: Array<(init: MockResponseInit) => void> = []
     fetchMock.mockResponse((req) =>
       req.url.includes(HELD_SINCE_URL)
         ? new Promise((resolve) => {
-            answer = resolve
+            answers.push(resolve)
           })
         : respond(req),
     )
     const user = userEvent.setup()
     await readHoldings(user)
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
     await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(1))
 
     await user.click(
@@ -1397,12 +1441,13 @@ describe("<StatementImport /> record", () => {
     )
     await upload(user)
     await screen.findByRole("heading", { name: "Confirm what was read" })
-    answer(backend.heldSince)
+    await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(2))
+    answers[0](backend.heldSince)
+    answers[1](json({ data: [] }))
 
+    // Both answers are handled once no guess is in flight.
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Suggest dates" }),
-      ).toBeEnabled(),
+      expect(screen.queryByText(/Guessing when/)).not.toBeInTheDocument(),
     )
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
   })
@@ -1433,6 +1478,7 @@ describe("<StatementImport /> record", () => {
       ),
       json({ data: { trns: [{ id: "t-1" }] } }),
     ]
+    backend.heldSince = json({ data: [] })
     const user = userEvent.setup()
     await readHoldings(user)
 

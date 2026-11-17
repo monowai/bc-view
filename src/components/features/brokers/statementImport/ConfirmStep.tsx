@@ -125,33 +125,21 @@ export default function ConfirmStep({
           >
             Held since
           </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="import-held-since"
-              type="date"
-              value={session.heldSince}
-              max={todayIso()}
-              disabled={busy}
-              onChange={(event) => flow.setHeldSince(event.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => void flow.suggestHeldSince()}
-              disabled={busy || flow.suggesting || flow.checking}
-              className="py-2 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60 whitespace-nowrap"
-            >
-              Suggest dates
-            </button>
-          </div>
+          <input
+            id="import-held-since"
+            type="date"
+            value={session.heldSince}
+            max={todayIso()}
+            disabled={busy}
+            onChange={(event) => flow.setHeldSince(event.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <p className="text-xs text-gray-500 mt-1">
-            {flow.suggesting
-              ? "Looking at each holding's price history…"
-              : "Roughly when you bought them, so returns are measured over the right period. Rows can differ."}
+            {flow.guessing
+              ? "Guessing when each holding was bought…"
+              : "For holdings without their own date. Each row's date is guessed from its cost unless the image shows one: correct any that are wrong."}
           </p>
-          {flow.suggestError && (
-            <Alert className="mt-2">{flow.suggestError}</Alert>
-          )}
+          {flow.guessError && <Alert className="mt-2">{flow.guessError}</Alert>}
         </div>
         <button
           type="button"

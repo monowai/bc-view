@@ -36,7 +36,7 @@ export interface ImportRow {
   name: string
   /** When the holding was opened (yyyy-mm-dd); "" for the import's date. */
   heldSince: string
-  /** Why no date was suggested, e.g. "Before 2011-11-18". */
+  /** Where `heldSince` came from when the user did not enter it. */
   heldSinceHint?: string
   /** Where svc-data found `market`; absent once the user chooses it. */
   marketFrom?: ReconcileMarketSource | null
@@ -57,6 +57,10 @@ const printed = (value: number | null | undefined): number | undefined =>
 const beancounterCode = (code: string): string =>
   code.trim().replace(/\//g, ".")
 
+export const READ_FROM_IMAGE = "Read from the image"
+export const GUESSED_FROM_COST = "Guessed from the cost"
+export const GUESSED_BEFORE_PRICES = "Guessed: bought before the earliest price"
+
 export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
   return proposal.rows.map((row, index) => ({
     key: `row-${index}`,
@@ -65,7 +69,9 @@ export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
     quantity: text(row.quantity),
     cost: text(row.costBasis),
     name: row.name?.trim() ?? "",
-    heldSince: "",
+    // A holdings page that prints when a position was opened says it best.
+    heldSince: row.tradeDate ?? "",
+    heldSinceHint: row.tradeDate ? READ_FROM_IMAGE : undefined,
     printed: {
       costPerShare: printed(row.costPerShare),
       price: printed(row.price),
