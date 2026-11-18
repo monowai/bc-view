@@ -130,7 +130,7 @@ describe("PortfolioCorporateActionsPopup", () => {
     expect(cell.querySelector("i")).toHaveClass(icon)
   })
 
-  it("scans an imported holding from its first trade, not its earlier cost date", async () => {
+  it("scans an imported holding from its cost date, when it opened", async () => {
     holdings()
     mockFetch([])
     render(
@@ -147,14 +147,65 @@ describe("PortfolioCorporateActionsPopup", () => {
 
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/a3?fromDate=2026-11-18&"),
+        expect.stringContaining("/a3?fromDate=2012-02-01&"),
+      ),
+    )
+  })
+
+  it("offers an import's dividends from its cost date, but never a split before its first trade", async () => {
+    ;(useSwr as unknown as jest.Mock).mockReturnValue({
+      data: {
+        data: {
+          positions: {
+            imported: {
+              asset,
+              dateValues: {
+                opened: "2016-01-04",
+                firstTransaction: "2026-11-18",
+              },
+            },
+          },
+        },
+      },
+    })
+    mockFetch([
+      { ...event("divi-2018", "DIVI"), recordDate: "2018-05-10" },
+      {
+        ...event("split-2020", "SPLIT"),
+        recordDate: "2020-08-31",
+        split: 2,
+      },
+    ])
+    render(
+      <PortfolioCorporateActionsPopup
+        portfolio={makePortfolio()}
+        modalOpen={true}
+        onClose={jest.fn()}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Scan Corporate Actions" }),
+    )
+
+    expect(await screen.findByText("2018-05-10")).toBeInTheDocument()
+    expect(screen.getByText("Dividend")).toBeInTheDocument()
+    expect(screen.queryByText("Split")).not.toBeInTheDocument()
+    expect(screen.queryByText("2020-08-31")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Backfill (1)" }))
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/corporate-events/process/divi-2018",
+        { method: "POST" },
       ),
     )
     const urls = (global.fetch as jest.Mock).mock.calls.map(([url]) => url)
-    expect(urls.some((url: string) => url.includes("2012-02-01"))).toBe(false)
+    expect(urls.some((url: string) => url.includes("split-2020"))).toBe(false)
   })
 
-  it("Load in Background starts the load from the earliest non-cash holding, closes and hands the result up", async () => {
+  it("Load in Background starts the load from the earliest non-cash opened date, an import's cost date, closes and hands the result up", async () => {
     holdings()
     mockFetch([])
     const onClose = jest.fn()
@@ -172,7 +223,7 @@ describe("PortfolioCorporateActionsPopup", () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/corporate-events/load/p1/background?asAt=2018-06-30",
+      "/api/corporate-events/load/p1/background?asAt=2012-02-01",
       { method: "POST" },
     )
     expect(onBackgroundLoad).toHaveBeenCalledWith({

@@ -26,11 +26,18 @@ import {
   loadCorporateEventsUrl,
   processCorporateEvent,
 } from "@utils/api/client/corporateEvents"
+import { isOwedFrom } from "@lib/holdings/corporateActionsFrom"
 
 interface CorporateActionsPopupProps {
   asset: Asset
   portfolioId: string
   fromDate: string
+  /**
+   * The holding's first trade. No split, or any event but a dividend, before
+   * it is listed: an imported holding is owed dividends from its cost date
+   * (`fromDate`), but its quantity is already after every earlier split.
+   */
+  splitsFrom?: string
   toDate?: string // Optional - defaults to today if not provided
   closedDate?: string // Position closed date - events after this should be ignored
   modalOpen: boolean
@@ -41,6 +48,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   asset,
   portfolioId,
   fromDate: fromDateProp,
+  splitsFrom,
   toDate: toDateProp,
   closedDate,
   modalOpen,
@@ -251,7 +259,9 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   }
 
   // Sort events by recordDate descending (most recent first)
-  const events: CorporateEvent[] = sortEventsByRecordDateDesc(data?.data || [])
+  const events: CorporateEvent[] = sortEventsByRecordDateDesc(
+    data?.data || [],
+  ).filter((event) => isOwedFrom(event, splitsFrom))
 
   // Get events that are missing (not reconciled) and ready to process
   const missingEvents = getMissingProcessableEvents(
