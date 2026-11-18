@@ -128,7 +128,7 @@ export default function UploadStep({
   const cashRefused =
     creatingAccount &&
     flow.newAccountCash.trim() !== "" &&
-    !((cashAmount ?? -1) >= 0)
+    (cashAmount === undefined || cashAmount < 0)
   const account: ImportAccount | undefined = creatingAccount
     ? newAccountName.trim()
       ? {
@@ -136,7 +136,8 @@ export default function UploadStep({
             name: newAccountName.trim(),
             accountNumber: flow.newAccountNumber.trim(),
             globalBrokerId: firm?.id,
-            // A refused amount never reaches here: Continue stays disabled.
+            // Zero is no cash. A refused amount is never read (Continue stays
+            // disabled), and Record sends the cash fixed here at read time.
             cash: cashAmount ? { amount: cashAmount, currency } : undefined,
           },
         }
@@ -181,7 +182,8 @@ export default function UploadStep({
     Boolean(flow.file),
   ]
   const current = done.indexOf(false)
-  // The step Continue waits on, named under the button while it is off.
+  // The step Continue waits on, named under the button while it is off. A
+  // refused cash amount also keeps it off; that is named at the cash field.
   const waitingOn = current >= 0 && !flow.reading ? current + 1 : null
 
   return (
