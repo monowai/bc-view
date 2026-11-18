@@ -231,14 +231,14 @@ describe("Holdings page", () => {
       expect(holdingsMutate).not.toHaveBeenCalled()
     })
 
-    it("ignores a public asset for a non-admin", () => {
+    it("does not offer Edit Asset on a public asset to a non-admin", () => {
       render(<HoldingsPage />)
-      openEditAsset("VOO")
+      fireEvent.click(screen.getByRole("button", { name: /Actions VOO/i }))
 
-      expect(screen.queryByTestId("admin-edit-dialog")).not.toBeInTheDocument()
       expect(
-        screen.queryByTestId("edit-account-dialog"),
+        screen.queryByRole("button", { name: "Edit Asset" }),
       ).not.toBeInTheDocument()
+      expect(screen.queryByTestId("admin-edit-dialog")).not.toBeInTheDocument()
     })
 
     it("sends an admin's public-asset edit through the slim dialog", async () => {
