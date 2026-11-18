@@ -61,7 +61,10 @@ export default function DoneStep({
         />
       )}
       <div className="flex flex-wrap gap-3 items-center">
-        <Link href={`/holdings/${portfolio.code}`} className="btn-primary">
+        <Link
+          href={`/holdings/${encodeURIComponent(portfolio.code)}`}
+          className="btn-primary"
+        >
           View Portfolio
         </Link>
         <button
@@ -72,7 +75,7 @@ export default function DoneStep({
           Import Another Image
         </button>
         <Link
-          href={`/brokers/${brokerId}/holdings`}
+          href={`/brokers/${encodeURIComponent(brokerId)}/holdings`}
           className="text-sm text-gray-600 underline"
         >
           Holdings at this brokerage account

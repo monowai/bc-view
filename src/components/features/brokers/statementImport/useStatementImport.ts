@@ -190,8 +190,10 @@ type SuggestOutcome = { data: HeldSinceSuggestion[] } | { error: string }
 
 /**
  * Ask for each holding's date on its own, a few at a time, so progress can be
- * shown holding by holding. One answer per holding, in the order asked. The
- * first failure stops the rest: no date is filled from a partial answer.
+ * shown holding by holding. One answer per holding, in the order asked. After
+ * the first failure no further holding is asked about; the ones already in
+ * flight finish, but their answers are discarded: no date is filled from a
+ * partial answer.
  */
 async function fetchSuggestions(
   named: HeldSinceQuery[],
@@ -223,11 +225,18 @@ async function fetchSuggestions(
   }
   const worker = async (): Promise<void> => {
     while (next < named.length && !signal.aborted && failure === null) {
-      await ask(next++)
+      try {
+        await ask(next++)
+      } catch {
+        // Unreachable or an unreadable answer: the other workers stop too.
+        failure ??= UNREACHABLE
+      }
     }
   }
   await Promise.all(
-    Array.from({ length: Math.min(SUGGEST_IN_PARALLEL, named.length) }, worker),
+    Array.from({ length: Math.min(SUGGEST_IN_PARALLEL, named.length) }, () =>
+      worker(),
+    ),
   )
   return failure === null ? { data: answers } : { error: failure }
 }
@@ -877,7 +886,7 @@ export function useStatementImport(): StatementImportFlow {
       })
       // Nothing to read or offer on the done screen: go straight to the portfolio.
       if (warnings.length === 0 && !backdatedTo)
-        void router.push(`/holdings/${portfolio.code}`)
+        void router.push(`/holdings/${encodeURIComponent(portfolio.code)}`)
     } catch {
       setRecordError(UNREACHABLE)
     } finally {

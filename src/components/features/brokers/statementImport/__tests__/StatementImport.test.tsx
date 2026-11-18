@@ -1,5 +1,6 @@
 import React from "react"
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -1788,6 +1789,45 @@ describe("<StatementImport /> record", () => {
     expect(
       await screen.findByText(/^Suggested a date for 1 holding\./),
     ).toBeInTheDocument()
+  })
+
+  test("Suggest dates asks about no more holdings once one cannot be reached", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        ...holdingsProposal.rows,
+        { code: "NOK", quantity: 100, costBasis: 400 },
+        { code: "TSLA", quantity: 10, costBasis: 900 },
+        { code: "MSFT", quantity: 20, costBasis: 700 },
+        { code: "IBM", quantity: 30, costBasis: 600 },
+      ],
+    })
+    const pending: Array<() => void> = []
+    let asked = 0
+    fetchMock.mockResponse((req) => {
+      if (!req.url.includes(HELD_SINCE_URL)) return respond(req)
+      asked++
+      if (asked === 1) return Promise.reject(new Error("offline"))
+      return new Promise((resolve) => {
+        pending.push(() => resolve(heldSinceAnswer(req)))
+      })
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    await waitFor(() => expect(pending).toHaveLength(2))
+    pending.splice(0).forEach((answer) => answer())
+
+    expect(
+      await screen.findByText(
+        "Beancounter could not be reached. Check your connection and try again.",
+      ),
+    ).toBeInTheDocument()
+    await act(() => new Promise((settle) => setTimeout(settle, 50)))
+    expect(asked).toBe(3)
+    expect(screen.getByLabelText("Held since for NOK")).toHaveValue("")
   })
 
   test("Suggest dates says so when there is nothing to suggest", async () => {
