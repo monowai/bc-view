@@ -554,6 +554,7 @@ export function useStatementImport(): StatementImportFlow {
       })
       .map((row) => row.code.trim())
     if (asked.length === 0) {
+      setSuggestError(null)
       setSuggestNote(suggestedNote(0, [], unknown) || nothingToDate(session))
       return
     }
@@ -786,6 +787,8 @@ export function useStatementImport(): StatementImportFlow {
 
   const reset = (): void => {
     suggestAbort.current?.abort()
+    setSuggestNote(null)
+    setSuggestError(null)
     setNewAccountName(null)
     setNewAccountNumber("")
     latestCheck.current++

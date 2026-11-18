@@ -1570,6 +1570,39 @@ describe("<StatementImport /> record", () => {
     ).toBeInTheDocument()
   })
 
+  test("a failed Suggest dates stops showing once nothing is left to date", async () => {
+    backend.heldSince = { status: 500, body: "{}" }
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    expect(await screen.findByText(/could not be guessed/)).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    expect(
+      await screen.findByText(/Every holding being added already has a date/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/could not be guessed/)).not.toBeInTheDocument()
+  })
+
+  test("what Suggest dates found is not shown on the next import", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    await screen.findByText("Suggested a date for 1 holding.")
+
+    await user.click(
+      screen.getByRole("button", { name: "Discard and Start Again" }),
+    )
+    await upload(user)
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    expect(
+      screen.queryByText("Suggested a date for 1 holding."),
+    ).not.toBeInTheDocument()
+  })
+
   test("a date read from the image is used, and Suggest dates leaves it alone", async () => {
     backend.read = json({
       ...holdingsProposal,
