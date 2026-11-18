@@ -185,9 +185,38 @@ function preview(shown: ShownHoldings): ReconcilePreview {
   }
 }
 
+/**
+ * The held-since answer for the rows a request asks about, picked from the
+ * configured answers by asset id ("a-" + code for a listing named by code). An
+ * empty configured list, or a failure, is returned as it is.
+ */
+async function heldSinceAnswer(req: Request): Promise<MockResponseInit> {
+  const configured = backend.heldSince
+  if (configured.status !== 200) return configured
+  const { data } = JSON.parse(String(configured.body)) as {
+    data: Array<{ assetId: string | null }>
+  }
+  if (data.length === 0) return configured
+  const { rows } = (await req.json()) as {
+    rows: Array<{ assetId?: string; code?: string }>
+  }
+  return json({
+    data: rows.map((row) => {
+      const id = row.assetId ?? `a-${row.code}`
+      return (
+        data.find((answer) => answer.assetId === id) ?? {
+          assetId: id,
+          heldSince: null,
+          before: null,
+        }
+      )
+    }),
+  })
+}
+
 async function respond(req: Request): Promise<MockResponseInit> {
   const url = req.url
-  if (url.includes(HELD_SINCE_URL)) return backend.heldSince
+  if (url.includes(HELD_SINCE_URL)) return heldSinceAnswer(req)
   if (url.includes(COMMIT_URL)) {
     const next =
       backend.commits.length > 1 ? backend.commits.shift() : backend.commits[0]
@@ -1583,15 +1612,52 @@ describe("<StatementImport /> record", () => {
       ),
     )
     expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
-      {
-        rows: [
-          { assetId: "a-AAPL", costPerShare: 120 },
-          { market: "US", code: "NOK", costPerShare: 4 },
-        ],
-      },
+      { rows: [{ assetId: "a-AAPL", costPerShare: 120 }] },
+      { rows: [{ market: "US", code: "NOK", costPerShare: 4 }] },
     ])
     expect(
       screen.getByText("Suggested dates for 2 holdings."),
+    ).toBeInTheDocument()
+  })
+
+  test("Suggest dates counts off each holding as its price history is fetched", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        ...holdingsProposal.rows,
+        { code: "NOK", quantity: 100, costBasis: 400 },
+      ],
+    })
+    const answers: Array<() => void> = []
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answers.push(() => resolve(heldSinceAnswer(req)))
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    const progress = await screen.findByRole("progressbar")
+    expect(progress).toHaveAttribute("aria-valuemax", "2")
+    expect(progress).toHaveAttribute("aria-valuenow", "0")
+    expect(screen.getByText(/0 of 2/)).toBeInTheDocument()
+
+    await waitFor(() => expect(answers).toHaveLength(2))
+    answers[0]()
+    await waitFor(() =>
+      expect(screen.getByRole("progressbar")).toHaveAttribute(
+        "aria-valuenow",
+        "1",
+      ),
+    )
+    expect(screen.getByText(/1 of 2/)).toBeInTheDocument()
+    answers[1]()
+    expect(
+      await screen.findByText(/^Suggested a date for 1 holding\./),
     ).toBeInTheDocument()
   })
 
