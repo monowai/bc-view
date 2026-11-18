@@ -3,6 +3,7 @@ import {
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
 import { useRef, useState } from "react"
+import { useRouter } from "next/router"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import { holdingByIdKey } from "@utils/api/client/holdings"
@@ -73,6 +74,8 @@ interface ImportResult {
   recorded: number
   warnings: string[]
   brokerId: string
+  /** The portfolio recorded in, for the link to its holdings. */
+  portfolioCode: string
 }
 
 type EditableField = "code" | "market" | "quantity" | "cost"
@@ -326,6 +329,7 @@ export function useStatementImport(): StatementImportFlow {
   const [suggestProgress, setSuggestProgress] =
     useState<SuggestProgress | null>(null)
   const { mutate } = useSWRConfig()
+  const router = useRouter()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -703,14 +707,14 @@ export function useStatementImport(): StatementImportFlow {
     readyRows.length > 0
 
   /**
-   * The id of the portfolio to record in, creating it first when asked to.
-   * A created portfolio replaces the request, so a retry does not create
-   * another. Null, with the reason shown, when it cannot be created.
+   * The portfolio to record in, creating it first when asked to. A created
+   * portfolio replaces the request, so a retry does not create another. Null,
+   * with the reason shown, when it cannot be created.
    */
   const portfolioFor = async (
     current: ImportSession,
-  ): Promise<string | null> => {
-    if ("portfolio" in current.target) return current.target.portfolio.id
+  ): Promise<ImportPortfolio | null> => {
+    if ("portfolio" in current.target) return current.target.portfolio
     const { code, name, currency } = current.target.create
     const res = await createPortfolios({
       data: [{ code, name, currency, base: currency }],
@@ -735,7 +739,7 @@ export function useStatementImport(): StatementImportFlow {
         : now,
     )
     await mutate(portfoliosKey)
-    return created.id
+    return created
   }
 
   /**
@@ -797,10 +801,10 @@ export function useStatementImport(): StatementImportFlow {
     try {
       const accountId = await accountFor(session)
       if (!accountId) return
-      const portfolioId = await portfolioFor(session)
-      if (!portfolioId) return
+      const portfolio = await portfolioFor(session)
+      if (!portfolio) return
       const confirmed: ConfirmedHoldings = {
-        portfolioId,
+        portfolioId: portfolio.id,
         brokerId: accountId,
         uploadId: session.uploadId,
         tradeDate: session.tradeDate || undefined,
@@ -815,12 +819,16 @@ export function useStatementImport(): StatementImportFlow {
         return
       }
       const saved = (await res.json()) as TrnResponse
-      void valuePortfolio(portfolioId)
+      void valuePortfolio(portfolio.id)
+      const warnings = saved.warnings ?? []
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
-        warnings: saved.warnings ?? [],
+        warnings,
         brokerId: accountId,
+        portfolioCode: portfolio.code,
       })
+      // Nothing to read on the done screen: go straight to the portfolio.
+      if (warnings.length === 0) void router.push(`/holdings/${portfolio.code}`)
     } catch {
       setRecordError(UNREACHABLE)
     } finally {

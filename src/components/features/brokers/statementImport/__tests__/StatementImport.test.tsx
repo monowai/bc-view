@@ -23,6 +23,11 @@ import type {
 enableFetchMocks()
 
 // The read endpoint is a paid vision-model call: it is only ever mocked here.
+const mockPush = jest.fn()
+jest.mock("next/router", () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
+
 const READ_URL = "/api/agent/screenshot"
 const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
@@ -1862,7 +1867,20 @@ describe("<StatementImport /> record", () => {
     ])
   })
 
+  test("with nothing to warn about, Record goes straight to the portfolio", async () => {
+    mockPush.mockClear()
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(recordButton())
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith("/holdings/GROWTH"),
+    )
+  })
+
   test("the done screen shows the count, the warnings and where to go next", async () => {
+    mockPush.mockClear()
     backend.commits = [
       json({
         data: { trns: [{ id: "t-1" }, { id: "t-2" }] },
@@ -1879,8 +1897,12 @@ describe("<StatementImport /> record", () => {
       screen.getByText("Cash was not settled for AAPL"),
     ).toBeInTheDocument()
     expect(
+      screen.getByRole("link", { name: "View Portfolio" }),
+    ).toHaveAttribute("href", "/holdings/GROWTH")
+    expect(
       screen.getByRole("link", { name: /holdings at this brokerage account/i }),
     ).toHaveAttribute("href", "/brokers/b-ibkr/holdings")
+    expect(mockPush).not.toHaveBeenCalled()
 
     await user.click(
       screen.getByRole("button", { name: "Import Another Image" }),

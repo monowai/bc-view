@@ -6,6 +6,7 @@ interface DoneStepProps {
   recorded: number
   warnings: string[]
   brokerId: string
+  portfolioCode: string
   onImportAnother: () => void
 }
 
@@ -14,6 +15,7 @@ export default function DoneStep({
   recorded,
   warnings,
   brokerId,
+  portfolioCode,
   onImportAnother,
 }: DoneStepProps): React.ReactElement {
   return (
@@ -32,11 +34,8 @@ export default function DoneStep({
         </Alert>
       )}
       <div className="flex flex-wrap gap-3 items-center">
-        <Link
-          href={`/brokers/${brokerId}/holdings`}
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          View holdings at this brokerage account
+        <Link href={`/holdings/${portfolioCode}`} className="btn-primary">
+          View Portfolio
         </Link>
         <button
           type="button"
@@ -45,6 +44,12 @@ export default function DoneStep({
         >
           Import Another Image
         </button>
+        <Link
+          href={`/brokers/${brokerId}/holdings`}
+          className="text-sm text-gray-600 underline"
+        >
+          Holdings at this brokerage account
+        </Link>
       </div>
     </div>
   )
