@@ -282,7 +282,7 @@ describe("transaction list row actions", () => {
   it.each(pages)("copies a %s row", (_name, view, Page) => {
     view()
     render(<Page />)
-    fireEvent.click(screen.getAllByTitle("Copy")[0])
+    fireEvent.click(screen.getAllByTitle("Copy row")[0])
     expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1)
   })
 
@@ -332,7 +332,7 @@ describe("transaction list row actions", () => {
   it("switches between the trades and events tabs", () => {
     eventsView(events)
     render(<Events />)
-    fireEvent.click(screen.getByRole("button", { name: "Trades" }))
+    fireEvent.click(screen.getByRole("tab", { name: /Trades/ }))
     expect(mockRouter.replace).toHaveBeenCalledWith("/trns/trades/p1/a1")
   })
 })
