@@ -180,7 +180,7 @@ export function attachPreview(
 }
 
 /** Beancounter's asset, or the market and code a listing new to it is created under. */
-function assetNamed(
+export function assetNamed(
   preview: ReconcilePreviewRow,
 ): Pick<ConfirmedRow, "assetId" | "market" | "code"> | null {
   if (preview.assetId) return { assetId: preview.assetId }

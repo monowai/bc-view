@@ -1616,6 +1616,24 @@ describe("<StatementImport /> record", () => {
     ).toBeInTheDocument()
   })
 
+  test("Suggest dates fills nothing when the answers do not match the holdings asked about", async () => {
+    backend.heldSince = json({ data: [] })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    expect(
+      await screen.findByText(
+        "The held-since answers did not match the holdings asked about. Enter the dates yourself.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+    expect(
+      screen.queryByText(/No date could be suggested/),
+    ).not.toBeInTheDocument()
+  })
+
   test("a failed Suggest dates stops showing once nothing is left to date", async () => {
     backend.heldSince = { status: 500, body: "{}" }
     const user = userEvent.setup()

@@ -30,6 +30,7 @@ import type {
   TrnResponse,
 } from "types/beancounter"
 import {
+  assetNamed,
   attachPreview,
   canBeChecked,
   GUESSED_BEFORE_PRICES,
@@ -532,13 +533,13 @@ export function useStatementImport(): StatementImportFlow {
       const preview = session.previewByKey[row.key]
       if (row.heldSince || preview?.trnType !== "ADD") return []
       if (!preview.cost || !preview.quantity) return []
-      const costPerShare = preview.cost / preview.quantity
-      const named: HeldSinceQuery | null = preview.assetId
-        ? { assetId: preview.assetId, costPerShare }
-        : preview.market && preview.assetCode
-          ? { market: preview.market, code: preview.assetCode, costPerShare }
-          : null
-      return named ? [{ key: row.key, code: row.code.trim(), named }] : []
+      const asset = assetNamed(preview)
+      if (!asset) return []
+      const named: HeldSinceQuery = {
+        ...asset,
+        costPerShare: preview.cost / preview.quantity,
+      }
+      return [{ key: row.key, code: row.code.trim(), named }]
     })
     if (asked.length === 0) {
       setSuggestError(null)
@@ -569,7 +570,14 @@ export function useStatementImport(): StatementImportFlow {
       }
       const { data } = (await res.json()) as HeldSinceResponse
       if (abort.signal.aborted) return
-      // One answer per row asked, in the order asked.
+      // One answer per row asked, in the order asked. Any other count cannot
+      // be matched to the rows, so no date is filled from it.
+      if (data.length !== asked.length) {
+        setSuggestError(
+          "The held-since answers did not match the holdings asked about. Enter the dates yourself.",
+        )
+        return
+      }
       const byKey = new Map(asked.map((each, index) => [each.key, data[index]]))
       const missed = asked
         .filter((each) => {
