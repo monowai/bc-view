@@ -31,42 +31,54 @@ const fieldClass =
 type RowOrder = "issues" | "image"
 
 const ORDER_OPTIONS: Array<{ value: RowOrder; label: string }> = [
-  { value: "issues", label: "Issues first" },
   { value: "image", label: "Image order" },
+  { value: "issues", label: "Issues first" },
 ]
 
-/** How the holdings are listed: issues first, or as the image shows them. */
+/**
+ * How the holdings are listed: as the image shows them, or issues first.
+ * Issues first is off when no row has an issue.
+ */
 function RowOrderToggle({
   order,
+  issuesFirstOff,
   onChange,
 }: {
   order: RowOrder
+  issuesFirstOff: boolean
   onChange: (order: RowOrder) => void
 }): React.ReactElement {
   return (
     <fieldset className="flex justify-end">
       <legend className="sr-only">Order of the holdings</legend>
       <div className="inline-flex rounded-lg border border-gray-300 bg-white p-0.5 text-sm">
-        {ORDER_OPTIONS.map((option) => (
-          <label
-            key={option.value}
-            className={`cursor-pointer rounded-md px-3 py-1.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
-              order === option.value
-                ? "bg-gray-900 text-white"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <input
-              type="radio"
-              name="import-row-order"
-              value={option.value}
-              checked={order === option.value}
-              onChange={() => onChange(option.value)}
-              className="sr-only"
-            />
-            {option.label}
-          </label>
-        ))}
+        {ORDER_OPTIONS.map((option) => {
+          const off = option.value === "issues" && issuesFirstOff
+          return (
+            <label
+              key={option.value}
+              title={off ? "No row has an issue" : undefined}
+              className={`rounded-md px-3 py-1.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
+                order === option.value
+                  ? "bg-gray-900 text-white"
+                  : off
+                    ? "cursor-not-allowed text-gray-400"
+                    : "cursor-pointer text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <input
+                type="radio"
+                name="import-row-order"
+                value={option.value}
+                checked={order === option.value}
+                disabled={off}
+                onChange={() => onChange(option.value)}
+                className="sr-only"
+              />
+              {option.label}
+            </label>
+          )
+        })}
       </div>
     </fieldset>
   )
@@ -98,7 +110,8 @@ export default function ConfirmStep({
   )
   // The row whose asset is being looked up with the asset search.
   const [findingKey, setFindingKey] = useState<string | null>(null)
-  const [order, setOrder] = useState<RowOrder>("issues")
+  // The user's choice of order; until they choose, issues first when there are any.
+  const [chosenOrder, setOrder] = useState<RowOrder | null>(null)
   if (!session) return null
   const existing =
     "portfolio" in session.target ? session.target.portfolio : null
@@ -130,6 +143,8 @@ export default function ConfirmStep({
   // check, so a row moves only when it is checked again, not while edited.
   const rank = (status: string | undefined): number =>
     status === "READY" ? 1 : status === "UNCHANGED" ? 2 : 0
+  const hasIssues = blocked.length > 0
+  const order: RowOrder = hasIssues ? (chosenOrder ?? "issues") : "image"
   const ordered =
     order === "image"
       ? session.rows
@@ -371,7 +386,11 @@ export default function ConfirmStep({
 
       {flow.previewError && <Alert>{flow.previewError}</Alert>}
 
-      <RowOrderToggle order={order} onChange={setOrder} />
+      <RowOrderToggle
+        order={order}
+        issuesFirstOff={!hasIssues}
+        onChange={setOrder}
+      />
 
       <HoldingsTable
         rows={ordered}

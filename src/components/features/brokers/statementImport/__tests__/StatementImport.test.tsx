@@ -1044,6 +1044,31 @@ describe("<StatementImport /> confirm", () => {
     ])
   })
 
+  test("with no issues the image's order is used and Issues first is off", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        { code: "VOO", quantity: 3 },
+        { code: "AAPL", quantity: 10, costBasis: 1200 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const radios = screen.getAllByRole("radio")
+    expect(radios.map((radio) => radio.getAttribute("value"))).toEqual([
+      "image",
+      "issues",
+    ])
+    expect(screen.getByRole("radio", { name: "Image order" })).toBeChecked()
+    expect(screen.getByRole("radio", { name: "Issues first" })).toBeDisabled()
+    expect(
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["Code for VOO", "Code for AAPL"])
+  })
+
   test("Record sits at the top, above the holdings", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
