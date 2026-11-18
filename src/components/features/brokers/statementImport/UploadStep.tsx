@@ -16,6 +16,7 @@ import ImageDropZone from "./ImageDropZone"
 import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
+import { parseAmount } from "./statementRows"
 import {
   CREATE_PORTFOLIO,
   FALLBACK_CURRENCY,
@@ -119,6 +120,10 @@ export default function UploadStep({
   const firm = firms.find((candidate) => candidate.id === firmId)
   // The firm's name until the user edits it; a cleared name stays cleared.
   const newAccountName = flow.newAccountName ?? firm?.name ?? ""
+  const firmCurrency = firm?.config?.currency
+  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
+  // Cash is recorded only when there is some: blank, zero or less is none.
+  const cashAmount = parseAmount(flow.newAccountCash) ?? 0
   const account: ImportAccount | undefined = creatingAccount
     ? newAccountName.trim()
       ? {
@@ -126,6 +131,7 @@ export default function UploadStep({
             name: newAccountName.trim(),
             accountNumber: flow.newAccountNumber.trim(),
             globalBrokerId: firm?.id,
+            cash: cashAmount > 0 ? { amount: cashAmount, currency } : undefined,
           },
         }
       : undefined
@@ -138,9 +144,6 @@ export default function UploadStep({
   const selectedId = flow.portfolioId || CREATE_PORTFOLIO
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
   const creating = selectedId === CREATE_PORTFOLIO
-  const firmCurrency = firms.find((firm) => firm.id === firmId)?.config
-    ?.currency
-  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
   const target = importTarget(
     accountNaming,
     creating,
@@ -265,8 +268,34 @@ export default function UploadStep({
                     className={fieldClass}
                   />
                 </div>
+                <div>
+                  <label htmlFor="import-account-cash" className={labelClass}>
+                    Cash balance
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span
+                      id="import-account-cash-currency"
+                      className="text-sm text-gray-500"
+                    >
+                      {currency}
+                    </span>
+                    <input
+                      id="import-account-cash"
+                      type="text"
+                      inputMode="decimal"
+                      value={flow.newAccountCash}
+                      disabled={flow.reading}
+                      onChange={(event) =>
+                        flow.chooseNewAccountCash(event.target.value)
+                      }
+                      placeholder="Optional"
+                      aria-describedby="import-account-cash-currency"
+                      className={fieldClass}
+                    />
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500">
-                  The account is created when you record.
+                  The account is created, with any cash, when you record.
                 </p>
               </fieldset>
             )}

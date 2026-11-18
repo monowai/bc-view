@@ -178,4 +178,12 @@ export interface ConfirmedHoldings {
   /** yyyy-MM-dd, not in the future; today when absent. */
   tradeDate?: string
   rows: ConfirmedRow[]
+  /** A new account's opening cash, recorded as one deposit with the rows. */
+  cash?: ConfirmedCash
+}
+
+/** Cash an account holds: more than zero, in an ISO currency. */
+export interface ConfirmedCash {
+  amount: number
+  currency: string
 }

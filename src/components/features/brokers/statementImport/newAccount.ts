@@ -1,4 +1,4 @@
-import type { Broker } from "types/beancounter"
+import type { Broker, ConfirmedCash } from "types/beancounter"
 import { brokerLabel } from "./BrokerageAccountPicker"
 
 /** The Brokerage account choice that creates one when the holdings are recorded. */
@@ -11,6 +11,8 @@ export interface NewAccount {
   accountNumber: string
   /** The firm it is an account with; absent for another brokerage. */
   globalBrokerId?: string
+  /** The cash it holds, recorded with the holdings; absent when none was given. */
+  cash?: ConfirmedCash
 }
 
 type ImportBroker = Pick<Broker, "id" | "name" | "accountNumber">

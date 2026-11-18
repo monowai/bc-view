@@ -970,6 +970,78 @@ describe("<StatementImport /> new brokerage account", () => {
     )
   })
 
+  /** Create an account at IBKR, read the screenshot and record it. */
+  async function recordNewAccount(
+    user: UserEvent,
+    cash: string,
+  ): Promise<ConfirmedHoldings> {
+    renderImport()
+    await chooseCreateAccount(user)
+    if (cash) await user.type(screen.getByLabelText("Cash balance"), cash)
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+    return bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0]
+  }
+
+  test("a cash balance entered is sent with the new account's currency", async () => {
+    const user = userEvent.setup()
+
+    const confirmed = await recordNewAccount(user, "1,250.50")
+
+    expect(confirmed.cash).toEqual({ amount: 1250.5, currency: "USD" })
+    expect(confirmed.rows.length).toBeGreaterThan(0)
+  })
+
+  test("the cash balance follows the currency chosen for the new portfolio", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    await screen.findByRole("option", { name: "NZD" })
+    await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
+    await user.type(screen.getByLabelText("Cash balance"), "300")
+    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+    expect(screen.getByLabelText("Currency")).toHaveValue("NZD")
+    await user.selectOptions(screen.getByLabelText("Currency"), "USD")
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+
+    expect(bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].cash).toEqual({
+      amount: 300,
+      currency: "USD",
+    })
+  })
+
+  test("a blank cash balance is not sent", async () => {
+    const user = userEvent.setup()
+
+    expect((await recordNewAccount(user, "")).cash).toBeUndefined()
+  })
+
+  test("a zero cash balance is not sent", async () => {
+    const user = userEvent.setup()
+
+    expect((await recordNewAccount(user, "0")).cash).toBeUndefined()
+  })
+
+  test("an existing account offers no cash balance", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    await chooseCreateAccount(user)
+    expect(screen.getByLabelText("Cash balance")).toBeInTheDocument()
+
+    await user.selectOptions(
+      screen.getByLabelText("Brokerage account"),
+      "b-ibkr",
+    )
+
+    expect(screen.queryByLabelText("Cash balance")).not.toBeInTheDocument()
+  })
+
   test("an account that cannot be created records nothing and says why", async () => {
     backend.createdAccount = json(
       { message: "Broker with name 'Interactive Brokers' already exists" },

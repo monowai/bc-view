@@ -156,6 +156,19 @@ function nothingToDate(session: ImportSession): string {
     : `${said} ${matching} holdings already match what is held, so take no date.`
 }
 
+/** A new account's cash, in the currency its portfolio is now created in. */
+function withCashCurrency(
+  account: ImportAccount,
+  currency: string,
+): ImportAccount {
+  if (!("createAccount" in account)) return account
+  const { cash } = account.createAccount
+  if (!cash) return account
+  return {
+    createAccount: { ...account.createAccount, cash: { ...cash, currency } },
+  }
+}
+
 function withPreview(
   session: ImportSession,
   sent: ImportRow[],
@@ -200,6 +213,9 @@ export interface StatementImportFlow {
   chooseNewAccountName: (name: string) => void
   newAccountNumber: string
   chooseNewAccountNumber: (accountNumber: string) => void
+  /** The opening cash balance typed for an account to create; "" for none. */
+  newAccountCash: string
+  chooseNewAccountCash: (cash: string) => void
   /** The currency chosen for a portfolio to create; "" for the firm's. */
   newCurrency: string
   chooseNewCurrency: (currency: string) => void
@@ -263,6 +279,7 @@ export function useStatementImport(): StatementImportFlow {
   const [newCurrency, setNewCurrency] = useState("")
   const [newAccountName, setNewAccountName] = useState<string | null>(null)
   const [newAccountNumber, setNewAccountNumber] = useState("")
+  const [newAccountCash, setNewAccountCash] = useState("")
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
   const [suggestNote, setSuggestNote] = useState<string | null>(null)
@@ -457,6 +474,7 @@ export function useStatementImport(): StatementImportFlow {
           ? {
               ...current,
               target: { create: { ...current.target.create, currency } },
+              account: withCashCurrency(current.account, currency),
             }
           : current),
     )
@@ -761,6 +779,10 @@ export function useStatementImport(): StatementImportFlow {
         uploadId: session.uploadId,
         tradeDate: session.tradeDate || undefined,
         rows: readyRows,
+        cash:
+          "createAccount" in session.account
+            ? session.account.createAccount.cash
+            : undefined,
       }
       const res = await commitReconcile(confirmed)
       if (!res.ok) {
@@ -791,6 +813,7 @@ export function useStatementImport(): StatementImportFlow {
     setSuggestError(null)
     setNewAccountName(null)
     setNewAccountNumber("")
+    setNewAccountCash("")
     latestCheck.current++
     setSession(null)
     setResult(null)
@@ -813,6 +836,8 @@ export function useStatementImport(): StatementImportFlow {
     chooseNewAccountName: setNewAccountName,
     newAccountNumber,
     chooseNewAccountNumber: setNewAccountNumber,
+    newAccountCash,
+    chooseNewAccountCash: setNewAccountCash,
     chosenFirmId,
     chooseFirm: setChosenFirmId,
     chosenBrokerId,
