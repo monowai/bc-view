@@ -1,5 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react"
-import { corporateActionsFrom } from "@lib/holdings/corporateActionsFrom"
+import {
+  corporateActionsFrom,
+  dividendsFrom,
+} from "@lib/holdings/corporateActionsFrom"
 import type { ValueInOption } from "types/constants"
 import {
   Asset,
@@ -426,7 +429,8 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             asset={asset}
             portfolioId={portfolio.id}
             portfolioCode={portfolio.code}
-            fromDate={corporateActionsFrom(dateValues)}
+            fromDate={dividendsFrom(dateValues)}
+            splitsFrom={corporateActionsFrom(dateValues)}
             closedDate={dateValues?.closed ?? undefined}
             quantity={quantityValues.total}
             held={held}

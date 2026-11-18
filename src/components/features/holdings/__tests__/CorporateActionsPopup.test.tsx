@@ -269,4 +269,57 @@ describe("CorporateActionsPopup", () => {
       expect(toInput).toBeInTheDocument()
     })
   })
+
+  describe("an imported holding", () => {
+    const imported = {
+      data: [
+        {
+          id: "divi-2018",
+          trnType: "DIVI",
+          source: "ALPHA",
+          assetId: "asset-aapl",
+          recordDate: "2018-05-10",
+          rate: 0.5,
+          split: 1,
+          payDate: "2018-05-20",
+        },
+        {
+          id: "split-2020",
+          trnType: "SPLIT",
+          source: "ALPHA",
+          assetId: "asset-aapl",
+          recordDate: "2020-08-31",
+          rate: 0,
+          split: 2,
+          payDate: "2020-08-31",
+        },
+      ] as CorporateEvent[],
+    }
+
+    it("lists dividends from its cost date but no split before its first trade", () => {
+      jest.setSystemTime(new Date(2026, 10, 18, 12).getTime())
+      mockUseSwr.mockImplementation(((key: string | null) =>
+        mockSwrResponse(
+          key?.includes("corporate-events") ? imported : { data: [] },
+        )) as unknown as typeof useSwr)
+
+      render(
+        <CorporateActionsPopup
+          asset={mockAsset}
+          portfolioId="test-portfolio-id"
+          fromDate="2016-01-04"
+          splitsFrom="2026-11-18"
+          modalOpen={true}
+          onClose={mockOnClose}
+        />,
+      )
+
+      expect(screen.getByText("2018-05-10")).toBeInTheDocument()
+      expect(screen.queryByText("2020-08-31")).not.toBeInTheDocument()
+      expect(screen.queryByText("Split")).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: /Backfill \(1\)/ }),
+      ).toBeInTheDocument()
+    })
+  })
 })

@@ -30,6 +30,8 @@ export interface CorporateActionsData {
   asset: Asset
   portfolioId: string
   fromDate: string
+  /** The holding's first trade: no split before it is offered. */
+  splitsFrom?: string
   closedDate?: string
 }
 
@@ -189,6 +191,7 @@ export interface ActionsMenuProps {
   portfolioId: string
   portfolioCode: string
   fromDate?: string
+  splitsFrom?: string
   closedDate?: string
   quantity: number
   price: number
@@ -228,6 +231,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   portfolioId,
   portfolioCode,
   fromDate,
+  splitsFrom,
   closedDate,
   quantity,
   price,
@@ -313,6 +317,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
               asset,
               portfolioId,
               fromDate: fromDate || "",
+              splitsFrom,
               closedDate,
             }),
           )}
