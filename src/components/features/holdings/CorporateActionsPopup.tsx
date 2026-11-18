@@ -304,7 +304,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
     <Dialog
       title={`${"Corporate Actions"} - ${asset.code}`}
       onClose={onClose}
-      maxWidth="xl"
+      maxWidth="4xl"
       scrollable
       footer={
         <>
@@ -428,22 +428,26 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                   <i className="fas fa-check-circle text-gray-400"></i>
                 </th>
                 <th className="px-4 py-2 text-left">{"Type"}</th>
-                <th className="px-4 py-2 text-left">{"Record Date"}</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap">
+                  {"Record Date"}
+                </th>
                 <th
-                  className="px-4 py-2 text-left"
+                  className="px-4 py-2 text-left whitespace-nowrap"
                   title={"Calculated as record date + 18 days"}
                 >
                   {"Effective Date"}
                   <i className="fas fa-info-circle ml-1 text-xs text-gray-400"></i>
                 </th>
                 <th
-                  className="px-4 py-2 text-left"
+                  className="px-4 py-2 text-left whitespace-nowrap"
                   title={"Transaction date in your portfolio"}
                 >
                   {"Trn Date"}
                 </th>
                 <th className="px-4 py-2 text-right">{"Rate"}</th>
-                <th className="px-4 py-2 text-right">{"Split Ratio"}</th>
+                <th className="px-4 py-2 text-right whitespace-nowrap">
+                  {"Split Ratio"}
+                </th>
                 <th className="px-4 py-2 text-center">{"Actions"}</th>
               </tr>
             </thead>
@@ -483,8 +487,10 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                         {getEventTypeLabel(event.trnType)}
                       </span>
                     </td>
-                    <td className="px-4 py-2">{event.recordDate}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 whitespace-nowrap tabular-nums">
+                      {event.recordDate}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap tabular-nums">
                       <span
                         className={
                           canProcessEvent(event, toDate)
@@ -499,7 +505,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                         )}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 whitespace-nowrap tabular-nums">
                       {event.trnType === "DIVI" ? (
                         editingEventId === event.id ? (
                           <DateInput
@@ -535,7 +541,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-right tabular-nums">
                       {event.trnType === "DIVI" ? (
                         <NumericFormat
                           value={event.rate}
@@ -548,7 +554,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                         "-"
                       )}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-right tabular-nums">
                       {event.trnType === "SPLIT" ? (
                         <NumericFormat
                           value={event.split}
