@@ -20,6 +20,7 @@ import {
   CREATE_PORTFOLIO,
   FALLBACK_CURRENCY,
   newPortfolioFor,
+  PORTFOLIO_HELP,
 } from "./newPortfolio"
 
 /**
@@ -275,6 +276,7 @@ export default function UploadStep({
         <ImportSection
           step={3}
           title="Portfolio"
+          info={PORTFOLIO_HELP}
           lead="The portfolio the changes go into."
           done={done[2]}
           current={current === 2}

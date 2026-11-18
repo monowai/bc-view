@@ -12,6 +12,7 @@ import {
   CREATE_PORTFOLIO,
   FALLBACK_CURRENCY,
   newPortfolioFor,
+  PORTFOLIO_HELP,
 } from "./newPortfolio"
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
@@ -219,7 +220,7 @@ export default function ConfirmStep({
                 htmlFor="confirm-portfolio"
                 className="block font-semibold text-gray-900 mb-1"
               >
-                Portfolio
+                <Tooltip text={PORTFOLIO_HELP}>Portfolio</Tooltip>
               </label>
               <select
                 id="confirm-portfolio"

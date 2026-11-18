@@ -1362,6 +1362,20 @@ describe("<StatementImport /> record", () => {
     expect(confirmed.tradeDate).toBe(todayIso())
   })
 
+  test("the portfolio choice is explained behind an info icon", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    const heading = await screen.findByRole("heading", { name: /^Portfolio/ })
+
+    await user.hover(within(heading).getByText("Portfolio"))
+
+    expect(
+      await screen.findByText(
+        /You can create a portfolio per brokerage account/,
+      ),
+    ).toBeInTheDocument()
+  })
+
   test("the date controls explain themselves behind an info icon", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
