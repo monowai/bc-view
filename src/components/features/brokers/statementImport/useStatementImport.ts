@@ -3,6 +3,7 @@ import {
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
 import { useRef, useState } from "react"
+import { useRouter } from "next/router"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import { holdingByIdKey } from "@utils/api/client/holdings"
@@ -22,6 +23,7 @@ import type {
   ConfirmedRow,
   HeldSinceQuery,
   HeldSinceResponse,
+  HeldSinceSuggestion,
   Portfolio,
   ReconcilePreview,
   ReconcilePreviewResponse,
@@ -72,6 +74,13 @@ interface ImportResult {
   recorded: number
   warnings: string[]
   brokerId: string
+  /** The portfolio recorded in, for its holdings and corporate actions. */
+  portfolio: ImportPortfolio
+  /**
+   * The earliest date a recorded holding was back-dated to, before the record
+   * date; null when none was. Dividends and splits since then may be missing.
+   */
+  backdatedTo: string | null
 }
 
 type EditableField = "code" | "market" | "quantity" | "cost"
@@ -164,6 +173,85 @@ function withCashCurrency(
   }
 }
 
+/** How far Suggest dates has got: holdings answered of those asked, and the latest asked. */
+export interface SuggestProgress {
+  done: number
+  total: number
+  current: string
+}
+
+/** Holdings asked about at once: enough to overlap the provider's latency, few enough to spare it. */
+const SUGGEST_IN_PARALLEL = 3
+
+const ANSWERS_MISMATCH =
+  "The held-since answers did not match the holdings asked about. Enter the dates yourself."
+
+type SuggestOutcome = { data: HeldSinceSuggestion[] } | { error: string }
+
+/**
+ * Ask for each holding's date on its own, a few at a time, so progress can be
+ * shown holding by holding. One answer per holding, in the order asked. After
+ * the first failure no further holding is asked about; the ones already in
+ * flight finish, but their answers are discarded: no date is filled from a
+ * partial answer.
+ */
+async function fetchSuggestions(
+  named: HeldSinceQuery[],
+  codes: string[],
+  signal: AbortSignal,
+  onProgress: (progress: SuggestProgress) => void,
+): Promise<SuggestOutcome> {
+  const answers: HeldSinceSuggestion[] = new Array(named.length)
+  let next = 0
+  let done = 0
+  let failure: string | null = null
+  const ask = async (index: number): Promise<void> => {
+    onProgress({ done, total: named.length, current: codes[index] })
+    const res = await suggestHeldSinceRequest({ rows: [named[index]] }, signal)
+    if (!res.ok) {
+      failure =
+        (await readServerMessage(res)) ||
+        `Held-since dates could not be guessed (error ${res.status}). Enter them yourself.`
+      return
+    }
+    const { data } = (await res.json()) as HeldSinceResponse
+    if (data.length !== 1) {
+      failure = ANSWERS_MISMATCH
+      return
+    }
+    answers[index] = data[0]
+    done++
+    onProgress({ done, total: named.length, current: codes[index] })
+  }
+  const worker = async (): Promise<void> => {
+    while (next < named.length && !signal.aborted && failure === null) {
+      try {
+        await ask(next++)
+      } catch {
+        // Unreachable or an unreadable answer: the other workers stop too.
+        failure ??= UNREACHABLE
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(SUGGEST_IN_PARALLEL, named.length) }, () =>
+      worker(),
+    ),
+  )
+  return failure === null ? { data: answers } : { error: failure }
+}
+
+/** The earliest of [dates] before [recordDate], or null when none is. */
+function earliestBefore(
+  dates: Array<string | undefined>,
+  recordDate: string,
+): string | null {
+  const earlier = dates
+    .filter((date): date is string => !!date && date < recordDate)
+    .sort()
+  return earlier[0] ?? null
+}
+
 function withPreview(
   session: ImportSession,
   sent: ImportRow[],
@@ -253,6 +341,8 @@ export interface StatementImportFlow {
   suggestError: string | null
   /** What the last Suggest dates found, in words for the user. */
   suggestNote: string | null
+  /** How far Suggest dates has got, while it runs. */
+  suggestProgress: SuggestProgress | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -278,7 +368,10 @@ export function useStatementImport(): StatementImportFlow {
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
   const [suggestNote, setSuggestNote] = useState<string | null>(null)
+  const [suggestProgress, setSuggestProgress] =
+    useState<SuggestProgress | null>(null)
   const { mutate } = useSWRConfig()
+  const router = useRouter()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -575,32 +668,21 @@ export function useStatementImport(): StatementImportFlow {
     setSuggesting(true)
     setSuggestError(null)
     setSuggestNote(null)
+    setSuggestProgress({ done: 0, total: asked.length, current: asked[0].code })
     try {
-      const res = await suggestHeldSinceRequest(
-        {
-          rows: asked.map(({ named }) => named),
-        },
+      const outcome = await fetchSuggestions(
+        asked.map(({ named }) => named),
+        asked.map(({ code }) => code),
         abort.signal,
+        setSuggestProgress,
       )
       // Cancelled while the dates were fetched: leave them as they were.
       if (abort.signal.aborted) return
-      if (!res.ok) {
-        setSuggestError(
-          (await readServerMessage(res)) ||
-            `Held-since dates could not be guessed (error ${res.status}). Enter them yourself.`,
-        )
+      if ("error" in outcome) {
+        setSuggestError(outcome.error)
         return
       }
-      const { data } = (await res.json()) as HeldSinceResponse
-      if (abort.signal.aborted) return
-      // One answer per row asked, in the order asked. Any other count cannot
-      // be matched to the rows, so no date is filled from it.
-      if (data.length !== asked.length) {
-        setSuggestError(
-          "The held-since answers did not match the holdings asked about. Enter the dates yourself.",
-        )
-        return
-      }
+      const { data } = outcome
       const byKey = new Map(asked.map((each, index) => [each.key, data[index]]))
       const missed = asked
         .filter((each) => {
@@ -635,6 +717,7 @@ export function useStatementImport(): StatementImportFlow {
     } finally {
       if (suggestAbort.current === abort) suggestAbort.current = null
       setSuggesting(false)
+      setSuggestProgress(null)
     }
   }
 
@@ -672,14 +755,14 @@ export function useStatementImport(): StatementImportFlow {
     readyRows.length > 0
 
   /**
-   * The id of the portfolio to record in, creating it first when asked to.
-   * A created portfolio replaces the request, so a retry does not create
-   * another. Null, with the reason shown, when it cannot be created.
+   * The portfolio to record in, creating it first when asked to. A created
+   * portfolio replaces the request, so a retry does not create another. Null,
+   * with the reason shown, when it cannot be created.
    */
   const portfolioFor = async (
     current: ImportSession,
-  ): Promise<string | null> => {
-    if ("portfolio" in current.target) return current.target.portfolio.id
+  ): Promise<ImportPortfolio | null> => {
+    if ("portfolio" in current.target) return current.target.portfolio
     const { code, name, currency } = current.target.create
     const res = await createPortfolios({
       data: [{ code, name, currency, base: currency }],
@@ -704,7 +787,7 @@ export function useStatementImport(): StatementImportFlow {
         : now,
     )
     await mutate(portfoliosKey)
-    return created.id
+    return created
   }
 
   /**
@@ -766,10 +849,10 @@ export function useStatementImport(): StatementImportFlow {
     try {
       const accountId = await accountFor(session)
       if (!accountId) return
-      const portfolioId = await portfolioFor(session)
-      if (!portfolioId) return
+      const portfolio = await portfolioFor(session)
+      if (!portfolio) return
       const confirmed: ConfirmedHoldings = {
-        portfolioId,
+        portfolioId: portfolio.id,
         brokerId: accountId,
         uploadId: session.uploadId,
         tradeDate: session.tradeDate || undefined,
@@ -788,12 +871,22 @@ export function useStatementImport(): StatementImportFlow {
         return
       }
       const saved = (await res.json()) as TrnResponse
-      void valuePortfolio(portfolioId)
+      void valuePortfolio(portfolio.id)
+      const warnings = saved.warnings ?? []
+      const backdatedTo = earliestBefore(
+        confirmed.rows.map((row) => row.tradeDate),
+        confirmed.tradeDate ?? todayIso(),
+      )
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
-        warnings: saved.warnings ?? [],
+        warnings,
         brokerId: accountId,
+        portfolio,
+        backdatedTo,
       })
+      // Nothing to read or offer on the done screen: go straight to the portfolio.
+      if (warnings.length === 0 && !backdatedTo)
+        void router.push(`/holdings/${encodeURIComponent(portfolio.code)}`)
     } catch {
       setRecordError(UNREACHABLE)
     } finally {
@@ -869,6 +962,7 @@ export function useStatementImport(): StatementImportFlow {
     suggesting,
     suggestError,
     suggestNote,
+    suggestProgress,
     readyRows,
     canRecord,
     recording,

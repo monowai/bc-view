@@ -448,6 +448,28 @@ export default function ConfirmStep({
           <p role="status" className="text-sm text-gray-700">
             <Spinner label="Asking the stock market nicely for your price history. It likes to play hard to get…" />
           </p>
+          {flow.suggestProgress && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-700 tabular-nums">
+                {`${flow.suggestProgress.current} · ${flow.suggestProgress.done} of ${flow.suggestProgress.total}`}
+              </p>
+              <div
+                role="progressbar"
+                aria-label="Holdings checked"
+                aria-valuemin={0}
+                aria-valuemax={flow.suggestProgress.total}
+                aria-valuenow={flow.suggestProgress.done}
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200"
+              >
+                <div
+                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300 ease-out motion-reduce:transition-none"
+                  style={{
+                    width: `${(flow.suggestProgress.done / flow.suggestProgress.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </Dialog>
       )}
 

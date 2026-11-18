@@ -29,7 +29,8 @@ import { eventKey } from "@utils/api/client/trns"
 import { processCorporateEvent } from "@utils/api/client/corporateEvents"
 
 interface PortfolioCorporateActionsPopupProps {
-  portfolio: Portfolio
+  /** Only the id and code are read. */
+  portfolio: Pick<Portfolio, "id" | "code">
   modalOpen: boolean
   onClose: () => void
 }

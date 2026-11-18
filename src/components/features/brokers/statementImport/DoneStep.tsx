@@ -1,11 +1,16 @@
-import React from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import Alert from "@components/ui/Alert"
+import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
+import type { Portfolio } from "types/beancounter"
 
 interface DoneStepProps {
   recorded: number
   warnings: string[]
   brokerId: string
+  portfolio: Pick<Portfolio, "id" | "code">
+  /** The earliest back-dated holding; null when none was back-dated. */
+  backdatedTo: string | null
   onImportAnother: () => void
 }
 
@@ -14,8 +19,11 @@ export default function DoneStep({
   recorded,
   warnings,
   brokerId,
+  portfolio,
+  backdatedTo,
   onImportAnother,
 }: DoneStepProps): React.ReactElement {
+  const [checking, setChecking] = useState(false)
   return (
     <div className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
       <h2 className="text-lg font-semibold text-gray-900">Recorded</h2>
@@ -31,12 +39,33 @@ export default function DoneStep({
           </ul>
         </Alert>
       )}
+      {backdatedTo && (
+        <Alert variant="info">
+          <p>
+            {`These holdings go back to ${backdatedTo}. Dividends and splits since then may not be recorded yet.`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setChecking(true)}
+            className="mt-2 font-medium underline"
+          >
+            Check Corporate Actions
+          </button>
+        </Alert>
+      )}
+      {checking && (
+        <PortfolioCorporateActionsPopup
+          portfolio={portfolio}
+          modalOpen={checking}
+          onClose={() => setChecking(false)}
+        />
+      )}
       <div className="flex flex-wrap gap-3 items-center">
         <Link
-          href={`/brokers/${brokerId}/holdings`}
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+          href={`/holdings/${encodeURIComponent(portfolio.code)}`}
+          className="btn-primary"
         >
-          View holdings at this brokerage account
+          View Portfolio
         </Link>
         <button
           type="button"
@@ -45,6 +74,12 @@ export default function DoneStep({
         >
           Import Another Image
         </button>
+        <Link
+          href={`/brokers/${encodeURIComponent(brokerId)}/holdings`}
+          className="text-sm text-gray-600 underline"
+        >
+          Holdings at this brokerage account
+        </Link>
       </div>
     </div>
   )
