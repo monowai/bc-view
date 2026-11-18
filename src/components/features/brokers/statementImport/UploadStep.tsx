@@ -16,6 +16,7 @@ import ImageDropZone from "./ImageDropZone"
 import type { ImportTarget, StatementImportFlow } from "./useStatementImport"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
 import CurrencySelect from "./CurrencySelect"
+import { parseAmount } from "./statementRows"
 import {
   CREATE_PORTFOLIO,
   FALLBACK_CURRENCY,
@@ -119,6 +120,15 @@ export default function UploadStep({
   const firm = firms.find((candidate) => candidate.id === firmId)
   // The firm's name until the user edits it; a cleared name stays cleared.
   const newAccountName = flow.newAccountName ?? firm?.name ?? ""
+  const firmCurrency = firm?.config?.currency
+  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
+  // Cash is recorded only when there is some: blank or zero is none. Text that
+  // is not an amount, or is below zero, is refused with a message, never dropped.
+  const cashAmount = parseAmount(flow.newAccountCash)
+  const cashRefused =
+    creatingAccount &&
+    flow.newAccountCash.trim() !== "" &&
+    (cashAmount === undefined || cashAmount < 0)
   const account: ImportAccount | undefined = creatingAccount
     ? newAccountName.trim()
       ? {
@@ -126,6 +136,9 @@ export default function UploadStep({
             name: newAccountName.trim(),
             accountNumber: flow.newAccountNumber.trim(),
             globalBrokerId: firm?.id,
+            // Zero is no cash. A refused amount is never read (Continue stays
+            // disabled), and Record sends the cash fixed here at read time.
+            cash: cashAmount ? { amount: cashAmount, currency } : undefined,
           },
         }
       : undefined
@@ -138,9 +151,6 @@ export default function UploadStep({
   const selectedId = flow.portfolioId || CREATE_PORTFOLIO
   const portfolio = portfolios.find((candidate) => candidate.id === selectedId)
   const creating = selectedId === CREATE_PORTFOLIO
-  const firmCurrency = firms.find((firm) => firm.id === firmId)?.config
-    ?.currency
-  const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
   const target = importTarget(
     accountNaming,
     creating,
@@ -148,7 +158,8 @@ export default function UploadStep({
     portfolios.map((each) => each.code),
     currency,
   )
-  const canRead = Boolean(target && account && flow.file) && !flow.reading
+  const canRead =
+    Boolean(target && account && flow.file) && !flow.reading && !cashRefused
 
   // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.
   const { pasteFile, reading } = flow
@@ -171,7 +182,8 @@ export default function UploadStep({
     Boolean(flow.file),
   ]
   const current = done.indexOf(false)
-  // The step Continue waits on, named under the button while it is off.
+  // The step Continue waits on, named under the button while it is off. A
+  // refused cash amount also keeps it off; that is named at the cash field.
   const waitingOn = current >= 0 && !flow.reading ? current + 1 : null
 
   return (
@@ -265,8 +277,40 @@ export default function UploadStep({
                     className={fieldClass}
                   />
                 </div>
+                <div>
+                  <label htmlFor="import-account-cash" className={labelClass}>
+                    Cash balance
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span
+                      id="import-account-cash-currency"
+                      className="text-sm text-gray-500"
+                    >
+                      {currency}
+                    </span>
+                    <input
+                      id="import-account-cash"
+                      type="text"
+                      inputMode="decimal"
+                      value={flow.newAccountCash}
+                      disabled={flow.reading}
+                      onChange={(event) =>
+                        flow.chooseNewAccountCash(event.target.value)
+                      }
+                      placeholder="Optional"
+                      aria-describedby="import-account-cash-currency"
+                      aria-invalid={cashRefused}
+                      className={fieldClass}
+                    />
+                  </div>
+                  {cashRefused && (
+                    <p role="alert" className="text-xs text-red-600 mt-1">
+                      Enter the cash as an amount of zero or more.
+                    </p>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500">
-                  The account is created when you record.
+                  The account is created, with any cash, when you record.
                 </p>
               </fieldset>
             )}
