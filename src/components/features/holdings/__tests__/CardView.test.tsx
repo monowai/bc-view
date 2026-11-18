@@ -15,6 +15,17 @@ import {
 
 jest.mock("@hooks/usePrivacyMode")
 
+let mockIsAdmin = false
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    ai: false,
+    preview: false,
+    admin: mockIsAdmin,
+    canUseAi: false,
+    isLoading: false,
+  }),
+}))
+
 const mockPush = jest.fn()
 jest.mock("next/router", () => ({
   useRouter: () => ({
@@ -523,11 +534,8 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       expect(onEditAsset).toHaveBeenCalledWith(asset)
     })
 
-    // After the admin-edit feature: the PRIVATE-market gate moved out of
-    // ActionsMenu into the page. Edit Asset shows whenever `onEditAsset` is
-    // wired by the page; pages only wire it for assets the caller can edit
-    // (PRIVATE for the owner, anything for an admin). So the menu-level
-    // invariant is now: no `onEditAsset` prop → no item.
+    // Edit Asset needs both a page that wires `onEditAsset` and the right to
+    // edit: the owner for a PRIVATE asset, an admin for a public one.
     it("hides Edit Asset when onEditAsset is not provided", () => {
       const onQuickSell = jest.fn()
       const portfolio = makePortfolio()
@@ -558,6 +566,49 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
         screen.queryByRole("button", { name: "Edit Asset" }),
       ).not.toBeInTheDocument()
     })
+
+    it.each([
+      [false, false],
+      [true, true],
+    ])(
+      "shows Edit Asset on a public asset only to an admin (admin %s, shown %s)",
+      (admin, shown) => {
+        mockIsAdmin = admin
+        try {
+          const portfolio = makePortfolio()
+          const asset = makeAsset({
+            assetCategory: { id: "EQUITY", name: "Equity" },
+          })
+          const position = makePosition({
+            asset,
+            moneyValues: { weight: 0.25 },
+            price: 150,
+            quantityValues: { total: 100 },
+          })
+          const holdings = makeHoldings({
+            portfolio,
+            holdingGroups: {
+              Equity: makeHoldingGroup({ positions: [position] }),
+            },
+          })
+          render(
+            <CardView
+              holdings={holdings}
+              portfolio={portfolio}
+              valueIn={ValueIn.PORTFOLIO}
+              onEditAsset={jest.fn()}
+            />,
+          )
+
+          fireEvent.click(screen.getByRole("button", { name: /Actions AAPL/i }))
+          expect(
+            screen.queryByRole("button", { name: "Edit Asset" }) !== null,
+          ).toBe(shown)
+        } finally {
+          mockIsAdmin = false
+        }
+      },
+    )
 
     it("invokes onSetCashBalance for cash positions via CashActionsMenu", () => {
       const onSetCashBalance = jest.fn()
