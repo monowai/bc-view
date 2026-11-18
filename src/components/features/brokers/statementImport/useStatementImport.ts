@@ -31,6 +31,8 @@ import type {
 import {
   attachPreview,
   canBeChecked,
+  GUESSED_BEFORE_PRICES,
+  GUESSED_FROM_COST,
   ImportRow,
   readRefusal,
   signature,
@@ -62,8 +64,6 @@ interface ImportSession {
   /** The brokerage account the holdings are checked and recorded against. */
   account: ImportAccount
   tradeDate: string
-  /** When the holdings were opened, for every added row without its own; "" for none. */
-  heldSince: string
 }
 
 interface ImportResult {
@@ -112,6 +112,48 @@ async function fetchPreview(
   } catch {
     return { error: UNREACHABLE }
   }
+}
+
+/** "Suggested dates for 3 holdings. No date could be suggested for T." */
+function suggestedNote(
+  found: number,
+  missed: string[],
+  unknown: string[],
+): string {
+  const said =
+    found === 0
+      ? ""
+      : found === 1
+        ? "Suggested a date for 1 holding."
+        : `Suggested dates for ${found} holdings.`
+  const none = missed.length
+    ? `No date could be suggested for ${missed.join(", ")}.`
+    : ""
+  const unpriced = unknown.length
+    ? `No price history yet for ${unknown.join(", ")}: enter ${unknown.length === 1 ? "its date" : "their dates"}.`
+    : ""
+  return [said, none, unpriced].filter(Boolean).join(" ")
+}
+
+/**
+ * Why Suggest dates had nothing to do: only holdings being added take a date,
+ * and a holding that matches what is held is not added.
+ */
+function nothingToDate(session: ImportSession): string {
+  const statuses = session.rows.map(
+    (row) => session.previewByKey[row.key]?.status,
+  )
+  const adding = session.rows.some(
+    (row) => session.previewByKey[row.key]?.trnType === "ADD",
+  )
+  const matching = statuses.filter((status) => status === "UNCHANGED").length
+  const said = adding
+    ? "Every holding being added already has a date."
+    : "No holding is being added, so none takes a date."
+  if (matching === 0) return said
+  return matching === 1
+    ? `${said} 1 holding already matches what is held, so takes no date.`
+    : `${said} ${matching} holdings already match what is held, so take no date.`
 }
 
 function withPreview(
@@ -190,13 +232,16 @@ export interface StatementImportFlow {
   ) => Promise<void>
   setTradeDate: (tradeDate: string) => void
   tradeDateInFuture: boolean
-  /** The import's held-since date, and one row's own. */
-  setHeldSince: (heldSince: string) => void
+  /** One row's held-since date. */
   setRowHeldSince: (key: string, heldSince: string) => void
-  /** Fill empty held-since dates from each added holding's cost. */
+  /** Fill empty held-since dates by guessing from each added holding's cost. */
   suggestHeldSince: () => Promise<void>
+  /** Stop waiting for Suggest dates; no date changes. */
+  cancelSuggest: () => void
   suggesting: boolean
   suggestError: string | null
+  /** What the last Suggest dates found, in words for the user. */
+  suggestNote: string | null
   /** What Record would send. */
   readyRows: ConfirmedRow[]
   canRecord: boolean
@@ -220,6 +265,7 @@ export function useStatementImport(): StatementImportFlow {
   const [newAccountNumber, setNewAccountNumber] = useState("")
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
+  const [suggestNote, setSuggestNote] = useState<string | null>(null)
   const { mutate } = useSWRConfig()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
@@ -243,6 +289,8 @@ export function useStatementImport(): StatementImportFlow {
   // Aborts the read in flight when the user cancels it.
   const readAbort = useRef<AbortController | null>(null)
   const recordInFlight = useRef(false)
+  // Aborts the Suggest dates request in flight when the user cancels it.
+  const suggestAbort = useRef<AbortController | null>(null)
   // Only the newest preview asked for may land.
   const latestCheck = useRef(0)
 
@@ -313,7 +361,6 @@ export function useStatementImport(): StatementImportFlow {
         previewByKey: {},
         checked: {},
         tradeDate: todayIso(),
-        heldSince: "",
       }
       const sent = fresh.rows.filter(canBeChecked)
       const outcome = await fetchPreview(fresh, sent, abort.signal)
@@ -465,10 +512,6 @@ export function useStatementImport(): StatementImportFlow {
     setSession((current) => current && { ...current, tradeDate })
   }
 
-  const setHeldSince = (heldSince: string): void => {
-    setSession((current) => current && { ...current, heldSince })
-  }
-
   const setRowHeldSince = (key: string, heldSince: string): void => {
     setSession(
       (current) =>
@@ -483,9 +526,12 @@ export function useStatementImport(): StatementImportFlow {
     )
   }
 
+  /**
+   * Guess when each added holding was opened, from its cost and the asset's
+   * price history. Rows with a date, read or entered, are left as they are.
+   */
   const suggestHeldSince = async (): Promise<void> => {
     if (!session) return
-    // Added holdings with a cost and no date of their own yet.
     const asked = session.rows.flatMap((row) => {
       const preview = session.previewByKey[row.key]
       if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
@@ -494,56 +540,93 @@ export function useStatementImport(): StatementImportFlow {
       return [
         {
           key: row.key,
+          code: row.code.trim(),
           assetId: preview.assetId,
           costPerShare: preview.cost / preview.quantity,
         },
       ]
     })
-    if (asked.length === 0) return
+    // A listing new to Beancounter is created on Record: no prices to go on yet.
+    const unknown = session.rows
+      .filter((row) => {
+        const preview = session.previewByKey[row.key]
+        return !row.heldSince && preview?.trnType === "ADD" && !preview.assetId
+      })
+      .map((row) => row.code.trim())
+    if (asked.length === 0) {
+      setSuggestError(null)
+      setSuggestNote(suggestedNote(0, [], unknown) || nothingToDate(session))
+      return
+    }
     const { uploadId } = session
+    const abort = new AbortController()
+    suggestAbort.current = abort
     setSuggesting(true)
     setSuggestError(null)
+    setSuggestNote(null)
     try {
-      const res = await suggestHeldSinceRequest({
-        rows: asked.map(({ assetId, costPerShare }) => ({
-          assetId,
-          costPerShare,
-        })),
-      })
+      const res = await suggestHeldSinceRequest(
+        {
+          rows: asked.map(({ assetId, costPerShare }) => ({
+            assetId,
+            costPerShare,
+          })),
+        },
+        abort.signal,
+      )
+      // Cancelled while the dates were fetched: leave them as they were.
+      if (abort.signal.aborted) return
       if (!res.ok) {
         setSuggestError(
           (await readServerMessage(res)) ||
-            `Dates could not be suggested (error ${res.status}). Enter them yourself, or try again.`,
+            `Held-since dates could not be guessed (error ${res.status}). Enter them yourself.`,
         )
         return
       }
       const { data } = (await res.json()) as HeldSinceResponse
+      if (abort.signal.aborted) return
       const byAsset = new Map(data.map((each) => [each.assetId, each]))
       const keys = new Map(asked.map((each) => [each.key, each.assetId]))
-      // Suggestions for an upload since discarded or re-read are dropped.
+      const missed = asked
+        .filter((each) => {
+          const answer = byAsset.get(each.assetId)
+          return !answer?.heldSince && !answer?.before
+        })
+        .map((each) => each.code)
+      setSuggestNote(
+        suggestedNote(asked.length - missed.length, missed, unknown),
+      )
+      // Guesses for an upload since discarded or re-read are dropped.
       setSession((current) =>
         current?.uploadId !== uploadId
           ? current
           : {
               ...current,
               rows: current.rows.map((row) => {
-                const suggestion = byAsset.get(keys.get(row.key) ?? "")
-                if (!suggestion || row.heldSince) return row
+                const guess = byAsset.get(keys.get(row.key) ?? "")
+                const heldSince = guess?.heldSince ?? guess?.before
+                if (!heldSince || row.heldSince) return row
                 return {
                   ...row,
-                  heldSince: suggestion.heldSince ?? "",
-                  heldSinceHint: suggestion.before
-                    ? `Before ${suggestion.before}`
-                    : undefined,
+                  heldSince,
+                  heldSinceHint: guess?.heldSince
+                    ? GUESSED_FROM_COST
+                    : GUESSED_BEFORE_PRICES,
                 }
               }),
             },
       )
     } catch {
-      setSuggestError(UNREACHABLE)
+      // A cancelled suggestion is the user's choice, not a failure.
+      if (!abort.signal.aborted) setSuggestError(UNREACHABLE)
     } finally {
+      if (suggestAbort.current === abort) suggestAbort.current = null
       setSuggesting(false)
     }
+  }
+
+  const cancelSuggest = (): void => {
+    suggestAbort.current?.abort()
   }
 
   const isUnchecked = (row: ImportRow): boolean =>
@@ -557,17 +640,16 @@ export function useStatementImport(): StatementImportFlow {
     .filter((row) => !isUnchecked(row))
     .map((row) => {
       const confirmed = toConfirmedRow(session?.previewByKey[row.key])
-      // An added holding carries when it was opened; a reduction, the record date.
-      const heldSince = row.heldSince || session?.heldSince
-      return confirmed?.trnType === "ADD" && heldSince
-        ? { ...confirmed, tradeDate: heldSince }
+      // An added holding carries when it was opened, if known; otherwise, and
+      // for a reduction, the record date.
+      return confirmed?.trnType === "ADD" && row.heldSince
+        ? { ...confirmed, tradeDate: row.heldSince }
         : confirmed
     })
     .filter((row): row is ConfirmedRow => row !== null)
   const today = todayIso()
   const tradeDateInFuture =
     (session?.tradeDate ?? "") > today ||
-    (session?.heldSince ?? "") > today ||
     rows.some((row) => row.heldSince > today)
   const canRecord =
     !stale &&
@@ -704,6 +786,9 @@ export function useStatementImport(): StatementImportFlow {
   }
 
   const reset = (): void => {
+    suggestAbort.current?.abort()
+    setSuggestNote(null)
+    setSuggestError(null)
     setNewAccountName(null)
     setNewAccountNumber("")
     latestCheck.current++
@@ -758,11 +843,12 @@ export function useStatementImport(): StatementImportFlow {
     recheckRow,
     setTradeDate,
     tradeDateInFuture,
-    setHeldSince,
     setRowHeldSince,
     suggestHeldSince,
+    cancelSuggest,
     suggesting,
     suggestError,
+    suggestNote,
     readyRows,
     canRecord,
     recording,

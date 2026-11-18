@@ -20,6 +20,7 @@ import {
   CREATE_PORTFOLIO,
   FALLBACK_CURRENCY,
   newPortfolioFor,
+  PORTFOLIO_HELP,
 } from "./newPortfolio"
 
 /**
@@ -275,6 +276,7 @@ export default function UploadStep({
         <ImportSection
           step={3}
           title="Portfolio"
+          info={PORTFOLIO_HELP}
           lead="The portfolio the changes go into."
           done={done[2]}
           current={current === 2}
@@ -321,7 +323,7 @@ export default function UploadStep({
       <ImportSection
         step={4}
         title="Image"
-        lead="A screenshot of the account's holdings page."
+        lead="An image of the account's holdings page, such as a screenshot."
         done={done[3]}
         current={current === 3}
         className="border-t border-gray-200"
@@ -345,19 +347,19 @@ export default function UploadStep({
             {flow.unsupported && (
               <Alert variant="warning">
                 <p>
-                  This screenshot shows a list of transactions. Transaction
-                  screenshots are not supported yet, so nothing was recorded.
+                  This image shows a list of transactions. Transaction images
+                  are not supported yet, so nothing was recorded.
                 </p>
                 <p className="mt-1">
-                  Upload a holdings screenshot instead: the page that lists what
-                  you hold and how many.
+                  Upload an image of your holdings instead: the page that lists
+                  what you hold and how many.
                 </p>
                 <button
                   type="button"
                   onClick={flow.chooseAnotherFile}
                   className="mt-2 underline font-medium"
                 >
-                  Choose another file
+                  Choose Another File
                 </button>
               </Alert>
             )}
@@ -395,7 +397,7 @@ export default function UploadStep({
           }
         >
           <p role="status" className="text-sm text-gray-700">
-            <Spinner label="Reading the image and checking each holding. This can take some time…" />
+            <Spinner label="Processing… Please enjoy this awkward silence while I squint at your data." />
           </p>
         </Dialog>
       )}

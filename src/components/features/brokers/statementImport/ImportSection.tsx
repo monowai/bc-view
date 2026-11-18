@@ -1,9 +1,12 @@
 import React from "react"
+import Tooltip from "@components/ui/Tooltip"
 
 interface ImportSectionProps {
   /** Its place in the flow, shown until the section is done. */
   step: number
   title: string
+  /** More on what the section decides, behind an info icon. */
+  info?: string
   /** One line on what the section decides. */
   lead: string
   done: boolean
@@ -21,6 +24,7 @@ interface ImportSectionProps {
 export default function ImportSection({
   step,
   title,
+  info,
   lead,
   done,
   current,
@@ -43,7 +47,7 @@ export default function ImportSection({
         </span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-900">
-            {title}
+            {info ? <Tooltip text={info}>{title}</Tooltip> : title}
             {done && <span className="sr-only"> (done)</span>}
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">{lead}</p>

@@ -5,6 +5,7 @@ import { formatQuantity, todayIso } from "@utils/formatters"
 import type { Market, ReconcilePreviewRow } from "types/beancounter"
 import {
   chooseAmong,
+  changeColour,
   describeChange,
   ImportRow,
   MARKET_SOURCE_COPY,
@@ -31,8 +32,6 @@ interface HoldingsTableProps {
   onFind: (key: string) => void
   /** Set when an added holding was opened. */
   onHeldSince: (key: string, heldSince: string) => void
-  /** The import's held-since date, used by rows without their own. */
-  importHeldSince: string
 }
 
 const inputClass =
@@ -41,19 +40,6 @@ const cellClass = "px-2 py-2 align-top"
 
 /** Statuses about the asset itself, which the asset search can resolve. */
 const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
-
-/**
- * What an added holding's held-since date will be. A hint ("Before …") is not
- * a date, so it also says which date applies until the user enters one.
- */
-function heldSinceNote(row: ImportRow, importHeldSince: string): string {
-  if (row.heldSince) return row.heldSinceHint ?? ""
-  const fallback = importHeldSince
-    ? `Import's date, ${importHeldSince}`
-    : "Record date"
-  if (!row.heldSinceHint) return importHeldSince && fallback
-  return `${row.heldSinceHint}. ${fallback} applies until you enter one`
-}
 
 /**
  * A row's status: a green tick when it is good, a ? that opens the asset
@@ -130,7 +116,6 @@ export default function HoldingsTable({
   onRecheck,
   onFind,
   onHeldSince,
-  importHeldSince,
 }: HoldingsTableProps): React.ReactElement {
   const today = todayIso()
   const { data } = useSwr<{ data: Market[] }>(
@@ -151,7 +136,7 @@ export default function HoldingsTable({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
       <table className="min-w-full text-sm">
-        <caption className="sr-only">Holdings read from the screenshot</caption>
+        <caption className="sr-only">Holdings read from the image</caption>
         <thead className="bg-gray-50 text-left text-xs text-gray-600">
           <tr>
             <th scope="col" className="px-2 py-2">
@@ -179,7 +164,7 @@ export default function HoldingsTable({
               Status
             </th>
             <th scope="col" className="px-2 py-2">
-              <span className="sr-only">Remove</span>
+              <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -205,16 +190,6 @@ export default function HoldingsTable({
                     }
                     className={`${inputClass} w-24 uppercase`}
                   />
-                  <button
-                    type="button"
-                    aria-label={`Recheck ${name}`}
-                    title="Recheck this row"
-                    disabled={disabled || checking || !row.code.trim()}
-                    onClick={() => onRecheck(row.key)}
-                    className="ml-1 p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
-                  >
-                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
-                  </button>
                   {(preview?.assetName || row.name) && (
                     <span className="block text-xs text-gray-500 mt-1">
                       {preview?.assetName || row.name}
@@ -262,7 +237,9 @@ export default function HoldingsTable({
                 </td>
                 <td className={cellClass}>
                   {preview && (
-                    <span className="font-medium text-gray-900">
+                    <span
+                      className={`font-medium tabular-nums ${changeColour(preview)}`}
+                    >
                       {describeChange(preview)}
                     </span>
                   )}
@@ -281,9 +258,9 @@ export default function HoldingsTable({
                         }
                         className={`${inputClass} w-36`}
                       />
-                      {heldSinceNote(row, importHeldSince) && (
+                      {row.heldSince && row.heldSinceHint && (
                         <span className="block text-xs text-gray-500 mt-1">
-                          {heldSinceNote(row, importHeldSince)}
+                          {row.heldSinceHint}
                         </span>
                       )}
                     </>
@@ -332,7 +309,17 @@ export default function HoldingsTable({
                     </span>
                   ))}
                 </td>
-                <td className={cellClass}>
+                <td className={`${cellClass} whitespace-nowrap`}>
+                  <button
+                    type="button"
+                    aria-label={`Check ${name} again`}
+                    title="Check this row again"
+                    disabled={disabled || checking || !row.code.trim()}
+                    onClick={() => onRecheck(row.key)}
+                    className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                  >
+                    <i className="fas fa-rotate-right" aria-hidden="true"></i>
+                  </button>
                   <button
                     type="button"
                     aria-label={`Remove ${name}`}

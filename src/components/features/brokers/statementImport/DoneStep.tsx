@@ -43,7 +43,7 @@ export default function DoneStep({
           onClick={onImportAnother}
           className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
         >
-          Import another screenshot
+          Import Another Image
         </button>
       </div>
     </div>

@@ -289,7 +289,7 @@ async function readHoldings(user: UserEvent): Promise<void> {
 }
 
 const recordButton = (): HTMLElement =>
-  screen.getByRole("button", { name: /^Record \d+ changes?$/ })
+  screen.getByRole("button", { name: /^Record \d+ Changes?$/ })
 
 const rowFor = (code: string): HTMLElement =>
   screen.getByRole("row", { name: new RegExp(`\\b${code}\\b`) })
@@ -353,7 +353,7 @@ describe("<StatementImport /> upload", () => {
       ],
     })
 
-    const read = screen.getByRole("region", { name: "Read from screenshot" })
+    const read = screen.getByRole("region", { name: "Read from the image" })
     expect(within(read).getByText("Interactive Brokers")).toBeInTheDocument()
     expect(within(read).getByText("482")).toBeInTheDocument()
     expect(within(read).getByText("13 Nov 2026")).toBeInTheDocument()
@@ -362,7 +362,7 @@ describe("<StatementImport /> upload", () => {
     expect(screen.getByText("IBKR Main (U1234482)")).toBeInTheDocument()
 
     const aapl = within(rowFor("AAPL"))
-    expect(aapl.getByText("Add 10")).toBeInTheDocument()
+    expect(aapl.getByText("+10")).toHaveClass("text-emerald-700")
     expect(aapl.getByText("Ready to record")).toBeInTheDocument()
     // A good row shows a tick; its words are the tooltip.
     expect(aapl.getByTitle("Ready to record")).toContainElement(
@@ -371,7 +371,7 @@ describe("<StatementImport /> upload", () => {
     expect(
       aapl.getByText(/does not match the market value shown/),
     ).toBeInTheDocument()
-    expect(within(rowFor("TSLA")).getByText("Reduce 3")).toBeInTheDocument()
+    expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     const voo = within(rowFor("VOO"))
     expect(voo.getByText("No change")).toBeInTheDocument()
     expect(voo.getByText("Matches what is held")).toBeInTheDocument()
@@ -382,7 +382,7 @@ describe("<StatementImport /> upload", () => {
       "max",
       todayIso(),
     )
-    expect(recordButton()).toHaveTextContent("Record 2 changes")
+    expect(recordButton()).toHaveTextContent("Record 2 Changes")
     expect(recordButton()).toBeEnabled()
   })
 
@@ -454,17 +454,17 @@ describe("<StatementImport /> upload", () => {
     await upload(user)
 
     expect(
-      await screen.findByText(/Transaction screenshots are not supported yet/),
+      await screen.findByText(/Transaction images\s+are not supported yet/),
     ).toBeInTheDocument()
-    expect(screen.getByText(/holdings screenshot/)).toBeInTheDocument()
+    expect(screen.getByText(/image of your holdings/)).toBeInTheDocument()
     expect(callsTo(PREVIEW_URL)).toBe(0)
     expect(callsTo(COMMIT_URL)).toBe(0)
 
     await user.click(
-      screen.getByRole("button", { name: "Choose another file" }),
+      screen.getByRole("button", { name: "Choose Another File" }),
     )
     expect(
-      screen.queryByText(/Transaction screenshots are not supported yet/),
+      screen.queryByText(/Transaction images\s+are not supported yet/),
     ).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
@@ -475,12 +475,12 @@ describe("<StatementImport /> upload", () => {
     [
       422,
       "The image shows no brokerage holdings",
-      /could not read that screenshot: The image shows no brokerage holdings/,
+      /could not read that image: The image shows no brokerage holdings/,
     ],
     [
       502,
-      "The screenshot reader is unavailable",
-      /screenshot reader is unavailable right now/,
+      "The image reader is unavailable",
+      /image reader is unavailable right now/,
     ],
     [400, "The file is empty", /file is empty/],
     [
@@ -825,7 +825,7 @@ describe("<StatementImport /> new portfolio", () => {
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
 
     expect(await screen.findByLabelText("Currency")).toHaveValue("USD")
@@ -1009,7 +1009,7 @@ describe("<StatementImport /> confirm", () => {
     const code = screen.getByLabelText("Code for TSLA")
     await user.clear(code)
     await user.type(code, "BRK/B")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
     await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
     expect(
@@ -1017,20 +1017,93 @@ describe("<StatementImport /> confirm", () => {
     ).toContain("BRK.B")
   })
 
-  test("a market svc-data worked out says where it came from, until it is changed", async () => {
+  test("rows with an issue come first, then rows that will be recorded, then rows that match", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const order = (): Array<string | null> =>
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label"))
+
+    expect(order()).toEqual([
+      "Code for MSFT",
+      "Code for Mystery Fund",
+      "Code for AAPL",
+      "Code for TSLA",
+      "Code for VOO",
+    ])
+
+    await user.click(screen.getByRole("radio", { name: "Image order" }))
+
+    expect(order()).toEqual([
+      "Code for AAPL",
+      "Code for MSFT",
+      "Code for VOO",
+      "Code for TSLA",
+      "Code for Mystery Fund",
+    ])
+  })
+
+  test("with no issues the image's order is used and Issues first is off", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        { code: "VOO", quantity: 3 },
+        { code: "AAPL", quantity: 10, costBasis: 1200 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const radios = screen.getAllByRole("radio")
+    expect(radios.map((radio) => radio.getAttribute("value"))).toEqual([
+      "image",
+      "issues",
+    ])
+    expect(screen.getByRole("radio", { name: "Image order" })).toBeChecked()
+    expect(screen.getByRole("radio", { name: "Issues first" })).toBeDisabled()
+    expect(
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["Code for VOO", "Code for AAPL"])
+  })
+
+  test("Record sits at the top, above the holdings", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
     expect(
-      within(rowFor("VOO")).getByText("From what this account holds"),
-    ).toBeInTheDocument()
+      recordButton().compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(recordButton()).toHaveTextContent(/^Record \d+ Changes?$/)
+  })
+
+  test("issues sit folded between the portfolio and the holdings", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    const issues = screen.getByText(/^Needs a look/).closest("details")
+    expect(issues).not.toBeNull()
+    expect(issues).not.toHaveAttribute("open")
     expect(
-      within(rowFor("AAPL")).queryByText("The brokerage's market"),
-    ).not.toBeInTheDocument()
+      within(issues as HTMLElement).getByRole("region", {
+        name: "Will not be recorded",
+      }),
+    ).toBeInTheDocument()
+    const table = screen.getByRole("table")
+    expect(
+      (issues as HTMLElement).compareDocumentPosition(table) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  test("a market taken from what the account holds is filled in without a note", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+
     expect(screen.getByLabelText("Market for VOO")).toHaveValue("US")
-
-    await user.selectOptions(screen.getByLabelText("Market for VOO"), "NASDAQ")
-
     expect(
       within(rowFor("VOO")).queryByText("From what this account holds"),
     ).not.toBeInTheDocument()
@@ -1067,7 +1140,7 @@ describe("<StatementImport /> confirm", () => {
       screen.getByText("The rows could not be checked"),
     ).toBeInTheDocument()
     expect(
-      within(rowFor("AAPL")).getByText("Not checked yet. Press Recheck."),
+      within(rowFor("AAPL")).getByText("Not checked yet. Press Check Again."),
     ).toBeInTheDocument()
     expect(
       screen.queryByText(/Changed since the last check/),
@@ -1081,17 +1154,15 @@ describe("<StatementImport /> confirm", () => {
     const quantity = screen.getByLabelText("Quantity for AAPL")
     await user.clear(quantity)
     await user.type(quantity, "25")
-    await user.click(screen.getByRole("button", { name: "Recheck AAPL" }))
+    await user.click(screen.getByRole("button", { name: "Check AAPL again" }))
 
-    expect(
-      await within(rowFor("AAPL")).findByText("Add 25"),
-    ).toBeInTheDocument()
+    expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     const [, single] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
     expect(single.rows.map((row) => row.code)).toEqual(["AAPL"])
-    expect(within(rowFor("TSLA")).getByText("Reduce 3")).toBeInTheDocument()
+    expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     expect(
       screen.getByRole("region", {
-        name: "Held at this account but not on the screenshot",
+        name: "Held at this account but not in the image",
       }),
     ).toHaveTextContent("NVDA")
     expect(recordButton()).toBeEnabled()
@@ -1128,15 +1199,13 @@ describe("<StatementImport /> confirm", () => {
     await user.type(cost, "3000.50")
 
     expect(recordButton()).toBeDisabled()
-    expect(within(rowFor("AAPL")).queryByText("Add 10")).not.toBeInTheDocument()
+    expect(within(rowFor("AAPL")).queryByText("+10")).not.toBeInTheDocument()
     // Typing asked the server nothing.
     expect(callsTo(PREVIEW_URL)).toBe(1)
 
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
-    expect(
-      await within(rowFor("AAPL")).findByText("Add 25"),
-    ).toBeInTheDocument()
+    expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     expect(recordButton()).toBeEnabled()
     const rechecked = bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1]
     expect(rechecked.rows[0]).toEqual({
@@ -1161,7 +1230,7 @@ describe("<StatementImport /> confirm", () => {
     )
 
     await user.type(screen.getByLabelText("Cost for MSFT"), "1,750")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
     expect(
       await within(rowFor("MSFT")).findByText("Ready to record"),
@@ -1170,7 +1239,7 @@ describe("<StatementImport /> confirm", () => {
       code: "MSFT",
       costBasis: 1750,
     })
-    expect(recordButton()).toHaveTextContent("Record 3 changes")
+    expect(recordButton()).toHaveTextContent("Record 3 Changes")
   })
 
   test("an unresolved asset can be found with the asset search, and its row is checked again", async () => {
@@ -1230,7 +1299,7 @@ describe("<StatementImport /> confirm", () => {
     await user.click(screen.getByRole("button", { name: "Remove TSLA" }))
     expect(screen.queryByLabelText("Quantity for TSLA")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
     await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
     expect(
       bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].rows.map((row) => row.code),
@@ -1248,7 +1317,7 @@ describe("<StatementImport /> confirm", () => {
     await readHoldings(user)
 
     const notShown = screen.getByRole("region", {
-      name: "Held at this account but not on the screenshot",
+      name: "Held at this account but not in the image",
     })
     expect(within(notShown).getByText(/NVDA/)).toBeInTheDocument()
 
@@ -1312,7 +1381,7 @@ describe("<StatementImport /> record", () => {
     )
   })
 
-  test("a held-since date dates every added holding, a row can override it, and reductions keep the record date", async () => {
+  test("a row's held-since date dates its add; other adds and reductions take the record date", async () => {
     backend.read = json({
       ...holdingsProposal,
       rows: [
@@ -1324,7 +1393,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.type(screen.getByLabelText("Held since"), "2018-05-01")
+    expect(screen.queryByLabelText("Held since")).not.toBeInTheDocument()
     await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
@@ -1334,22 +1403,56 @@ describe("<StatementImport /> record", () => {
       confirmed.rows.map((row) => [row.assetId, row.tradeDate]),
     )
     expect(byAsset["a-AAPL"]).toBe("2016-02-03")
-    expect(byAsset["a-NFLX"]).toBe("2018-05-01")
+    expect(byAsset["a-NFLX"]).toBeUndefined()
     expect(byAsset["a-TSLA"]).toBeUndefined()
     expect(confirmed.tradeDate).toBe(todayIso())
+  })
+
+  test("the portfolio choice is explained behind an info icon", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    const heading = await screen.findByRole("heading", { name: /^Portfolio/ })
+
+    await user.hover(within(heading).getByText("Portfolio"))
+
+    expect(
+      await screen.findByText(
+        /You can create a portfolio per brokerage account/,
+      ),
+    ).toBeInTheDocument()
+  })
+
+  test("the date controls explain themselves behind an info icon", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const guess =
+      "Real accuracy requires real buy and sell dates. Short on time? Let me play detective and guess your purchase dates using your average cost. It won't be 100% precise, but it saves you a headache"
+
+    expect(
+      screen.getByRole("button", { name: "Suggest Dates" }),
+    ).toHaveAccessibleDescription(guess)
+    expect(screen.getByLabelText("Record date")).toHaveAccessibleDescription(
+      "The date of each change, unless the holding has its own held-since date.",
+    )
+    await user.hover(screen.getByText("Held since", { selector: "p span" }))
+    expect(screen.getAllByText(guess).length).toBeGreaterThan(1)
   })
 
   test("Suggest dates fills empty held-since dates from each holding's cost", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
+    expect(callsTo(HELD_SINCE_URL)).toBe(0)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     await waitFor(() =>
       expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
         "2017-06-30",
       ),
     )
+    expect(
+      within(rowFor("AAPL")).getByText("Guessed from the cost"),
+    ).toBeInTheDocument()
     expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
       { rows: [{ assetId: "a-AAPL", costPerShare: 120 }] },
     ])
@@ -1361,21 +1464,187 @@ describe("<StatementImport /> record", () => {
     expect(aapl?.tradeDate).toBe("2017-06-30")
   })
 
-  test("a cost below every known price says the holding is older than the prices", async () => {
-    backend.heldSince = json({
-      data: [{ assetId: "a-AAPL", heldSince: null, before: "2011-11-18" }],
+  test("Suggest dates says it is working, then what it found", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    expect(
+      await screen.findByRole("heading", { name: "Suggesting dates" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /Asking the stock market nicely for your price history\. It likes to play hard to get/,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument()
+    answer(backend.heldSince)
+    expect(
+      await screen.findByText("Suggested a date for 1 holding."),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "Suggesting dates" }),
+    ).not.toBeInTheDocument()
+  })
+
+  test("cancelling Suggest dates leaves the dates as they were", async () => {
+    let answer: (init: MockResponseInit) => void = () => undefined
+    fetchMock.mockResponse((req) =>
+      req.url.includes(HELD_SINCE_URL)
+        ? new Promise((resolve) => {
+            answer = resolve
+          })
+        : respond(req),
+    )
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    await screen.findByRole("heading", { name: "Suggesting dates" })
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+    answer(backend.heldSince)
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Suggesting dates" }),
+      ).not.toBeInTheDocument(),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Suggest Dates" }),
+      ).toBeEnabled(),
+    )
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+    expect(
+      screen.queryByText("Suggested a date for 1 holding."),
+    ).not.toBeInTheDocument()
+  })
+
+  test("Suggest dates names a holding new to Beancounter, which has no price history yet", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        ...holdingsProposal.rows,
+        { code: "NOK", quantity: 100, costBasis: 400 },
+      ],
     })
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     expect(
-      await within(rowFor("AAPL")).findByText(
-        "Before 2011-11-18. Record date applies until you enter one",
+      await screen.findByText(
+        "Suggested a date for 1 holding. No price history yet for NOK: enter its date.",
       ),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
+  })
+
+  test("Suggest dates says so when there is nothing to suggest", async () => {
+    backend.heldSince = json({
+      data: [{ assetId: "a-AAPL", heldSince: null, before: null }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    expect(
+      await screen.findByText("No date could be suggested for AAPL."),
+    ).toBeInTheDocument()
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    expect(
+      await screen.findByText(
+        "Every holding being added already has a date. 1 holding already matches what is held, so takes no date.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  test("a failed Suggest dates stops showing once nothing is left to date", async () => {
+    backend.heldSince = { status: 500, body: "{}" }
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    expect(await screen.findByText(/could not be guessed/)).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    expect(
+      await screen.findByText(/Every holding being added already has a date/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/could not be guessed/)).not.toBeInTheDocument()
+  })
+
+  test("what Suggest dates found is not shown on the next import", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    await screen.findByText("Suggested a date for 1 holding.")
+
+    await user.click(
+      screen.getByRole("button", { name: "Discard and Start Again" }),
+    )
+    await upload(user)
+    await screen.findByRole("heading", { name: "Confirm what was read" })
+
+    expect(
+      screen.queryByText("Suggested a date for 1 holding."),
+    ).not.toBeInTheDocument()
+  })
+
+  test("a date read from the image is used, and Suggest dates leaves it alone", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: holdingsProposal.rows.map((row) =>
+        row.code === "AAPL" ? { ...row, tradeDate: "2015-03-02" } : row,
+      ),
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+      "2015-03-02",
+    )
+    expect(
+      within(rowFor("AAPL")).getByText("Read from the image"),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+    expect(callsTo(HELD_SINCE_URL)).toBe(0)
+    expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+      "2015-03-02",
+    )
+  })
+
+  test("a cost below every known price suggests the earliest price's date", async () => {
+    backend.heldSince = json({
+      data: [{ assetId: "a-AAPL", heldSince: null, before: "2016-11-18" }],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
+        "2016-11-18",
+      ),
+    )
+    expect(
+      within(rowFor("AAPL")).getByText(
+        "Guessed: bought before the earliest price",
+      ),
+    ).toBeInTheDocument()
   })
 
   test("dates suggested for a discarded upload do not fill the next one", async () => {
@@ -1389,11 +1658,11 @@ describe("<StatementImport /> record", () => {
     )
     const user = userEvent.setup()
     await readHoldings(user)
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
     await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(1))
 
     await user.click(
-      screen.getByRole("button", { name: "Discard and start again" }),
+      screen.getByRole("button", { name: "Discard and Start Again" }),
     )
     await upload(user)
     await screen.findByRole("heading", { name: "Confirm what was read" })
@@ -1401,7 +1670,7 @@ describe("<StatementImport /> record", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Suggest dates" }),
+        screen.getByRole("button", { name: "Suggest Dates" }),
       ).toBeEnabled(),
     )
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
@@ -1439,7 +1708,7 @@ describe("<StatementImport /> record", () => {
     const cost = screen.getByLabelText("Cost for AAPL")
     await user.clear(cost)
     await user.type(cost, "1300")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
     await waitFor(() => expect(recordButton()).toBeEnabled())
     await user.click(recordButton())
 
@@ -1484,7 +1753,7 @@ describe("<StatementImport /> record", () => {
     ).toHaveAttribute("href", "/brokers/b-ibkr/holdings")
 
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(1)
@@ -1496,7 +1765,7 @@ describe("<StatementImport /> record", () => {
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
 
     await upload(user)

@@ -33,3 +33,7 @@ export function newPortfolioFor(
   for (let n = 2; taken.has(code); n++) code = `${base}-${n}`
   return { code, name: brokerLabel(broker), currency }
 }
+
+/** Why a portfolio is chosen here, and what importing into an existing one does. */
+export const PORTFOLIO_HELP =
+  "You can create a portfolio per brokerage account, or use a portfolio per investment strategy - it's up to you. If you choose to import into an existing portfolio, then positions are merged and the quantity you import from each broker will be accurately recorded. Either way, Beancounter will allow you to view an aggregate accumulation of all your positions as if it were a single portfolio."

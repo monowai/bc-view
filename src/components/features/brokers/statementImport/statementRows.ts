@@ -36,7 +36,7 @@ export interface ImportRow {
   name: string
   /** When the holding was opened (yyyy-mm-dd); "" for the import's date. */
   heldSince: string
-  /** Why no date was suggested, e.g. "Before 2011-11-18". */
+  /** Where `heldSince` came from when the user did not enter it. */
   heldSinceHint?: string
   /** Where svc-data found `market`; absent once the user chooses it. */
   marketFrom?: ReconcileMarketSource | null
@@ -57,6 +57,10 @@ const printed = (value: number | null | undefined): number | undefined =>
 const beancounterCode = (code: string): string =>
   code.trim().replace(/\//g, ".")
 
+export const READ_FROM_IMAGE = "Read from the image"
+export const GUESSED_FROM_COST = "Guessed from the cost"
+export const GUESSED_BEFORE_PRICES = "Guessed: bought before the earliest price"
+
 export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
   return proposal.rows.map((row, index) => ({
     key: `row-${index}`,
@@ -65,7 +69,9 @@ export function toImportRows(proposal: ScreenshotProposal): ImportRow[] {
     quantity: text(row.quantity),
     cost: text(row.costBasis),
     name: row.name?.trim() ?? "",
-    heldSince: "",
+    // A holdings page that prints when a position was opened says it best.
+    heldSince: row.tradeDate ?? "",
+    heldSinceHint: row.tradeDate ? READ_FROM_IMAGE : undefined,
     printed: {
       costPerShare: printed(row.costPerShare),
       price: printed(row.price),
@@ -218,7 +224,6 @@ export const STATUS_COPY: Record<ReconcileRowStatus, string> = {
 export const MARKET_SOURCE_COPY: Partial<
   Record<ReconcileMarketSource, string>
 > = {
-  HELD: "From what this account holds",
   LISTED: "The only market that lists it",
 }
 
@@ -232,9 +237,9 @@ export function chooseAmong(markets: string[]): string {
 }
 
 export const NEEDS_CODE = "Enter the code"
-export const NOT_CHECKED = "Changed since the last check. Press Recheck."
+export const NOT_CHECKED = "Changed since the last check. Press Check Again."
 /** No check has answered for the row yet, for example because the check failed. */
-export const NEVER_CHECKED = "Not checked yet. Press Recheck."
+export const NEVER_CHECKED = "Not checked yet. Press Check Again."
 
 export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
   MARKET_VALUE_MISMATCH:
@@ -243,12 +248,18 @@ export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
     "Market value less cost does not match the gain or loss shown",
 }
 
-/** The proposed change in plain words: "Add 10", "Reduce 3", "No change". */
+/** The proposed change as a signed quantity: "+10", "-3", or "No change". */
 export function describeChange(preview: ReconcilePreviewRow): string {
   if (preview.status === "UNCHANGED") return "No change"
   if (!preview.trnType || preview.quantity == null) return ""
-  const verb = preview.trnType === "ADD" ? "Add" : "Reduce"
-  return `${verb} ${formatQuantity(preview.quantity)}`
+  const sign = preview.trnType === "ADD" ? "+" : "-"
+  return `${sign}${formatQuantity(preview.quantity)}`
+}
+
+/** Green for a holding added to, red for one reduced. */
+export function changeColour(preview: ReconcilePreviewRow): string {
+  if (preview.status === "UNCHANGED" || !preview.trnType) return "text-gray-900"
+  return preview.trnType === "ADD" ? "text-emerald-700" : "text-red-700"
 }
 
 interface RefusalBody {
@@ -276,16 +287,15 @@ export async function readRefusal(res: Response): Promise<string> {
       return "That file is not an image Beancounter can read. Upload a PNG, JPEG, WebP or GIF image."
     case 422:
       return said
-        ? `Beancounter could not read that screenshot: ${said}`
-        : "Beancounter could not read that screenshot. Try a clearer screenshot of your holdings."
+        ? `Beancounter could not read that image: ${said}`
+        : "Beancounter could not read that image. Try a clearer image of your holdings."
     case 502:
-      return "The screenshot reader is unavailable right now. Nothing was recorded. Try again in a few minutes."
+      return "The image reader is unavailable right now. Nothing was recorded. Try again in a few minutes."
     default: {
       const known = describeAgentError(body)
       if (known.code !== "unknown") return `${known.title}. ${known.message}`
       return (
-        said ||
-        `The screenshot could not be read (error ${res.status}). Try again.`
+        said || `The image could not be read (error ${res.status}). Try again.`
       )
     }
   }
