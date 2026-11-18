@@ -166,6 +166,12 @@ export default withPageAuthRequired(function Portfolios({
     }
   }, [activeTab, managedSharesData, hasManagedShares, setActiveTab])
 
+  // A notice from an earlier load would describe a portfolio no longer in view.
+  const handleCorporateActionsOpen = useCallback((portfolio: Portfolio) => {
+    setBackgroundLoad(null)
+    setCorporateActionsPortfolio(portfolio)
+  }, [])
+
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
   }, [])
@@ -259,7 +265,7 @@ export default withPageAuthRequired(function Portfolios({
                 ? () => setShowConsolidate(true)
                 : undefined
             }
-            onCorporateActions={setCorporateActionsPortfolio}
+            onCorporateActions={handleCorporateActionsOpen}
             onDelete={setDeleteTarget}
           />
         </>
@@ -273,13 +279,13 @@ export default withPageAuthRequired(function Portfolios({
           onCurrencyChange={setDisplayCurrency}
           onImportClick={handleImportClick}
           onShareClick={handleShareClick}
-          onCorporateActions={setCorporateActionsPortfolio}
+          onCorporateActions={handleCorporateActionsOpen}
           onDelete={setDeleteTarget}
           isInactiveTab
         />
       )}
       {activeTab === "managed" && (
-        <ManagedPortfolios onCorporateActions={setCorporateActionsPortfolio} />
+        <ManagedPortfolios onCorporateActions={handleCorporateActionsOpen} />
       )}
 
       {corporateActionsPortfolio && (

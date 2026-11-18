@@ -29,7 +29,7 @@ import { eventKey } from "@utils/api/client/trns"
 import { processCorporateEvent } from "@utils/api/client/corporateEvents"
 import {
   BackgroundLoadOutcome,
-  ProposedTransactionsLink,
+  DividendsWaitNotice,
   startBackgroundLoad,
 } from "@components/features/portfolios/BackgroundLoadNotice"
 
@@ -337,9 +337,8 @@ const PortfolioCorporateActionsPopup: React.FC<
 
       {processedEvents.size > 0 && !isBackfilling && (
         <Alert variant="success" className="mt-3">
-          {"Splits are recorded. Dividends wait in "}
-          <ProposedTransactionsLink />
-          {": settle the ones you took as cash and delete any you reinvested."}
+          {"Splits are recorded. "}
+          <DividendsWaitNotice />
         </Alert>
       )}
 

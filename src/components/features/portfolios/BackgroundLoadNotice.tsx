@@ -12,6 +12,9 @@ export type BackgroundLoadOutcome =
   BackgroundLoadResponse | { status: "ERROR"; message: string }
 
 const COULD_NOT_START = "Could not start loading corporate actions"
+// No readable answer: the request may have reached svc-event and started a load.
+const COULD_NOT_CONFIRM =
+  "Could not confirm that loading corporate actions started"
 
 /** Ask svc-event to load a portfolio's corporate actions in the background. */
 export async function startBackgroundLoad(
@@ -28,7 +31,7 @@ export async function startBackgroundLoad(
     }
     return (await response.json()) as BackgroundLoadResponse
   } catch {
-    return { status: "ERROR", message: COULD_NOT_START }
+    return { status: "ERROR", message: COULD_NOT_CONFIRM }
   }
 }
 
@@ -38,6 +41,16 @@ export function ProposedTransactionsLink(): React.ReactElement {
     <Link href="/trns/proposed" className="font-medium underline">
       Proposed Transactions
     </Link>
+  )
+}
+
+/** What happens to dividends once loaded: they wait for the owner to act. */
+export function DividendsWaitNotice(): React.ReactElement {
+  return (
+    <>
+      Dividends wait in <ProposedTransactionsLink />: settle the ones you took
+      as cash and delete any you reinvested.
+    </>
   )
 }
 
@@ -63,9 +76,7 @@ export default function BackgroundLoadNotice({
   return (
     <Alert variant="info" className={className}>
       <p>
-        {lead} Splits are recorded as they arrive. Dividends wait in{" "}
-        <ProposedTransactionsLink />: settle the ones you took as cash and
-        delete any you reinvested.
+        {lead} Splits are recorded as they arrive. <DividendsWaitNotice />
       </p>
     </Alert>
   )
