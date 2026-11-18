@@ -193,4 +193,15 @@ export interface ConfirmedHoldings {
   /** yyyy-MM-dd, not in the future; today when absent. */
   tradeDate?: string
   rows: ConfirmedRow[]
+  /** A new account's opening cash, recorded as one deposit with the rows. */
+  cash?: ConfirmedCash
+}
+
+/**
+ * Cash an account holds: more than zero, in an ISO currency. A typed zero is
+ * accepted as "no cash" and sent as no `cash` at all, never as an amount of 0.
+ */
+export interface ConfirmedCash {
+  amount: number
+  currency: string
 }
