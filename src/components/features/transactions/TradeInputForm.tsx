@@ -15,6 +15,7 @@ import {
   deriveDefaultMarket,
   getTradeColorScheme,
   getQtyPriceTint,
+  hasCostDate,
 } from "@lib/trns/tradeUtils"
 import useSwr, { mutate } from "swr"
 import {
@@ -90,6 +91,9 @@ const round2 = (value: number): number => Math.round(value * 100) / 100
 // Private and cash assets have no external market data to fetch.
 const hasMarketPrice = (market: string): boolean =>
   market !== "PRIVATE" && market !== "CASH"
+
+// A changed trade date re-checks the cost date, which must not fall after it.
+const tradeDateRules: { deps: string[] } = { deps: ["costDate"] }
 
 const TradeInputForm: React.FC<{
   portfolio: Portfolio
@@ -834,6 +838,11 @@ const TradeInputForm: React.FC<{
   const isIncome = isIncomeType(type?.value)
   const isSimpleAmount = isSimpleAmountType(type?.value)
   const tradeAmount = watch("tradeAmount") || 0
+  // The cost date shows its error inline while its field is on screen
+  const costDateInline = activeTab === "trade" && hasCostDate(type?.value)
+  const formErrors = Object.entries(errors)
+    .filter(([field]) => !(costDateInline && field === "costDate"))
+    .map(([, error]) => error?.message)
 
   return (
     <>
@@ -1008,6 +1017,7 @@ const TradeInputForm: React.FC<{
                       <Controller
                         name="tradeDate"
                         control={control as any}
+                        rules={tradeDateRules}
                         render={({ field }) => (
                           <DateInput
                             ref={dateInputRef}
@@ -1020,7 +1030,7 @@ const TradeInputForm: React.FC<{
                       />
                     </div>
                     {/* Cost date: an ADD only, under the trade date it defaults to */}
-                    {type?.value === "ADD" && (
+                    {hasCostDate(type?.value) && (
                       <div className="col-start-2">
                         <label htmlFor="cost-date" className={labelClass}>
                           <Tooltip text={COST_DATE_HELP} position="below">
@@ -1698,13 +1708,10 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Error Display (visible on all tabs); the cost date shows its own inline */}
-              {Object.keys(errors).some((field) => field !== "costDate") && (
+              {/* Error Display (visible on all tabs) */}
+              {formErrors.length > 0 && (
                 <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
-                  {Object.entries(errors)
-                    .filter(([field]) => field !== "costDate")
-                    .map(([, error]) => error?.message)
-                    .join(" ")}
+                  {formErrors.join(" ")}
                 </div>
               )}
             </form>

@@ -1,6 +1,7 @@
 import * as yup from "yup"
 import { Transaction } from "types/beancounter"
 import { todayIso } from "@lib/formatters"
+import { hasCostDate } from "./tradeUtils"
 
 export const COST_DATE_AFTER_TRADE_DATE =
   "Cost date cannot be after the trade date"
@@ -85,7 +86,9 @@ export const schema = yup.object().shape({
     .default("")
     .test("not-after-trade-date", COST_DATE_AFTER_TRADE_DATE, function (value) {
       const { type, tradeDate } = this.parent
-      return type?.value !== "ADD" || !value || !tradeDate || value <= tradeDate
+      return (
+        !hasCostDate(type?.value) || !value || !tradeDate || value <= tradeDate
+      )
     }),
 })
 

@@ -1,6 +1,7 @@
 import { TrnUpdatePayload } from "@utils/api/client/trns"
 import { TradeFormValues } from "./tradeFormHelpers"
 import { TRN_STATUS } from "types/constants"
+import { hasCostDate } from "./tradeUtils"
 
 /**
  * Derive the settlement currency from form data.
@@ -24,7 +25,7 @@ export const buildEditPayload = (
   const isExpense = formData.type.value === "EXPENSE"
   const isIncome = formData.type.value === "INCOME"
   const isSimpleAmount = isExpense || isIncome
-  const isAdd = formData.type.value === "ADD"
+  const carriesCostDate = hasCostDate(formData.type.value)
 
   return {
     trnType: formData.type.value,
@@ -49,7 +50,9 @@ export const buildEditPayload = (
     status: formData.status?.value || TRN_STATUS.SETTLED,
     modelId: selectedModelId,
     // The server reads a cost date on the trade date as none, so a blank field clears it.
-    ...(isAdd && { costDate: formData.costDate || formData.tradeDate }),
+    ...(carriesCostDate && {
+      costDate: formData.costDate || formData.tradeDate,
+    }),
   }
 }
 

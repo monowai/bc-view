@@ -245,8 +245,8 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
 export const getTradeRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
   const row = `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
-  // Only an ADD has a cost date. It is the optional column after SubAccounts.
-  return data.type.value === "ADD" && data.costDate
+  // The cost date is the optional column after SubAccounts.
+  return hasCostDate(data.type.value) && data.costDate
     ? `${row},,${data.costDate}`
     : row
 }
@@ -336,6 +336,9 @@ export const isBuySide = (tradeType: string): boolean =>
 /** Returns true if the trade type removes from a position (SELL, REDUCE, EXPENSE) */
 export const isSellSide = (tradeType: string): boolean =>
   ["SELL", "REDUCE", "EXPENSE"].includes(tradeType)
+
+/** Only an ADD carries a cost date: when it was paid for, if before the trade date */
+export const hasCostDate = (tradeType?: string): boolean => tradeType === "ADD"
 
 /** Returns true if the trade type is a non-cash position adjustment (ADD, REDUCE) */
 export const isPositionAdjustment = (tradeType: string): boolean =>

@@ -173,6 +173,36 @@ describe("TradeInputForm — cost date", () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
+  test("moving the trade date past the cost date clears the error", async () => {
+    editing(anAdd("2016-11-18"))
+
+    change(costDateField(), "2024-02-01")
+    save()
+    await screen.findByText("Cost date cannot be after the trade date")
+
+    change(screen.getByLabelText("Trade date"), "2024-03-01")
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Cost date cannot be after the trade date"),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  test("the cost date error stays visible on the settlement tab", async () => {
+    editing(anAdd("2016-11-18"))
+
+    change(costDateField(), "2024-02-01")
+    save()
+    await screen.findByText("Cost date cannot be after the trade date")
+
+    fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+
+    expect(
+      screen.getByText("Cost date cannot be after the trade date"),
+    ).toBeVisible()
+  })
+
   test("another type sends no cost date", async () => {
     editing(makeTrn({ trnType: "BUY", portfolio, costDate: "2016-11-18" }))
 
