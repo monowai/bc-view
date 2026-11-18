@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react"
+import { canEditAsset } from "./assetEditRights"
 import dynamic from "next/dynamic"
 import useSwr, { mutate as globalMutate } from "swr"
 import { Asset, AssetCategory } from "types/beancounter"
@@ -77,9 +78,10 @@ export function useAssetEditor(
       // PRIVATE assets are user-owned → use the existing owner-scoped dialog.
       // Non-PRIVATE assets are public; only admins can edit those, and they
       // go through the slim admin dialog (category / name / sector only).
+      if (!canEditAsset(asset, isAdmin)) return
       if (asset.market?.code === "PRIVATE") {
         setEditAsset(asset)
-      } else if (isAdmin) {
+      } else {
         setAdminEditAsset(asset)
       }
     },

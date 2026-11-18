@@ -23,6 +23,8 @@ import {
   isFundLike,
 } from "@lib/assets/assetUtils"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
+import { usePermissions } from "@hooks/usePermissions"
+import { canEditAsset } from "./assetEditRights"
 
 export interface CorporateActionsData {
   asset: Asset
@@ -253,6 +255,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const assetCode = asset.displayCode
   const [watching, setWatching] = useState(false)
   const canWatch = asset.watchable
+  const { admin: isAdmin } = usePermissions()
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
@@ -418,7 +421,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           onClick={handle(() => onGoToPortfolio(asset))}
         />
       )}
-      {onEditAsset && (
+      {onEditAsset && canEditAsset(asset, isAdmin) && (
         <MenuItem
           iconClass="fas fa-pen-to-square text-slate-500 w-4"
           label="Edit Asset"
