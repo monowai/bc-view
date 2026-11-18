@@ -115,7 +115,8 @@ export default function ConfirmStep({
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+      {/* One label row, one control row, one hint row: every control lines up. */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 grid gap-x-8 gap-y-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,20rem)_1fr] sm:items-start">
         <div>
           <label
             htmlFor="import-record-date"
@@ -130,29 +131,36 @@ export default function ConfirmStep({
             max={todayIso()}
             disabled={busy}
             onChange={(event) => flow.setTradeDate(event.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-describedby="import-record-date-hint"
+            className="h-10 w-full border border-gray-300 rounded-lg px-3 bg-white tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p
+            id="import-record-date-hint"
+            className={`text-xs mt-1.5 ${flow.tradeDateInFuture ? "text-red-700" : "text-gray-500"}`}
+          >
             {flow.tradeDateInFuture
               ? "The record date cannot be in the future."
               : "The date of each change, unless the holding has its own held-since date."}
           </p>
         </div>
-        <div className="max-w-xs">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 mb-1">Held since</p>
           <button
             type="button"
             onClick={() => void flow.suggestHeldSince()}
             disabled={busy || flow.suggesting || flow.checking}
-            className="py-2 px-3 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
+            aria-describedby="import-suggest-hint"
+            className="h-10 inline-flex items-center gap-2 px-4 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
           >
+            <i className="far fa-calendar-check" aria-hidden="true"></i>
             Suggest dates
           </button>
-          <p className="text-xs text-gray-500 mt-1">
+          <p id="import-suggest-hint" className="text-xs text-gray-500 mt-1.5">
             Guesses when you bought each holding being added, from its cost, so
             returns are measured over the right period.
           </p>
           {flow.suggestNote && (
-            <p className="text-xs text-gray-700 mt-1" role="status">
+            <p className="text-xs text-gray-700 mt-1.5" role="status">
               {flow.suggestNote}
             </p>
           )}
@@ -160,20 +168,23 @@ export default function ConfirmStep({
             <Alert className="mt-2">{flow.suggestError}</Alert>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void flow.recheck()}
-          disabled={flow.checking || busy}
-          className="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-60 mb-5"
-        >
-          <i className="fas fa-rotate-right mr-2" aria-hidden="true"></i>
-          Recheck
-        </button>
-        {flow.checking && (
-          <span role="status" className="text-sm text-gray-600 mb-6">
-            <Spinner label="Checking against your holdings…" />
-          </span>
-        )}
+        {/* The top padding matches a label row, so Recheck sits on the control row. */}
+        <div className="flex flex-col items-start gap-1.5 sm:items-end sm:pt-6">
+          <button
+            type="button"
+            onClick={() => void flow.recheck()}
+            disabled={flow.checking || busy}
+            className="h-10 inline-flex items-center gap-2 px-4 rounded-lg bg-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-60"
+          >
+            <i className="fas fa-rotate-right" aria-hidden="true"></i>
+            Recheck
+          </button>
+          {flow.checking && (
+            <span role="status" className="text-xs text-gray-600">
+              <Spinner label="Checking against your holdings…" />
+            </span>
+          )}
+        </div>
       </div>
 
       <details
