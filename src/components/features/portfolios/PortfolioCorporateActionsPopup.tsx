@@ -337,8 +337,9 @@ const PortfolioCorporateActionsPopup: React.FC<
 
       {processedEvents.size > 0 && !isBackfilling && (
         <Alert variant="success" className="mt-3">
-          {"Past dividends and splits are recorded; any not yet paid wait in "}
-          <ProposedTransactionsLink />.
+          {"Splits are recorded. Dividends wait in "}
+          <ProposedTransactionsLink />
+          {": settle the ones you took as cash and delete any you reinvested."}
         </Alert>
       )}
 

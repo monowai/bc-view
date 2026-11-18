@@ -32,7 +32,7 @@ export async function startBackgroundLoad(
   }
 }
 
-/** Where corporate actions that are not yet paid wait to be confirmed. */
+/** Where dividends wait for the owner to settle as income or delete as reinvested. */
 export function ProposedTransactionsLink(): React.ReactElement {
   return (
     <Link href="/trns/proposed" className="font-medium underline">
@@ -63,8 +63,9 @@ export default function BackgroundLoadNotice({
   return (
     <Alert variant="info" className={className}>
       <p>
-        {lead} Past ones are recorded as they arrive; any not yet paid wait in{" "}
-        <ProposedTransactionsLink /> for you to confirm.
+        {lead} Splits are recorded as they arrive. Dividends wait in{" "}
+        <ProposedTransactionsLink />: settle the ones you took as cash and
+        delete any you reinvested.
       </p>
     </Alert>
   )

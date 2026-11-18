@@ -83,7 +83,7 @@ describe("Portfolios page background load notice", () => {
         /Loading dividends and splits since 2019-01-01 in the background\./,
       ),
     ).toHaveTextContent(
-      "Loading dividends and splits since 2019-01-01 in the background. Past ones are recorded as they arrive; any not yet paid wait in Proposed Transactions for you to confirm.",
+      "Loading dividends and splits since 2019-01-01 in the background. Splits are recorded as they arrive. Dividends wait in Proposed Transactions: settle the ones you took as cash and delete any you reinvested.",
     )
     expect(
       screen.getByRole("link", { name: "Proposed Transactions" }),

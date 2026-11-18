@@ -195,9 +195,9 @@ describe("PortfolioCorporateActionsPopup", () => {
     fireEvent.click(screen.getByRole("button", { name: /Backfill/ }))
 
     expect(
-      await screen.findByText(/Past dividends and splits are recorded/),
+      await screen.findByText(/Splits are recorded\. Dividends wait/),
     ).toHaveTextContent(
-      "Past dividends and splits are recorded; any not yet paid wait in Proposed Transactions.",
+      "Splits are recorded. Dividends wait in Proposed Transactions: settle the ones you took as cash and delete any you reinvested.",
     )
     expect(
       screen.getByRole("link", { name: "Proposed Transactions" }),

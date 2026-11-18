@@ -2091,7 +2091,7 @@ describe("<StatementImport /> record", () => {
         /Loading dividends and splits since 2016-02-03 in the background\./,
       ),
     ).toHaveTextContent(
-      "Loading dividends and splits since 2016-02-03 in the background. Past ones are recorded as they arrive; any not yet paid wait in Proposed Transactions for you to confirm.",
+      "Loading dividends and splits since 2016-02-03 in the background. Splits are recorded as they arrive. Dividends wait in Proposed Transactions: settle the ones you took as cash and delete any you reinvested.",
     )
     expect(proposedLink()).toHaveAttribute("href", "/trns/proposed")
     expect(screen.queryByText(/go back to 2016-02-03/)).not.toBeInTheDocument()
@@ -2117,7 +2117,7 @@ describe("<StatementImport /> record", () => {
     expect(
       await screen.findByText(/already loading dividends and splits/i),
     ).toHaveTextContent(
-      "Already loading dividends and splits for this portfolio in the background. Past ones are recorded as they arrive; any not yet paid wait in Proposed Transactions for you to confirm.",
+      "Already loading dividends and splits for this portfolio in the background. Splits are recorded as they arrive. Dividends wait in Proposed Transactions: settle the ones you took as cash and delete any you reinvested.",
     )
     expect(proposedLink()).toHaveAttribute("href", "/trns/proposed")
   })
