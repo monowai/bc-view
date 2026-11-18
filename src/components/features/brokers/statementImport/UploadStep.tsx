@@ -323,7 +323,7 @@ export default function UploadStep({
       <ImportSection
         step={4}
         title="Image"
-        lead="A screenshot of the account's holdings page."
+        lead="An image of the account's holdings page, such as a screenshot."
         done={done[3]}
         current={current === 3}
         className="border-t border-gray-200"
@@ -347,19 +347,19 @@ export default function UploadStep({
             {flow.unsupported && (
               <Alert variant="warning">
                 <p>
-                  This screenshot shows a list of transactions. Transaction
-                  screenshots are not supported yet, so nothing was recorded.
+                  This image shows a list of transactions. Transaction images
+                  are not supported yet, so nothing was recorded.
                 </p>
                 <p className="mt-1">
-                  Upload a holdings screenshot instead: the page that lists what
-                  you hold and how many.
+                  Upload an image of your holdings instead: the page that lists
+                  what you hold and how many.
                 </p>
                 <button
                   type="button"
                   onClick={flow.chooseAnotherFile}
                   className="mt-2 underline font-medium"
                 >
-                  Choose another file
+                  Choose Another File
                 </button>
               </Alert>
             )}

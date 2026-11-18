@@ -237,9 +237,9 @@ export function chooseAmong(markets: string[]): string {
 }
 
 export const NEEDS_CODE = "Enter the code"
-export const NOT_CHECKED = "Changed since the last check. Press Recheck."
+export const NOT_CHECKED = "Changed since the last check. Press Check Again."
 /** No check has answered for the row yet, for example because the check failed. */
-export const NEVER_CHECKED = "Not checked yet. Press Recheck."
+export const NEVER_CHECKED = "Not checked yet. Press Check Again."
 
 export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
   MARKET_VALUE_MISMATCH:
@@ -287,16 +287,15 @@ export async function readRefusal(res: Response): Promise<string> {
       return "That file is not an image Beancounter can read. Upload a PNG, JPEG, WebP or GIF image."
     case 422:
       return said
-        ? `Beancounter could not read that screenshot: ${said}`
-        : "Beancounter could not read that screenshot. Try a clearer screenshot of your holdings."
+        ? `Beancounter could not read that image: ${said}`
+        : "Beancounter could not read that image. Try a clearer image of your holdings."
     case 502:
-      return "The screenshot reader is unavailable right now. Nothing was recorded. Try again in a few minutes."
+      return "The image reader is unavailable right now. Nothing was recorded. Try again in a few minutes."
     default: {
       const known = describeAgentError(body)
       if (known.code !== "unknown") return `${known.title}. ${known.message}`
       return (
-        said ||
-        `The screenshot could not be read (error ${res.status}). Try again.`
+        said || `The image could not be read (error ${res.status}). Try again.`
       )
     }
   }

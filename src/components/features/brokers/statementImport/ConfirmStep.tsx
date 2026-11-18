@@ -28,6 +28,50 @@ const SUGGEST_DATES_HELP =
 const fieldClass =
   "w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 
+type RowOrder = "issues" | "image"
+
+const ORDER_OPTIONS: Array<{ value: RowOrder; label: string }> = [
+  { value: "issues", label: "Issues first" },
+  { value: "image", label: "Image order" },
+]
+
+/** How the holdings are listed: issues first, or as the image shows them. */
+function RowOrderToggle({
+  order,
+  onChange,
+}: {
+  order: RowOrder
+  onChange: (order: RowOrder) => void
+}): React.ReactElement {
+  return (
+    <fieldset className="flex justify-end">
+      <legend className="sr-only">Order of the holdings</legend>
+      <div className="inline-flex rounded-lg border border-gray-300 bg-white p-0.5 text-sm">
+        {ORDER_OPTIONS.map((option) => (
+          <label
+            key={option.value}
+            className={`cursor-pointer rounded-md px-3 py-1.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
+              order === option.value
+                ? "bg-gray-900 text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <input
+              type="radio"
+              name="import-row-order"
+              value={option.value}
+              checked={order === option.value}
+              onChange={() => onChange(option.value)}
+              className="sr-only"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
 /** "Needs a look: 2 will not be recorded · 24 held but not on the image" */
 function issueSummary(blocked: number, notShown: number): string {
   const parts = [
@@ -54,6 +98,7 @@ export default function ConfirmStep({
   )
   // The row whose asset is being looked up with the asset search.
   const [findingKey, setFindingKey] = useState<string | null>(null)
+  const [order, setOrder] = useState<RowOrder>("issues")
   if (!session) return null
   const existing =
     "portfolio" in session.target ? session.target.portfolio : null
@@ -80,16 +125,19 @@ export default function ConfirmStep({
     })
     .filter((row) => row.skipped)
   const changes = flow.readyRows.length
-  // Rows that Record acts on first, then rows with an issue, then rows that
-  // match what is held. Ordered by the last check, so a row moves only when
-  // it is checked again, not while it is being edited.
+  // Rows with an issue first, then rows Record acts on, then rows that match
+  // what is held; or the order the image shows them in. Ordered by the last
+  // check, so a row moves only when it is checked again, not while edited.
   const rank = (status: string | undefined): number =>
-    status === "READY" ? 0 : status === "UNCHANGED" ? 2 : 1
-  const ordered = [...session.rows].sort(
-    (a, b) =>
-      rank(session.previewByKey[a.key]?.status) -
-      rank(session.previewByKey[b.key]?.status),
-  )
+    status === "READY" ? 1 : status === "UNCHANGED" ? 2 : 0
+  const ordered =
+    order === "image"
+      ? session.rows
+      : [...session.rows].sort(
+          (a, b) =>
+            rank(session.previewByKey[a.key]?.status) -
+            rank(session.previewByKey[b.key]?.status),
+        )
   const notShown = session.preview?.notShown ?? []
   const findingIndex = session.rows.findIndex((row) => row.key === findingKey)
   const finding =
@@ -108,19 +156,36 @@ export default function ConfirmStep({
             Confirm what was read
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Check each row against your screenshot. Nothing is recorded until
-            you press Record.
+            Check each row against your image. Nothing is recorded until you
+            press Record.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={flow.reset}
-          disabled={busy}
-          className="text-sm text-gray-600 underline"
-        >
-          Discard and start again
-        </button>
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            onClick={flow.reset}
+            disabled={busy}
+            className="text-sm text-gray-600 underline"
+          >
+            Discard and Start Again
+          </button>
+          <button
+            type="button"
+            onClick={() => void flow.record()}
+            disabled={!flow.canRecord}
+            className="btn-primary"
+          >
+            {`Record ${changes} ${changes === 1 ? "Change" : "Changes"}`}
+          </button>
+        </div>
       </div>
+
+      {busy && (
+        <p role="status" className="text-sm text-gray-600">
+          <Spinner label="Recording…" />
+        </p>
+      )}
+      {flow.recordError && <Alert>{flow.recordError}</Alert>}
 
       {/* One label row, one control row, one hint row: every control lines up. */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 grid gap-x-8 gap-y-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,20rem)_1fr] sm:items-start">
@@ -162,7 +227,7 @@ export default function ConfirmStep({
             className="h-10 inline-flex items-center gap-2 px-4 rounded-lg border border-blue-300 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors disabled:opacity-60 whitespace-nowrap"
           >
             <i className="far fa-calendar-check" aria-hidden="true"></i>
-            Suggest dates
+            Suggest Dates
           </button>
           <p id="import-suggest-hint" className="sr-only">
             {SUGGEST_DATES_HELP}
@@ -176,7 +241,7 @@ export default function ConfirmStep({
             <Alert className="mt-2">{flow.suggestError}</Alert>
           )}
         </div>
-        {/* The top padding matches a label row, so Recheck sits on the control row. */}
+        {/* The top padding matches a label row, so Check Again sits on the control row. */}
         <div className="flex flex-col items-start gap-1.5 sm:items-end sm:pt-6">
           <button
             type="button"
@@ -185,7 +250,7 @@ export default function ConfirmStep({
             className="h-10 inline-flex items-center gap-2 px-4 rounded-lg bg-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-60"
           >
             <i className="fas fa-rotate-right" aria-hidden="true"></i>
-            Recheck
+            Check Again
           </button>
           {flow.checking && (
             <span role="status" className="text-xs text-gray-600">
@@ -306,6 +371,8 @@ export default function ConfirmStep({
 
       {flow.previewError && <Alert>{flow.previewError}</Alert>}
 
+      <RowOrderToggle order={order} onChange={setOrder} />
+
       <HoldingsTable
         rows={ordered}
         previewByKey={session.previewByKey}
@@ -367,30 +434,10 @@ export default function ConfirmStep({
 
       {edited && !flow.checking && (
         <Alert variant="info">
-          You have changed some rows. Press Recheck to see what would be
+          You have changed some rows. Press Check Again to see what would be
           recorded.
         </Alert>
       )}
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
-        {flow.recordError && <Alert>{flow.recordError}</Alert>}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void flow.record()}
-            disabled={!flow.canRecord}
-            className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {`Record ${changes} ${changes === 1 ? "change" : "changes"}`}
-          </button>
-          {busy && (
-            <span role="status" className="text-sm text-gray-600">
-              <Spinner label="Recording…" />
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

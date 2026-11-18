@@ -46,11 +46,11 @@ export default function ReadSummary({
   const gap = totalGap(proposal)
   return (
     <section
-      aria-label="Read from screenshot"
+      aria-label="Read from the image"
       className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
     >
       <h3 className="text-sm font-semibold text-gray-900 mb-2">
-        Read from the screenshot
+        Read from the image
       </h3>
       <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <Fact label="Brokerage" value={proposal.brokerName} />

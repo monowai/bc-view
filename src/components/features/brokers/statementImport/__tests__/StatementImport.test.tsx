@@ -289,7 +289,7 @@ async function readHoldings(user: UserEvent): Promise<void> {
 }
 
 const recordButton = (): HTMLElement =>
-  screen.getByRole("button", { name: /^Record \d+ changes?$/ })
+  screen.getByRole("button", { name: /^Record \d+ Changes?$/ })
 
 const rowFor = (code: string): HTMLElement =>
   screen.getByRole("row", { name: new RegExp(`\\b${code}\\b`) })
@@ -353,7 +353,7 @@ describe("<StatementImport /> upload", () => {
       ],
     })
 
-    const read = screen.getByRole("region", { name: "Read from screenshot" })
+    const read = screen.getByRole("region", { name: "Read from the image" })
     expect(within(read).getByText("Interactive Brokers")).toBeInTheDocument()
     expect(within(read).getByText("482")).toBeInTheDocument()
     expect(within(read).getByText("13 Nov 2026")).toBeInTheDocument()
@@ -382,7 +382,7 @@ describe("<StatementImport /> upload", () => {
       "max",
       todayIso(),
     )
-    expect(recordButton()).toHaveTextContent("Record 2 changes")
+    expect(recordButton()).toHaveTextContent("Record 2 Changes")
     expect(recordButton()).toBeEnabled()
   })
 
@@ -454,17 +454,17 @@ describe("<StatementImport /> upload", () => {
     await upload(user)
 
     expect(
-      await screen.findByText(/Transaction screenshots are not supported yet/),
+      await screen.findByText(/Transaction images\s+are not supported yet/),
     ).toBeInTheDocument()
-    expect(screen.getByText(/holdings screenshot/)).toBeInTheDocument()
+    expect(screen.getByText(/image of your holdings/)).toBeInTheDocument()
     expect(callsTo(PREVIEW_URL)).toBe(0)
     expect(callsTo(COMMIT_URL)).toBe(0)
 
     await user.click(
-      screen.getByRole("button", { name: "Choose another file" }),
+      screen.getByRole("button", { name: "Choose Another File" }),
     )
     expect(
-      screen.queryByText(/Transaction screenshots are not supported yet/),
+      screen.queryByText(/Transaction images\s+are not supported yet/),
     ).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
   })
@@ -475,12 +475,12 @@ describe("<StatementImport /> upload", () => {
     [
       422,
       "The image shows no brokerage holdings",
-      /could not read that screenshot: The image shows no brokerage holdings/,
+      /could not read that image: The image shows no brokerage holdings/,
     ],
     [
       502,
-      "The screenshot reader is unavailable",
-      /screenshot reader is unavailable right now/,
+      "The image reader is unavailable",
+      /image reader is unavailable right now/,
     ],
     [400, "The file is empty", /file is empty/],
     [
@@ -825,7 +825,7 @@ describe("<StatementImport /> new portfolio", () => {
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
 
     expect(await screen.findByLabelText("Currency")).toHaveValue("USD")
@@ -1009,7 +1009,7 @@ describe("<StatementImport /> confirm", () => {
     const code = screen.getByLabelText("Code for TSLA")
     await user.clear(code)
     await user.type(code, "BRK/B")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
     await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
     expect(
@@ -1017,21 +1017,42 @@ describe("<StatementImport /> confirm", () => {
     ).toContain("BRK.B")
   })
 
-  test("rows that will be recorded come first, then rows with an issue, then rows that match", async () => {
+  test("rows with an issue come first, then rows that will be recorded, then rows that match", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const order = (): Array<string | null> =>
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label"))
+
+    expect(order()).toEqual([
+      "Code for MSFT",
+      "Code for Mystery Fund",
+      "Code for AAPL",
+      "Code for TSLA",
+      "Code for VOO",
+    ])
+
+    await user.click(screen.getByRole("radio", { name: "Image order" }))
+
+    expect(order()).toEqual([
+      "Code for AAPL",
+      "Code for MSFT",
+      "Code for VOO",
+      "Code for TSLA",
+      "Code for Mystery Fund",
+    ])
+  })
+
+  test("Record sits at the top, above the holdings", async () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
     expect(
-      screen
-        .getAllByLabelText(/^Code for /)
-        .map((input) => input.getAttribute("aria-label")),
-    ).toEqual([
-      "Code for AAPL",
-      "Code for TSLA",
-      "Code for MSFT",
-      "Code for Mystery Fund",
-      "Code for VOO",
-    ])
+      recordButton().compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(recordButton()).toHaveTextContent(/^Record \d+ Changes?$/)
   })
 
   test("issues sit folded between the portfolio and the holdings", async () => {
@@ -1094,7 +1115,7 @@ describe("<StatementImport /> confirm", () => {
       screen.getByText("The rows could not be checked"),
     ).toBeInTheDocument()
     expect(
-      within(rowFor("AAPL")).getByText("Not checked yet. Press Recheck."),
+      within(rowFor("AAPL")).getByText("Not checked yet. Press Check Again."),
     ).toBeInTheDocument()
     expect(
       screen.queryByText(/Changed since the last check/),
@@ -1108,7 +1129,7 @@ describe("<StatementImport /> confirm", () => {
     const quantity = screen.getByLabelText("Quantity for AAPL")
     await user.clear(quantity)
     await user.type(quantity, "25")
-    await user.click(screen.getByRole("button", { name: "Recheck AAPL" }))
+    await user.click(screen.getByRole("button", { name: "Check AAPL again" }))
 
     expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     const [, single] = bodiesSentTo<ShownHoldings>(PREVIEW_URL)
@@ -1116,7 +1137,7 @@ describe("<StatementImport /> confirm", () => {
     expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     expect(
       screen.getByRole("region", {
-        name: "Held at this account but not on the screenshot",
+        name: "Held at this account but not in the image",
       }),
     ).toHaveTextContent("NVDA")
     expect(recordButton()).toBeEnabled()
@@ -1157,7 +1178,7 @@ describe("<StatementImport /> confirm", () => {
     // Typing asked the server nothing.
     expect(callsTo(PREVIEW_URL)).toBe(1)
 
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
     expect(await within(rowFor("AAPL")).findByText("+25")).toBeInTheDocument()
     expect(recordButton()).toBeEnabled()
@@ -1184,7 +1205,7 @@ describe("<StatementImport /> confirm", () => {
     )
 
     await user.type(screen.getByLabelText("Cost for MSFT"), "1,750")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
 
     expect(
       await within(rowFor("MSFT")).findByText("Ready to record"),
@@ -1193,7 +1214,7 @@ describe("<StatementImport /> confirm", () => {
       code: "MSFT",
       costBasis: 1750,
     })
-    expect(recordButton()).toHaveTextContent("Record 3 changes")
+    expect(recordButton()).toHaveTextContent("Record 3 Changes")
   })
 
   test("an unresolved asset can be found with the asset search, and its row is checked again", async () => {
@@ -1253,7 +1274,7 @@ describe("<StatementImport /> confirm", () => {
     await user.click(screen.getByRole("button", { name: "Remove TSLA" }))
     expect(screen.queryByLabelText("Quantity for TSLA")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
     await waitFor(() => expect(callsTo(PREVIEW_URL)).toBe(2))
     expect(
       bodiesSentTo<ShownHoldings>(PREVIEW_URL)[1].rows.map((row) => row.code),
@@ -1271,7 +1292,7 @@ describe("<StatementImport /> confirm", () => {
     await readHoldings(user)
 
     const notShown = screen.getByRole("region", {
-      name: "Held at this account but not on the screenshot",
+      name: "Held at this account but not in the image",
     })
     expect(within(notShown).getByText(/NVDA/)).toBeInTheDocument()
 
@@ -1383,7 +1404,7 @@ describe("<StatementImport /> record", () => {
       "Real accuracy requires real buy and sell dates. Short on time? Let me play detective and guess your purchase dates using your average cost. It won't be 100% precise, but it saves you a headache"
 
     expect(
-      screen.getByRole("button", { name: "Suggest dates" }),
+      screen.getByRole("button", { name: "Suggest Dates" }),
     ).toHaveAccessibleDescription(guess)
     expect(screen.getByLabelText("Record date")).toHaveAccessibleDescription(
       "The date of each change, unless the holding has its own held-since date.",
@@ -1397,7 +1418,7 @@ describe("<StatementImport /> record", () => {
     await readHoldings(user)
     expect(callsTo(HELD_SINCE_URL)).toBe(0)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     await waitFor(() =>
       expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
@@ -1430,7 +1451,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     expect(
       await screen.findByRole("heading", { name: "Suggesting dates" }),
@@ -1461,7 +1482,7 @@ describe("<StatementImport /> record", () => {
     )
     const user = userEvent.setup()
     await readHoldings(user)
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
     await screen.findByRole("heading", { name: "Suggesting dates" })
 
     await user.click(screen.getByRole("button", { name: "Cancel" }))
@@ -1474,7 +1495,7 @@ describe("<StatementImport /> record", () => {
     )
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Suggest dates" }),
+        screen.getByRole("button", { name: "Suggest Dates" }),
       ).toBeEnabled(),
     )
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
@@ -1494,7 +1515,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     expect(
       await screen.findByText(
@@ -1510,13 +1531,13 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     expect(
       await screen.findByText("No date could be suggested for AAPL."),
     ).toBeInTheDocument()
     await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
     expect(
       await screen.findByText(
         "Every holding being added already has a date. 1 holding already matches what is held, so takes no date.",
@@ -1540,7 +1561,7 @@ describe("<StatementImport /> record", () => {
     expect(
       within(rowFor("AAPL")).getByText("Read from the image"),
     ).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
     expect(callsTo(HELD_SINCE_URL)).toBe(0)
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
       "2015-03-02",
@@ -1554,7 +1575,7 @@ describe("<StatementImport /> record", () => {
     const user = userEvent.setup()
     await readHoldings(user)
 
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
     await waitFor(() =>
       expect(screen.getByLabelText("Held since for AAPL")).toHaveValue(
@@ -1579,11 +1600,11 @@ describe("<StatementImport /> record", () => {
     )
     const user = userEvent.setup()
     await readHoldings(user)
-    await user.click(screen.getByRole("button", { name: "Suggest dates" }))
+    await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
     await waitFor(() => expect(callsTo(HELD_SINCE_URL)).toBe(1))
 
     await user.click(
-      screen.getByRole("button", { name: "Discard and start again" }),
+      screen.getByRole("button", { name: "Discard and Start Again" }),
     )
     await upload(user)
     await screen.findByRole("heading", { name: "Confirm what was read" })
@@ -1591,7 +1612,7 @@ describe("<StatementImport /> record", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Suggest dates" }),
+        screen.getByRole("button", { name: "Suggest Dates" }),
       ).toBeEnabled(),
     )
     expect(screen.getByLabelText("Held since for AAPL")).toHaveValue("")
@@ -1629,7 +1650,7 @@ describe("<StatementImport /> record", () => {
     const cost = screen.getByLabelText("Cost for AAPL")
     await user.clear(cost)
     await user.type(cost, "1300")
-    await user.click(screen.getByRole("button", { name: "Recheck" }))
+    await user.click(screen.getByRole("button", { name: "Check Again" }))
     await waitFor(() => expect(recordButton()).toBeEnabled())
     await user.click(recordButton())
 
@@ -1674,7 +1695,7 @@ describe("<StatementImport /> record", () => {
     ).toHaveAttribute("href", "/brokers/b-ibkr/holdings")
 
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(1)
@@ -1686,7 +1707,7 @@ describe("<StatementImport /> record", () => {
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import another screenshot" }),
+      screen.getByRole("button", { name: "Import Another Image" }),
     )
 
     await upload(user)

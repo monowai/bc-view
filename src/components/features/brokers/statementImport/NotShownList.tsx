@@ -13,12 +13,12 @@ export default function NotShownList({
 }): React.ReactElement | null {
   if (notShown.length === 0) return null
   return (
-    <section aria-label="Held at this account but not on the screenshot">
+    <section aria-label="Held at this account but not in the image">
       <h3 className="font-semibold text-gray-900">
-        Held at this account but not on the screenshot
+        Held at this account but not in the image
       </h3>
       <p className="text-gray-600 mt-1">
-        A screenshot may not show every holding, so nothing changes for these.
+        An image may not show every holding, so nothing changes for these.
       </p>
       <ul className="mt-2 space-y-1 text-gray-900">
         {notShown.map((holding) => (

@@ -136,7 +136,7 @@ export default function HoldingsTable({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
       <table className="min-w-full text-sm">
-        <caption className="sr-only">Holdings read from the screenshot</caption>
+        <caption className="sr-only">Holdings read from the image</caption>
         <thead className="bg-gray-50 text-left text-xs text-gray-600">
           <tr>
             <th scope="col" className="px-2 py-2">
@@ -312,8 +312,8 @@ export default function HoldingsTable({
                 <td className={`${cellClass} whitespace-nowrap`}>
                   <button
                     type="button"
-                    aria-label={`Recheck ${name}`}
-                    title="Recheck this row"
+                    aria-label={`Check ${name} again`}
+                    title="Check this row again"
                     disabled={disabled || checking || !row.code.trim()}
                     onClick={() => onRecheck(row.key)}
                     className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
