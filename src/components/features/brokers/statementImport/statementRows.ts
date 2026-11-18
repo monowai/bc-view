@@ -265,6 +265,8 @@ export function changeColour(preview: ReconcilePreviewRow): string {
 interface RefusalBody {
   message?: unknown
   error?: unknown
+  /** svc-agent's machine code, e.g. "vision-refused". */
+  code?: unknown
 }
 
 /**
@@ -289,7 +291,14 @@ export async function readRefusal(res: Response): Promise<string> {
       return said
         ? `Beancounter could not read that image: ${said}`
         : "Beancounter could not read that image. Try a clearer image of your holdings."
+    case 403: {
+      const known = describeAgentError(body)
+      if (known.code !== "unknown") return `${known.title}. ${known.message}`
+      return "Your account cannot import from an image. Ask the administrator to give it access."
+    }
     case 502:
+      if (body?.code === "vision-refused")
+        return "The image reader is not set up correctly, so nothing was read. Tell the administrator."
       return "The image reader is unavailable right now. Nothing was recorded. Try again in a few minutes."
     default: {
       const known = describeAgentError(body)
