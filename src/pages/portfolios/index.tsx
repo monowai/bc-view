@@ -7,6 +7,9 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { rootLoader } from "@components/ui/PageLoader"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
+import BackgroundLoadNotice, {
+  BackgroundLoadOutcome,
+} from "@components/features/portfolios/BackgroundLoadNotice"
 import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import CsvImportDialog from "@components/ui/CsvImportDialog"
@@ -100,6 +103,9 @@ export default withPageAuthRequired(function Portfolios({
   // Corporate actions popup state
   const [corporateActionsPortfolio, setCorporateActionsPortfolio] =
     useState<Portfolio | null>(null)
+  // What a background corporate actions load started from the popup does next.
+  const [backgroundLoad, setBackgroundLoad] =
+    useState<BackgroundLoadOutcome | null>(null)
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -159,6 +165,12 @@ export default withPageAuthRequired(function Portfolios({
       setActiveTab("my")
     }
   }, [activeTab, managedSharesData, hasManagedShares, setActiveTab])
+
+  // A notice from an earlier load would describe a portfolio no longer in view.
+  const handleCorporateActionsOpen = useCallback((portfolio: Portfolio) => {
+    setBackgroundLoad(null)
+    setCorporateActionsPortfolio(portfolio)
+  }, [])
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
@@ -227,6 +239,12 @@ export default withPageAuthRequired(function Portfolios({
         )}
       </nav>
 
+      {backgroundLoad && (
+        <div className="px-4 pt-4 md:px-0">
+          <BackgroundLoadNotice outcome={backgroundLoad} />
+        </div>
+      )}
+
       {/* Tab content */}
       {activeTab !== "managed" && valuesPending && <PortfoliosSkeleton />}
       {activeTab === "my" && !valuesPending && (
@@ -247,7 +265,7 @@ export default withPageAuthRequired(function Portfolios({
                 ? () => setShowConsolidate(true)
                 : undefined
             }
-            onCorporateActions={setCorporateActionsPortfolio}
+            onCorporateActions={handleCorporateActionsOpen}
             onDelete={setDeleteTarget}
           />
         </>
@@ -261,13 +279,13 @@ export default withPageAuthRequired(function Portfolios({
           onCurrencyChange={setDisplayCurrency}
           onImportClick={handleImportClick}
           onShareClick={handleShareClick}
-          onCorporateActions={setCorporateActionsPortfolio}
+          onCorporateActions={handleCorporateActionsOpen}
           onDelete={setDeleteTarget}
           isInactiveTab
         />
       )}
       {activeTab === "managed" && (
-        <ManagedPortfolios onCorporateActions={setCorporateActionsPortfolio} />
+        <ManagedPortfolios onCorporateActions={handleCorporateActionsOpen} />
       )}
 
       {corporateActionsPortfolio && (
@@ -275,6 +293,7 @@ export default withPageAuthRequired(function Portfolios({
           portfolio={corporateActionsPortfolio}
           modalOpen={!!corporateActionsPortfolio}
           onClose={handleCorporateActionsClose}
+          onBackgroundLoad={setBackgroundLoad}
         />
       )}
       {showImportDialog && (

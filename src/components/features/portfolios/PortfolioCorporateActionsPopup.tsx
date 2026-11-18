@@ -27,12 +27,23 @@ import Alert from "@components/ui/Alert"
 import { todayIso } from "@lib/formatters"
 import { eventKey } from "@utils/api/client/trns"
 import { processCorporateEvent } from "@utils/api/client/corporateEvents"
+import {
+  BackgroundLoadOutcome,
+  DividendsWaitNotice,
+  startBackgroundLoad,
+} from "@components/features/portfolios/BackgroundLoadNotice"
 
 interface PortfolioCorporateActionsPopupProps {
   /** Only the id and code are read. */
   portfolio: Pick<Portfolio, "id" | "code">
   modalOpen: boolean
   onClose: () => void
+  /**
+   * Offers Load in Background when given: a started (or already running) load
+   * is handed up here and the dialog closes, so the parent can say what
+   * happens next.
+   */
+  onBackgroundLoad?: (outcome: BackgroundLoadOutcome) => void
 }
 
 interface AssetEvent {
@@ -43,7 +54,7 @@ interface AssetEvent {
 
 const PortfolioCorporateActionsPopup: React.FC<
   PortfolioCorporateActionsPopupProps
-> = ({ portfolio, modalOpen, onClose }) => {
+> = ({ portfolio, modalOpen, onClose, onBackgroundLoad }) => {
   const today = todayIso()
 
   const [isScanning, setIsScanning] = useState(false)
@@ -60,6 +71,7 @@ const PortfolioCorporateActionsPopup: React.FC<
   } | null>(null)
   const [processError, setProcessError] = useState<string | null>(null)
   const [processedEvents, setProcessedEvents] = useState<Set<string>>(new Set())
+  const [isStartingBackground, setIsStartingBackground] = useState(false)
 
   // Fetch holdings for the portfolio. Use the id-based route so the popup
   // works for managed (shared) portfolios — code is unique only within an
@@ -68,6 +80,32 @@ const PortfolioCorporateActionsPopup: React.FC<
     modalOpen ? holdingByIdKey(portfolio.id, today) : null,
     modalOpen ? simpleFetcher(holdingByIdKey(portfolio.id, today)) : null,
   )
+
+  const nonCashPositions = (): Position[] =>
+    Object.values(
+      (holdingsData?.data?.positions ?? {}) as Record<string, Position>,
+    ).filter((pos) => !pos.asset.cashLike)
+
+  // The earliest date a non-cash holding was opened: a background load from
+  // here covers every dividend and split the portfolio could be owed.
+  const earliestOpened = nonCashPositions()
+    .map((pos) => pos.dateValues?.opened)
+    .filter((opened): opened is string => !!opened)
+    .sort()[0]
+
+  const handleLoadInBackground = async (): Promise<void> => {
+    if (!onBackgroundLoad || !earliestOpened) return
+    setIsStartingBackground(true)
+    setProcessError(null)
+    const outcome = await startBackgroundLoad(portfolio.id, earliestOpened)
+    setIsStartingBackground(false)
+    if (outcome.status === "ERROR") {
+      setProcessError(outcome.message)
+      return
+    }
+    onBackgroundLoad(outcome)
+    onClose()
+  }
 
   // Component is conditionally mounted by the parent based on
   // corporateActionsPortfolio, so a fresh open always remounts with the
@@ -81,9 +119,7 @@ const PortfolioCorporateActionsPopup: React.FC<
     setMissingEvents([])
     setProcessError(null)
 
-    const positions = Object.values(
-      holdingsData.data.positions as Record<string, Position>,
-    ).filter((pos) => !pos.asset.cashLike)
+    const positions = nonCashPositions()
 
     setScanProgress({ current: 0, total: positions.length })
 
@@ -228,6 +264,27 @@ const PortfolioCorporateActionsPopup: React.FC<
                 )}
               </button>
             )}
+            {onBackgroundLoad && (
+              <button
+                type="button"
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                onClick={handleLoadInBackground}
+                disabled={
+                  !earliestOpened ||
+                  isStartingBackground ||
+                  isScanning ||
+                  isBackfilling
+                }
+                title={
+                  earliestOpened
+                    ? `Load and backfill dividends and splits since ${earliestOpened} in the background`
+                    : "No holdings to load corporate actions for"
+                }
+              >
+                <i className="fas fa-cloud-download-alt mr-2"></i>
+                {"Load in Background"}
+              </button>
+            )}
             {processError && (
               <span className="text-red-500 text-sm">
                 <i className="fas fa-exclamation-circle mr-1"></i>
@@ -276,6 +333,13 @@ const PortfolioCorporateActionsPopup: React.FC<
             )}
           </p>
         </div>
+      )}
+
+      {processedEvents.size > 0 && !isBackfilling && (
+        <Alert variant="success" className="mt-3">
+          {"Splits are recorded. "}
+          <DividendsWaitNotice />
+        </Alert>
       )}
 
       {scanComplete && (

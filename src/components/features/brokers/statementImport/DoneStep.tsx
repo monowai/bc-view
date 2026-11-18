@@ -1,7 +1,10 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import Alert from "@components/ui/Alert"
-import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
+import BackgroundLoadNotice, {
+  BackgroundLoadOutcome,
+  startBackgroundLoad,
+} from "@components/features/portfolios/BackgroundLoadNotice"
 import type { Portfolio } from "types/beancounter"
 
 interface DoneStepProps {
@@ -23,7 +26,16 @@ export default function DoneStep({
   backdatedTo,
   onImportAnother,
 }: DoneStepProps): React.ReactElement {
-  const [checking, setChecking] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const [outcome, setOutcome] = useState<BackgroundLoadOutcome | null>(null)
+
+  const loadCorporateActions = async (from: string): Promise<void> => {
+    setStarting(true)
+    setOutcome(await startBackgroundLoad(portfolio.id, from))
+    setStarting(false)
+  }
+
+  const started = outcome !== null && outcome.status !== "ERROR"
   return (
     <div className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
       <h2 className="text-lg font-semibold text-gray-900">Recorded</h2>
@@ -39,27 +51,22 @@ export default function DoneStep({
           </ul>
         </Alert>
       )}
-      {backdatedTo && (
+      {backdatedTo && !started && (
         <Alert variant="info">
           <p>
             {`These holdings go back to ${backdatedTo}. Dividends and splits since then may not be recorded yet.`}
           </p>
           <button
             type="button"
-            onClick={() => setChecking(true)}
-            className="mt-2 font-medium underline"
+            onClick={() => loadCorporateActions(backdatedTo)}
+            disabled={starting}
+            className="mt-2 font-medium underline disabled:opacity-50"
           >
-            Check Corporate Actions
+            Load Corporate Actions
           </button>
         </Alert>
       )}
-      {checking && (
-        <PortfolioCorporateActionsPopup
-          portfolio={portfolio}
-          modalOpen={checking}
-          onClose={() => setChecking(false)}
-        />
-      )}
+      {outcome && <BackgroundLoadNotice outcome={outcome} />}
       <div className="flex flex-wrap gap-3 items-center">
         <Link
           href={`/holdings/${encodeURIComponent(portfolio.code)}`}
