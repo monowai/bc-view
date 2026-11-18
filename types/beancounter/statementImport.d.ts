@@ -151,13 +151,28 @@ export interface ConfirmedRow {
 }
 
 /** Request body of POST /brokers/reconcile/held-since. */
-export interface HeldSinceRequest {
-  rows: { assetId: string; costPerShare: number }[]
+/**
+ * One holding to date: named by `assetId`, or by `market` and `code` for a
+ * listing new to Beancounter, which svc-data creates to read its prices.
+ */
+export interface HeldSinceQuery {
+  assetId?: string
+  market?: string
+  code?: string
+  costPerShare: number
 }
 
-/** When a holding was probably opened: the last day the price stood at its cost. */
+export interface HeldSinceRequest {
+  rows: HeldSinceQuery[]
+}
+
+/**
+ * When a holding was probably opened: the first day the price came near its
+ * cost. One per query, in the order asked.
+ */
 export interface HeldSinceSuggestion {
-  assetId: string
+  /** Null when the query named no asset that could be found or created. */
+  assetId: string | null
   heldSince: string | null
   /** The earliest price known, when the cost is below every price since. */
   before: string | null

@@ -1558,7 +1558,7 @@ describe("<StatementImport /> record", () => {
     ).not.toBeInTheDocument()
   })
 
-  test("Suggest dates names a holding new to Beancounter, which has no price history yet", async () => {
+  test("Suggest dates finds the price history of a holding new to Beancounter too", async () => {
     backend.read = json({
       ...holdingsProposal,
       rows: [
@@ -1566,15 +1566,32 @@ describe("<StatementImport /> record", () => {
         { code: "NOK", quantity: 100, costBasis: 400 },
       ],
     })
+    backend.heldSince = json({
+      data: [
+        { assetId: "a-AAPL", heldSince: "2017-06-30", before: null },
+        { assetId: "a-NOK", heldSince: "2014-02-11", before: null },
+      ],
+    })
     const user = userEvent.setup()
     await readHoldings(user)
 
     await user.click(screen.getByRole("button", { name: "Suggest Dates" }))
 
-    expect(
-      await screen.findByText(
-        "Suggested a date for 1 holding. No price history yet for NOK: enter its date.",
+    await waitFor(() =>
+      expect(screen.getByLabelText("Held since for NOK")).toHaveValue(
+        "2014-02-11",
       ),
+    )
+    expect(bodiesSentTo<unknown>(HELD_SINCE_URL)).toEqual([
+      {
+        rows: [
+          { assetId: "a-AAPL", costPerShare: 120 },
+          { market: "US", code: "NOK", costPerShare: 4 },
+        ],
+      },
+    ])
+    expect(
+      screen.getByText("Suggested dates for 2 holdings."),
     ).toBeInTheDocument()
   })
 

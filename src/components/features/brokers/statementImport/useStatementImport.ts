@@ -20,6 +20,7 @@ import type {
   Broker,
   ConfirmedHoldings,
   ConfirmedRow,
+  HeldSinceQuery,
   HeldSinceResponse,
   Portfolio,
   ReconcilePreview,
@@ -115,11 +116,7 @@ async function fetchPreview(
 }
 
 /** "Suggested dates for 3 holdings. No date could be suggested for T." */
-function suggestedNote(
-  found: number,
-  missed: string[],
-  unknown: string[],
-): string {
+function suggestedNote(found: number, missed: string[]): string {
   const said =
     found === 0
       ? ""
@@ -129,10 +126,7 @@ function suggestedNote(
   const none = missed.length
     ? `No date could be suggested for ${missed.join(", ")}.`
     : ""
-  const unpriced = unknown.length
-    ? `No price history yet for ${unknown.join(", ")}: enter ${unknown.length === 1 ? "its date" : "their dates"}.`
-    : ""
-  return [said, none, unpriced].filter(Boolean).join(" ")
+  return [said, none].filter(Boolean).join(" ")
 }
 
 /**
@@ -532,30 +526,23 @@ export function useStatementImport(): StatementImportFlow {
    */
   const suggestHeldSince = async (): Promise<void> => {
     if (!session) return
+    // Added holdings with a cost and no date yet. A listing new to Beancounter
+    // is named by its market and code; svc-data creates it to read its prices.
     const asked = session.rows.flatMap((row) => {
       const preview = session.previewByKey[row.key]
-      if (row.heldSince || preview?.trnType !== "ADD" || !preview.assetId)
-        return []
+      if (row.heldSince || preview?.trnType !== "ADD") return []
       if (!preview.cost || !preview.quantity) return []
-      return [
-        {
-          key: row.key,
-          code: row.code.trim(),
-          assetId: preview.assetId,
-          costPerShare: preview.cost / preview.quantity,
-        },
-      ]
+      const costPerShare = preview.cost / preview.quantity
+      const named: HeldSinceQuery | null = preview.assetId
+        ? { assetId: preview.assetId, costPerShare }
+        : preview.market && preview.assetCode
+          ? { market: preview.market, code: preview.assetCode, costPerShare }
+          : null
+      return named ? [{ key: row.key, code: row.code.trim(), named }] : []
     })
-    // A listing new to Beancounter is created on Record: no prices to go on yet.
-    const unknown = session.rows
-      .filter((row) => {
-        const preview = session.previewByKey[row.key]
-        return !row.heldSince && preview?.trnType === "ADD" && !preview.assetId
-      })
-      .map((row) => row.code.trim())
     if (asked.length === 0) {
       setSuggestError(null)
-      setSuggestNote(suggestedNote(0, [], unknown) || nothingToDate(session))
+      setSuggestNote(nothingToDate(session))
       return
     }
     const { uploadId } = session
@@ -567,10 +554,7 @@ export function useStatementImport(): StatementImportFlow {
     try {
       const res = await suggestHeldSinceRequest(
         {
-          rows: asked.map(({ assetId, costPerShare }) => ({
-            assetId,
-            costPerShare,
-          })),
+          rows: asked.map(({ named }) => named),
         },
         abort.signal,
       )
@@ -585,17 +569,15 @@ export function useStatementImport(): StatementImportFlow {
       }
       const { data } = (await res.json()) as HeldSinceResponse
       if (abort.signal.aborted) return
-      const byAsset = new Map(data.map((each) => [each.assetId, each]))
-      const keys = new Map(asked.map((each) => [each.key, each.assetId]))
+      // One answer per row asked, in the order asked.
+      const byKey = new Map(asked.map((each, index) => [each.key, data[index]]))
       const missed = asked
         .filter((each) => {
-          const answer = byAsset.get(each.assetId)
+          const answer = byKey.get(each.key)
           return !answer?.heldSince && !answer?.before
         })
         .map((each) => each.code)
-      setSuggestNote(
-        suggestedNote(asked.length - missed.length, missed, unknown),
-      )
+      setSuggestNote(suggestedNote(asked.length - missed.length, missed))
       // Guesses for an upload since discarded or re-read are dropped.
       setSession((current) =>
         current?.uploadId !== uploadId
@@ -603,7 +585,7 @@ export function useStatementImport(): StatementImportFlow {
           : {
               ...current,
               rows: current.rows.map((row) => {
-                const guess = byAsset.get(keys.get(row.key) ?? "")
+                const guess = byKey.get(row.key)
                 const heldSince = guess?.heldSince ?? guess?.before
                 if (!heldSince || row.heldSince) return row
                 return {
