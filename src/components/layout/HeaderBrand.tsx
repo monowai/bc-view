@@ -113,6 +113,12 @@ const navSections: NavSection[] = [
         adminOnly: true,
       },
       {
+        href: "/admin/ai-quota",
+        label: "AI Reviews",
+        icon: "fa-robot",
+        adminOnly: true,
+      },
+      {
         href: "/admin/metrics",
         label: "Metrics",
         icon: "fa-chart-line",

@@ -483,6 +483,7 @@ describe("<StatementImport /> upload", () => {
       /image reader is unavailable right now/,
     ],
     [400, "The file is empty", /file is empty/],
+    [403, "Forbidden", /cannot import from an image\. Ask the administrator/],
     [
       429,
       "You have used this week's AI questions. Each one frees up seven days after it was asked.",
@@ -503,6 +504,34 @@ describe("<StatementImport /> upload", () => {
       expect(callsTo(PREVIEW_URL)).toBe(0)
     },
   )
+
+  test.each([
+    [
+      403,
+      "email-unverified",
+      "Confirm your email address to ask the AI.",
+      /Confirm your email/,
+    ],
+    [
+      403,
+      "ai-disabled",
+      "AI is turned off for your account.",
+      /AI is turned off for your account/,
+    ],
+    [
+      502,
+      "vision-refused",
+      "The screenshot reader is not set up correctly.",
+      /image reader is not set up correctly, so nothing was read\. Tell the administrator/,
+    ],
+  ])("a %i refusal coded %s says why", async (status, code, message, shown) => {
+    backend.read = json({ error: message, message, code }, status)
+    const user = userEvent.setup()
+    renderImport()
+    await upload(user)
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(shown)
+  })
 
   test("an image pasted from the clipboard is read like a chosen file", async () => {
     const user = userEvent.setup()
