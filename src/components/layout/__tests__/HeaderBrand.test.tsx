@@ -75,6 +75,19 @@ describe("HeaderBrand", () => {
     )
   })
 
+  it("Admin dropdown links to AI Reviews for an admin", () => {
+    mockPermissions = { ...mockPermissions, admin: true }
+    try {
+      render(<HeaderBrand />)
+      fireEvent.click(screen.getByRole("button", { name: /^Admin/i }))
+      expect(
+        screen.getByRole("link", { name: /^AI Reviews$/i }),
+      ).toHaveAttribute("href", "/admin/ai-quota")
+    } finally {
+      mockPermissions = { ...mockPermissions, admin: false }
+    }
+  })
+
   it("Wealth dropdown links to the image import", () => {
     render(<HeaderBrand />)
     fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
