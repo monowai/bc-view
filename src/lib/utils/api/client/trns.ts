@@ -153,6 +153,11 @@ export interface TrnUpdatePayload {
   modelId?: string
   /** Per-sub-account split for composite policies (e.g. CPF OA/SA/MA). */
   subAccounts?: Record<string, number>
+  /**
+   * ADD only: when it was paid for. Sending the trade date clears it; sending
+   * none keeps the stored one.
+   */
+  costDate?: string
 }
 
 export function updateTrn(

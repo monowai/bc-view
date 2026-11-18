@@ -44,6 +44,8 @@ export interface TrnInput {
   tradeCashRate: number
   fees: number
   tax: number
+  /** ADD only: when it was paid for, for performance (IRR). Absent means the trade date. */
+  costDate?: string
 }
 
 export interface TradeFormData {
@@ -73,6 +75,8 @@ export interface TradeFormData {
   tax: number
   comments: string | undefined
   brokerId?: string // Optional broker ID for the trade
+  /** ADD only: when it was paid for, for performance (IRR). Absent means the trade date. */
+  costDate?: string
 }
 
 export interface CallerRef {
@@ -108,6 +112,8 @@ export interface Transaction {
   /** Model ID for tracking which rebalance model this transaction belongs to */
   modelId?: string
   subAccounts?: Record<string, number>
+  /** ADD only: when it was paid for, for performance (IRR). Absent means the trade date. */
+  costDate?: string
 }
 
 /**
@@ -140,6 +146,7 @@ export interface TrnDto {
   brokerId: string | null
   modelId: string | null
   subAccounts: Record<string, number> | null
+  costDate?: string | null
 }
 
 /**
