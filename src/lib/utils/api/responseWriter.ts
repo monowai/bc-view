@@ -21,18 +21,24 @@ export async function handleErrors(response: Response): Promise<void> {
     rawBody ||
     response.statusText ||
     `HTTP ${response.status}`
+  // A backend's machine code (e.g. svc-agent's "email-unverified") outranks the
+  // status phrase, so the client can say why it was refused.
+  const code =
+    typeof result.code === "string" && result.code
+      ? result.code
+      : response.statusText
   if (response.status == 401 || response.status == 403) {
     throw new BcApiError(
       response.status,
       errorMessage || "Auth error",
-      response.statusText,
+      code,
       (result.path as string) || (result.instance as string),
     )
   } else {
     throw new BcApiError(
       response.status,
       errorMessage,
-      response.statusText,
+      code,
       (result.path as string) || (result.instance as string),
       errorMessage,
     )
