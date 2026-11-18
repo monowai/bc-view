@@ -1362,6 +1362,22 @@ describe("<StatementImport /> record", () => {
     expect(confirmed.tradeDate).toBe(todayIso())
   })
 
+  test("the date controls explain themselves behind an info icon", async () => {
+    const user = userEvent.setup()
+    await readHoldings(user)
+    const guess =
+      "Real accuracy requires real buy and sell dates. Short on time? Let me play detective and guess your purchase dates using your average cost. It won't be 100% precise, but it saves you a headache"
+
+    expect(
+      screen.getByRole("button", { name: "Suggest dates" }),
+    ).toHaveAccessibleDescription(guess)
+    expect(screen.getByLabelText("Record date")).toHaveAccessibleDescription(
+      "The date of each change, unless the holding has its own held-since date.",
+    )
+    await user.hover(screen.getByText("Held since", { selector: "p span" }))
+    expect(screen.getAllByText(guess).length).toBeGreaterThan(1)
+  })
+
   test("Suggest dates fills empty held-since dates from each holding's cost", async () => {
     const user = userEvent.setup()
     await readHoldings(user)

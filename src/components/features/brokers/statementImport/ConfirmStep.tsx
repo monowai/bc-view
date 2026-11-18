@@ -3,6 +3,7 @@ import Alert from "@components/ui/Alert"
 import Dialog from "@components/ui/Dialog"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import Spinner from "@components/ui/Spinner"
+import Tooltip from "@components/ui/Tooltip"
 import { todayIso } from "@utils/formatters"
 import { accountLabel, namedAs } from "./newAccount"
 import { portfolioLabel, useActivePortfolios } from "./useActivePortfolios"
@@ -17,6 +18,11 @@ import NotShownList from "./NotShownList"
 import ReadSummary, { totalGap } from "./ReadSummary"
 import { rowName } from "./statementRows"
 import type { StatementImportFlow } from "./useStatementImport"
+
+const RECORD_DATE_HELP =
+  "The date of each change, unless the holding has its own held-since date."
+const SUGGEST_DATES_HELP =
+  "Real accuracy requires real buy and sell dates. Short on time? Let me play detective and guess your purchase dates using your average cost. It won't be 100% precise, but it saves you a headache"
 
 const fieldClass =
   "w-full sm:w-80 border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -122,7 +128,7 @@ export default function ConfirmStep({
             htmlFor="import-record-date"
             className="block text-sm font-semibold text-gray-900 mb-1"
           >
-            Record date
+            <Tooltip text={RECORD_DATE_HELP}>Record date</Tooltip>
           </label>
           <input
             id="import-record-date"
@@ -134,17 +140,19 @@ export default function ConfirmStep({
             aria-describedby="import-record-date-hint"
             className="h-10 w-full border border-gray-300 rounded-lg px-3 bg-white tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <p
-            id="import-record-date-hint"
-            className={`text-xs mt-1.5 ${flow.tradeDateInFuture ? "text-red-700" : "text-gray-500"}`}
-          >
-            {flow.tradeDateInFuture
-              ? "The record date cannot be in the future."
-              : "The date of each change, unless the holding has its own held-since date."}
+          <p id="import-record-date-hint" className="sr-only">
+            {RECORD_DATE_HELP}
           </p>
+          {flow.tradeDateInFuture && (
+            <p className="text-xs mt-1.5 text-red-700" role="alert">
+              The record date cannot be in the future.
+            </p>
+          )}
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900 mb-1">Held since</p>
+          <p className="text-sm font-semibold text-gray-900 mb-1">
+            <Tooltip text={SUGGEST_DATES_HELP}>Held since</Tooltip>
+          </p>
           <button
             type="button"
             onClick={() => void flow.suggestHeldSince()}
@@ -155,9 +163,8 @@ export default function ConfirmStep({
             <i className="far fa-calendar-check" aria-hidden="true"></i>
             Suggest dates
           </button>
-          <p id="import-suggest-hint" className="text-xs text-gray-500 mt-1.5">
-            Guesses when you bought each holding being added, from its cost, so
-            returns are measured over the right period.
+          <p id="import-suggest-hint" className="sr-only">
+            {SUGGEST_DATES_HELP}
           </p>
           {flow.suggestNote && (
             <p className="text-xs text-gray-700 mt-1.5" role="status">
