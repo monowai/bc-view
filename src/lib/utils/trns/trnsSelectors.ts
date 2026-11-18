@@ -120,6 +120,7 @@ function denormalizeTrn(
     brokerId: dto.brokerId ?? undefined,
     modelId: dto.modelId ?? undefined,
     subAccounts: dto.subAccounts ?? undefined,
+    costDate: dto.costDate ?? undefined,
   }
 }
 

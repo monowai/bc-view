@@ -24,6 +24,7 @@ export const buildEditPayload = (
   const isExpense = formData.type.value === "EXPENSE"
   const isIncome = formData.type.value === "INCOME"
   const isSimpleAmount = isExpense || isIncome
+  const isAdd = formData.type.value === "ADD"
 
   return {
     trnType: formData.type.value,
@@ -47,6 +48,8 @@ export const buildEditPayload = (
     brokerId: formData.brokerId || undefined,
     status: formData.status?.value || TRN_STATUS.SETTLED,
     modelId: selectedModelId,
+    // The server reads a cost date on the trade date as none, so a blank field clears it.
+    ...(isAdd && { costDate: formData.costDate || formData.tradeDate }),
   }
 }
 

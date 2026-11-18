@@ -241,10 +241,14 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
 }
 
 // Updated getTradeRow to use TradeImport object
-// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status,Broker
+// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status,Broker[,SubAccounts,CostDate]
 export const getTradeRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
-  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
+  const row = `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
+  // Only an ADD has a cost date. It is the optional column after SubAccounts.
+  return data.type.value === "ADD" && data.costDate
+    ? `${row},,${data.costDate}`
+    : row
 }
 
 // Updated getCashRow to use TradeImport object

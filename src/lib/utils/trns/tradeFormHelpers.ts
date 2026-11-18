@@ -293,6 +293,8 @@ export interface TradeFormValues {
   tax: number
   comment: string
   brokerId: string
+  /** ADD only: when it was paid for. Blank means the trade date. */
+  costDate?: string
 }
 
 /**
@@ -320,6 +322,7 @@ export const buildEditModeValues = (
   tax: transaction.tax,
   comment: transaction.comments || "",
   brokerId: transaction.broker?.id || "",
+  costDate: transaction.costDate || "",
 })
 
 /**

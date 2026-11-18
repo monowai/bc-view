@@ -74,7 +74,9 @@ import {
   inputClass,
   labelClass,
   EditModeProps,
+  COST_DATE_HELP,
 } from "@lib/trns/tradeFormConfig"
+import Tooltip from "@components/ui/Tooltip"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { showPortfolioPicker } from "@lib/user/zenMode"
 import { getExecution } from "@utils/api/client/rebalance"
@@ -988,7 +990,7 @@ const TradeInputForm: React.FC<{
                 <div className="space-y-4">
                   {/* Type and Date */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div data-testid="trade-type">
                       <label className={labelClass}>{"Type"}</label>
                       <TradeTypeController
                         name="type"
@@ -1000,13 +1002,16 @@ const TradeInputForm: React.FC<{
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>{"Trade Date"}</label>
+                      <label htmlFor="trade-date" className={labelClass}>
+                        {"Trade date"}
+                      </label>
                       <Controller
                         name="tradeDate"
                         control={control as any}
                         render={({ field }) => (
                           <DateInput
                             ref={dateInputRef}
+                            id="trade-date"
                             value={field.value}
                             onChange={field.onChange}
                             className={inputClass}
@@ -1014,6 +1019,33 @@ const TradeInputForm: React.FC<{
                         )}
                       />
                     </div>
+                    {/* Cost date: an ADD only, under the trade date it defaults to */}
+                    {type?.value === "ADD" && (
+                      <div className="col-start-2">
+                        <label htmlFor="cost-date" className={labelClass}>
+                          <Tooltip text={COST_DATE_HELP} position="below">
+                            {"Cost date"}
+                          </Tooltip>
+                        </label>
+                        <Controller
+                          name="costDate"
+                          control={control as any}
+                          render={({ field }) => (
+                            <DateInput
+                              id="cost-date"
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              className={inputClass}
+                            />
+                          )}
+                        />
+                        {errors.costDate && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {String(errors.costDate.message)}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Market and Asset */}
@@ -1666,11 +1698,12 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Error Display (visible on all tabs) */}
-              {Object.keys(errors).length > 0 && (
+              {/* Error Display (visible on all tabs); the cost date shows its own inline */}
+              {Object.keys(errors).some((field) => field !== "costDate") && (
                 <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
-                  {Object.values(errors)
-                    .map((error) => error?.message)
+                  {Object.entries(errors)
+                    .filter(([field]) => field !== "costDate")
+                    .map(([, error]) => error?.message)
                     .join(" ")}
                 </div>
               )}
