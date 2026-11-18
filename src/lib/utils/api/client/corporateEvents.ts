@@ -34,3 +34,24 @@ export function processCorporateEvent(
     : `${base}/process/${eventId}`
   return fetch(url, { method: "POST" })
 }
+
+/** What svc-event answers when asked to load a portfolio's events in the background. */
+export interface BackgroundLoadResponse {
+  status: "STARTED" | "ALREADY_RUNNING"
+  portfolioId: string
+  asAt: string
+}
+
+/**
+ * Start loading a portfolio's dividends and splits from `asAt` to today in the
+ * background; svc-event answers 202 before the load is done.
+ */
+export function loadCorporateEventsInBackground(
+  portfolioId: string,
+  asAt: string,
+): Promise<Response> {
+  return fetch(
+    `${base}/load/${encodeURIComponent(portfolioId)}/background?asAt=${asAt}`,
+    { method: "POST" },
+  )
+}

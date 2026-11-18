@@ -33,6 +33,8 @@ const READ_URL = "/api/agent/screenshot"
 const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
 const HELD_SINCE_URL = "/api/brokers/reconcile/held-since"
+const BACKGROUND_LOAD_URL =
+  "/api/corporate-events/load/pf-1/background?asAt=2016-02-03"
 
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
@@ -173,6 +175,8 @@ interface Backend {
   heldSince: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
+  /** What starting a background corporate actions load answers. */
+  backgroundLoad: MockResponseInit
 }
 
 let backend: Backend
@@ -234,6 +238,7 @@ async function respond(req: Request): Promise<MockResponseInit> {
     return json({ data: preview((await req.json()) as ShownHoldings) })
   }
   if (url.includes(READ_URL)) return backend.read
+  if (url.includes("/background?")) return backend.backgroundLoad
   if (url.includes("/api/assets/search"))
     return json({
       data: [
@@ -353,6 +358,10 @@ beforeEach(() => {
       },
     }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
+    backgroundLoad: json(
+      { status: "STARTED", portfolioId: "pf-1", asAt: "2016-02-03" },
+      202,
+    ),
   }
   fetchMock.mockResponse(respond)
 })
@@ -2043,23 +2052,94 @@ describe("<StatementImport /> record", () => {
     )
   })
 
+  /** Record an import with AAPL held since 2016-02-03, and wait for the done screen. */
+  async function recordBackdated(user: UserEvent): Promise<void> {
+    await readHoldings(user)
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await user.click(recordButton())
+    await screen.findByRole("heading", { name: "Recorded" })
+  }
+
+  const proposedLink = (): HTMLElement =>
+    screen.getByRole("link", { name: "Proposed Transactions" })
+
   test("a back-dated import stays to offer the dividends and splits since then", async () => {
     mockPush.mockClear()
     const user = userEvent.setup()
-    await readHoldings(user)
-    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+    await recordBackdated(user)
 
-    await user.click(recordButton())
-
-    await screen.findByRole("heading", { name: "Recorded" })
     expect(screen.getByText(/go back to 2016-02-03/)).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole("button", { name: "Check Corporate Actions" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Load Corporate Actions" }),
+    ).toBeInTheDocument()
+  })
+
+  test("Load Corporate Actions starts the background load from the back-dated date and says what happens next", async () => {
+    const user = userEvent.setup()
+    await recordBackdated(user)
+
     await user.click(
-      screen.getByRole("button", { name: "Check Corporate Actions" }),
+      screen.getByRole("button", { name: "Load Corporate Actions" }),
+    )
+
+    expect(
+      await screen.findByText(
+        /Loading dividends and splits since 2016-02-03 in the background\./,
+      ),
+    ).toHaveTextContent(
+      "Loading dividends and splits since 2016-02-03 in the background. Past ones are recorded as they arrive; any not yet paid wait in Proposed Transactions for you to confirm.",
+    )
+    expect(proposedLink()).toHaveAttribute("href", "/trns/proposed")
+    expect(screen.queryByText(/go back to 2016-02-03/)).not.toBeInTheDocument()
+    const sent = fetchMock.mock.calls.filter(
+      ([url]) => url === BACKGROUND_LOAD_URL,
+    )
+    expect(sent).toHaveLength(1)
+    expect(sent[0][1]?.method).toBe("POST")
+  })
+
+  test("a load already running says so", async () => {
+    backend.backgroundLoad = json(
+      { status: "ALREADY_RUNNING", portfolioId: "pf-1", asAt: "2016-02-03" },
+      202,
+    )
+    const user = userEvent.setup()
+    await recordBackdated(user)
+
+    await user.click(
+      screen.getByRole("button", { name: "Load Corporate Actions" }),
+    )
+
+    expect(
+      await screen.findByText(/already loading dividends and splits/i),
+    ).toHaveTextContent(
+      "Already loading dividends and splits for this portfolio in the background. Past ones are recorded as they arrive; any not yet paid wait in Proposed Transactions for you to confirm.",
+    )
+    expect(proposedLink()).toHaveAttribute("href", "/trns/proposed")
+  })
+
+  test("a load that cannot start shows the server's message", async () => {
+    backend.backgroundLoad = json(
+      { error: "Forbidden", message: "Portfolio pf-1 is not yours" },
+      403,
+    )
+    const user = userEvent.setup()
+    await recordBackdated(user)
+
+    await user.click(
+      screen.getByRole("button", { name: "Load Corporate Actions" }),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Portfolio pf-1 is not yours",
     )
     expect(
-      await screen.findByText("Portfolio Corporate Actions - GROWTH"),
-    ).toBeInTheDocument()
+      screen.queryByRole("link", { name: "Proposed Transactions" }),
+    ).not.toBeInTheDocument()
   })
 
   test("the done screen shows the count, the warnings and where to go next", async () => {
