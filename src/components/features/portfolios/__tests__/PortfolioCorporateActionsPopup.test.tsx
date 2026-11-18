@@ -49,7 +49,10 @@ function mockFetch(
 
 const cash = makeAsset({ id: "cash", code: "USD" })
 
-/** Two holdings and a cash balance opened earlier than either; cash is never loaded. */
+/**
+ * Two holdings, an imported one opened on its 2012 cost date but first traded
+ * later, and a cash balance opened earlier than any; cash is never loaded.
+ */
 function holdings(): void {
   ;(useSwr as unknown as jest.Mock).mockReturnValue({
     data: {
@@ -59,6 +62,13 @@ function holdings(): void {
           a2: {
             asset: makeAsset({ id: "a2", code: "BBB" }),
             dateValues: { opened: "2018-06-30" },
+          },
+          imported: {
+            asset: makeAsset({ id: "a3", code: "CCC" }),
+            dateValues: {
+              opened: "2012-02-01",
+              firstTransaction: "2026-11-18",
+            },
           },
           cash: {
             asset: { ...cash, cashLike: true },
@@ -118,6 +128,30 @@ describe("PortfolioCorporateActionsPopup", () => {
 
     const cell = await screen.findByText(label)
     expect(cell.querySelector("i")).toHaveClass(icon)
+  })
+
+  it("scans an imported holding from its first trade, not its earlier cost date", async () => {
+    holdings()
+    mockFetch([])
+    render(
+      <PortfolioCorporateActionsPopup
+        portfolio={makePortfolio()}
+        modalOpen={true}
+        onClose={jest.fn()}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Scan Corporate Actions" }),
+    )
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/a3?fromDate=2026-11-18&"),
+      ),
+    )
+    const urls = (global.fetch as jest.Mock).mock.calls.map(([url]) => url)
+    expect(urls.some((url: string) => url.includes("2012-02-01"))).toBe(false)
   })
 
   it("Load in Background starts the load from the earliest non-cash holding, closes and hands the result up", async () => {
