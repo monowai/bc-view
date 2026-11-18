@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from "react"
+import { corporateActionsFrom } from "@lib/holdings/corporateActionsFrom"
 import {
   Asset,
   HoldingValues,
@@ -230,7 +231,7 @@ export default function Rows({
                       asset={asset}
                       portfolioId={portfolio.id}
                       portfolioCode={portfolio.code}
-                      fromDate={dateValues?.opened ?? undefined}
+                      fromDate={corporateActionsFrom(dateValues)}
                       closedDate={dateValues?.closed ?? undefined}
                       quantity={quantityValues.total}
                       price={

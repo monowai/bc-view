@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { corporateActionsFrom } from "@lib/holdings/corporateActionsFrom"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
 import {
@@ -86,11 +87,11 @@ const PortfolioCorporateActionsPopup: React.FC<
       (holdingsData?.data?.positions ?? {}) as Record<string, Position>,
     ).filter((pos) => !pos.asset.cashLike)
 
-  // The earliest date a non-cash holding was opened: a background load from
-  // here covers every dividend and split the portfolio could be owed.
+  // The earliest date a non-cash holding can be owed anything: a background
+  // load from here covers every dividend and split the portfolio could be owed.
   const earliestOpened = nonCashPositions()
-    .map((pos) => pos.dateValues?.opened)
-    .filter((opened): opened is string => !!opened)
+    .map((pos) => corporateActionsFrom(pos.dateValues))
+    .filter((from): from is string => !!from)
     .sort()[0]
 
   const handleLoadInBackground = async (): Promise<void> => {
@@ -129,7 +130,7 @@ const PortfolioCorporateActionsPopup: React.FC<
       const position = positions[i]
       setScanProgress({ current: i + 1, total: positions.length })
 
-      const fromDate = position.dateValues?.opened || ""
+      const fromDate = corporateActionsFrom(position.dateValues) || ""
       if (!fromDate) continue
 
       try {
