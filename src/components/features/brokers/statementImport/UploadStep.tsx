@@ -122,8 +122,13 @@ export default function UploadStep({
   const newAccountName = flow.newAccountName ?? firm?.name ?? ""
   const firmCurrency = firm?.config?.currency
   const currency = flow.newCurrency || firmCurrency || FALLBACK_CURRENCY
-  // Cash is recorded only when there is some: blank, zero or less is none.
-  const cashAmount = parseAmount(flow.newAccountCash) ?? 0
+  // Cash is recorded only when there is some: blank or zero is none. Text that
+  // is not an amount, or is below zero, is refused with a message, never dropped.
+  const cashAmount = parseAmount(flow.newAccountCash)
+  const cashRefused =
+    creatingAccount &&
+    flow.newAccountCash.trim() !== "" &&
+    !((cashAmount ?? -1) >= 0)
   const account: ImportAccount | undefined = creatingAccount
     ? newAccountName.trim()
       ? {
@@ -131,7 +136,8 @@ export default function UploadStep({
             name: newAccountName.trim(),
             accountNumber: flow.newAccountNumber.trim(),
             globalBrokerId: firm?.id,
-            cash: cashAmount > 0 ? { amount: cashAmount, currency } : undefined,
+            // A refused amount never reaches here: Continue stays disabled.
+            cash: cashAmount ? { amount: cashAmount, currency } : undefined,
           },
         }
       : undefined
@@ -151,7 +157,8 @@ export default function UploadStep({
     portfolios.map((each) => each.code),
     currency,
   )
-  const canRead = Boolean(target && account && flow.file) && !flow.reading
+  const canRead =
+    Boolean(target && account && flow.file) && !flow.reading && !cashRefused
 
   // Cmd+V / Ctrl+V anywhere on the step: an image on the clipboard is chosen.
   const { pasteFile, reading } = flow
@@ -290,9 +297,15 @@ export default function UploadStep({
                       }
                       placeholder="Optional"
                       aria-describedby="import-account-cash-currency"
+                      aria-invalid={cashRefused}
                       className={fieldClass}
                     />
                   </div>
+                  {cashRefused && (
+                    <p role="alert" className="text-xs text-red-600 mt-1">
+                      Enter the cash as an amount of zero or more.
+                    </p>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500">
                   The account is created, with any cash, when you record.

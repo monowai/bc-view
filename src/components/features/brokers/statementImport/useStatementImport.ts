@@ -454,9 +454,14 @@ export function useStatementImport(): StatementImportFlow {
   const changePortfolio = async (target: ImportTarget): Promise<void> => {
     if (!session) return
     // The old preview was for the old portfolio: drop it until the new one arrives.
+    // A portfolio to create takes the new account's cash into its currency.
     const next: ImportSession = {
       ...session,
       target,
+      account:
+        "create" in target
+          ? withCashCurrency(session.account, target.create.currency)
+          : session.account,
       preview: null,
       previewByKey: {},
       checked: {},
