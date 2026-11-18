@@ -1,10 +1,6 @@
-import React, { useState } from "react"
+import React from "react"
 import Link from "next/link"
 import Alert from "@components/ui/Alert"
-import BackgroundLoadNotice, {
-  BackgroundLoadOutcome,
-  startBackgroundLoad,
-} from "@components/features/portfolios/BackgroundLoadNotice"
 import type { Portfolio } from "types/beancounter"
 
 interface DoneStepProps {
@@ -12,8 +8,6 @@ interface DoneStepProps {
   warnings: string[]
   brokerId: string
   portfolio: Pick<Portfolio, "id" | "code">
-  /** The earliest back-dated holding; null when none was back-dated. */
-  backdatedTo: string | null
   onImportAnother: () => void
 }
 
@@ -23,19 +17,8 @@ export default function DoneStep({
   warnings,
   brokerId,
   portfolio,
-  backdatedTo,
   onImportAnother,
 }: DoneStepProps): React.ReactElement {
-  const [starting, setStarting] = useState(false)
-  const [outcome, setOutcome] = useState<BackgroundLoadOutcome | null>(null)
-
-  const loadCorporateActions = async (from: string): Promise<void> => {
-    setStarting(true)
-    setOutcome(await startBackgroundLoad(portfolio.id, from))
-    setStarting(false)
-  }
-
-  const started = outcome !== null && outcome.status !== "ERROR"
   return (
     <div className="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
       <h2 className="text-lg font-semibold text-gray-900">Recorded</h2>
@@ -51,22 +34,6 @@ export default function DoneStep({
           </ul>
         </Alert>
       )}
-      {backdatedTo && !started && (
-        <Alert variant="info">
-          <p>
-            {`These holdings go back to ${backdatedTo}. Dividends and splits since then may not be recorded yet.`}
-          </p>
-          <button
-            type="button"
-            onClick={() => loadCorporateActions(backdatedTo)}
-            disabled={starting}
-            className="mt-2 font-medium underline disabled:opacity-50"
-          >
-            Load Corporate Actions
-          </button>
-        </Alert>
-      )}
-      {outcome && <BackgroundLoadNotice outcome={outcome} />}
       <div className="flex flex-wrap gap-3 items-center">
         <Link
           href={`/holdings/${encodeURIComponent(portfolio.code)}`}
