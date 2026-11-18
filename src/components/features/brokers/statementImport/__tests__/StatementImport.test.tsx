@@ -2003,6 +2003,25 @@ describe("<StatementImport /> record", () => {
     )
   })
 
+  test("a back-dated import stays to offer the dividends and splits since then", async () => {
+    mockPush.mockClear()
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
+
+    await user.click(recordButton())
+
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(screen.getByText(/go back to 2016-02-03/)).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByRole("button", { name: "Check Corporate Actions" }),
+    )
+    expect(
+      await screen.findByText("Portfolio Corporate Actions - GROWTH"),
+    ).toBeInTheDocument()
+  })
+
   test("the done screen shows the count, the warnings and where to go next", async () => {
     mockPush.mockClear()
     backend.commits = [

@@ -74,8 +74,13 @@ interface ImportResult {
   recorded: number
   warnings: string[]
   brokerId: string
-  /** The portfolio recorded in, for the link to its holdings. */
-  portfolioCode: string
+  /** The portfolio recorded in, for its holdings and corporate actions. */
+  portfolio: ImportPortfolio
+  /**
+   * The earliest date a recorded holding was back-dated to, before the record
+   * date; null when none was. Dividends and splits since then may be missing.
+   */
+  backdatedTo: string | null
 }
 
 type EditableField = "code" | "market" | "quantity" | "cost"
@@ -225,6 +230,17 @@ async function fetchSuggestions(
     Array.from({ length: Math.min(SUGGEST_IN_PARALLEL, named.length) }, worker),
   )
   return failure === null ? { data: answers } : { error: failure }
+}
+
+/** The earliest of [dates] before [recordDate], or null when none is. */
+function earliestBefore(
+  dates: Array<string | undefined>,
+  recordDate: string,
+): string | null {
+  const earlier = dates
+    .filter((date): date is string => !!date && date < recordDate)
+    .sort()
+  return earlier[0] ?? null
 }
 
 function withPreview(
@@ -848,14 +864,20 @@ export function useStatementImport(): StatementImportFlow {
       const saved = (await res.json()) as TrnResponse
       void valuePortfolio(portfolio.id)
       const warnings = saved.warnings ?? []
+      const backdatedTo = earliestBefore(
+        confirmed.rows.map((row) => row.tradeDate),
+        confirmed.tradeDate ?? todayIso(),
+      )
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
         warnings,
         brokerId: accountId,
-        portfolioCode: portfolio.code,
+        portfolio,
+        backdatedTo,
       })
-      // Nothing to read on the done screen: go straight to the portfolio.
-      if (warnings.length === 0) void router.push(`/holdings/${portfolio.code}`)
+      // Nothing to read or offer on the done screen: go straight to the portfolio.
+      if (warnings.length === 0 && !backdatedTo)
+        void router.push(`/holdings/${portfolio.code}`)
     } catch {
       setRecordError(UNREACHABLE)
     } finally {

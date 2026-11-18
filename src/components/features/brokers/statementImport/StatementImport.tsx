@@ -17,7 +17,8 @@ export default function StatementImport(): React.ReactElement {
         recorded={flow.result.recorded}
         warnings={flow.result.warnings}
         brokerId={flow.result.brokerId}
-        portfolioCode={flow.result.portfolioCode}
+        portfolio={flow.result.portfolio}
+        backdatedTo={flow.result.backdatedTo}
         onImportAnother={flow.reset}
       />
     )
