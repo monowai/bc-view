@@ -237,6 +237,41 @@ describe("TradeUtils", () => {
     )
   })
 
+  describe("cost date", () => {
+    const add = (costDate?: string): TradeFormData => ({
+      type: { value: "ADD", label: "ADD" },
+      asset: "Asset1",
+      market: "Market1",
+      tradeDate: "2023-01-01",
+      quantity: 10,
+      price: 100,
+      tradeCurrency: { value: "USD", label: "USD" },
+      fees: 0,
+      tax: 0,
+      comments: "",
+      costDate,
+    })
+
+    test("an add's cost date goes in the last column, after sub-accounts", () => {
+      const columns = getTradeRow(add("2016-11-18")).split(",")
+
+      // Broker (19), SubAccounts (20), CostDate (21)
+      expect(columns).toHaveLength(22)
+      expect(columns[20]).toBe("")
+      expect(columns[21]).toBe("2016-11-18")
+    })
+
+    test("an add without a cost date keeps the row as it was", () => {
+      expect(getTradeRow(add()).split(",")).toHaveLength(20)
+    })
+
+    test("another type never carries a cost date", () => {
+      const buy = { ...add("2016-11-18"), type: { value: "BUY", label: "BUY" } }
+
+      expect(getTradeRow(buy).split(",")).toHaveLength(20)
+    })
+  })
+
   test("getCashRow", () => {
     const data: TradeFormData = {
       type: { value: "WITHDRAWAL", label: "Withdrawal" },

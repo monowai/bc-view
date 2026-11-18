@@ -104,7 +104,9 @@ export async function submitEditMode(
       editMode.onClose()
     } else {
       const errorData = await response.json().catch(() => ({}))
-      setSubmitError(errorData.message || "Failed to update transaction")
+      setSubmitError(
+        errorData.detail || errorData.message || "Failed to update transaction",
+      )
     }
   } catch (error) {
     console.error("Failed to update transaction:", error)

@@ -58,6 +58,15 @@ describe("trnsSelectors", () => {
       expect(trn.tradeCurrency.code).toBe(USD.code)
     })
 
+    it("carries an add's cost date onto the transaction", () => {
+      const add = {
+        ...envelope,
+        trns: [{ ...envelope.trns[0], trnType: "ADD", costDate: "2016-11-18" }],
+      } as TrnPayload
+      expect(denormalizeTrnPayload(add)[0].costDate).toBe("2016-11-18")
+      expect(denormalizeTrnPayload(envelope)[0].costDate).toBeUndefined()
+    })
+
     it("falls back to an empty callerRef when the envelope omits it", () => {
       const [trn] = denormalizeTrnPayload(envelope)
       expect(trn.callerRef).toEqual({ provider: "", batch: "", callerId: "" })
