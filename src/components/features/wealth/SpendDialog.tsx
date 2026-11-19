@@ -23,6 +23,8 @@ interface SpendDialogProps {
 interface RowValues {
   projected: string
   actual: string
+  /** svc-retire's estimate for an unrecorded month, shown as a placeholder. */
+  estimate: string
 }
 
 const INPUT_CLS =
@@ -56,7 +58,8 @@ function seedRows(
     )
     rows[b.categoryLabelId] = {
       projected: e?.projected != null ? String(e.projected) : "",
-      actual: e?.actual != null ? String(e.actual) : "",
+      actual: e?.actual != null && !e.estimated ? String(e.actual) : "",
+      estimate: e?.actual != null && e.estimated ? String(e.actual) : "",
     }
   }
   return rows
@@ -222,6 +225,11 @@ function SpendMonthForm({
             </button>
           </div>
           <Dialog.ErrorAlert message={error} />
+          {Object.values(rows).some((r) => r.estimate) && (
+            <p className="mb-3 text-sm text-gray-600">
+              Estimated — enter what you spent to replace it
+            </p>
+          )}
           {budgets.length === 0 && (
             <p className="mb-3 text-sm text-gray-600">
               This plan has no retirement expenses yet. Add them in the plan to
@@ -273,6 +281,11 @@ function SpendMonthForm({
                       aria-label={`${b.categoryName} actual`}
                       className={INPUT_CLS}
                       value={rows[b.categoryLabelId].actual}
+                      placeholder={
+                        rows[b.categoryLabelId].estimate
+                          ? `est. ${rows[b.categoryLabelId].estimate}`
+                          : undefined
+                      }
                       onChange={(e) =>
                         update(b.categoryLabelId, "actual", e.target.value)
                       }

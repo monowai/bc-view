@@ -19,6 +19,8 @@ export function trailingMonths(today: Date, count: number): string[] {
 export interface SpendSummary {
   /** Months in the window with at least one actual recorded. */
   monthsEntered: number
+  /** Of those, months svc-retire estimated because the user left them unrecorded. */
+  monthsEstimated: number
   /** Actual spend over those months. */
   actual: number
   /**
@@ -49,19 +51,22 @@ export function spendSummary(
 ): SpendSummary | null {
   const inWindow = new Set(window)
   const months = new Set<string>()
+  const typed = new Set<string>()
   let actual = 0
   let budget = 0
   for (const e of entries) {
     if (e.actual == null || !inWindow.has(e.month)) continue
     months.add(e.month)
+    if (!e.estimated) typed.add(e.month)
     actual += e.actual
     budget += budgets[e.categoryLabelId] ?? 0
   }
   const monthsEntered = months.size
   if (monthsEntered === 0) return null
+  const monthsEstimated = monthsEntered - typed.size
   const annualDraw = Math.max(
     plannedAnnualDraw + ((actual - budget) * MONTHS_PER_YEAR) / monthsEntered,
     0,
   )
-  return { monthsEntered, actual, budget, annualDraw }
+  return { monthsEntered, monthsEstimated, actual, budget, annualDraw }
 }

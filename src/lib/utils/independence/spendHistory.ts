@@ -32,7 +32,9 @@ export type SpendHistoryRow = {
   actual: number | null
   budget: number | null
   projected: number | null
-} & Record<string, number | string | null>
+  /** Every actual this month was estimated by svc-retire. */
+  estimated: boolean
+} & Record<string, number | string | boolean | null>
 
 export interface SpendHistory {
   series: SpendSeries[]
@@ -90,7 +92,9 @@ export function spendHistory(
       actual: null,
       budget: null,
       projected: null,
+      estimated: false,
     }
+    let typedActual = false
     const add = (key: "actual" | "budget" | "projected", n: number): void => {
       row[key] = (row[key] ?? 0) + n
     }
@@ -99,10 +103,12 @@ export function spendHistory(
       if (e.projected != null) add("projected", e.projected)
       if (e.actual == null) continue
       add("actual", e.actual)
+      if (!e.estimated) typedActual = true
       add("budget", budgets[e.categoryLabelId] ?? 0)
       const key = topKeys.has(e.categoryLabelId) ? e.categoryLabelId : OTHER_KEY
       row[key] = ((row[key] as number | undefined) ?? 0) + e.actual
     }
+    row.estimated = row.actual != null && !typedActual
     return row
   })
   return { series, rows }

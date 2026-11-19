@@ -6,6 +6,7 @@ const entry = (
   categoryLabelId: string,
   actual: number | null,
   projected: number | null = null,
+  estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
@@ -13,6 +14,7 @@ const entry = (
   projected,
   actual,
   currency: "SGD",
+  estimated,
 })
 
 describe("trailingMonths", () => {
@@ -94,6 +96,19 @@ describe("spendSummary", () => {
       window,
     )
     expect(s).toMatchObject({ monthsEntered: 1, actual: 3000 })
+  })
+
+  it("counts the months the system estimated", () => {
+    const s = spendSummary(
+      [
+        entry("2026-09", "housing", 2000, null, true),
+        entry("2026-10", "housing", 2100),
+      ],
+      budgets,
+      24_000,
+      window,
+    )
+    expect(s).toMatchObject({ monthsEntered: 2, monthsEstimated: 1 })
   })
 
   it("is null when no month in the window has an actual", () => {

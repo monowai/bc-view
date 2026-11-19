@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import {
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Line,
   ResponsiveContainer,
@@ -21,6 +22,8 @@ const TICK = { fontSize: 11, fill: "#94a3b8" }
 const BUDGET_COLOR = "#334155"
 const PROJECTED_COLOR = "#64748b"
 const SURFACE = "#ffffff"
+/** Estimated months: same hue, lighter, so identity holds and the state reads. */
+const ESTIMATED_OPACITY = 0.4
 
 interface SpendHistoryChartProps {
   entries: SpendEntry[]
@@ -59,6 +62,14 @@ function HistoryTooltip({
       </p>
       {row.actual == null ? (
         <p className="text-gray-500">Nothing recorded</p>
+      ) : row.estimated ? (
+        <>
+          <p className="text-gray-500">Estimated (not recorded)</p>
+          <p className="flex gap-2 font-medium text-gray-900">
+            Actual
+            <span className="ml-auto tabular-nums">{money(row.actual)}</span>
+          </p>
+        </>
       ) : (
         <>
           {series
@@ -151,6 +162,9 @@ export default function SpendHistoryChart({
           />
           Projected
         </li>
+        {rows.some((r) => r.estimated) && (
+          <li className="text-gray-500">Lighter bars are estimated</li>
+        )}
       </ul>
 
       <div className="h-64">
@@ -194,7 +208,14 @@ export default function SpendHistoryChart({
                 maxBarSize={28}
                 radius={i === series.length - 1 ? [4, 4, 0, 0] : 0}
                 isAnimationActive={false}
-              />
+              >
+                {rows.map((r) => (
+                  <Cell
+                    key={r.month}
+                    fillOpacity={r.estimated ? ESTIMATED_OPACITY : 1}
+                  />
+                ))}
+              </Bar>
             ))}
             <Line
               dataKey="budget"
@@ -258,7 +279,9 @@ export default function SpendHistoryChart({
                   {shortMonth(r.month)}
                 </th>
                 <td className="px-2 py-1 text-right">
-                  {r.actual == null ? "—" : money(r.actual)}
+                  {r.actual == null
+                    ? "—"
+                    : `${money(r.actual)}${r.estimated ? " est." : ""}`}
                 </td>
                 <td className="px-2 py-1 text-right">
                   {r.budget == null ? "—" : money(r.budget)}

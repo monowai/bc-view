@@ -107,6 +107,7 @@ describe("RetiredMetrics", () => {
     // overspend lifts the 40k planned draw to 46k a year.
     const spend = {
       monthsEntered: 3,
+      monthsEstimated: 0,
       actual: 10_500,
       budget: 9_000,
       annualDraw: 46_000,
@@ -119,6 +120,13 @@ describe("RetiredMetrics", () => {
       expect(screen.getByText("$10,500")).toBeInTheDocument()
       expect(screen.getByText("/ $9,000")).toBeInTheDocument()
       expect(screen.getByText("3 months recorded")).toBeInTheDocument()
+    })
+
+    it("says how many recorded months are estimates", () => {
+      renderCards({ spend: { ...spend, monthsEstimated: 1 } })
+      expect(
+        screen.getByText("3 months recorded (1 estimated)"),
+      ).toBeInTheDocument()
     })
 
     it("drives the withdrawal rate from the draw recorded spend implies", () => {

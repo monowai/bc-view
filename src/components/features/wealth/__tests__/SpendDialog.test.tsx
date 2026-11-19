@@ -31,6 +31,7 @@ const entries: SpendEntry[] = [
     projected: 1900,
     actual: 2100,
     currency: "SGD",
+    estimated: false,
   },
 ]
 
@@ -72,6 +73,37 @@ describe("SpendDialog", () => {
     expect(screen.getByTestId("total-actual")).toHaveTextContent("S$2,100")
     // Only housing has an actual: 2,100 against its 2,000 budget.
     expect(screen.getByTestId("total-variance")).toHaveTextContent("S$100")
+  })
+
+  it("offers a system estimate as a placeholder, not a value", () => {
+    render(
+      <SpendDialog
+        budgets={budgets}
+        entries={[
+          {
+            month: "2026-10",
+            categoryLabelId: "housing",
+            categoryName: "Housing",
+            projected: null,
+            actual: 2000,
+            currency: "SGD",
+            estimated: true,
+          },
+        ]}
+        currency="SGD"
+        currencySymbol="S$"
+        initialMonth="2026-10"
+        historyMonths={["2026-10"]}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    )
+    const actual = screen.getByLabelText("Housing actual")
+    expect(actual).toHaveValue(null)
+    expect(actual).toHaveAttribute("placeholder", "est. 2000")
+    expect(
+      screen.getByText("Estimated — enter what you spent to replace it"),
+    ).toBeInTheDocument()
   })
 
   it("starts a month with nothing recorded empty", () => {

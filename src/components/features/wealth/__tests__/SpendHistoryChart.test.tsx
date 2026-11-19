@@ -16,7 +16,21 @@ jest.mock("recharts", () => {
   return {
     ResponsiveContainer: Pass,
     ComposedChart: Pass,
-    Bar: Named,
+    Bar: ({
+      name,
+      children,
+    }: {
+      name?: string
+      children?: React.ReactNode
+    }): React.ReactElement => (
+      <div data-testid="series">
+        {name}
+        {children}
+      </div>
+    ),
+    Cell: ({ fillOpacity }: { fillOpacity?: number }): React.ReactElement => (
+      <span data-testid="cell" data-opacity={fillOpacity} />
+    ),
     Line: Named,
     XAxis: () => <div />,
     YAxis: () => <div />,
@@ -31,6 +45,7 @@ const entry = (
   categoryName: string,
   actual: number | null,
   projected: number | null = null,
+  estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
@@ -38,6 +53,7 @@ const entry = (
   projected,
   actual,
   currency: "SGD",
+  estimated,
 })
 
 const entries = [
@@ -83,6 +99,25 @@ describe("SpendHistoryChart", () => {
     expect(row).toHaveTextContent("S$4,200")
     expect(row).toHaveTextContent("S$3,000")
     expect(row).toHaveTextContent("S$300")
+  })
+
+  it("draws estimated months lighter and marks them in the table", () => {
+    renderChart([
+      entry("2026-10", "housing", "Housing", 3000, null, true),
+      entry("2026-11", "housing", "Housing", 3100),
+    ])
+    const opacities = screen
+      .getAllByTestId("cell")
+      .map((c) => c.getAttribute("data-opacity"))
+    expect(opacities).toEqual(["0.4", "1"])
+    expect(screen.getByText("Lighter bars are estimated")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Show table" }))
+    expect(screen.getByRole("row", { name: /Oct 2026/ })).toHaveTextContent(
+      "est.",
+    )
+    expect(screen.getByRole("row", { name: /Nov 2026/ })).not.toHaveTextContent(
+      "est.",
+    )
   })
 
   it("says so when nothing has been recorded", () => {

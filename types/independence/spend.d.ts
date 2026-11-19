@@ -9,6 +9,8 @@ export interface SpendEntry {
   projected: number | null
   actual: number | null
   currency: string
+  /** Filled by svc-retire for a past month the user left unrecorded: projected, else budget. */
+  estimated: boolean
 }
 
 export interface SpendResponse {

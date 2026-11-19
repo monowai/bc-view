@@ -6,6 +6,7 @@ const entry = (
   categoryLabelId: string,
   actual: number | null,
   projected: number | null = null,
+  estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
@@ -13,6 +14,7 @@ const entry = (
   projected,
   actual,
   currency: "SGD",
+  estimated,
 })
 
 describe("spendHistory", () => {
@@ -74,6 +76,16 @@ describe("spendHistory", () => {
     expect(h.series[0]).toMatchObject({ key: "b", name: "B" })
     expect(h.series[1]).toMatchObject({ key: "a", name: "A" })
     expect(h.series[0].color).not.toBe(h.series[1].color)
+  })
+
+  it("flags a month whose actuals the system estimated", () => {
+    const h = spendHistory(
+      [entry("2026-09", "a", 1000, null, true), entry("2026-10", "a", 900)],
+      budgets,
+      months,
+    )
+    expect(h.rows[0].estimated).toBe(true)
+    expect(h.rows[1].estimated).toBe(false)
   })
 
   it("has no series when nothing is recorded", () => {

@@ -171,6 +171,8 @@ export default function RetiredMetrics({
               {spend.monthsEntered === 1
                 ? "1 month recorded"
                 : `${spend.monthsEntered} months recorded`}
+              {spend.monthsEstimated > 0 &&
+                ` (${spend.monthsEstimated} estimated)`}
             </p>
           </>
         ) : drawnLastYear === undefined ? (
