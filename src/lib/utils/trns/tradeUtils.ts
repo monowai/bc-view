@@ -241,10 +241,14 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
 }
 
 // Updated getTradeRow to use TradeImport object
-// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status,Broker
+// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status,Broker[,SubAccounts,CostDate]
 export const getTradeRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
-  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
+  const row = `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
+  // The cost date is the optional column after SubAccounts.
+  return hasCostDate(data.type.value) && data.costDate
+    ? `${row},,${data.costDate}`
+    : row
 }
 
 // Updated getCashRow to use TradeImport object
@@ -332,6 +336,9 @@ export const isBuySide = (tradeType: string): boolean =>
 /** Returns true if the trade type removes from a position (SELL, REDUCE, EXPENSE) */
 export const isSellSide = (tradeType: string): boolean =>
   ["SELL", "REDUCE", "EXPENSE"].includes(tradeType)
+
+/** Only an ADD carries a cost date: when it was paid for, if before the trade date */
+export const hasCostDate = (tradeType?: string): boolean => tradeType === "ADD"
 
 /** Returns true if the trade type is a non-cash position adjustment (ADD, REDUCE) */
 export const isPositionAdjustment = (tradeType: string): boolean =>

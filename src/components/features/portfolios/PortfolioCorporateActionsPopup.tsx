@@ -1,5 +1,9 @@
 import React, { useState } from "react"
-import { corporateActionsFrom } from "@lib/holdings/corporateActionsFrom"
+import {
+  corporateActionsFrom,
+  dividendsFrom,
+  isOwedFrom,
+} from "@lib/holdings/corporateActionsFrom"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
 import {
@@ -87,10 +91,12 @@ const PortfolioCorporateActionsPopup: React.FC<
       (holdingsData?.data?.positions ?? {}) as Record<string, Position>,
     ).filter((pos) => !pos.asset.cashLike)
 
-  // The earliest date a non-cash holding can be owed anything: a background
-  // load from here covers every dividend and split the portfolio could be owed.
+  // The earliest date a non-cash holding can be owed anything, an import's
+  // cost date: a background load from here covers every dividend and split the
+  // portfolio could be owed. svc-event never applies a split to an import
+  // before its first trade, however early the load starts.
   const earliestOpened = nonCashPositions()
-    .map((pos) => corporateActionsFrom(pos.dateValues))
+    .map((pos) => dividendsFrom(pos.dateValues))
     .filter((from): from is string => !!from)
     .sort()[0]
 
@@ -130,8 +136,11 @@ const PortfolioCorporateActionsPopup: React.FC<
       const position = positions[i]
       setScanProgress({ current: i + 1, total: positions.length })
 
-      const fromDate = corporateActionsFrom(position.dateValues) || ""
+      // Dividends from when the holding opened (an import's cost date); splits
+      // and anything else only from its first trade.
+      const fromDate = dividendsFrom(position.dateValues) || ""
       if (!fromDate) continue
+      const splitsFrom = corporateActionsFrom(position.dateValues)
 
       try {
         // Fetch corporate events for this asset
@@ -156,6 +165,7 @@ const PortfolioCorporateActionsPopup: React.FC<
         // Skip events for positions that were closed before the event
         for (const event of events) {
           if (
+            isOwedFrom(event, splitsFrom) &&
             !isPositionClosedBeforeEvent(position, event) &&
             !isEventReconciled(event, portfolioTransactions) &&
             canProcessEvent(event, today)

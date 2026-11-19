@@ -2,6 +2,7 @@ import React, { useCallback, forwardRef } from "react"
 import { localIsoDate, todayIso } from "@lib/formatters"
 
 interface DateInputProps {
+  id?: string
   value: string
   onChange: (value: string) => void
   className?: string
@@ -23,7 +24,7 @@ interface DateInputProps {
  */
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
   function DateInput(
-    { value, onChange, className = "", disabled, min, max, autoFocus },
+    { id, value, onChange, className = "", disabled, min, max, autoFocus },
     ref,
   ) {
     const adjustDate = useCallback(
@@ -80,6 +81,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     return (
       <input
         ref={ref}
+        id={id}
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
