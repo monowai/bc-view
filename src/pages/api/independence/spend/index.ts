@@ -7,8 +7,7 @@ export default createApiHandler({
     if (typeof req.query.from === "string") params.set("from", req.query.from)
     if (typeof req.query.to === "string") params.set("to", req.query.to)
     const query = params.toString()
-    const baseUrl = getRetireUrl(`/plans/${req.query.id}/spend`)
-    return query ? `${baseUrl}?${query}` : baseUrl
+    return query ? `${getRetireUrl("/spend")}?${query}` : getRetireUrl("/spend")
   },
   methods: ["GET"],
 })

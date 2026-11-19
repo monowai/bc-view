@@ -2,6 +2,6 @@ import { createApiHandler } from "@utils/api/createApiHandler"
 import { getRetireUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
-  url: (req) => getRetireUrl(`/plans/${req.query.id}/spend/${req.query.month}`),
+  url: (req) => getRetireUrl(`/spend/${req.query.month}`),
   methods: ["PUT"],
 })

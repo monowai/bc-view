@@ -1,4 +1,4 @@
-import type { PlanSpendEntry } from "types/independence"
+import type { SpendEntry } from "types/independence"
 
 export const MONTHS_PER_YEAR = 12
 
@@ -42,7 +42,7 @@ export interface SpendSummary {
  *   budget counts as zero, so spending in it is all over budget.
  */
 export function spendSummary(
-  entries: PlanSpendEntry[],
+  entries: SpendEntry[],
   budgets: Record<string, number>,
   plannedAnnualDraw: number,
   window: string[],

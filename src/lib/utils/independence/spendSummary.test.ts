@@ -1,12 +1,12 @@
 import { spendSummary, trailingMonths } from "./spendSummary"
-import type { PlanSpendEntry } from "types/independence"
+import type { SpendEntry } from "types/independence"
 
 const entry = (
   month: string,
   categoryLabelId: string,
   actual: number | null,
   projected: number | null = null,
-): PlanSpendEntry => ({
+): SpendEntry => ({
   month,
   categoryLabelId,
   categoryName: categoryLabelId,

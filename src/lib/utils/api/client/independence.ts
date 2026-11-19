@@ -22,12 +22,9 @@ export const planExpenseUrl = (planId: string, expenseId: string): string =>
   `${planExpensesKey(planId)}/${expenseId}`
 export const planPropertiesKey = (planId: string): string =>
   `${planKey(planId)}/properties`
-/** Monthly spend log, months `from`..`to` inclusive (`YYYY-MM`). */
-export const planSpendKey = (
-  planId: string,
-  from: string,
-  to: string,
-): string => `${planKey(planId)}/spend?from=${from}&to=${to}`
+/** The user's monthly spend log, months `from`..`to` inclusive (`YYYY-MM`). */
+export const spendKey = (from: string, to: string): string =>
+  `${base}/spend?from=${from}&to=${to}`
 
 /** The user's journeys (IndependencePlan). */
 export const independencePlansKey = `${base}/independence-plans`
@@ -202,13 +199,9 @@ export function runProjection(
   })
 }
 
-/** Replace one month's spend entries for the plan. */
-export function savePlanSpend(
-  planId: string,
-  month: string,
-  request: unknown,
-): Promise<Response> {
-  return fetch(`${planKey(planId)}/spend/${month}`, jsonInit("PUT", request))
+/** Replace one month of the user's spend entries. */
+export function saveSpend(month: string, request: unknown): Promise<Response> {
+  return fetch(`${base}/spend/${month}`, jsonInit("PUT", request))
 }
 
 export function runMonteCarlo(

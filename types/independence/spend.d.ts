@@ -1,7 +1,7 @@
 // ============ Monthly Spend Log ============
 
-/** One category's projected and actual spend for one month (svc-retire plan_spend). */
-export interface PlanSpendEntry {
+/** One category's projected and actual spend for one month (svc-retire monthly_spend; the user's, shared by all their plans). */
+export interface SpendEntry {
   /** YYYY-MM */
   month: string
   categoryLabelId: string
@@ -11,15 +11,15 @@ export interface PlanSpendEntry {
   currency: string
 }
 
-export interface PlanSpendResponse {
-  data: PlanSpendEntry[]
+export interface SpendResponse {
+  data: SpendEntry[]
 }
 
-export interface PlanSpendRequest {
+export interface SpendRequest {
   currency: string
   entries: Array<
     Pick<
-      PlanSpendEntry,
+      SpendEntry,
       "categoryLabelId" | "categoryName" | "projected" | "actual"
     >
   >

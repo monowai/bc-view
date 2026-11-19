@@ -2,7 +2,7 @@ import React from "react"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import SpendDialog from "../SpendDialog"
-import type { PlanExpense, PlanSpendEntry } from "types/independence"
+import type { PlanExpense, SpendEntry } from "types/independence"
 
 const budget = (
   categoryLabelId: string,
@@ -23,7 +23,7 @@ const budgets = [
   budget("travel", "Travel", 1000),
 ]
 
-const entries: PlanSpendEntry[] = [
+const entries: SpendEntry[] = [
   {
     month: "2026-11",
     categoryLabelId: "housing",
@@ -37,12 +37,12 @@ const entries: PlanSpendEntry[] = [
 const renderDialog = (onSaved = jest.fn()): void => {
   render(
     <SpendDialog
-      planId="p1"
       budgets={budgets}
       entries={entries}
       currency="SGD"
       currencySymbol="S$"
       initialMonth="2026-11"
+      historyMonths={["2026-10", "2026-11"]}
       onClose={jest.fn()}
       onSaved={onSaved}
     />,
@@ -94,7 +94,7 @@ describe("SpendDialog", () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0]
-    expect(url).toBe("/api/independence/plans/p1/spend/2026-11")
+    expect(url).toBe("/api/independence/spend/2026-11")
     expect(init.method).toBe("PUT")
     expect(JSON.parse(init.body)).toEqual({
       currency: "SGD",
@@ -118,12 +118,12 @@ describe("SpendDialog", () => {
   it("explains when the plan has no retirement budget to record against", () => {
     render(
       <SpendDialog
-        planId="p1"
         budgets={[]}
         entries={[]}
         currency="SGD"
         currencySymbol="S$"
         initialMonth="2026-11"
+        historyMonths={["2026-10", "2026-11"]}
         onClose={jest.fn()}
         onSaved={jest.fn()}
       />,
@@ -134,6 +134,18 @@ describe("SpendDialog", () => {
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+  })
+
+  it("charts recorded months on the History tab", () => {
+    renderDialog()
+    fireEvent.click(screen.getByRole("tab", { name: "History" }))
+    expect(screen.getByRole("list", { name: "Legend" })).toHaveTextContent(
+      "Housing",
+    )
+    expect(screen.queryByLabelText("Housing actual")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Save" }),
+    ).not.toBeInTheDocument()
   })
 
   it("shows the error and stays open when the save fails", async () => {

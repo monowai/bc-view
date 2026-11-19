@@ -42,8 +42,14 @@ function RetiredMetricsSection({
   projection: RetirementProjection
   displayCurrency: Currency | null
 }): React.ReactElement {
-  const { budgets, spendEntries, currentMonth, refreshSpend, ...cardData } =
-    useRetiredMetricsData(projection)
+  const {
+    budgets,
+    spendEntries,
+    currentMonth,
+    refreshSpend,
+    historyMonths,
+    ...cardData
+  } = useRetiredMetricsData(projection)
   const [showSpend, setShowSpend] = useState(false)
   const currencySymbol =
     displayCurrency?.code === projection.currency
@@ -59,12 +65,12 @@ function RetiredMetricsSection({
       />
       {showSpend && (
         <SpendDialog
-          planId={projection.planId}
           budgets={budgets}
           entries={spendEntries}
           currency={projection.currency}
           currencySymbol={currencySymbol}
           initialMonth={currentMonth}
+          historyMonths={historyMonths}
           onClose={() => setShowSpend(false)}
           onSaved={() => {
             refreshSpend()

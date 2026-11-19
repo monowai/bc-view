@@ -95,6 +95,23 @@ describe("useRetiredMetricsData", () => {
     })
   })
 
+  it("loads two years of history and summarises the last twelve months", () => {
+    const d = new Date()
+    const yearAgo = `${d.getFullYear() - 1}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    spendRows = [
+      { month: yearAgo, categoryLabelId: "housing", actual: 9_999 },
+      { month: thisMonth(), categoryLabelId: "housing", actual: 2_000 },
+    ]
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.historyMonths).toHaveLength(24)
+    expect(result.current.historyMonths.at(-1)).toBe(thisMonth())
+    // A year ago is in the history but outside the 12-month summary.
+    expect(result.current.spend).toMatchObject({
+      monthsEntered: 1,
+      actual: 2_000,
+    })
+  })
+
   it("has no spend summary before any spend is recorded", () => {
     spendRows = []
     const { result } = renderHook(() => useRetiredMetricsData(projection))

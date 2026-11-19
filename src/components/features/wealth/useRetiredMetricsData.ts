@@ -4,15 +4,15 @@ import type {
   MonteCarloResponse,
   MonteCarloResult,
   PlanExpense,
-  PlanSpendEntry,
-  PlanSpendResponse,
+  SpendEntry,
+  SpendResponse,
   RetirementProjection,
 } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { investmentsKey, investmentsMonthlyKey } from "@utils/api/client/trns"
 import {
   monteCarloUrl,
-  planSpendKey,
+  spendKey,
   runMonteCarlo,
 } from "@utils/api/client/independence"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
@@ -38,17 +38,21 @@ interface RetiredMetricsData {
   monteCarloLoading: boolean
   /** The plan's retirement-phase expenses: the budget, by category. */
   budgets: PlanExpense[]
-  /** Spend recorded over the last 12 months. */
-  spendEntries: PlanSpendEntry[]
+  /** Spend recorded over the history window. */
+  spendEntries: SpendEntry[]
   spend: SpendSummary | null
   /** The month the spend log opens on, `YYYY-MM`. */
   currentMonth: string
+  /** `YYYY-MM`, oldest first: the History tab's months. */
+  historyMonths: string[]
   refreshSpend: () => void
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
 }
 
 const DAYS_PER_YEAR = 365
+/** Months of spend history loaded for the chart; the summary uses the last 12. */
+const HISTORY_MONTHS = 24
 
 /** Net selling is a draw on the pot; net buying draws nothing. */
 const drawn = (window: InvestmentWindow | undefined): number | undefined =>
@@ -103,17 +107,19 @@ export function useRetiredMetricsData(
     )
 
   // Fixed at mount: the window must not shift between renders.
-  const [window] = useState(() => trailingMonths(new Date(), MONTHS_PER_YEAR))
-  const spendKey = planSpendKey(
-    projection.planId,
-    window[0],
-    window[window.length - 1],
+  const [historyMonths] = useState(() =>
+    trailingMonths(new Date(), HISTORY_MONTHS),
+  )
+  const window = historyMonths.slice(-MONTHS_PER_YEAR)
+  const spendUrl = spendKey(
+    historyMonths[0],
+    historyMonths[historyMonths.length - 1],
   )
   const {
     data: spendData,
     error: spendError,
     mutate: mutateSpend,
-  } = useSwr<PlanSpendResponse>(spendKey, simpleFetcher(spendKey))
+  } = useSwr<SpendResponse>(spendUrl, simpleFetcher(spendUrl))
   const { expenses } = usePlanExpenses(projection.planId)
   const budgets = (expenses ?? []).filter((e) => e.expensePhase !== "WORKING")
   const budgetByCategory = Object.fromEntries(
@@ -131,6 +137,7 @@ export function useRetiredMetricsData(
       window,
     ),
     currentMonth: window[window.length - 1],
+    historyMonths,
     refreshSpend: () => void mutateSpend(),
     spendUnavailable: spendError !== undefined,
     drawnLastMonth: drawn(month),

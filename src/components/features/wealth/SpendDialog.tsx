@@ -1,19 +1,21 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
-import type { PlanExpense, PlanSpendEntry } from "types/independence"
-import { savePlanSpend } from "@utils/api/client/independence"
+import type { PlanExpense, SpendEntry } from "types/independence"
+import { saveSpend } from "@utils/api/client/independence"
+import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import { monthOf } from "@lib/independence/spendSummary"
 
 interface SpendDialogProps {
-  planId: string
   /** The plan's retirement expenses: one row per category, with its budget. */
   budgets: PlanExpense[]
   /** Spend already recorded, any months. */
-  entries: PlanSpendEntry[]
+  entries: SpendEntry[]
   currency: string
   currencySymbol: string
   /** `YYYY-MM` to open on. */
   initialMonth: string
+  /** `YYYY-MM`, oldest first: the months the History tab charts. */
+  historyMonths: string[]
   onClose: () => void
   onSaved: () => void
 }
@@ -44,7 +46,7 @@ const toNumber = (value: string): number | null =>
 
 function seedRows(
   budgets: PlanExpense[],
-  entries: PlanSpendEntry[],
+  entries: SpendEntry[],
   month: string,
 ): Record<string, RowValues> {
   const rows: Record<string, RowValues> = {}
@@ -60,15 +62,19 @@ function seedRows(
   return rows
 }
 
+type SpendTab = "month" | "history"
+
 /**
- * Record a month's spend by plan category: what the owner expects to spend
+ * Record a month's spend by category: what the owner expects to spend
  * (projected) and what they did spend (actual), against the plan's budget.
- * One number per category per month, not a transaction log.
+ * One number per category per month, not a transaction log. The History tab
+ * charts the recorded months. The log is the user's, not the plan's.
  */
 export default function SpendDialog(
   props: SpendDialogProps,
 ): React.ReactElement {
   const [month, setMonth] = useState(props.initialMonth)
+  const [tab, setTab] = useState<SpendTab>("month")
   // Keyed by month so each month starts from its own recorded figures.
   return (
     <SpendMonthForm
@@ -76,23 +82,29 @@ export default function SpendDialog(
       {...props}
       month={month}
       onMonthChange={(delta) => setMonth(shiftMonth(month, delta))}
+      tab={tab}
+      onTabChange={setTab}
     />
   )
 }
 
 function SpendMonthForm({
-  planId,
   budgets,
   entries,
   currency,
   currencySymbol,
   month,
   onMonthChange,
+  historyMonths,
+  tab,
+  onTabChange,
   onClose,
   onSaved,
 }: SpendDialogProps & {
   month: string
   onMonthChange: (delta: number) => void
+  tab: SpendTab
+  onTabChange: (tab: SpendTab) => void
 }): React.ReactElement {
   const [rows, setRows] = useState(() => seedRows(budgets, entries, month))
   const [saving, setSaving] = useState(false)
@@ -131,7 +143,7 @@ function SpendMonthForm({
         .filter((e) => e.projected != null || e.actual != null),
     }
     try {
-      const res = await savePlanSpend(planId, month, request)
+      const res = await saveSpend(month, request)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       onSaved()
     } catch {
@@ -150,132 +162,163 @@ function SpendMonthForm({
       footer={
         <>
           <Dialog.CancelButton onClick={onClose} label="Close" />
-          <Dialog.SubmitButton
-            onClick={save}
-            label="Save"
-            loadingLabel="Saving…"
-            isSubmitting={saving}
-            disabled={budgets.length === 0}
-            variant="green"
-          />
+          {tab === "month" && (
+            <Dialog.SubmitButton
+              onClick={save}
+              label="Save"
+              loadingLabel="Saving…"
+              isSubmitting={saving}
+              disabled={budgets.length === 0}
+              variant="green"
+            />
+          )}
         </>
       }
     >
-      <div className="flex items-center justify-between mb-3">
-        <button
-          type="button"
-          aria-label="Previous month"
-          onClick={() => onMonthChange(-1)}
-          className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
-        >
-          <i className="fas fa-chevron-left" />
-        </button>
-        <span className="font-semibold text-gray-900">{monthLabel(month)}</span>
-        <button
-          type="button"
-          aria-label="Next month"
-          onClick={() => onMonthChange(1)}
-          className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
-        >
-          <i className="fas fa-chevron-right" />
-        </button>
+      <div role="tablist" className="mb-3 flex gap-4 border-b border-gray-200">
+        {(["month", "history"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => onTabChange(t)}
+            className={`-mb-px border-b-2 px-1 pb-2 text-sm ${tab === t ? "border-independence-500 font-medium text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          >
+            {t === "month" ? "Month" : "History"}
+          </button>
+        ))}
       </div>
-      <Dialog.ErrorAlert message={error} />
-      {budgets.length === 0 && (
-        <p className="mb-3 text-sm text-gray-600">
-          This plan has no retirement expenses yet. Add them in the plan to
-          record spend against them.
-        </p>
+      {tab === "history" ? (
+        <SpendHistoryChart
+          entries={entries}
+          budgets={Object.fromEntries(
+            budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
+          )}
+          months={historyMonths}
+          currencySymbol={currencySymbol}
+        />
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              aria-label="Previous month"
+              onClick={() => onMonthChange(-1)}
+              className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
+            >
+              <i className="fas fa-chevron-left" />
+            </button>
+            <span className="font-semibold text-gray-900">
+              {monthLabel(month)}
+            </span>
+            <button
+              type="button"
+              aria-label="Next month"
+              onClick={() => onMonthChange(1)}
+              className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
+            >
+              <i className="fas fa-chevron-right" />
+            </button>
+          </div>
+          <Dialog.ErrorAlert message={error} />
+          {budgets.length === 0 && (
+            <p className="mb-3 text-sm text-gray-600">
+              This plan has no retirement expenses yet. Add them in the plan to
+              record spend against them.
+            </p>
+          )}
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Category
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                  Budget
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                  Projected
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                  Actual
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {budgets.map((b) => (
+                <tr key={b.categoryLabelId}>
+                  <td className="px-3 py-2 text-gray-900">{b.categoryName}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
+                    {money(b.monthlyAmount)}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="decimal"
+                      aria-label={`${b.categoryName} projected`}
+                      className={INPUT_CLS}
+                      value={rows[b.categoryLabelId].projected}
+                      onChange={(e) =>
+                        update(b.categoryLabelId, "projected", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="decimal"
+                      aria-label={`${b.categoryName} actual`}
+                      className={INPUT_CLS}
+                      value={rows[b.categoryLabelId].actual}
+                      onChange={(e) =>
+                        update(b.categoryLabelId, "actual", e.target.value)
+                      }
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
+              <tr>
+                <td className="px-3 py-2 text-gray-900">Total</td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {money(totalBudget)}
+                </td>
+                <td
+                  className="px-3 py-2 text-right tabular-nums"
+                  data-testid="total-projected"
+                >
+                  {money(totalProjected)}
+                </td>
+                <td
+                  className="px-3 py-2 text-right tabular-nums"
+                  data-testid="total-actual"
+                >
+                  {money(totalActual)}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="px-3 py-2 text-gray-500 font-normal">
+                  Actual against budget (categories filled in)
+                </td>
+                <td
+                  className={`px-3 py-2 text-right tabular-nums ${totalActual > budgetRecorded ? "text-loss" : "text-gain"}`}
+                  data-testid="total-variance"
+                >
+                  {money(totalActual - budgetRecorded)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          <p className="mt-3 text-xs text-gray-500">
+            One figure per category per month. Leave a cell blank if you have
+            nothing to record.
+          </p>
+        </>
       )}
-      <table className="min-w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-              Category
-            </th>
-            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-              Budget
-            </th>
-            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-              Projected
-            </th>
-            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-              Actual
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {budgets.map((b) => (
-            <tr key={b.categoryLabelId}>
-              <td className="px-3 py-2 text-gray-900">{b.categoryName}</td>
-              <td className="px-3 py-2 text-right tabular-nums text-gray-600">
-                {money(b.monthlyAmount)}
-              </td>
-              <td className="px-3 py-2 text-right">
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  aria-label={`${b.categoryName} projected`}
-                  className={INPUT_CLS}
-                  value={rows[b.categoryLabelId].projected}
-                  onChange={(e) =>
-                    update(b.categoryLabelId, "projected", e.target.value)
-                  }
-                />
-              </td>
-              <td className="px-3 py-2 text-right">
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  aria-label={`${b.categoryName} actual`}
-                  className={INPUT_CLS}
-                  value={rows[b.categoryLabelId].actual}
-                  onChange={(e) =>
-                    update(b.categoryLabelId, "actual", e.target.value)
-                  }
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
-          <tr>
-            <td className="px-3 py-2 text-gray-900">Total</td>
-            <td className="px-3 py-2 text-right tabular-nums">
-              {money(totalBudget)}
-            </td>
-            <td
-              className="px-3 py-2 text-right tabular-nums"
-              data-testid="total-projected"
-            >
-              {money(totalProjected)}
-            </td>
-            <td
-              className="px-3 py-2 text-right tabular-nums"
-              data-testid="total-actual"
-            >
-              {money(totalActual)}
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={3} className="px-3 py-2 text-gray-500 font-normal">
-              Actual against budget (categories filled in)
-            </td>
-            <td
-              className={`px-3 py-2 text-right tabular-nums ${totalActual > budgetRecorded ? "text-loss" : "text-gain"}`}
-              data-testid="total-variance"
-            >
-              {money(totalActual - budgetRecorded)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-      <p className="mt-3 text-xs text-gray-500">
-        One figure per category per month. Leave a cell blank if you have
-        nothing to record.
-      </p>
     </Dialog>
   )
 }
