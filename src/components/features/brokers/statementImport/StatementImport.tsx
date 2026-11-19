@@ -18,6 +18,7 @@ export default function StatementImport(): React.ReactElement {
         warnings={flow.result.warnings}
         brokerId={flow.result.brokerId}
         portfolio={flow.result.portfolio}
+        loadFrom={flow.result.loadFrom}
         onImportAnother={flow.reset}
       />
     )

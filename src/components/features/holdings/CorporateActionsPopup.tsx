@@ -217,7 +217,10 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
       payDate || (event ? calculateEffectivePayDate(event) : toDate)
 
     try {
-      const response = await processCorporateEvent(eventId, payDate)
+      const response = await processCorporateEvent(eventId, {
+        portfolioId,
+        payDate,
+      })
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -287,7 +290,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
       try {
         const effectivePayDate = calculateEffectivePayDate(event)
-        const response = await processCorporateEvent(event.id)
+        const response = await processCorporateEvent(event.id, { portfolioId })
 
         if (response.ok) {
           setProcessedPayDates((prev) => ({

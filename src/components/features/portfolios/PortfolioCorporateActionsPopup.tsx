@@ -204,7 +204,9 @@ const PortfolioCorporateActionsPopup: React.FC<
       if (newProcessed.has(event.id)) continue
 
       try {
-        const response = await processCorporateEvent(event.id)
+        const response = await processCorporateEvent(event.id, {
+          portfolioId: portfolio.id,
+        })
 
         if (response.ok) {
           newProcessed.add(event.id)
@@ -221,7 +223,9 @@ const PortfolioCorporateActionsPopup: React.FC<
 
   const handleProcessEvent = async (eventId: string): Promise<void> => {
     try {
-      const response = await processCorporateEvent(eventId)
+      const response = await processCorporateEvent(eventId, {
+        portfolioId: portfolio.id,
+      })
 
       if (response.ok) {
         setProcessedEvents((prev) => new Set(prev).add(eventId))

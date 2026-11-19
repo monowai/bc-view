@@ -178,7 +178,7 @@ describe("PortfolioCorporateActionsPopup", () => {
     ])
     render(
       <PortfolioCorporateActionsPopup
-        portfolio={makePortfolio()}
+        portfolio={makePortfolio({ id: "p1" })}
         modalOpen={true}
         onClose={jest.fn()}
       />,
@@ -197,7 +197,8 @@ describe("PortfolioCorporateActionsPopup", () => {
 
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/corporate-events/process/divi-2018",
+        // Only this portfolio gets the transaction, not every holder of the asset.
+        "/api/corporate-events/process/divi-2018?portfolioId=p1",
         { method: "POST" },
       ),
     )

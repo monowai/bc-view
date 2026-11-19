@@ -24,15 +24,17 @@ export const corporateEventsKey = (
 export const loadCorporateEventsUrl = (assetId: string, asAt: string): string =>
   `${base}/load/asset/${assetId}?asAt=${asAt}`
 
-/** Turn an event into transactions for the holders on its record date. */
+/**
+ * Create the transaction an event owes [portfolioId], and no other portfolio
+ * that holds the asset; [payDate] overrides the computed pay date.
+ */
 export function processCorporateEvent(
   eventId: string,
-  payDate?: string,
+  { portfolioId, payDate }: { portfolioId: string; payDate?: string },
 ): Promise<Response> {
-  const url = payDate
-    ? `${base}/process/${eventId}?payDate=${payDate}`
-    : `${base}/process/${eventId}`
-  return fetch(url, { method: "POST" })
+  const query = new URLSearchParams({ portfolioId })
+  if (payDate) query.set("payDate", payDate)
+  return fetch(`${base}/process/${eventId}?${query}`, { method: "POST" })
 }
 
 /** What svc-event answers when asked to load a portfolio's events in the background. */
