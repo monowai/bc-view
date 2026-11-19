@@ -12,7 +12,9 @@ import {
   COULD_NOT_SUGGEST,
   type BcColumn,
   type CsvMapping,
+  type DateEvidence,
   type DateFormat,
+  inferDateFormat,
   isBeancounterHeader,
   type MappedRow,
   missingRequired,
@@ -40,6 +42,8 @@ export interface CsvSession {
   /** The file is already in Beancounter's format: rows go as they are. */
   beancounterFormat: boolean
   mapping: CsvMapping
+  /** The user confirmed the date format, for dates that fit more than one. */
+  dateConfirmed: boolean
 }
 
 /** What recording a CSV needs from the rest of the import. */
@@ -90,6 +94,37 @@ function withBroker(row: string[], brokerId: string): string[] {
   while (filled.length < BROKER_AT) filled.push("")
   filled[BROKER_AT] = brokerId
   return filled
+}
+
+/** Every value in the column mapped to Date. */
+function dateValues(rows: string[][], mapping: CsvMapping): string[] {
+  const at = mapping.columns.indexOf("Date")
+  return at < 0 ? [] : rows.map((row) => row[at] ?? "")
+}
+
+/** [mapping] with the date format the file's own dates prove, when they prove one. */
+function withProvenDates(rows: string[][], mapping: CsvMapping): CsvMapping {
+  const evidence = inferDateFormat(dateValues(rows, mapping))
+  return evidence.kind === "proven"
+    ? { ...mapping, dateFormat: evidence.format }
+    : mapping
+}
+
+/** What the file's dates say, and whether Record must wait on them. */
+export function dateCheck(session: CsvSession): {
+  evidence: DateEvidence
+  /** Record waits: the dates contradict each other, or fit two formats unconfirmed. */
+  blocksRecord: boolean
+} {
+  if (session.beancounterFormat)
+    return { evidence: { kind: "none" }, blocksRecord: false }
+  const evidence = inferDateFormat(dateValues(session.rows, session.mapping))
+  return {
+    evidence,
+    blocksRecord:
+      evidence.kind === "conflict" ||
+      (evidence.kind === "ambiguous" && !session.dateConfirmed),
+  }
 }
 
 /** The distinct values of the column mapped to Type, in the order they appear. */
@@ -171,6 +206,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       rows,
       beancounterFormat,
       mapping: emptyMapping(headers.length),
+      dateConfirmed: false,
     }
     setCsv(session)
     setCsvTarget({ uploadId: session.uploadId, target, account })
@@ -188,7 +224,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       const { data } = (await res.json()) as { data: CsvMapping }
       setCsv((current) =>
         current?.uploadId === session.uploadId
-          ? { ...current, mapping: data }
+          ? { ...current, mapping: withProvenDates(current.rows, data) }
           : current,
       )
     } catch {
@@ -205,12 +241,22 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
 
   /** Point one source column at a Beancounter column; a column feeds at most one. */
   const setCsvColumn = (index: number, column: BcColumn | null): void =>
-    updateMapping((mapping) => ({
-      ...mapping,
-      columns: mapping.columns.map((current, at) =>
-        at === index ? column : current === column ? null : current,
-      ),
-    }))
+    setCsv((current) => {
+      if (!current) return current
+      const columns = current.mapping.columns.map((now, at) =>
+        at === index ? column : now === column ? null : now,
+      )
+      const dateMoved =
+        columns.indexOf("Date") !== current.mapping.columns.indexOf("Date")
+      return {
+        ...current,
+        mapping: withProvenDates(current.rows, {
+          ...current.mapping,
+          columns,
+        }),
+        dateConfirmed: dateMoved ? false : current.dateConfirmed,
+      }
+    })
 
   const setCsvTypeValue = (value: string, type: TrnType | ""): void =>
     updateMapping((mapping) => {
@@ -220,8 +266,16 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       return { ...mapping, typeValues }
     })
 
+  /** Choosing a date format is confirming it. */
   const setCsvDateFormat = (dateFormat: DateFormat): void =>
-    updateMapping((mapping) => ({ ...mapping, dateFormat }))
+    setCsv(
+      (current) =>
+        current && {
+          ...current,
+          mapping: { ...current.mapping, dateFormat },
+          dateConfirmed: true,
+        },
+    )
 
   const setCsvMarket = (market: string): void =>
     updateMapping((mapping) => ({ ...mapping, market: market.toUpperCase() }))

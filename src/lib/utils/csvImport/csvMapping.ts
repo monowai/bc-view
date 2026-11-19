@@ -125,6 +125,43 @@ export function missingRequired(mapping: CsvMapping): BcColumn[] {
 
 const pad = (value: number): string => String(value).padStart(2, "0")
 
+const MONTHS_IN_YEAR = 12
+const YEAR_DIGITS = 4
+
+/** What every date in a column says about its format. */
+export type DateEvidence =
+  | { kind: "proven"; format: DateFormat; evidence: string }
+  | { kind: "ambiguous" }
+  | { kind: "conflict"; dayFirst: string; monthFirst: string }
+  | { kind: "none" }
+
+/**
+ * The date format the whole column proves, read from every value rather than
+ * a sample: a four-digit first part is ISO, a first part above 12 is
+ * day-first, a second part above 12 is month-first. Dates that fit both
+ * day-first and month-first prove nothing.
+ */
+export function inferDateFormat(values: string[]): DateEvidence {
+  const dates = values.map((value) => value.trim()).filter(Boolean)
+  if (dates.length === 0) return { kind: "none" }
+  let iso: string | undefined
+  let dayFirst: string | undefined
+  let monthFirst: string | undefined
+  for (const date of dates) {
+    const [first, second] = date.split(/[-/.]/)
+    if (first?.length === YEAR_DIGITS) iso ??= date
+    else if (Number(first) > MONTHS_IN_YEAR) dayFirst ??= date
+    else if (Number(second) > MONTHS_IN_YEAR) monthFirst ??= date
+  }
+  if (dayFirst && monthFirst) return { kind: "conflict", dayFirst, monthFirst }
+  if (iso) return { kind: "proven", format: "YYYY-MM-DD", evidence: iso }
+  if (dayFirst)
+    return { kind: "proven", format: "DD/MM/YYYY", evidence: dayFirst }
+  if (monthFirst)
+    return { kind: "proven", format: "MM/DD/YYYY", evidence: monthFirst }
+  return { kind: "ambiguous" }
+}
+
 /** yyyy-mm-dd for a real calendar date in [format], else null. */
 export function readDate(value: string, format: DateFormat): string | null {
   const parts = value.trim().split(/[-/.]/).map(Number)

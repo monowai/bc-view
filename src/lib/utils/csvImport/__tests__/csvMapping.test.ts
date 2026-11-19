@@ -1,6 +1,7 @@
 import {
   applyMapping,
   BC_COLUMNS,
+  inferDateFormat,
   isBeancounterHeader,
   missingRequired,
   parseMappingReply,
@@ -184,5 +185,49 @@ describe("parseMappingReply", () => {
         2,
       ),
     ).toBeNull()
+  })
+})
+
+describe("inferDateFormat", () => {
+  it("proves day-first from any date whose first part is above 12", () => {
+    expect(inferDateFormat(["03/02/2025", "20/02/2024"])).toEqual({
+      kind: "proven",
+      format: "DD/MM/YYYY",
+      evidence: "20/02/2024",
+    })
+  })
+
+  it("proves month-first from any date whose second part is above 12", () => {
+    expect(inferDateFormat(["03/02/2025", "2/20/2024"])).toEqual({
+      kind: "proven",
+      format: "MM/DD/YYYY",
+      evidence: "2/20/2024",
+    })
+  })
+
+  it("reads a four-digit first part as ISO", () => {
+    expect(inferDateFormat(["2024-02-03", "2025-11-01"])).toEqual({
+      kind: "proven",
+      format: "YYYY-MM-DD",
+      evidence: "2024-02-03",
+    })
+  })
+
+  it("says when every date fits both day-first and month-first", () => {
+    expect(inferDateFormat(["03/02/2025", "01/04/2025", ""])).toEqual({
+      kind: "ambiguous",
+    })
+  })
+
+  it("says when the dates contradict each other", () => {
+    expect(inferDateFormat(["20/02/2024", "2/20/2024"])).toEqual({
+      kind: "conflict",
+      dayFirst: "20/02/2024",
+      monthFirst: "2/20/2024",
+    })
+  })
+
+  it("has nothing to say about no dates", () => {
+    expect(inferDateFormat(["", "  "])).toEqual({ kind: "none" })
   })
 })

@@ -5,12 +5,18 @@ import {
   BC_COLUMNS,
   type BcColumn,
   DATE_FORMATS,
+  type DateEvidence,
   type DateFormat,
   MAPPABLE_COLUMNS,
   TRN_TYPES,
 } from "@utils/csvImport/csvMapping"
 import type { TrnType } from "types/beancounter"
-import { typeValuesIn, type CsvFlow, type CsvSession } from "./useCsvSession"
+import {
+  dateCheck,
+  typeValuesIn,
+  type CsvFlow,
+  type CsvSession,
+} from "./useCsvSession"
 
 const selectClass =
   "border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -71,6 +77,49 @@ function ColumnRow({
   )
 }
 
+/** What every row's date says about the format, and what the user must do about it. */
+function DateNote({
+  evidence,
+  format,
+  confirmed,
+  onConfirm,
+}: {
+  evidence: DateEvidence
+  format: DateFormat
+  confirmed: boolean
+  onConfirm: () => void
+}): React.ReactElement | null {
+  if (evidence.kind === "proven")
+    return (
+      <p className="text-sm text-gray-600">
+        {`Dates read as ${evidence.format}: ${evidence.evidence} can only be read that way.`}
+      </p>
+    )
+  if (evidence.kind === "conflict")
+    return (
+      <Alert variant="warning">
+        {`${evidence.dayFirst} is day-first but ${evidence.monthFirst} is month-first. Fix the dates in the file, then import it again.`}
+      </Alert>
+    )
+  if (evidence.kind === "ambiguous" && !confirmed)
+    return (
+      <Alert variant="warning">
+        <p>
+          Every date fits both DD/MM/YYYY and MM/DD/YYYY, so the file cannot say
+          which it is. Check the dates in the preview.
+        </p>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="mt-2 font-medium underline"
+        >
+          {`The dates are ${format}`}
+        </button>
+      </Alert>
+    )
+  return null
+}
+
 /**
  * Step 2 for a transaction CSV: how its columns map onto Beancounter's, as
  * suggested and then corrected by the user, with a preview of what Record sends.
@@ -94,7 +143,12 @@ export default function CsvMappingStep({
     ...blocked,
     ...mapped.filter((row) => !row.problems.length),
   ].slice(0, PREVIEW_ROWS)
-  const canRecord = missing.length === 0 && ready > 0 && !flow.recordingCsv
+  const dates = dateCheck(csv)
+  const canRecord =
+    missing.length === 0 &&
+    ready > 0 &&
+    !dates.blocksRecord &&
+    !flow.recordingCsv
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -180,6 +234,12 @@ export default function CsvMappingStep({
                 </label>
               )}
             </div>
+            <DateNote
+              evidence={dates.evidence}
+              format={csv.mapping.dateFormat}
+              confirmed={csv.dateConfirmed}
+              onConfirm={() => flow.setCsvDateFormat(csv.mapping.dateFormat)}
+            />
             {typeValues.length > 0 && (
               <div className="text-sm">
                 <h3 className="font-semibold text-gray-900">

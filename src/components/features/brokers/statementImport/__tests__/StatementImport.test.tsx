@@ -2220,7 +2220,7 @@ const BROKER_CSV = [
   "Trade Date,Action,Symbol,Shares,Price,Notes",
   "03/02/2024,Bought,AAPL,10,150.25,first",
   "04/02/2024,Sold,MSFT,2,400,",
-  "05/02/2024,Gifted,TSLA,1,200,",
+  "25/02/2024,Gifted,TSLA,1,200,",
 ].join("\n")
 
 const csvFile = (content: string, name = "trades.csv"): File =>
@@ -2408,5 +2408,82 @@ describe("<StatementImport /> CSV", () => {
     const sent = importedRows()[0]
     expect(sent.slice(0, 18)).toEqual(row.split(","))
     expect(sent[19]).toBe("b-ibkr")
+  })
+
+  test("dates are read in the format every row proves, whatever the suggestion said", async () => {
+    backend.csvMapping = json({
+      data: {
+        columns: ["Date", "Type", "Code", "Quantity", "Price", null],
+        typeValues: { Bought: "BUY", Sold: "SELL", Gifted: "ADD" },
+        dateFormat: "MM/DD/YYYY",
+        market: "US",
+      },
+    })
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "03/02/2024,Bought,AAPL,10,150,",
+        "20/02/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(/Dates read as DD\/MM\/YYYY: 20\/02\/2024/),
+    ).toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", { name: "Record 2 Transactions" }),
+    )
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(importedRows().map((row) => row[8])).toEqual([
+      "2024-02-03",
+      "2024-02-20",
+    ])
+  })
+
+  test("when every date fits either format, Record waits until the format is confirmed", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "03/02/2024,Bought,AAPL,10,150,",
+        "04/02/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(/fits both DD\/MM\/YYYY and MM\/DD\/YYYY/),
+    ).toBeInTheDocument()
+    const record = screen.getByRole("button", { name: "Record 2 Transactions" })
+    expect(record).toBeDisabled()
+
+    await user.click(
+      screen.getByRole("button", { name: "The dates are DD/MM/YYYY" }),
+    )
+
+    expect(record).toBeEnabled()
+  })
+
+  test("dates that contradict each other block Record", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "20/02/2024,Bought,AAPL,10,150,",
+        "2/21/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(
+        /20\/02\/2024 is day-first but 2\/21\/2024 is month-first/,
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /^Record \d+ Transactions?$/ }),
+    ).toBeDisabled()
   })
 })
