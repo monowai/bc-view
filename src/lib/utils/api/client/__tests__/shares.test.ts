@@ -74,14 +74,18 @@ describe("corporate events api", () => {
   it("processes an event, with an optional pay date", async () => {
     const fetchMock = jest.fn().mockResolvedValue({ ok: false, status: 500 })
     global.fetch = fetchMock as unknown as typeof fetch
-    const res = await processCorporateEvent("e1")
-    await processCorporateEvent("e1", "2026-03-01")
-    expect(res.ok).toBe(false)
-    expect(fetchMock).toHaveBeenCalledWith("/api/corporate-events/process/e1", {
-      method: "POST",
+    const res = await processCorporateEvent("e1", { portfolioId: "p1" })
+    await processCorporateEvent("e1", {
+      portfolioId: "p1",
+      payDate: "2026-03-01",
     })
+    expect(res.ok).toBe(false)
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/corporate-events/process/e1?payDate=2026-03-01",
+      "/api/corporate-events/process/e1?portfolioId=p1",
+      { method: "POST" },
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/corporate-events/process/e1?portfolioId=p1&payDate=2026-03-01",
       { method: "POST" },
     )
   })

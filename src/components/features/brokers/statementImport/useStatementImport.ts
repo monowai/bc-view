@@ -3,7 +3,6 @@ import {
   SCREENSHOT_TOO_LARGE,
 } from "@lib/agent/screenshotLimit"
 import { useRef, useState } from "react"
-import { useRouter } from "next/router"
 import { useSWRConfig } from "swr"
 import { createPortfolios, portfoliosKey } from "@utils/api/client/portfolios"
 import { holdingByIdKey } from "@utils/api/client/holdings"
@@ -76,6 +75,11 @@ interface ImportResult {
   brokerId: string
   /** The portfolio recorded in, for its holdings and corporate actions. */
   portfolio: ImportPortfolio
+  /**
+   * Where a load of dividends and splits starts: the earliest held-since date
+   * recorded, or the record date when none is earlier.
+   */
+  loadFrom: string
 }
 
 type EditableField = "code" | "market" | "quantity" | "cost"
@@ -236,6 +240,17 @@ async function fetchSuggestions(
   return failure === null ? { data: answers } : { error: failure }
 }
 
+/** The earliest of [dates] and [recordDate]. */
+function earliestDate(
+  dates: Array<string | undefined>,
+  recordDate: string,
+): string {
+  return [
+    recordDate,
+    ...dates.filter((date): date is string => !!date),
+  ].sort()[0]
+}
+
 function withPreview(
   session: ImportSession,
   sent: ImportRow[],
@@ -355,7 +370,6 @@ export function useStatementImport(): StatementImportFlow {
   const [suggestProgress, setSuggestProgress] =
     useState<SuggestProgress | null>(null)
   const { mutate } = useSWRConfig()
-  const router = useRouter()
   const [chosenFirmId, setChosenFirmId] = useState("")
   const [chosenBrokerId, setChosenBrokerId] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -856,16 +870,18 @@ export function useStatementImport(): StatementImportFlow {
       }
       const saved = (await res.json()) as TrnResponse
       void valuePortfolio(portfolio.id)
-      const warnings = saved.warnings ?? []
+      // The done screen asks whether to load dividends and splits before the
+      // user goes to the portfolio, so it never navigates on its own.
       setResult({
         recorded: saved.data?.trns?.length ?? confirmed.rows.length,
-        warnings,
+        warnings: saved.warnings ?? [],
         brokerId: accountId,
         portfolio,
+        loadFrom: earliestDate(
+          confirmed.rows.map((row) => row.tradeDate),
+          confirmed.tradeDate ?? todayIso(),
+        ),
       })
-      // Nothing to read on the done screen: go straight to the portfolio.
-      if (warnings.length === 0)
-        void router.push(`/holdings/${encodeURIComponent(portfolio.code)}`)
     } catch {
       setRecordError(UNREACHABLE)
     } finally {

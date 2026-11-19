@@ -33,6 +33,7 @@ const READ_URL = "/api/agent/screenshot"
 const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
 const HELD_SINCE_URL = "/api/brokers/reconcile/held-since"
+const LOAD_URL = "/api/corporate-events/load/pf-1/background"
 
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
@@ -173,6 +174,8 @@ interface Backend {
   heldSince: MockResponseInit
   /** What the commit endpoint answers, one per call; the last one repeats. */
   commits: MockResponseInit[]
+  /** What starting the background load of dividends and splits answers. */
+  load: MockResponseInit
 }
 
 let backend: Backend
@@ -225,6 +228,7 @@ async function heldSinceAnswer(req: Request): Promise<MockResponseInit> {
 async function respond(req: Request): Promise<MockResponseInit> {
   const url = req.url
   if (url.includes(HELD_SINCE_URL)) return heldSinceAnswer(req)
+  if (url.includes(LOAD_URL)) return backend.load
   if (url.includes(COMMIT_URL)) {
     const next =
       backend.commits.length > 1 ? backend.commits.shift() : backend.commits[0]
@@ -353,6 +357,7 @@ beforeEach(() => {
       },
     }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
+    load: json({ status: "STARTED", portfolioId: "pf-1", asAt: todayIso() }),
   }
   fetchMock.mockResponse(respond)
 })
@@ -2031,36 +2036,87 @@ describe("<StatementImport /> record", () => {
     ])
   })
 
-  test("with nothing to warn about, Record goes straight to the portfolio", async () => {
+  /** URLs the background load was asked for. */
+  const loadsRequested = (): string[] =>
+    fetchMock.mock.calls
+      .map(([called]) => String(called))
+      .filter((called) => called.startsWith(LOAD_URL))
+
+  test("Record asks to load dividends and splits before going to the portfolio", async () => {
     mockPush.mockClear()
     const user = userEvent.setup()
     await readHoldings(user)
 
     await user.click(recordButton())
 
+    await screen.findByRole("heading", { name: "Load dividends and splits?" })
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(screen.getByText(/overall return/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/increases the portfolio's cash balance/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/set the cash balance to 0, or to the cash your broker/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Only GROWTH is changed/)).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "Load and View Portfolio" }),
+    )
+
     await waitFor(() =>
       expect(mockPush).toHaveBeenCalledWith("/holdings/GROWTH"),
     )
+    expect(loadsRequested()).toEqual([`${LOAD_URL}?asAt=${todayIso()}`])
   })
 
-  test("a back-dated holding still goes straight to the portfolio, sending its held-since date", async () => {
+  test("a back-dated holding is loaded from its held-since date, which is sent with it", async () => {
     mockPush.mockClear()
     const user = userEvent.setup()
     await readHoldings(user)
     await user.type(screen.getByLabelText("Held since for AAPL"), "2016-02-03")
 
     await user.click(recordButton())
+    await user.click(
+      await screen.findByRole("button", { name: "Load and View Portfolio" }),
+    )
 
     await waitFor(() =>
       expect(mockPush).toHaveBeenCalledWith("/holdings/GROWTH"),
     )
+    expect(loadsRequested()).toEqual([`${LOAD_URL}?asAt=2016-02-03`])
     const aapl = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)[0].rows.find(
       (row) => row.assetId === "a-AAPL",
     )
     expect(aapl?.tradeDate).toBe("2016-02-03")
-    expect(
-      screen.queryByRole("button", { name: "Load Corporate Actions" }),
-    ).not.toBeInTheDocument()
+  })
+
+  test("Skip goes to the portfolio without loading anything", async () => {
+    mockPush.mockClear()
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(recordButton())
+
+    await user.click(await screen.findByRole("button", { name: "Skip" }))
+
+    expect(mockPush).toHaveBeenCalledWith("/holdings/GROWTH")
+    expect(loadsRequested()).toEqual([])
+  })
+
+  test("a load that cannot start says so and stays, so the user can skip", async () => {
+    mockPush.mockClear()
+    backend.load = json({ message: "svc-event is down" }, 503)
+    const user = userEvent.setup()
+    await readHoldings(user)
+    await user.click(recordButton())
+
+    await user.click(
+      await screen.findByRole("button", { name: "Load and View Portfolio" }),
+    )
+
+    expect(await screen.findByText(/svc-event is down/)).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Skip" })).toBeInTheDocument()
   })
 
   test("the done screen shows the count, the warnings and where to go next", async () => {
@@ -2081,8 +2137,8 @@ describe("<StatementImport /> record", () => {
       screen.getByText("Cash was not settled for AAPL"),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: "View Portfolio" }),
-    ).toHaveAttribute("href", "/holdings/GROWTH")
+      screen.getByRole("button", { name: "Load and View Portfolio" }),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /holdings at this brokerage account/i }),
     ).toHaveAttribute("href", "/brokers/b-ibkr/holdings")

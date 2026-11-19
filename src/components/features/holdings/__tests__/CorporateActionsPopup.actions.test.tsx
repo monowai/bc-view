@@ -141,7 +141,11 @@ describe("CorporateActionsPopup actions", () => {
         "Process event to create transaction",
       ),
     )
-    expect(mockProcess).toHaveBeenCalledWith("e-ready", undefined)
+    // Only the portfolio the popup is open for gets the transaction.
+    expect(mockProcess).toHaveBeenCalledWith("e-ready", {
+      portfolioId: "pf-1",
+      payDate: undefined,
+    })
     expect(await screen.findByText("Transaction dispatched")).toBeVisible()
     expect(mutateTrns).toHaveBeenCalled()
   })
@@ -207,7 +211,10 @@ describe("CorporateActionsPopup actions", () => {
         "Create transaction with this date",
       ),
     )
-    expect(mockProcess).toHaveBeenCalledWith("e-ready", "2024-02-02")
+    expect(mockProcess).toHaveBeenCalledWith("e-ready", {
+      portfolioId: "pf-1",
+      payDate: "2024-02-02",
+    })
     await waitFor(() => expect(mutateTrns).toHaveBeenCalled())
   })
 
