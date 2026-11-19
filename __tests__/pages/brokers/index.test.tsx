@@ -68,7 +68,7 @@ describe("Brokers Page", () => {
   it("offers Import from image from the page header", () => {
     render(<BrokersPage />)
     fireEvent.click(
-      screen.getByRole("button", { name: "Import from image" }),
+      screen.getByRole("button", { name: "Import from image or CSV" }),
     )
     expect(mockPush).toHaveBeenCalledWith("/brokers/import")
   })

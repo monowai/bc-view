@@ -17,7 +17,7 @@ jest.mock(
 
 import BrokerageImportPage from "@pages/brokers/import"
 
-describe("Import from image page", () => {
+describe("Import from image or CSV page", () => {
   beforeEach(() => {
     router.back.mockReset()
     router.push.mockReset()

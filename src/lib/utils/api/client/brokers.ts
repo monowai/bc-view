@@ -63,6 +63,21 @@ export function readScreenshot(
   return fetch(screenshotReadUrl, { method: "POST", body, signal })
 }
 
+/**
+ * Ask for a suggested mapping of a transaction CSV onto Beancounter's columns.
+ * Only the header row and a few sample rows are sent. Records nothing.
+ */
+export function suggestCsvMapping(
+  headers: string[],
+  samples: string[][],
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetch("/api/brokers/csv-mapping", {
+    ...jsonInit("POST", { headers, samples }),
+    signal,
+  })
+}
+
 /** Preview what recording the shown holdings would do. Read-only. */
 export function previewReconcile(
   shown: ShownHoldings,

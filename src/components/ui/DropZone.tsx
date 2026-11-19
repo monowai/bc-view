@@ -3,27 +3,15 @@ import { useDropzone } from "react-dropzone"
 import { Portfolio, TransactionImport } from "types/beancounter"
 import { DelimitedImport } from "types/app"
 import Papa from "papaparse"
+import { readFileText } from "@utils/readFileText"
 import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { importTrnRow } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 
-// Function to read and parse file
-function readFile(file: Blob): Promise<string[][]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onabort = () => reject("File reading was aborted")
-    reader.onerror = () => reject("File reading has failed")
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        const results = Papa.parse(reader.result).data as string[][]
-        resolve(results)
-      } else {
-        reject("File content is not a string")
-      }
-    }
-    reader.readAsText(file, "utf-8")
-  })
+// Read a CSV file into rows.
+async function readFile(file: Blob): Promise<string[][]> {
+  return Papa.parse(await readFileText(file)).data as string[][]
 }
 
 // Function to post data to API
