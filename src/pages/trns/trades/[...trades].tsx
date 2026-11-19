@@ -29,31 +29,61 @@ import {
   TrnDeleteConfirm,
   TrnDetailTabs,
   TrnEmptyState,
-  TrnNumber,
   TrnNumberCell,
   TrnPageNav,
   TrnRowActions,
   TrnStatusBadge,
   TrnTableHead,
+  TrnTypeBadge,
+  useTrnTabSignals,
 } from "@components/features/transactions/TrnListParts"
 import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+import {
+  anyNonZero,
+  settlementLabel,
+  uniformCurrency,
+} from "@utils/trns/trnListView"
 
-const COLUMNS: TrnColumn[] = [
-  { label: "Type" },
-  { label: "Asset" },
-  { label: "Currency" },
-  { label: "Trade Date" },
-  { label: "Qty", align: "right" },
-  { label: "Price", align: "right" },
-  { label: "Amount", align: "right" },
-  { label: "Settlement Account" },
-  { label: "Cash", align: "right" },
-  { label: "Tax", align: "right" },
-  { label: "Fees", align: "right" },
-  { label: "Status" },
-  { label: "Comments" },
-  { label: "Actions", align: "center" },
-]
+const CELL = "px-3 py-2"
+const NUM_CELL = `${CELL} text-right whitespace-nowrap`
+
+interface TradeColumnFlags {
+  /** The trade currency every row shares; when absent, each row shows its own. */
+  currency: string | undefined
+  showFees: boolean
+  showTax: boolean
+}
+
+/**
+ * Columns fit the page without sideways scrolling. Every row is the same
+ * asset, so there is no Asset column; the shared currency moves into the
+ * Amount header; Fees and Tax show only when some trade carries them; and a
+ * comment sits under the settlement account instead of in its own column.
+ */
+function tradeColumns({
+  currency,
+  showFees,
+  showTax,
+}: TradeColumnFlags): TrnColumn[] {
+  return [
+    { label: "Date" },
+    { label: "Type" },
+    ...(currency ? [] : [{ label: "Currency" }]),
+    { label: "Qty", align: "right" as const },
+    { label: "Price", align: "right" as const },
+    { label: "Amount", align: "right" as const, hint: currency },
+    { label: "Cash", align: "right" as const },
+    ...(showFees ? [{ label: "Fees", align: "right" as const }] : []),
+    ...(showTax ? [{ label: "Tax", align: "right" as const }] : []),
+    { label: "Settled to" },
+    { label: "Status" },
+    { label: "Actions", align: "right" as const, srOnly: true },
+  ]
+}
+
+/** Income and expense rows carry no units or price. */
+const isCashOnly = (trn: Transaction): boolean =>
+  trn.trnType === "INCOME" || trn.trnType === "EXPENSE"
 
 function TradeCount({ count }: { count: number }): React.ReactElement {
   return (
@@ -81,7 +111,11 @@ function GroupTotalCell({
   value: number | undefined
 }): React.ReactElement {
   return (
-    <TrnNumberCell value={value} scale={2} className="px-4 py-3 text-right" />
+    <TrnNumberCell
+      value={value}
+      scale={2}
+      className="px-3 py-2 text-right whitespace-nowrap"
+    />
   )
 }
 
@@ -171,6 +205,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const trades = useSwr(tradesUrl, tradesUrl ? simpleFetcher(tradesUrl) : null)
   const { deletePending, requestDelete, cancelDelete, confirmDelete } =
     useTrnListDelete(trades.mutate)
+  // Events are per-portfolio, so the aggregated drill-down has no tabs.
+  const signals = useTrnTabSignals(
+    isMulti || isEditMode ? undefined : portfolioId,
+    isMulti || isEditMode ? undefined : assetId,
+  )
 
   // Group transactions by broker (must be called before any early returns for hooks rules)
   const trnResults = useMemo(
@@ -191,6 +230,14 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       ),
     [trnResults, isMulti, trades.data?.summary],
   )
+  // Decided over every trade on the page, so each broker's table has the
+  // same columns.
+  const flags: TradeColumnFlags = {
+    currency: uniformCurrency(trnResults),
+    showFees: anyNonZero(trnResults, "fees"),
+    showTax: anyNonZero(trnResults, "tax"),
+  }
+  const columns = tradeColumns(flags)
 
   // Group header label. The aggregated (multi-portfolio) view shows the
   // portfolio code — linked to that portfolio's holdings with the drilled-down
@@ -434,12 +481,13 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           active="trades"
           portfolioId={portfolioId}
           assetId={assetId}
+          signals={signals}
         />
       )}
 
       <div className="container mx-auto px-4 py-4">
-        {/* Mobile: Card layout grouped by broker */}
-        <div className="md:hidden space-y-4">
+        {/* Narrow screens: cards grouped by broker */}
+        <div className="lg:hidden space-y-4">
           {groups.map((group) => (
             <div key={group.id}>
               {/* Group Header (broker, or portfolio in the aggregated view) */}
@@ -447,81 +495,74 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 {renderGroupLabel(group)}
                 <TradeCount count={group.transactions.length} />
               </div>
-              {/* Transactions */}
-              <div className="space-y-2 border-l border-r border-indigo-200 bg-white">
+              <div className="divide-y divide-gray-100 border-x border-indigo-200 bg-white">
                 {group.transactions.map((trn: Transaction) => (
                   <div
                     key={trn.id}
-                    className="p-4 space-y-2 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    className="p-3 space-y-2 cursor-pointer hover:bg-blue-50/50 transition-colors"
                     onDoubleClick={() => editTrn(trn)}
                     title={"Double-click to edit"}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            trn.trnType === "BUY"
-                              ? "bg-green-100 text-green-800"
-                              : trn.trnType === "SELL" ||
-                                  trn.trnType === "EXPENSE" ||
-                                  trn.trnType === "DEDUCTION"
-                                ? "bg-red-100 text-red-800"
-                                : trn.trnType === "COST_ADJUST"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : trn.trnType === "INCOME"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {trn.trnType}
-                        </span>
-                        <span
-                          className="ml-2 text-sm font-medium text-gray-900"
-                          title={getDisplayCode(trn.asset)}
-                        >
-                          {getDisplayCode(trn.asset)}
-                        </span>
-                        <span className="ml-2 text-sm text-gray-500">
-                          {trn.tradeCurrency.code}
-                        </span>
-                      </div>
+                    <div className="flex justify-between items-center gap-2">
                       <div className="flex items-center gap-2">
-                        <TrnStatusBadge status={trn.status} />
-                        <span className="text-sm text-gray-500">
+                        <span className="font-mono tabular-nums text-gray-900">
                           {trn.tradeDate}
                         </span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {trn.trnType !== "INCOME" &&
-                        trn.trnType !== "EXPENSE" && (
-                          <>
-                            <TrnCardValue
-                              label={"Qty"}
-                              value={trn.quantity}
-                              scale={2}
-                              fixed={false}
-                            />
-                            <TrnCardValue
-                              label={"Price"}
-                              value={trn.price}
-                              scale={2}
-                              fixed={false}
-                            />
-                          </>
+                        <TrnTypeBadge trnType={trn.trnType} />
+                        {!flags.currency && (
+                          <span className="text-xs text-gray-500">
+                            {trn.tradeCurrency.code}
+                          </span>
                         )}
+                      </div>
+                      <TrnStatusBadge status={trn.status} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                      {!isCashOnly(trn) && (
+                        <>
+                          <TrnCardValue
+                            label={"Qty"}
+                            value={trn.quantity}
+                            scale={2}
+                            fixed={false}
+                          />
+                          <TrnCardValue
+                            label={"Price"}
+                            value={trn.price}
+                            scale={2}
+                            blankZero
+                          />
+                        </>
+                      )}
                       <TrnCardValue
                         label={"Amount"}
                         value={trn.tradeAmount}
                         scale={2}
+                        blankZero
+                        valueClassName="ml-1 font-semibold text-gray-900"
                       />
                       <TrnCardValue
                         label={"Cash"}
                         value={trn.cashAmount}
                         scale={2}
-                        fixed={false}
+                        blankZero
                       />
+                      {!!trn.fees && (
+                        <TrnCardValue
+                          label={"Fees"}
+                          value={trn.fees}
+                          scale={2}
+                        />
+                      )}
+                      {!!trn.tax && (
+                        <TrnCardValue label={"Tax"} value={trn.tax} scale={2} />
+                      )}
                     </div>
+                    {trn.comments && (
+                      <p className="text-xs text-gray-500 truncate">
+                        {trn.comments}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -565,114 +606,130 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           ))}
         </div>
 
-        {/* Desktop: Table layout grouped by broker */}
-        <div className="hidden md:block space-y-4">
+        {/* Wide screens: a table per broker, sized to fit without scrolling */}
+        <div className="hidden lg:block space-y-4">
           {groups.map((group) => (
             <div
               key={group.id}
-              className="bg-white rounded-lg shadow overflow-hidden"
+              className="bg-white rounded-lg border border-gray-200 overflow-hidden"
             >
               {/* Group Header (broker, or portfolio in the aggregated view) */}
-              <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
+              <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-2.5 flex justify-between items-center">
                 {renderGroupLabel(group)}
                 <TradeCount count={group.transactions.length} />
               </div>
-              {/* Table */}
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <TrnTableHead columns={COLUMNS} />
-                  <tbody className="divide-y divide-gray-200">
-                    {group.transactions.map((trn: Transaction) => (
-                      <tr
-                        key={trn.id}
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onDoubleClick={() => editTrn(trn)}
-                        title={"Double-click to edit"}
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {trn.trnType}
-                        </td>
-                        <td
-                          className="px-4 py-3 whitespace-nowrap"
-                          title={getDisplayCode(trn.asset)}
+                  <TrnTableHead columns={columns} cellClassName={CELL} />
+                  <tbody className="divide-y divide-gray-100">
+                    {group.transactions.map((trn: Transaction) => {
+                      const settledTo = settlementLabel(trn)
+                      return (
+                        <tr
+                          key={trn.id}
+                          className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                          onDoubleClick={() => editTrn(trn)}
+                          title={"Double-click to edit"}
                         >
-                          <div className="font-medium text-gray-900">
-                            {getDisplayCode(trn.asset)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {trn.tradeCurrency.code}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {trn.tradeDate}
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          {trn.trnType === "INCOME" ||
-                          trn.trnType === "EXPENSE" ? (
-                            <span className="text-gray-400">-</span>
-                          ) : (
-                            <TrnNumber value={trn.quantity} scale={2} />
+                          <td
+                            className={`${CELL} whitespace-nowrap font-mono tabular-nums text-gray-900`}
+                          >
+                            {trn.tradeDate}
+                          </td>
+                          <td className={`${CELL} whitespace-nowrap`}>
+                            <TrnTypeBadge trnType={trn.trnType} />
+                          </td>
+                          {!flags.currency && (
+                            <td className={`${CELL} whitespace-nowrap`}>
+                              {trn.tradeCurrency.code}
+                            </td>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          {trn.trnType === "INCOME" ||
-                          trn.trnType === "EXPENSE" ? (
-                            <span className="text-gray-400">-</span>
-                          ) : (
-                            <TrnNumber value={trn.price} scale={2} />
-                          )}
-                        </td>
-                        <TrnNumberCell value={trn.tradeAmount} scale={2} />
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-600">
-                          {["ADD", "REDUCE", "SPLIT", "COST_ADJUST"].includes(
-                            trn.trnType,
-                          )
-                            ? "-"
-                            : trn.cashAsset?.market?.code === "CASH"
-                              ? trn.cashAsset.name ||
-                                `${trn.cashAsset.code} Balance`
-                              : trn.cashAsset?.name ||
-                                getDisplayCode(trn.cashAsset) ||
-                                `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
-                        </td>
-                        <TrnNumberCell value={trn.cashAmount} scale={2} />
-                        <TrnNumberCell value={trn.tax} scale={2} />
-                        <TrnNumberCell value={trn.fees} scale={2} />
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <TrnStatusBadge status={trn.status} />
-                        </td>
-                        <td
-                          className="px-4 py-3 text-gray-600 max-w-xs truncate"
-                          title={trn.comments || ""}
-                        >
-                          {trn.comments || "-"}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <TrnRowActions
-                            onEdit={() => editTrn(trn)}
-                            onCopy={(e) => copyRowToClipboard(trn, e)}
-                            onDelete={() => requestDelete(trn)}
+                          <TrnNumberCell
+                            value={isCashOnly(trn) ? undefined : trn.quantity}
+                            scale={2}
+                            blankZero
+                            className={`${NUM_CELL} text-gray-900`}
                           />
-                        </td>
-                      </tr>
-                    ))}
+                          <TrnNumberCell
+                            value={isCashOnly(trn) ? undefined : trn.price}
+                            scale={2}
+                            blankZero
+                            className={`${NUM_CELL} text-gray-600`}
+                          />
+                          <TrnNumberCell
+                            value={trn.tradeAmount}
+                            scale={2}
+                            blankZero
+                            className={`${NUM_CELL} font-medium text-gray-900`}
+                          />
+                          <TrnNumberCell
+                            value={trn.cashAmount}
+                            scale={2}
+                            blankZero
+                            className={`${NUM_CELL} text-gray-600`}
+                          />
+                          {flags.showFees && (
+                            <TrnNumberCell
+                              value={trn.fees}
+                              scale={2}
+                              blankZero
+                              className={`${NUM_CELL} text-gray-600`}
+                            />
+                          )}
+                          {flags.showTax && (
+                            <TrnNumberCell
+                              value={trn.tax}
+                              scale={2}
+                              blankZero
+                              className={`${NUM_CELL} text-gray-600`}
+                            />
+                          )}
+                          <td className={`${CELL} max-w-[14rem]`}>
+                            <div className="truncate text-gray-600">
+                              {settledTo ?? (
+                                <span className="text-gray-300">{"–"}</span>
+                              )}
+                            </div>
+                            {trn.comments && (
+                              <div
+                                className="truncate text-xs text-gray-500"
+                                title={trn.comments}
+                              >
+                                {trn.comments}
+                              </div>
+                            )}
+                          </td>
+                          <td className={`${CELL} whitespace-nowrap`}>
+                            <TrnStatusBadge status={trn.status} />
+                          </td>
+                          <td className={`${CELL} whitespace-nowrap`}>
+                            <TrnRowActions
+                              onEdit={() => editTrn(trn)}
+                              onCopy={(e) => copyRowToClipboard(trn, e)}
+                              onDelete={() => requestDelete(trn)}
+                            />
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                   {/* Group Totals Row */}
                   <tfoot className="bg-indigo-50 border-t-2 border-indigo-200">
                     <tr className="font-semibold text-indigo-900">
-                      <td className="px-4 py-3" colSpan={4}>
+                      <td className={CELL} colSpan={flags.currency ? 2 : 3}>
                         {"Total"}
                       </td>
                       <GroupTotalCell value={group.totals.quantity} />
-                      <td className="px-4 py-3"></td>
+                      <td className={CELL}></td>
                       <GroupTotalCell value={group.totals.tradeAmount} />
-                      <td className="px-4 py-3"></td>
                       <GroupTotalCell value={group.totals.cashAmount} />
-                      <GroupTotalCell value={group.totals.tax} />
-                      <GroupTotalCell value={group.totals.fees} />
-                      <td className="px-4 py-3"></td>
-                      <td className="px-4 py-3"></td>
-                      <td className="px-4 py-3"></td>
+                      {flags.showFees && (
+                        <GroupTotalCell value={group.totals.fees} />
+                      )}
+                      {flags.showTax && (
+                        <GroupTotalCell value={group.totals.tax} />
+                      )}
+                      <td className={CELL} colSpan={3}></td>
                     </tr>
                   </tfoot>
                 </table>

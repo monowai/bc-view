@@ -1,4 +1,4 @@
-import React, { useCallback } from "react"
+import React, { useCallback, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { Transaction } from "types/beancounter"
@@ -12,26 +12,48 @@ import {
   TrnDeleteConfirm,
   TrnDetailTabs,
   TrnEmptyState,
+  TrnNumber,
   TrnNumberCell,
   TrnPageNav,
   TrnRowActions,
   TrnStatusBadge,
   TrnTableHead,
+  TrnTypeBadge,
+  useTrnTabSignals,
 } from "@components/features/transactions/TrnListParts"
 import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+import {
+  anyNonZero,
+  groupByYear,
+  settlementLabel,
+  uniformCurrency,
+} from "@utils/trns/trnListView"
 
-const COLUMNS: TrnColumn[] = [
-  { label: "Type" },
-  { label: "Currency" },
-  { label: "Trade Date" },
-  { label: "Amount", align: "right" },
-  { label: "Tax", align: "right" },
-  { label: "Affected Quantity", align: "right" },
-  { label: "Per Unit", align: "right" },
-  { label: "Settlement Account" },
-  { label: "Status" },
-  { label: "Actions", align: "center" },
-]
+const CELL = "px-3 py-2"
+const NUM_CELL = `${CELL} text-right whitespace-nowrap`
+
+/**
+ * Columns fit the page without sideways scrolling: the currency every event
+ * shares moves into the Amount header, and Tax shows only when some event was
+ * taxed.
+ */
+function eventColumns(
+  currency: string | undefined,
+  showTax: boolean,
+): TrnColumn[] {
+  return [
+    { label: "Date" },
+    { label: "Type" },
+    ...(currency ? [] : [{ label: "Currency" }]),
+    { label: "Units", align: "right" as const },
+    { label: "Per unit", align: "right" as const },
+    { label: "Amount", align: "right" as const, hint: currency },
+    ...(showTax ? [{ label: "Tax", align: "right" as const }] : []),
+    { label: "Settled to" },
+    { label: "Status" },
+    { label: "Actions", align: "right" as const, srOnly: true },
+  ]
+}
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter()
@@ -56,6 +78,26 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
 
   const { deletePending, requestDelete, cancelDelete, confirmDelete } =
     useTrnListDelete(events.mutate)
+  const signals = useTrnTabSignals(portfolioId, assetId)
+
+  const trnResults = useMemo(
+    (): Transaction[] => events.data?.data || [],
+    [events.data?.data],
+  )
+  const years = useMemo(() => groupByYear(trnResults), [trnResults])
+  const currency = uniformCurrency(trnResults)
+  const showTax = anyNonZero(trnResults, "tax")
+  const columns = eventColumns(currency, showTax)
+  const grandTotal = years.reduce(
+    (sum, y) => ({
+      tradeAmount: sum.tradeAmount + y.totals.tradeAmount,
+      tax: sum.tax + y.totals.tax,
+    }),
+    { tradeAmount: 0, tax: 0 },
+  )
+  const editTrn = (trn: Transaction): void => {
+    router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
+  }
 
   // Copy row data to clipboard as tab-separated values
   const copyRowToClipboard = useCallback(
@@ -97,143 +139,222 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       new Error("Missing URL parameters"),
     )
   }
-  const trnResults = events.data.data
-  const hasEvents = trnResults && trnResults.length > 0
+  const hasEvents = trnResults.length > 0
+  // Columns before Amount, so the year label and totals line up under it.
+  const leadColumns = currency ? 4 : 5
+  const trailColumns = 3
 
   return (
     <div className="min-h-screen bg-gray-50 text-sm">
-      {/* Header with back button */}
       <TrnPageNav
         title={asset.data.data.name}
         subtitle={asset.data.data.market.code}
       />
 
-      {/* Tabs for switching between Trades and Events */}
       <TrnDetailTabs
         active="events"
         portfolioId={portfolioId}
         assetId={assetId}
+        signals={signals}
       />
 
       <div className="container mx-auto px-4 py-4">
         {!hasEvents ? (
-          <TrnEmptyState />
+          <TrnEmptyState
+            title={"No events for this holding"}
+            description={
+              "Dividends, splits and other corporate actions appear here once they are recorded against this portfolio."
+            }
+          />
         ) : (
           <>
-            {/* Mobile: Card layout */}
-            <div className="md:hidden space-y-3">
-              {trnResults.map((trn: Transaction) => (
-                <div
-                  key={trn.id}
-                  className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
-                  onDoubleClick={() =>
-                    router.push(
-                      `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                    )
-                  }
-                  title={"Double-click to edit"}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                        {trn.trnType}
-                      </span>
-                      <span className="ml-2 text-sm text-gray-500">
-                        {trn.tradeCurrency.code}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <TrnStatusBadge status={trn.status} />
-                      <span className="text-sm text-gray-500">
-                        {trn.tradeDate}
-                      </span>
-                    </div>
+            {/* Narrow screens: cards, grouped by year */}
+            <div className="lg:hidden space-y-4">
+              {years.map((group) => (
+                <section key={group.year}>
+                  <div className="flex items-baseline justify-between px-1 pb-1.5">
+                    <h2 className="font-semibold text-gray-900">
+                      {group.year}
+                    </h2>
+                    <span className="text-xs text-gray-500">
+                      <TrnNumber value={group.totals.tradeAmount} scale={2} />
+                      {currency && ` ${currency}`}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <TrnCardValue
-                      label={"Amount"}
-                      value={trn.tradeAmount}
-                      scale={2}
-                    />
-                    <TrnCardValue
-                      label={"Affected Quantity"}
-                      value={trn.quantity}
-                      scale={0}
-                      fixed={false}
-                    />
-                    <TrnCardValue
-                      label={"Per Unit"}
-                      value={trn.price}
-                      scale={2}
-                      fixed={false}
-                    />
-                    <TrnCardValue
-                      label={"Tax"}
-                      value={trn.tax}
-                      scale={2}
-                      fixed={false}
-                    />
+                  <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+                    {group.transactions.map((trn: Transaction) => (
+                      <div
+                        key={trn.id}
+                        className="p-3 space-y-2 cursor-pointer hover:bg-blue-50/50 transition-colors"
+                        onDoubleClick={() => editTrn(trn)}
+                        title={"Double-click to edit"}
+                      >
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono tabular-nums text-gray-900">
+                              {trn.tradeDate}
+                            </span>
+                            <TrnTypeBadge trnType={trn.trnType} />
+                          </div>
+                          <TrnStatusBadge status={trn.status} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                          <TrnCardValue
+                            label={"Amount"}
+                            value={trn.tradeAmount}
+                            scale={2}
+                            valueClassName="ml-1 font-semibold text-gray-900"
+                          />
+                          {showTax && (
+                            <TrnCardValue
+                              label={"Tax"}
+                              value={trn.tax}
+                              scale={2}
+                              blankZero
+                            />
+                          )}
+                          <TrnCardValue
+                            label={"Units"}
+                            value={trn.quantity}
+                            scale={0}
+                            fixed={false}
+                          />
+                          <TrnCardValue
+                            label={"Per unit"}
+                            value={trn.price}
+                            scale={2}
+                            fixed={false}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </section>
               ))}
             </div>
 
-            {/* Desktop: Table layout */}
-            <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+            {/* Wide screens: one table, a band per year with its totals */}
+            <div className="hidden lg:block bg-white rounded-lg border border-gray-200 overflow-x-auto">
               <table className="min-w-full">
-                <TrnTableHead columns={COLUMNS} />
-                <tbody className="divide-y divide-gray-200">
-                  {trnResults.map((trn: Transaction) => (
-                    <tr
-                      key={trn.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onDoubleClick={() =>
-                        router.push(
-                          `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                        )
-                      }
-                      title={"Double-click to edit"}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {trn.trnType}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {trn.tradeCurrency.code}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {trn.tradeDate}
-                      </td>
-                      <TrnNumberCell value={trn.tradeAmount} scale={2} />
-                      <TrnNumberCell value={trn.tax} scale={2} />
-                      <TrnNumberCell value={trn.quantity} scale={0} />
-                      <TrnNumberCell value={trn.price} scale={2} />
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {["ADD", "REDUCE", "SPLIT"].includes(trn.trnType)
-                          ? "-"
-                          : trn.cashAsset?.market?.code === "CASH"
-                            ? trn.cashAsset.name ||
-                              `${trn.cashAsset.code} Balance`
-                            : trn.cashAsset?.name ||
-                              trn.cashAsset?.code ||
-                              `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <TrnStatusBadge status={trn.status} />
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <TrnRowActions
-                          onEdit={() =>
-                            router.push(
-                              `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                            )
-                          }
-                          onCopy={(e) => copyRowToClipboard(trn, e)}
-                          onDelete={() => requestDelete(trn)}
+                <TrnTableHead columns={columns} cellClassName={CELL} />
+                {years.map((group) => (
+                  <tbody key={group.year} className="divide-y divide-gray-100">
+                    <tr className="bg-gray-50/70 border-t border-gray-200">
+                      <th
+                        scope="rowgroup"
+                        colSpan={leadColumns}
+                        className={`${CELL} text-left font-semibold text-gray-900`}
+                      >
+                        {group.year}
+                        <span className="ml-2 text-xs font-normal text-gray-500">
+                          {group.transactions.length}{" "}
+                          {group.transactions.length === 1 ? "event" : "events"}
+                        </span>
+                      </th>
+                      <TrnNumberCell
+                        value={group.totals.tradeAmount}
+                        scale={2}
+                        className={`${NUM_CELL} font-semibold text-gray-900`}
+                      />
+                      {showTax && (
+                        <TrnNumberCell
+                          value={group.totals.tax}
+                          scale={2}
+                          blankZero
+                          className={`${NUM_CELL} font-medium text-gray-600`}
                         />
-                      </td>
+                      )}
+                      <td colSpan={trailColumns}></td>
                     </tr>
-                  ))}
-                </tbody>
+                    {group.transactions.map((trn: Transaction) => (
+                      <tr
+                        key={trn.id}
+                        className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                        onDoubleClick={() => editTrn(trn)}
+                        title={"Double-click to edit"}
+                      >
+                        <td
+                          className={`${CELL} whitespace-nowrap font-mono tabular-nums text-gray-900`}
+                        >
+                          {trn.tradeDate}
+                        </td>
+                        <td className={`${CELL} whitespace-nowrap`}>
+                          <TrnTypeBadge trnType={trn.trnType} />
+                        </td>
+                        {!currency && (
+                          <td className={`${CELL} whitespace-nowrap`}>
+                            {trn.tradeCurrency.code}
+                          </td>
+                        )}
+                        <TrnNumberCell
+                          value={trn.quantity}
+                          scale={0}
+                          fixed={false}
+                          blankZero
+                          className={`${NUM_CELL} text-gray-600`}
+                        />
+                        <TrnNumberCell
+                          value={trn.price}
+                          scale={2}
+                          blankZero
+                          className={`${NUM_CELL} text-gray-600`}
+                        />
+                        <TrnNumberCell
+                          value={trn.tradeAmount}
+                          scale={2}
+                          blankZero
+                          className={`${NUM_CELL} font-medium text-gray-900`}
+                        />
+                        {showTax && (
+                          <TrnNumberCell
+                            value={trn.tax}
+                            scale={2}
+                            blankZero
+                            className={`${NUM_CELL} text-gray-600`}
+                          />
+                        )}
+                        <td
+                          className={`${CELL} text-gray-600 max-w-[12rem] truncate`}
+                          title={trn.comments || undefined}
+                        >
+                          {settlementLabel(trn) ?? (
+                            <span className="text-gray-300">{"–"}</span>
+                          )}
+                        </td>
+                        <td className={`${CELL} whitespace-nowrap`}>
+                          <TrnStatusBadge status={trn.status} />
+                        </td>
+                        <td className={`${CELL} whitespace-nowrap`}>
+                          <TrnRowActions
+                            onEdit={() => editTrn(trn)}
+                            onCopy={(e) => copyRowToClipboard(trn, e)}
+                            onDelete={() => requestDelete(trn)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
+                <tfoot className="bg-indigo-50 border-t-2 border-indigo-200">
+                  <tr className="font-semibold text-indigo-900">
+                    <td className={CELL} colSpan={leadColumns}>
+                      {"Total"}
+                    </td>
+                    <TrnNumberCell
+                      value={grandTotal.tradeAmount}
+                      scale={2}
+                      className={NUM_CELL}
+                    />
+                    {showTax && (
+                      <TrnNumberCell
+                        value={grandTotal.tax}
+                        scale={2}
+                        className={NUM_CELL}
+                      />
+                    )}
+                    <td colSpan={trailColumns}></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </>
