@@ -8,6 +8,7 @@ const invested: Record<string, number> = {}
 let spendRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let spendError: Error | undefined
+let expenseError: Error | undefined
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -20,7 +21,7 @@ jest.mock("swr", () => ({
       }
     }
     if (typeof key === "string" && key.endsWith("/expenses")) {
-      return { data: expenseRows && { data: expenseRows } }
+      return { data: expenseRows && { data: expenseRows }, error: expenseError }
     }
     if (typeof key === "string") {
       const days = /days=(\d+)/.exec(key)?.[1] ?? ""
@@ -52,6 +53,7 @@ describe("useRetiredMetricsData", () => {
     spendRows = undefined
     expenseRows = undefined
     spendError = undefined
+    expenseError = undefined
   })
 
   it("reports the spend log unavailable when it fails to load", () => {
@@ -164,6 +166,12 @@ describe("useRetiredMetricsData", () => {
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.spendOtherCurrency).toBeNull()
+  })
+
+  it("reports the plan budget unavailable when it fails to load", () => {
+    expenseError = new Error("HTTP 500")
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.budgetsUnavailable).toBe(true)
   })
 
   it("has no spend summary before any spend is recorded", () => {

@@ -12,7 +12,8 @@ import {
   type SpendSummary,
 } from "@lib/independence/spendSummary"
 
-const METRIC_CLS = "px-4 first:pl-0 lg:last:pr-0"
+/** One cell of the dashboard's metric row; shared with the saving-phase row. */
+export const METRIC_CLS = "px-4 first:pl-0 lg:last:pr-0"
 const LABEL_CLS = "text-xs font-medium text-gray-500 mb-1"
 const VALUE_CLS = "text-2xl font-bold tabular-nums text-gray-900"
 const NOTE_CLS = "text-xs text-gray-500 mt-2"

@@ -35,7 +35,10 @@ const entries: SpendEntry[] = [
   },
 ]
 
-const renderDialog = (onSaved = jest.fn()): void => {
+const renderDialog = (
+  onSaved = jest.fn(),
+  overrides: Partial<React.ComponentProps<typeof SpendDialog>> = {},
+): void => {
   render(
     <SpendDialog
       budgets={budgets}
@@ -44,8 +47,11 @@ const renderDialog = (onSaved = jest.fn()): void => {
       currencySymbol="S$"
       initialMonth="2026-11"
       historyMonths={["2026-10", "2026-11"]}
+      budgetsUnavailable={false}
+      spendOtherCurrency={null}
       onClose={jest.fn()}
       onSaved={onSaved}
+      {...overrides}
     />,
   )
 }
@@ -92,6 +98,8 @@ describe("SpendDialog", () => {
         ]}
         currency="SGD"
         currencySymbol="S$"
+        budgetsUnavailable={false}
+        spendOtherCurrency={null}
         initialMonth="2026-10"
         historyMonths={["2026-10"]}
         onClose={jest.fn()}
@@ -154,6 +162,8 @@ describe("SpendDialog", () => {
         entries={[]}
         currency="SGD"
         currencySymbol="S$"
+        budgetsUnavailable={false}
+        spendOtherCurrency={null}
         initialMonth="2026-11"
         historyMonths={["2026-10", "2026-11"]}
         onClose={jest.fn()}
@@ -196,6 +206,26 @@ describe("SpendDialog", () => {
         "Spend is recorded in SGD; NZD cannot be mixed in",
       ),
     ).toBeInTheDocument()
+  })
+
+  it("says the plan's budget failed to load rather than that it has none", () => {
+    renderDialog(jest.fn(), { budgets: [], budgetsUnavailable: true })
+    expect(
+      screen.getByText("Could not load this plan's budget. Try again later."),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/This plan has no retirement expenses yet/),
+    ).not.toBeInTheDocument()
+  })
+
+  it("does not set spend logged in another currency against the budget", () => {
+    renderDialog(jest.fn(), { spendOtherCurrency: "USD" })
+    expect(
+      screen.getByText(
+        "Spend is logged in USD, so it is not compared with this plan's SGD budget.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByTestId("total-variance")).not.toBeInTheDocument()
   })
 
   it("shows the error and stays open when the save fails", async () => {

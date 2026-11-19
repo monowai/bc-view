@@ -3,7 +3,11 @@ import Dialog from "@components/ui/Dialog"
 import type { PlanExpense, SpendEntry } from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
-import { monthOf } from "@lib/independence/spendSummary"
+import {
+  formatSpendMoney,
+  monthOf,
+  monthStart,
+} from "@lib/independence/spendSummary"
 
 interface SpendDialogProps {
   /** The plan's retirement expenses: one row per category, with its budget. */
@@ -16,6 +20,10 @@ interface SpendDialogProps {
   initialMonth: string
   /** `YYYY-MM`, oldest first: the months the History tab charts. */
   historyMonths: string[]
+  /** The plan's expenses failed to load. */
+  budgetsUnavailable: boolean
+  /** The spend log's currency when it is not the plan's: not set against the budget. */
+  spendOtherCurrency: string | null
   onClose: () => void
   onSaved: () => void
 }
@@ -31,13 +39,11 @@ const INPUT_CLS =
   "w-28 rounded border border-gray-300 px-2 py-1 text-right text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-independence-500"
 
 function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number)
-  return monthOf(new Date(y, m - 1 + delta, 1))
+  return monthOf(monthStart(month, delta))
 }
 
 function monthLabel(month: string): string {
-  const [y, m] = month.split("-").map(Number)
-  return new Date(y, m - 1, 1).toLocaleString("en-US", {
+  return monthStart(month).toLocaleString("en-US", {
     month: "long",
     year: "numeric",
   })
@@ -99,6 +105,8 @@ function SpendMonthForm({
   month,
   onMonthChange,
   historyMonths,
+  budgetsUnavailable,
+  spendOtherCurrency,
   tab,
   onTabChange,
   onClose,
@@ -113,8 +121,9 @@ function SpendMonthForm({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const money = (n: number): string =>
-    `${n < 0 ? "-" : ""}${currencySymbol}${Math.abs(Math.round(n)).toLocaleString()}`
+  const money = (n: number): string => formatSpendMoney(n, currencySymbol)
+  // Budgets are in the plan's currency; a log in another cannot be set against them.
+  const comparable = spendOtherCurrency === null
   const sum = (pick: (r: RowValues) => string): number =>
     Object.values(rows).reduce((t, r) => t + (toNumber(pick(r)) ?? 0), 0)
   const totalBudget = budgets.reduce((t, b) => t + b.monthlyAmount, 0)
@@ -202,9 +211,13 @@ function SpendMonthForm({
       {tab === "history" ? (
         <SpendHistoryChart
           entries={entries}
-          budgets={Object.fromEntries(
-            budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
-          )}
+          budgets={
+            comparable
+              ? Object.fromEntries(
+                  budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
+                )
+              : {}
+          }
           months={historyMonths}
           currencySymbol={currencySymbol}
         />
@@ -237,7 +250,18 @@ function SpendMonthForm({
               Estimated — enter what you spent to replace it
             </p>
           )}
-          {budgets.length === 0 && (
+          {!comparable && (
+            <p className="mb-3 text-sm text-gray-600">
+              Spend is logged in {spendOtherCurrency}, so it is not compared
+              with this plan&apos;s {currency} budget.
+            </p>
+          )}
+          {budgetsUnavailable && (
+            <p className="mb-3 text-sm text-loss">
+              Could not load this plan&apos;s budget. Try again later.
+            </p>
+          )}
+          {budgets.length === 0 && !budgetsUnavailable && (
             <p className="mb-3 text-sm text-gray-600">
               This plan has no retirement expenses yet. Add them in the plan to
               record spend against them.
@@ -320,17 +344,22 @@ function SpendMonthForm({
                   {money(totalActual)}
                 </td>
               </tr>
-              <tr>
-                <td colSpan={3} className="px-3 py-2 text-gray-500 font-normal">
-                  Actual against budget (categories filled in)
-                </td>
-                <td
-                  className={`px-3 py-2 text-right tabular-nums ${totalActual > budgetRecorded ? "text-loss" : "text-gain"}`}
-                  data-testid="total-variance"
-                >
-                  {money(totalActual - budgetRecorded)}
-                </td>
-              </tr>
+              {comparable && (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-3 py-2 text-gray-500 font-normal"
+                  >
+                    Actual against budget (categories filled in)
+                  </td>
+                  <td
+                    className={`px-3 py-2 text-right tabular-nums ${totalActual > budgetRecorded ? "text-loss" : "text-gain"}`}
+                    data-testid="total-variance"
+                  >
+                    {money(totalActual - budgetRecorded)}
+                  </td>
+                </tr>
+              )}
             </tfoot>
           </table>
           <p className="mt-3 text-xs text-gray-500">

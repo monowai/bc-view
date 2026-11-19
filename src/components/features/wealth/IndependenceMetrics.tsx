@@ -11,11 +11,11 @@ import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { investmentsMonthlyTransactionsKey } from "@utils/api/client/trns"
 import { isRetired } from "@lib/independence/retiredMetrics"
-import RetiredMetrics from "@components/features/wealth/RetiredMetrics"
+import RetiredMetrics, {
+  METRIC_CLS,
+} from "@components/features/wealth/RetiredMetrics"
 import { useRetiredMetricsData } from "@components/features/wealth/useRetiredMetricsData"
 import SpendDialog from "@components/features/wealth/SpendDialog"
-
-const METRIC_CLS = "px-4 first:pl-0 lg:last:pr-0"
 
 interface MonthlyInvestmentData {
   startDate: string
@@ -48,6 +48,7 @@ function RetiredMetricsSection({
     currentMonth,
     refreshSpend,
     historyMonths,
+    budgetsUnavailable,
     ...cardData
   } = useRetiredMetricsData(projection)
   const [showSpend, setShowSpend] = useState(false)
@@ -71,6 +72,8 @@ function RetiredMetricsSection({
           currencySymbol={currencySymbol}
           initialMonth={currentMonth}
           historyMonths={historyMonths}
+          budgetsUnavailable={budgetsUnavailable}
+          spendOtherCurrency={cardData.spendOtherCurrency}
           onClose={() => setShowSpend(false)}
           onSaved={() => {
             refreshSpend()

@@ -48,6 +48,8 @@ interface RetiredMetricsData {
   refreshSpend: () => void
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
+  /** The plan's expenses failed to load, so there is no budget to record against. */
+  budgetsUnavailable: boolean
   /** The spend log's currency when it differs from the plan's; spend is then not compared. */
   spendOtherCurrency: string | null
 }
@@ -122,7 +124,7 @@ export function useRetiredMetricsData(
     error: spendError,
     mutate: mutateSpend,
   } = useSwr<SpendResponse>(spendUrl, simpleFetcher(spendUrl))
-  const { expenses } = usePlanExpenses(projection.planId)
+  const { expenses, error: expensesError } = usePlanExpenses(projection.planId)
   const budgets = (expenses ?? []).filter((e) => e.expensePhase !== "WORKING")
   const budgetByCategory = Object.fromEntries(
     budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
@@ -149,6 +151,7 @@ export function useRetiredMetricsData(
     historyMonths,
     refreshSpend: () => void mutateSpend(),
     spendUnavailable: spendError !== undefined,
+    budgetsUnavailable: expensesError !== undefined,
     drawnLastMonth: drawn(month),
     drawnLastYear: drawn(year),
     monteCarlo: monteCarlo ?? null,

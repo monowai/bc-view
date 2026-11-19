@@ -1,10 +1,22 @@
 import type { SpendEntry } from "types/independence"
+import { localIsoDate } from "@lib/formatters"
 
 export const MONTHS_PER_YEAR = 12
 
 /** `YYYY-MM` for a date, in local time. */
 export function monthOf(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+  return localIsoDate(date).slice(0, 7)
+}
+
+/** Local midnight on the first day of a `YYYY-MM` month, `offset` months on. */
+export function monthStart(month: string, offset = 0): Date {
+  const [y, m] = month.split("-").map(Number)
+  return new Date(y, m - 1 + offset, 1)
+}
+
+/** Signed whole-unit money with a currency symbol, as the spend views show it. */
+export function formatSpendMoney(n: number, currencySymbol: string): string {
+  return `${n < 0 ? "-" : ""}${currencySymbol}${Math.abs(Math.round(n)).toLocaleString()}`
 }
 
 /** The `count` months ending in the month of `today`, oldest first. */

@@ -17,6 +17,7 @@ import {
   formatSpendTick,
   spendHistory,
 } from "@lib/independence/spendHistory"
+import { formatSpendMoney, monthStart } from "@lib/independence/spendSummary"
 
 const TICK = { fontSize: 11, fill: "#94a3b8" }
 const BUDGET_COLOR = "#334155"
@@ -35,8 +36,7 @@ interface SpendHistoryChartProps {
 }
 
 function shortMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number)
-  return new Date(y, m - 1, 1).toLocaleString("en-US", {
+  return monthStart(month).toLocaleString("en-US", {
     month: "short",
     year: "numeric",
   })
@@ -122,8 +122,7 @@ export default function SpendHistoryChart({
 }: SpendHistoryChartProps): React.ReactElement {
   const [showTable, setShowTable] = useState(false)
   const { series, rows } = spendHistory(entries, budgets, months)
-  const money = (n: number): string =>
-    `${n < 0 ? "-" : ""}${currencySymbol}${Math.abs(Math.round(n)).toLocaleString()}`
+  const money = (n: number): string => formatSpendMoney(n, currencySymbol)
 
   if (series.length === 0 && rows.every((r) => r.projected == null)) {
     return (
