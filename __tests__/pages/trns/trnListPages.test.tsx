@@ -250,6 +250,12 @@ describe("transaction list scales", () => {
     expect(screen.getAllByText("1,001")).toHaveLength(2)
   })
 
+  it("leaves Tax off the event cards when no event was taxed", () => {
+    eventsView([makeTrn({ trnType: "DIVI", tax: 0 })])
+    render(<Events />)
+    expect(screen.queryByText("Tax:")).not.toBeInTheDocument()
+  })
+
   it("signs cash ladder credits", () => {
     ladderView(ladder.slice(0, 1))
     render(<CashLadder />)

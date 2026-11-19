@@ -205,12 +205,14 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                             scale={2}
                             valueClassName="ml-1 font-semibold text-gray-900"
                           />
-                          <TrnCardValue
-                            label={"Tax"}
-                            value={trn.tax}
-                            scale={2}
-                            blankZero
-                          />
+                          {showTax && (
+                            <TrnCardValue
+                              label={"Tax"}
+                              value={trn.tax}
+                              scale={2}
+                              blankZero
+                            />
+                          )}
                           <TrnCardValue
                             label={"Units"}
                             value={trn.quantity}

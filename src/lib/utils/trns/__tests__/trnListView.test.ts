@@ -66,6 +66,16 @@ describe("settlementLabel", () => {
       "USD Balance",
     )
   })
+
+  it("falls back to the cash currency balance when the account has no name or code", () => {
+    const account = {
+      ...makeCashAsset(USD),
+      market: { code: "NYSE", name: "NYSE", currency: USD },
+      name: "",
+      displayCode: "",
+    }
+    expect(settlementLabel(makeTrn({ cashAsset: account }))).toBe("USD Balance")
+  })
 })
 
 describe("tabSignal", () => {

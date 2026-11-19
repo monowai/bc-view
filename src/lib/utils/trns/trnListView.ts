@@ -50,7 +50,8 @@ export function settlementLabel(trn: Transaction): string | undefined {
   if (NO_CASH_TYPES.includes(trn.trnType)) return undefined
   const cash = trn.cashAsset
   if (cash?.market?.code === "CASH") return cash.name || `${cash.code} Balance`
-  if (cash) return cash.name || getDisplayCode(cash)
+  const account = cash && (cash.name || getDisplayCode(cash))
+  if (account) return account
   // cashCurrency is typed as a code, but older payloads send the Currency.
   const cashCurrency = trn.cashCurrency as unknown as
     string | { code?: string } | undefined
