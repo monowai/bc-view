@@ -51,11 +51,15 @@ async function askGateway(
     const body = (await reply.json()) as {
       choices?: Array<{ message?: { content?: string } }>
     }
-    return parseMappingReply(
+    const mapping = parseMappingReply(
       JSON.parse(body.choices?.[0]?.message?.content ?? ""),
       headers.length,
     )
-  } catch {
+    if (!mapping)
+      console.error("csv-mapping: the gateway reply is not a mapping")
+    return mapping
+  } catch (error) {
+    console.error("csv-mapping: could not read the gateway reply", error)
     return null
   }
 }

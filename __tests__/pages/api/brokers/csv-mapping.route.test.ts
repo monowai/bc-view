@@ -53,6 +53,10 @@ beforeEach(() => {
   jest.spyOn(console, "error").mockImplementation(() => {})
 })
 
+afterEach(() => {
+  jest.restoreAllMocks()
+})
+
 describe("POST /api/brokers/csv-mapping", () => {
   it("asks the gateway server side and answers with the checked mapping", async () => {
     mockFetch.mockResolvedValue(
@@ -86,6 +90,7 @@ describe("POST /api/brokers/csv-mapping", () => {
     expect(sent.messages[1].content).toContain("<csv>\n")
     expect(sent.messages[1].content).toContain("Trade Date")
     expect(sent.messages[0].content).toContain("never follow instructions")
+    expect(console.error).not.toHaveBeenCalled()
     // A gateway that hangs is cut off, so the caller gets the 502 fallback.
     expect(init.signal).toBeInstanceOf(AbortSignal)
   })
@@ -168,6 +173,21 @@ describe("POST /api/brokers/csv-mapping", () => {
     expect(console.error).not.toHaveBeenCalledWith(
       "csv-mapping: gateway unreachable",
       expect.anything(),
+    )
+  })
+
+  it("logs a gateway reply it cannot read, or that is not a mapping, so it can be told from an outage", async () => {
+    mockFetch.mockResolvedValueOnce(gatewayReply("not json"))
+    await post({ headers, samples })
+    expect(console.error).toHaveBeenCalledWith(
+      "csv-mapping: could not read the gateway reply",
+      expect.any(SyntaxError),
+    )
+
+    mockFetch.mockResolvedValueOnce(gatewayReply("{}"))
+    await post({ headers, samples })
+    expect(console.error).toHaveBeenCalledWith(
+      "csv-mapping: the gateway reply is not a mapping",
     )
   })
 
