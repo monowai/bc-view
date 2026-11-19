@@ -88,7 +88,7 @@ export default async function csvMapping(
     return
   }
   const gateway = getWaharoaUrl()
-  const key = process.env.BC_WAHAROA_KEY?.trim()
+  const key = process.env.AI_GATEWAY_KEY?.trim()
   if (!gateway || !key) {
     res.status(503).json({ error: "Suggesting a mapping is not set up here." })
     return

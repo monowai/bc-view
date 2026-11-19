@@ -48,7 +48,7 @@ beforeEach(() => {
   global.fetch = mockFetch
   mockGetSession.mockResolvedValue({ user: { sub: "u" } })
   mockWaharoaUrl.mockReturnValue("http://waharoa.test")
-  process.env.BC_WAHAROA_KEY = "sk-test"
+  process.env.AI_GATEWAY_KEY = "sk-test"
   delete process.env.BC_WAHAROA_MODEL
   jest.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -126,7 +126,7 @@ describe("POST /api/brokers/csv-mapping", () => {
   })
 
   it("says the mapper is not set up when the gateway or its key is missing", async () => {
-    delete process.env.BC_WAHAROA_KEY
+    delete process.env.AI_GATEWAY_KEY
 
     const res = await post({ headers, samples })
 

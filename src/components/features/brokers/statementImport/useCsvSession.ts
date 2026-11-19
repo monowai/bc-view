@@ -81,6 +81,17 @@ function parseCsv(text: string): { headers: string[]; rows: string[][] } {
   }
 }
 
+const BROKER_AT = BC_COLUMNS.indexOf("Broker")
+
+/** A Beancounter-format row as it is, with the brokerage account filled in where it names none. */
+function withBroker(row: string[], brokerId: string): string[] {
+  if ((row[BROKER_AT] ?? "").trim()) return row
+  const filled = [...row]
+  while (filled.length < BROKER_AT) filled.push("")
+  filled[BROKER_AT] = brokerId
+  return filled
+}
+
 /** The distinct values of the column mapped to Type, in the order they appear. */
 export function typeValuesIn(session: CsvSession): string[] {
   const at = session.mapping.columns.indexOf("Type")
@@ -214,7 +225,10 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
   /** Each row as it would be sent, with what stops it. */
   const mappedRows = (session: CsvSession, brokerId: string): MappedRow[] =>
     session.beancounterFormat
-      ? session.rows.map((row) => ({ values: row, problems: [] }))
+      ? session.rows.map((row) => ({
+          values: withBroker(row, brokerId),
+          problems: [],
+        }))
       : applyMapping(session.rows, session.mapping, {
           batch: session.uploadId.slice(0, 8),
           brokerId,

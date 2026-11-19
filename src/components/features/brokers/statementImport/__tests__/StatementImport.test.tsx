@@ -2351,6 +2351,10 @@ describe("<StatementImport /> CSV", () => {
       screen.getByRole("button", { name: "Record 1 Transaction" }),
     )
     await screen.findByRole("heading", { name: "Recorded" })
-    expect(importedRows()).toEqual([row.split(",")])
+    // Sent as it is, with the chosen brokerage account filled in where the
+    // file names none.
+    const sent = importedRows()[0]
+    expect(sent.slice(0, 18)).toEqual(row.split(","))
+    expect(sent[19]).toBe("b-ibkr")
   })
 })
