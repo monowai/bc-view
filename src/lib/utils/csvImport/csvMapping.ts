@@ -106,11 +106,10 @@ const normalise = (value: string): string => value.trim().toLowerCase()
 /** True when the header row is Beancounter's own format, so nothing needs mapping. */
 export function isBeancounterHeader(headers: string[]): boolean {
   const required = BC_COLUMNS.indexOf("Comments") + 1
-  if (headers.length < required) return false
+  if (headers.length < required || headers.length > BC_COLUMNS.length)
+    return false
   return headers.every(
-    (header, index) =>
-      index >= BC_COLUMNS.length ||
-      normalise(header) === normalise(BC_COLUMNS[index]),
+    (header, index) => normalise(header) === normalise(BC_COLUMNS[index]),
   )
 }
 
@@ -198,11 +197,12 @@ const NUMBER = /^-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$/
 /**
  * A number as svc-data parses it: no currency signs, spaces or thousands
  * separators. Null when what is left is not one number, such as a decimal
- * comma ("1,23") or "1.234.56", so the row is stopped rather than misread.
+ * comma ("1,23"), "1.234.56" or a cell with no digits ("USD"), so the row is
+ * stopped rather than misread.
  */
 function cleanNumber(value: string): string | null {
+  if (!value) return ""
   const bare = value.replace(/[^0-9.,\-]/g, "")
-  if (!bare) return ""
   return NUMBER.test(bare) ? bare.replaceAll(",", "") : null
 }
 
@@ -232,7 +232,7 @@ function mapRow(
   set("Batch", batch)
   set("CallerId", `${batch}-${index + 1}`)
   set("Broker", brokerId)
-  if (shown("Market") === null) set("Market", mapping.market.trim())
+  if (!shown("Market")) set("Market", mapping.market.trim())
 
   const typeShown = shown("Type")
   if (typeShown !== null) {

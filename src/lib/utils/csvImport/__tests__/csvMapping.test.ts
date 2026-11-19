@@ -40,6 +40,10 @@ describe("isBeancounterHeader", () => {
   it("does not recognise another layout", () => {
     expect(isBeancounterHeader(headers)).toBe(false)
   })
+
+  it("does not recognise Beancounter's columns followed by more", () => {
+    expect(isBeancounterHeader([...BC_COLUMNS, "Extra"])).toBe(false)
+  })
 })
 
 describe("applyMapping", () => {
@@ -81,6 +85,7 @@ describe("applyMapping", () => {
         ["03/02/2024", "Bought", "SAP", "1,23", "1", "", ""],
         ["03/02/2024", "Bought", "SAP", "1", "1.234.56", "", ""],
         ["03/02/2024", "Bought", "SAP", "1", "1.234,56", "", ""],
+        ["03/02/2024", "Bought", "SAP", "1", "USD", "", ""],
       ],
       mapping,
       context,
@@ -89,6 +94,7 @@ describe("applyMapping", () => {
       ['"1,23" is not a number'],
       ['"1.234.56" is not a number'],
       ['"1.234,56" is not a number'],
+      ['"USD" is not a number'],
     ])
   })
 
@@ -118,6 +124,19 @@ describe("applyMapping", () => {
       context,
     )
     expect(row.values[BC_COLUMNS.indexOf("Market")]).toBe("ASX")
+  })
+
+  it("uses the default market for a row whose market cell is blank", () => {
+    const withMarket: CsvMapping = {
+      ...mapping,
+      columns: ["Date", "Type", "Code", "Quantity", "Price", "Fees", "Market"],
+    }
+    const [row] = applyMapping(
+      [["03/02/2024", "Bought", "AAPL", "1", "1", "", " "]],
+      withMarket,
+      context,
+    )
+    expect(row.values[BC_COLUMNS.indexOf("Market")]).toBe("US")
   })
 
   it("reads ISO, US and day-first dates", () => {

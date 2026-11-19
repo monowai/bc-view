@@ -2358,6 +2358,36 @@ describe("<StatementImport /> CSV", () => {
     ])
   })
 
+  test("an account that cannot be created records no CSV rows and says why", async () => {
+    backend.createdAccount = json(
+      { message: "Broker with name 'Interactive Brokers' already exists" },
+      400,
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+    await user.selectOptions(
+      screen.getByLabelText("Brokerage account"),
+      "__NEW_ACCOUNT__",
+    )
+    await user.upload(
+      screen.getByLabelText("Image or CSV file"),
+      csvFile(BROKER_CSV),
+    )
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByLabelText("Type for Gifted")
+    await user.selectOptions(screen.getByLabelText("Type for Gifted"), "ADD")
+    await user.click(
+      screen.getByRole("button", { name: "Record 3 Transactions" }),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Broker with name 'Interactive Brokers' already exists",
+    )
+    expect(callsTo(TRN_IMPORT_URL)).toBe(0)
+  })
+
   test("Record waits for the required columns", async () => {
     const user = userEvent.setup()
     await uploadCsv(user, BROKER_CSV)

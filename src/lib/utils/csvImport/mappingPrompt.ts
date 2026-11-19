@@ -5,7 +5,12 @@ export const MAX_SAMPLE_ROWS = 20
 export const MAX_COLUMNS = 60
 const MAX_CELL = 100
 
-const cell = (value: unknown): string => String(value ?? "").slice(0, MAX_CELL)
+/** Angle brackets are swapped out, so no cell can close the <csv> block. */
+const cell = (value: unknown): string =>
+  String(value ?? "")
+    .slice(0, MAX_CELL)
+    .replaceAll("<", "‹")
+    .replaceAll(">", "›")
 
 export const MAPPING_SYSTEM_PROMPT = [
   "You map a brokerage transaction CSV onto Beancounter's transaction columns.",

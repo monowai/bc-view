@@ -48,10 +48,16 @@ export interface CsvSession {
 
 /** What recording a CSV needs from the rest of the import. */
 interface CsvRecordDeps {
-  /** The brokerage account's id, creating it first when asked to; null on failure. */
-  accountFor: (current: CsvTarget) => Promise<string | null>
-  /** The portfolio, creating it first when asked to; null on failure. */
-  portfolioFor: (current: CsvTarget) => Promise<ImportPortfolio | null>
+  /** The brokerage account's id, creating it first when asked to; null, with the reason reported, on failure. */
+  accountFor: (
+    current: CsvTarget,
+    report: (message: string) => void,
+  ) => Promise<string | null>
+  /** The portfolio, creating it first when asked to; null, with the reason reported, on failure. */
+  portfolioFor: (
+    current: CsvTarget,
+    report: (message: string) => void,
+  ) => Promise<ImportPortfolio | null>
   onRecorded: (outcome: {
     recorded: number
     warnings: string[]
@@ -299,16 +305,24 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
   const recordCsv = async (): Promise<void> => {
     const current = csvTarget
     if (!csv || !current || recordInFlight.current) return
+    if (dateCheck(csv).blocksRecord) {
+      setCsvRecordError(
+        "Check the date format before recording: the dates fit more than one format, or contradict each other.",
+      )
+      return
+    }
     recordInFlight.current = true
     setRecordingCsv(true)
     setCsvRecordError(null)
     try {
       const accountId =
-        resolved.current.accountId ?? (await deps.accountFor(current))
+        resolved.current.accountId ??
+        (await deps.accountFor(current, setCsvRecordError))
       if (!accountId) return
       resolved.current.accountId = accountId
       const target =
-        resolved.current.portfolio ?? (await deps.portfolioFor(current))
+        resolved.current.portfolio ??
+        (await deps.portfolioFor(current, setCsvRecordError))
       if (!target) return
       resolved.current.portfolio = target
       // svc-data reads the owner from the portfolio the row carries.

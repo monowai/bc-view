@@ -395,8 +395,8 @@ export function useStatementImport(): StatementImportFlow {
 
   // Called only on Record, after the helpers below are defined.
   const csvFlow = useCsvSession({
-    accountFor: (current) => accountFor(current),
-    portfolioFor: (current) => portfolioFor(current),
+    accountFor: (current, report) => accountFor(current, report),
+    portfolioFor: (current, report) => portfolioFor(current, report),
     onRecorded: ({ portfolio, ...rest }) => {
       void valuePortfolio(portfolio.id)
       setResult({ ...rest, portfolio })
@@ -787,6 +787,7 @@ export function useStatementImport(): StatementImportFlow {
    */
   const portfolioFor = async (
     current: RecordTarget,
+    report: (message: string) => void = setRecordError,
   ): Promise<ImportPortfolio | null> => {
     if ("portfolio" in current.target) return current.target.portfolio
     const { code, name, currency } = current.target.create
@@ -794,7 +795,7 @@ export function useStatementImport(): StatementImportFlow {
       data: [{ code, name, currency, base: currency }],
     })
     if (!res.ok) {
-      setRecordError(
+      report(
         (await readServerMessage(res)) ||
           `The portfolio could not be created (error ${res.status}). Nothing was recorded.`,
       )
@@ -802,7 +803,7 @@ export function useStatementImport(): StatementImportFlow {
     }
     const created = ((await res.json()) as { data?: Portfolio[] }).data?.[0]
     if (!created) {
-      setRecordError(
+      report(
         "Beancounter did not return the portfolio it was asked to create. Nothing was recorded. Check your portfolios before trying again.",
       )
       return null
@@ -822,7 +823,10 @@ export function useStatementImport(): StatementImportFlow {
    * does not create another; the CSV path keeps it itself. Null, with the
    * reason shown, when it cannot be created.
    */
-  const accountFor = async (current: RecordTarget): Promise<string | null> => {
+  const accountFor = async (
+    current: RecordTarget,
+    report: (message: string) => void = setRecordError,
+  ): Promise<string | null> => {
     if ("broker" in current.account) return current.account.broker.id
     const { name, accountNumber, globalBrokerId } =
       current.account.createAccount
@@ -832,7 +836,7 @@ export function useStatementImport(): StatementImportFlow {
       globalBrokerId,
     })
     if (!res.ok) {
-      setRecordError(
+      report(
         (await readServerMessage(res)) ||
           `The brokerage account could not be created (error ${res.status}). Nothing was recorded.`,
       )
@@ -840,7 +844,7 @@ export function useStatementImport(): StatementImportFlow {
     }
     const created = ((await res.json()) as { data?: Broker }).data
     if (!created?.id) {
-      setRecordError(
+      report(
         "Beancounter did not return the brokerage account it was asked to create. Nothing was recorded. Check your brokerage accounts before trying again.",
       )
       return null

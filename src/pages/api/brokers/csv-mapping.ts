@@ -47,10 +47,10 @@ async function askGateway(
     console.error("csv-mapping: gateway answered", reply.status)
     return null
   }
-  const body = (await reply.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
-  }
   try {
+    const body = (await reply.json()) as {
+      choices?: Array<{ message?: { content?: string } }>
+    }
     return parseMappingReply(
       JSON.parse(body.choices?.[0]?.message?.content ?? ""),
       headers.length,
