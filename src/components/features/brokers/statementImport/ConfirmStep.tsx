@@ -17,7 +17,8 @@ import {
 import HoldingsTable, { rowStatus } from "./HoldingsTable"
 import NotShownList from "./NotShownList"
 import ReadSummary, { totalGap } from "./ReadSummary"
-import { rowName } from "./statementRows"
+import { describeWarnings, isRecorded, rowName } from "./statementRows"
+import type { ReconcilePreviewRow } from "types/beancounter"
 import type { StatementImportFlow } from "./useStatementImport"
 
 const RECORD_DATE_HELP =
@@ -84,10 +85,22 @@ function RowOrderToggle({
   )
 }
 
-/** "Needs a look: 2 will not be recorded · 24 held but not on the image" */
-function issueSummary(blocked: number, notShown: number): string {
+/** Issues first: left behind, then figures that do not add up, then ready, then matching. */
+function issueRank(preview: ReconcilePreviewRow | undefined): number {
+  if (!preview || !isRecorded(preview)) return 0
+  if (preview.warnings.length > 0) return 1
+  return preview.status === "READY" ? 2 : 3
+}
+
+/** "Needs a look: 2 will not be recorded · 1 to check · 24 held but not on the image" */
+function issueSummary(
+  blocked: number,
+  warned: number,
+  notShown: number,
+): string {
   const parts = [
     blocked > 0 ? `${blocked} will not be recorded` : "",
+    warned > 0 ? `${warned} to check` : "",
     notShown > 0 ? `${notShown} held but not on the image` : "",
   ].filter(Boolean)
   return `Needs a look: ${parts.join(" · ")}`
@@ -119,39 +132,42 @@ export default function ConfirmStep({
 
   const busy = flow.recording
   const edited = session.preview !== null && session.rows.some(flow.isUnchecked)
-  // Every row that Record would leave behind, with the reason.
-  const blocked = session.rows
-    .map((row, index) => {
-      const unchecked = flow.isUnchecked(row)
-      const preview = unchecked ? undefined : session.previewByKey[row.key]
-      return {
-        key: row.key,
-        name: rowName(row, index),
-        skipped: preview?.status !== "READY" && preview?.status !== "UNCHANGED",
-        reason: rowStatus(
-          row,
-          preview,
-          unchecked,
-          row.key in session.previewByKey,
-        ),
-      }
-    })
-    .filter((row) => row.skipped)
+  // Each row as last checked: Record leaves it behind (blocked), or records it
+  // though its figures do not add up (warned). Both are issues.
+  const checked = session.rows.map((row, index) => {
+    const unchecked = flow.isUnchecked(row)
+    const preview = unchecked ? undefined : session.previewByKey[row.key]
+    return {
+      key: row.key,
+      name: rowName(row, index),
+      recorded: isRecorded(preview),
+      warnings: preview?.warnings ?? [],
+      reason: rowStatus(
+        row,
+        preview,
+        unchecked,
+        row.key in session.previewByKey,
+      ),
+    }
+  })
+  const blocked = checked.filter((row) => !row.recorded)
+  const warned = checked.filter(
+    (row) => row.recorded && row.warnings.length > 0,
+  )
   const changes = flow.readyRows.length
-  // Rows with an issue first, then rows Record acts on, then rows that match
+  // Rows with an issue first (those Record leaves behind, then those whose
+  // figures do not add up), then rows Record acts on, then rows that match
   // what is held; or the order the image shows them in. Ordered by the last
   // check, so a row moves only when it is checked again, not while edited.
-  const rank = (status: string | undefined): number =>
-    status === "READY" ? 1 : status === "UNCHANGED" ? 2 : 0
-  const hasIssues = blocked.length > 0
+  const hasIssues = blocked.length > 0 || warned.length > 0
   const order: RowOrder = hasIssues ? (chosenOrder ?? "issues") : "image"
   const ordered =
     order === "image"
       ? session.rows
       : [...session.rows].sort(
           (a, b) =>
-            rank(session.previewByKey[a.key]?.status) -
-            rank(session.previewByKey[b.key]?.status),
+            issueRank(session.previewByKey[a.key]) -
+            issueRank(session.previewByKey[b.key]),
         )
   const notShown = session.preview?.notShown ?? []
   const findingIndex = session.rows.findIndex((row) => row.key === findingKey)
@@ -361,10 +377,10 @@ export default function ConfirmStep({
         </div>
       </details>
 
-      {(blocked.length > 0 || notShown.length > 0) && (
+      {(hasIssues || notShown.length > 0) && (
         <details className="bg-white rounded-xl shadow-sm border border-gray-200 text-sm">
           <summary className="cursor-pointer p-4 font-semibold text-gray-900">
-            {issueSummary(blocked.length, notShown.length)}
+            {issueSummary(blocked.length, warned.length, notShown.length)}
           </summary>
           <div className="px-4 pb-4 space-y-4">
             {blocked.length > 0 && (
@@ -375,6 +391,20 @@ export default function ConfirmStep({
                 <ul className="mt-2 space-y-1 text-gray-900">
                   {blocked.map((row) => (
                     <li key={row.key}>{`${row.name}: ${row.reason}`}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {warned.length > 0 && (
+              <section aria-label="Recorded, but check">
+                <h3 className="font-semibold text-gray-900">
+                  Recorded, but check
+                </h3>
+                <ul className="mt-2 space-y-1 text-gray-900">
+                  {warned.map((row) => (
+                    <li
+                      key={row.key}
+                    >{`${row.name}: ${describeWarnings(row.warnings)}`}</li>
                   ))}
                 </ul>
               </section>

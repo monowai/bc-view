@@ -248,6 +248,14 @@ export const WARNING_COPY: Record<ReconcileRowWarning, string> = {
     "Market value less cost does not match the gain or loss shown",
 }
 
+/** Record acts on the row: it is ready, or already matches what is held. */
+export const isRecorded = (preview: ReconcilePreviewRow | undefined): boolean =>
+  preview?.status === "READY" || preview?.status === "UNCHANGED"
+
+/** A row's warnings in words, one after another. */
+export const describeWarnings = (warnings: ReconcileRowWarning[]): string =>
+  warnings.map((warning) => WARNING_COPY[warning]).join("; ")
+
 /** The proposed change as a signed quantity: "+10", "-3", or "No change". */
 export function describeChange(preview: ReconcilePreviewRow): string {
   if (preview.status === "UNCHANGED") return "No change"

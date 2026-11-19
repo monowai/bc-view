@@ -7,7 +7,9 @@ import {
   chooseAmong,
   changeColour,
   describeChange,
+  describeWarnings,
   ImportRow,
+  isRecorded,
   MARKET_SOURCE_COPY,
   NEEDS_CODE,
   NEVER_CHECKED,
@@ -42,7 +44,8 @@ const cellClass = "px-2 py-2 align-top"
 const ASSET_ISSUES = new Set(["UNRESOLVED", "NEEDS_MARKET"])
 
 /**
- * A row's status: a green tick when it is good, a ? that opens the asset
+ * A row's status: a green tick when it is good, an amber warning sign when it
+ * records but its figures do not add up, a ? that opens the asset
  * search when the asset is the problem, otherwise what is missing. The words
  * stay for assistive technology and as the tooltip.
  */
@@ -59,7 +62,20 @@ function RowStatusCell({
   disabled: boolean
   onFind: () => void
 }): React.ReactElement {
-  if (preview?.status === "READY" || preview?.status === "UNCHANGED") {
+  if (preview && isRecorded(preview) && preview.warnings.length > 0) {
+    // It still records, but the figures read from the image do not add up.
+    const checkText = `${text}, but check: ${describeWarnings(preview.warnings)}`
+    return (
+      <span className="text-amber-600" title={checkText}>
+        <i
+          className="fas fa-triangle-exclamation text-lg"
+          aria-hidden="true"
+        ></i>
+        <span className="sr-only">{checkText}</span>
+      </span>
+    )
+  }
+  if (isRecorded(preview)) {
     return (
       <span className="text-green-600" title={text}>
         <i className="fas fa-circle-check text-lg" aria-hidden="true"></i>

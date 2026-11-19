@@ -405,14 +405,13 @@ describe("<StatementImport /> upload", () => {
 
     const aapl = within(rowFor("AAPL"))
     expect(aapl.getByText("+10")).toHaveClass("text-emerald-700")
-    expect(aapl.getByText("Ready to record")).toBeInTheDocument()
-    // A good row shows a tick; its words are the tooltip.
-    expect(aapl.getByTitle("Ready to record")).toContainElement(
-      aapl.getByText("Ready to record"),
+    // A row with a warning still records, but shows the warning sign; its words are the tooltip.
+    expect(aapl.getByTitle(/^Ready to record, but check/)).toContainElement(
+      aapl.getByText(/^Ready to record, but check/),
     )
     expect(
-      aapl.getByText(/does not match the market value shown/),
-    ).toBeInTheDocument()
+      aapl.getAllByText(/does not match the market value shown/).length,
+    ).toBeGreaterThan(0)
     expect(within(rowFor("TSLA")).getByText("-3")).toHaveClass("text-red-700")
     const voo = within(rowFor("VOO"))
     expect(voo.getByText("No change")).toBeInTheDocument()
@@ -1237,12 +1236,40 @@ describe("<StatementImport /> confirm", () => {
     ])
   })
 
+  test("a row with a warning is an issue: it comes first and shows a warning, not a tick", async () => {
+    backend.read = json({
+      ...holdingsProposal,
+      rows: [
+        { code: "VOO", quantity: 3 },
+        { code: "NVDA", quantity: 4, costBasis: 400 },
+        { code: "AAPL", quantity: 10, costBasis: 1200 },
+      ],
+    })
+    const user = userEvent.setup()
+    await readHoldings(user)
+
+    expect(screen.getByRole("radio", { name: "Issues first" })).toBeChecked()
+    expect(
+      screen
+        .getAllByLabelText(/^Code for /)
+        .map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["Code for AAPL", "Code for NVDA", "Code for VOO"])
+    expect(screen.getByText(/^Needs a look: 1 to check/)).toBeInTheDocument()
+
+    const aapl = within(rowFor("AAPL"))
+    expect(aapl.queryByTitle("Ready to record")).not.toBeInTheDocument()
+    expect(
+      aapl.getByTitle(/Ready to record, but check: Quantity times price/),
+    ).toBeInTheDocument()
+    expect(within(rowFor("NVDA")).getByTitle("Ready to record")).toBeVisible()
+  })
+
   test("with no issues the image's order is used and Issues first is off", async () => {
     backend.read = json({
       ...holdingsProposal,
       rows: [
         { code: "VOO", quantity: 3 },
-        { code: "AAPL", quantity: 10, costBasis: 1200 },
+        { code: "NVDA", quantity: 4, costBasis: 400 },
       ],
     })
     const user = userEvent.setup()
@@ -1259,7 +1286,7 @@ describe("<StatementImport /> confirm", () => {
       screen
         .getAllByLabelText(/^Code for /)
         .map((input) => input.getAttribute("aria-label")),
-    ).toEqual(["Code for VOO", "Code for AAPL"])
+    ).toEqual(["Code for VOO", "Code for NVDA"])
   })
 
   test("Record sits at the top, above the holdings", async () => {
