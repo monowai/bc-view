@@ -45,6 +45,7 @@ import {
   UNREACHABLE,
 } from "./statementRows"
 import type { NewPortfolio } from "./newPortfolio"
+import { isCsvFile, useCsvSession, type CsvFlow } from "./useCsvSession"
 import type { ImportAccount } from "./newAccount"
 
 type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
@@ -52,6 +53,9 @@ type ImportPortfolio = Pick<Portfolio, "id" | "code" | "name">
 /** Where the holdings are recorded: a portfolio, or one to create on Record. */
 export type ImportTarget =
   { portfolio: ImportPortfolio } | { create: NewPortfolio }
+
+/** Where Record records: the choices made on the upload step, for one upload. */
+type RecordTarget = Pick<ImportSession, "uploadId" | "target" | "account">
 
 /** One screenshot that was read, and what the user has done with it since. */
 interface ImportSession {
@@ -351,12 +355,15 @@ export interface StatementImportFlow {
   // Done
   result: ImportResult | null
   reset: () => void
+  /** A transaction CSV in place of an image: its mapping and Record. */
+  csvFlow: CsvFlow
 }
 
 /**
- * The screenshot import from first upload to recorded transactions: read the
- * image, preview the holdings it shows against what is held, let the user edit
- * and re-check, then record the rows that are ready.
+ * The brokerage import from first upload to recorded transactions. An image is
+ * read, its holdings previewed against what is held, edited, re-checked, and
+ * the ready rows recorded. A CSV of transactions goes to `csvFlow` instead,
+ * which shares the account and portfolio this hook creates on Record.
  */
 export function useStatementImport(): StatementImportFlow {
   const [portfolioId, setPortfolioId] = useState("")
@@ -385,6 +392,16 @@ export function useStatementImport(): StatementImportFlow {
   const [recording, setRecording] = useState(false)
   const [recordError, setRecordError] = useState<string | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
+
+  // Called only on Record, after the helpers below are defined.
+  const csvFlow = useCsvSession({
+    accountFor: (current, report) => accountFor(current, report),
+    portfolioFor: (current, report) => portfolioFor(current, report),
+    onRecorded: ({ portfolio, ...rest }) => {
+      void valuePortfolio(portfolio.id)
+      setResult({ ...rest, portfolio })
+    },
+  })
 
   // State lags a second click by a render; these do not. A second read would
   // be a second paid call, a second record a second request.
@@ -437,6 +454,16 @@ export function useStatementImport(): StatementImportFlow {
     account: ImportAccount,
   ): Promise<void> => {
     if (!file || readInFlight.current) return
+    if (isCsvFile(file)) {
+      readInFlight.current = true
+      setSession(null)
+      try {
+        await csvFlow.readCsv(file, target, account)
+      } finally {
+        readInFlight.current = false
+      }
+      return
+    }
     readInFlight.current = true
     setReading(true)
     setReadError(null)
@@ -753,12 +780,14 @@ export function useStatementImport(): StatementImportFlow {
     readyRows.length > 0
 
   /**
-   * The portfolio to record in, creating it first when asked to. A created
-   * portfolio replaces the request, so a retry does not create another. Null,
-   * with the reason shown, when it cannot be created.
+   * The portfolio to record in, creating it first when asked to. For an image,
+   * a created portfolio replaces the request, so a retry does not create
+   * another; the CSV path keeps it itself. Null, with the reason shown, when it
+   * cannot be created.
    */
   const portfolioFor = async (
-    current: ImportSession,
+    current: RecordTarget,
+    report: (message: string) => void = setRecordError,
   ): Promise<ImportPortfolio | null> => {
     if ("portfolio" in current.target) return current.target.portfolio
     const { code, name, currency } = current.target.create
@@ -766,7 +795,7 @@ export function useStatementImport(): StatementImportFlow {
       data: [{ code, name, currency, base: currency }],
     })
     if (!res.ok) {
-      setRecordError(
+      report(
         (await readServerMessage(res)) ||
           `The portfolio could not be created (error ${res.status}). Nothing was recorded.`,
       )
@@ -774,7 +803,7 @@ export function useStatementImport(): StatementImportFlow {
     }
     const created = ((await res.json()) as { data?: Portfolio[] }).data?.[0]
     if (!created) {
-      setRecordError(
+      report(
         "Beancounter did not return the portfolio it was asked to create. Nothing was recorded. Check your portfolios before trying again.",
       )
       return null
@@ -790,10 +819,14 @@ export function useStatementImport(): StatementImportFlow {
 
   /**
    * The id of the brokerage account to record against, creating it first when
-   * asked to. A created account replaces the request, so a retry does not
-   * create another. Null, with the reason shown, when it cannot be created.
+   * asked to. For an image, a created account replaces the request, so a retry
+   * does not create another; the CSV path keeps it itself. Null, with the
+   * reason shown, when it cannot be created.
    */
-  const accountFor = async (current: ImportSession): Promise<string | null> => {
+  const accountFor = async (
+    current: RecordTarget,
+    report: (message: string) => void = setRecordError,
+  ): Promise<string | null> => {
     if ("broker" in current.account) return current.account.broker.id
     const { name, accountNumber, globalBrokerId } =
       current.account.createAccount
@@ -803,7 +836,7 @@ export function useStatementImport(): StatementImportFlow {
       globalBrokerId,
     })
     if (!res.ok) {
-      setRecordError(
+      report(
         (await readServerMessage(res)) ||
           `The brokerage account could not be created (error ${res.status}). Nothing was recorded.`,
       )
@@ -811,7 +844,7 @@ export function useStatementImport(): StatementImportFlow {
     }
     const created = ((await res.json()) as { data?: Broker }).data
     if (!created?.id) {
-      setRecordError(
+      report(
         "Beancounter did not return the brokerage account it was asked to create. Nothing was recorded. Check your brokerage accounts before trying again.",
       )
       return null
@@ -907,6 +940,7 @@ export function useStatementImport(): StatementImportFlow {
     setUnsupported(false)
     // The next import's portfolio takes its firm's currency unless chosen again.
     setNewCurrency("")
+    csvFlow.resetCsv()
     clearFile()
   }
 
@@ -965,5 +999,6 @@ export function useStatementImport(): StatementImportFlow {
     record,
     result,
     reset,
+    csvFlow,
   }
 }

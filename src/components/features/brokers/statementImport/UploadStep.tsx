@@ -366,8 +366,8 @@ export default function UploadStep({
 
       <ImportSection
         step={4}
-        title="Image"
-        lead="An image of the account's holdings page, such as a screenshot."
+        title="Image or CSV"
+        lead="An image of the account's holdings page, such as a screenshot, or a CSV of its transactions."
         done={done[3]}
         current={current === 3}
         className="border-t border-gray-200"
@@ -375,7 +375,7 @@ export default function UploadStep({
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="space-y-3">
             <label htmlFor="import-screenshot" className="sr-only">
-              Image
+              Image or CSV file
             </label>
             <ImageDropZone
               key={flow.fileInputKey}

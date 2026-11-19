@@ -34,6 +34,8 @@ const PREVIEW_URL = "/api/brokers/reconcile"
 const COMMIT_URL = "/api/brokers/reconcile/commit"
 const HELD_SINCE_URL = "/api/brokers/reconcile/held-since"
 const LOAD_URL = "/api/corporate-events/load/pf-1/background"
+const CSV_MAPPING_URL = "/api/brokers/csv-mapping"
+const TRN_IMPORT_URL = "/api/trns/import"
 
 const growth = { id: "pf-1", code: "GROWTH", name: "Growth" }
 const income = { id: "pf-2", code: "INCOME", name: "Income" }
@@ -176,6 +178,8 @@ interface Backend {
   commits: MockResponseInit[]
   /** What starting the background load of dividends and splits answers. */
   load: MockResponseInit
+  /** What the CSV mapping suggestion answers. */
+  csvMapping: MockResponseInit
 }
 
 let backend: Backend
@@ -229,6 +233,10 @@ async function respond(req: Request): Promise<MockResponseInit> {
   const url = req.url
   if (url.includes(HELD_SINCE_URL)) return heldSinceAnswer(req)
   if (url.includes(LOAD_URL)) return backend.load
+  if (url.includes(CSV_MAPPING_URL)) return backend.csvMapping
+  if (url.includes(TRN_IMPORT_URL)) return json("ok")
+  if (url.endsWith("/api/portfolios/pf-1"))
+    return json({ data: { ...growth, owner: { id: "owner-1" } } })
   if (url.includes(COMMIT_URL)) {
     const next =
       backend.commits.length > 1 ? backend.commits.shift() : backend.commits[0]
@@ -316,7 +324,7 @@ async function upload(user: UserEvent): Promise<void> {
   await chooseAccount(user, "gb-ibkr", "b-ibkr")
   await screen.findByRole("option", { name: /Growth/ })
   await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
-  await user.upload(screen.getByLabelText("Image"), screenshot())
+  await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
   await waitFor(() => expect(read).toBeEnabled())
   await user.click(read)
 }
@@ -358,6 +366,14 @@ beforeEach(() => {
     }),
     commits: [json({ data: { trns: [{ id: "t-1" }, { id: "t-2" }] } })],
     load: json({ status: "STARTED", portfolioId: "pf-1", asAt: todayIso() }),
+    csvMapping: json({
+      data: {
+        columns: ["Date", "Type", "Code", "Quantity", "Price", null],
+        typeValues: { Bought: "BUY", Sold: "SELL" },
+        dateFormat: "DD/MM/YYYY",
+        market: "US",
+      },
+    }),
   }
   fetchMock.mockResponse(respond)
 })
@@ -638,7 +654,7 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
     )
@@ -668,7 +684,7 @@ describe("<StatementImport /> upload", () => {
     expect(read).toHaveAccessibleDescription("Finish step 1 first.")
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     expect(read).toHaveAccessibleDescription("Finish step 4 first.")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
 
     await waitFor(() => expect(read).toBeEnabled())
     expect(screen.queryByText(/Finish step/)).not.toBeInTheDocument()
@@ -680,7 +696,7 @@ describe("<StatementImport /> upload", () => {
     const big = screenshot()
     Object.defineProperty(big, "size", { value: 8 * 1024 * 1024 + 1 })
 
-    await user.upload(screen.getByLabelText("Image"), big)
+    await user.upload(screen.getByLabelText("Image or CSV file"), big)
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /larger than 8 MB/,
@@ -689,7 +705,7 @@ describe("<StatementImport /> upload", () => {
     expect(callsTo(READ_URL)).toBe(0)
     // The input is emptied, so it does not show the refused file.
     expect(
-      (screen.getByLabelText("Image") as HTMLInputElement).files,
+      (screen.getByLabelText("Image or CSV file") as HTMLInputElement).files,
     ).toHaveLength(0)
   })
 
@@ -697,7 +713,7 @@ describe("<StatementImport /> upload", () => {
     const user = userEvent.setup()
     renderImport()
 
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     const read = screen.getByRole("button", { name: "Continue" })
     expect(screen.getByLabelText("Brokerage")).toBeRequired()
     expect(screen.getByLabelText("Brokerage account")).toBeRequired()
@@ -750,7 +766,7 @@ describe("<StatementImport /> upload", () => {
       within(account).queryByRole("option", { name: /IBKR Main/ }),
     ).not.toBeInTheDocument()
     await user.selectOptions(account, "b-schwab")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -767,7 +783,7 @@ describe("<StatementImport /> upload", () => {
     await screen.findByRole("option", { name: /IBKR Main/ })
     expect(screen.getByLabelText("Brokerage")).toHaveValue("gb-ibkr")
     expect(screen.getByLabelText("Brokerage account")).toHaveValue("b-ibkr")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -792,7 +808,7 @@ describe("<StatementImport /> new portfolio", () => {
   async function readIntoNewPortfolio(user: UserEvent): Promise<void> {
     renderImport()
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
   }
@@ -848,7 +864,7 @@ describe("<StatementImport /> new portfolio", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
@@ -889,13 +905,13 @@ describe("<StatementImport /> new portfolio", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import Another Image" }),
+      screen.getByRole("button", { name: "Import Another File" }),
     )
 
     expect(await screen.findByLabelText("Currency")).toHaveValue("USD")
@@ -948,7 +964,7 @@ describe("<StatementImport /> new brokerage account", () => {
       "Interactive Brokers",
     )
     await user.type(screen.getByLabelText("Account number"), "U999")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -991,7 +1007,7 @@ describe("<StatementImport /> new brokerage account", () => {
     const user = userEvent.setup()
     renderImport()
     await chooseCreateAccount(user)
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
 
     await user.clear(screen.getByLabelText("Account name"))
 
@@ -1019,7 +1035,7 @@ describe("<StatementImport /> new brokerage account", () => {
     renderImport()
     await chooseCreateAccount(user)
     if (cash) await user.type(screen.getByLabelText("Cash balance"), cash)
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
@@ -1043,7 +1059,7 @@ describe("<StatementImport /> new brokerage account", () => {
     await screen.findByRole("option", { name: "NZD" })
     await user.selectOptions(screen.getByLabelText("Currency"), "NZD")
     await user.type(screen.getByLabelText("Cash balance"), "300")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     expect(screen.getByLabelText("Currency")).toHaveValue("NZD")
@@ -1066,7 +1082,7 @@ describe("<StatementImport /> new brokerage account", () => {
     renderImport()
     await chooseCreateAccount(user)
     await user.type(screen.getByLabelText("Cash balance"), "300")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
@@ -1090,7 +1106,10 @@ describe("<StatementImport /> new brokerage account", () => {
       const user = userEvent.setup()
       renderImport()
       await chooseCreateAccount(user)
-      await user.upload(screen.getByLabelText("Image"), screenshot())
+      await user.upload(
+        screen.getByLabelText("Image or CSV file"),
+        screenshot(),
+      )
       const read = screen.getByRole("button", { name: "Continue" })
       await waitFor(() => expect(read).toBeEnabled())
 
@@ -1141,7 +1160,7 @@ describe("<StatementImport /> new brokerage account", () => {
     const user = userEvent.setup()
     renderImport()
     await chooseCreateAccount(user)
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
     await user.click(recordButton())
@@ -1162,7 +1181,7 @@ describe("<StatementImport /> confirm", () => {
     await chooseAccount(user, "gb-ibkr", "b-ibkr")
     await screen.findByRole("option", { name: /Income/ })
     await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
-    await user.upload(screen.getByLabelText("Image"), screenshot())
+    await user.upload(screen.getByLabelText("Image or CSV file"), screenshot())
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await screen.findByRole("heading", { name: "Confirm what was read" })
 
@@ -2172,7 +2191,7 @@ describe("<StatementImport /> record", () => {
     expect(mockPush).not.toHaveBeenCalled()
 
     await user.click(
-      screen.getByRole("button", { name: "Import Another Image" }),
+      screen.getByRole("button", { name: "Import Another File" }),
     )
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled()
     expect(callsTo(READ_URL)).toBe(1)
@@ -2184,7 +2203,7 @@ describe("<StatementImport /> record", () => {
     await user.click(recordButton())
     await screen.findByRole("heading", { name: "Recorded" })
     await user.click(
-      screen.getByRole("button", { name: "Import Another Image" }),
+      screen.getByRole("button", { name: "Import Another File" }),
     )
 
     await upload(user)
@@ -2194,5 +2213,307 @@ describe("<StatementImport /> record", () => {
 
     const [first, second] = bodiesSentTo<ConfirmedHoldings>(COMMIT_URL)
     expect(second.uploadId).not.toBe(first.uploadId)
+  })
+})
+
+const BROKER_CSV = [
+  "Trade Date,Action,Symbol,Shares,Price,Notes",
+  "03/02/2024,Bought,AAPL,10,150.25,first",
+  "04/02/2024,Sold,MSFT,2,400,",
+  "25/02/2024,Gifted,TSLA,1,200,",
+].join("\n")
+
+const csvFile = (content: string, name = "trades.csv"): File =>
+  new File([content], name, { type: "text/csv" })
+
+/** Choose the IBKR account and Growth portfolio, upload a CSV and press Continue. */
+async function uploadCsv(user: UserEvent, content: string): Promise<void> {
+  renderImport()
+  const read = screen.getByRole("button", { name: "Continue" })
+  await chooseAccount(user, "gb-ibkr", "b-ibkr")
+  await screen.findByRole("option", { name: /Growth/ })
+  await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
+  await user.upload(
+    screen.getByLabelText("Image or CSV file"),
+    csvFile(content),
+  )
+  await waitFor(() => expect(read).toBeEnabled())
+  await user.click(read)
+}
+
+/** The rows sent to the trn import, in Beancounter's column order. */
+const importedRows = (): string[][] =>
+  bodiesSentTo<{ row: string[] }>(TRN_IMPORT_URL).map((body) => body.row)
+
+describe("<StatementImport /> CSV", () => {
+  test("a CSV in another layout is mapped by suggestion, and only its header and samples are sent", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+
+    await screen.findByRole("heading", { name: "Map the columns" })
+    expect(callsTo(READ_URL)).toBe(0)
+    const [sent] = bodiesSentTo<{ headers: string[]; samples: string[][] }>(
+      CSV_MAPPING_URL,
+    )
+    expect(sent.headers).toEqual([
+      "Trade Date",
+      "Action",
+      "Symbol",
+      "Shares",
+      "Price",
+      "Notes",
+    ])
+    expect(sent.samples).toHaveLength(3)
+    expect(
+      await screen.findByLabelText("Beancounter column for Symbol"),
+    ).toHaveValue("Code")
+    expect(screen.getByLabelText("Beancounter column for Notes")).toHaveValue(
+      "",
+    )
+  })
+
+  test("a column the suggestion got wrong can be moved, and a type value it missed can be mapped", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+    await screen.findByLabelText("Beancounter column for Notes")
+
+    await user.selectOptions(
+      screen.getByLabelText("Beancounter column for Notes"),
+      "Comments",
+    )
+    expect(screen.getByText(/1 row will not be recorded/)).toBeInTheDocument()
+    expect(screen.getByText('No type for "Gifted"')).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText("Type for Gifted"), "ADD")
+
+    await user.click(
+      screen.getByRole("button", { name: "Record 3 Transactions" }),
+    )
+
+    await screen.findByRole("heading", { name: "Recorded" })
+    const rows = importedRows()
+    expect(rows).toHaveLength(3)
+    expect(rows[0].slice(2, 5)).toEqual(["BUY", "US", "AAPL"])
+    expect(rows[0][8]).toBe("2024-02-03")
+    expect(rows[0][17]).toBe("first")
+    expect(rows[0][19]).toBe("b-ibkr")
+    expect(rows[2][2]).toBe("ADD")
+    const [first] = bodiesSentTo<{ portfolio: { owner: { id: string } } }>(
+      TRN_IMPORT_URL,
+    )
+    expect(first.portfolio.owner.id).toBe("owner-1")
+    expect(
+      screen.getByRole("button", { name: "Load and View Portfolio" }),
+    ).toBeInTheDocument()
+  })
+
+  test("a second press of Continue while a CSV is read asks for one suggestion", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    const read = screen.getByRole("button", { name: "Continue" })
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    await screen.findByRole("option", { name: /Growth/ })
+    await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
+    await user.upload(
+      screen.getByLabelText("Image or CSV file"),
+      csvFile(BROKER_CSV),
+    )
+    await waitFor(() => expect(read).toBeEnabled())
+
+    fireEvent.click(read)
+    fireEvent.click(read)
+
+    await screen.findByLabelText("Beancounter column for Symbol")
+    expect(callsTo(CSV_MAPPING_URL)).toBe(1)
+  })
+
+  test("Record again after a dropped connection sends only the rows not yet sent", async () => {
+    let imports = 0
+    fetchMock.mockResponse((req) => {
+      if (!req.url.includes(TRN_IMPORT_URL)) return respond(req)
+      imports++
+      return imports === 2
+        ? Promise.reject(new Error("offline"))
+        : Promise.resolve(json("ok"))
+    })
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+    await screen.findByLabelText("Type for Gifted")
+    await user.selectOptions(screen.getByLabelText("Type for Gifted"), "ADD")
+
+    const record = screen.getByRole("button", {
+      name: "Record 3 Transactions",
+    })
+    await user.click(record)
+    expect(
+      await screen.findByText(/Beancounter could not be reached/),
+    ).toBeInTheDocument()
+    await user.click(record)
+
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(importedRows().map((row) => row[4])).toEqual([
+      "AAPL",
+      "MSFT",
+      "MSFT",
+      "TSLA",
+    ])
+  })
+
+  test("an account that cannot be created records no CSV rows and says why", async () => {
+    backend.createdAccount = json(
+      { message: "Broker with name 'Interactive Brokers' already exists" },
+      400,
+    )
+    const user = userEvent.setup()
+    renderImport()
+    await screen.findByRole("option", { name: "Charles Schwab" })
+    await user.selectOptions(screen.getByLabelText("Brokerage"), "gb-ibkr")
+    await user.selectOptions(
+      screen.getByLabelText("Brokerage account"),
+      "__NEW_ACCOUNT__",
+    )
+    await user.upload(
+      screen.getByLabelText("Image or CSV file"),
+      csvFile(BROKER_CSV),
+    )
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await screen.findByLabelText("Type for Gifted")
+    await user.selectOptions(screen.getByLabelText("Type for Gifted"), "ADD")
+    await user.click(
+      screen.getByRole("button", { name: "Record 3 Transactions" }),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Broker with name 'Interactive Brokers' already exists",
+    )
+    expect(callsTo(TRN_IMPORT_URL)).toBe(0)
+  })
+
+  test("Record waits for the required columns", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+    await screen.findByLabelText("Beancounter column for Symbol")
+
+    await user.selectOptions(
+      screen.getByLabelText("Beancounter column for Symbol"),
+      "",
+    )
+
+    expect(screen.getByText("Map a column to Code")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /^Record \d+ Transactions?$/ }),
+    ).toBeDisabled()
+  })
+
+  test("when no suggestion comes back the columns can be mapped by hand", async () => {
+    backend.csvMapping = json(
+      { error: "Suggesting a mapping is not set up here." },
+      503,
+    )
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+
+    expect(
+      await screen.findByText("Suggesting a mapping is not set up here."),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText("Beancounter column for Symbol")).toHaveValue(
+      "",
+    )
+  })
+
+  test("a file already in Beancounter's format is not sent for a suggestion", async () => {
+    const header =
+      "Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments"
+    const row = "b1,c1,BUY,US,AAPL,,,USD,2024-02-03,10,,USD,150,0,,1500,-1500,"
+    const user = userEvent.setup()
+    await uploadCsv(user, `${header}\n${row}`)
+
+    await screen.findByText(/already in Beancounter's format/)
+    expect(callsTo(CSV_MAPPING_URL)).toBe(0)
+    await user.click(
+      screen.getByRole("button", { name: "Record 1 Transaction" }),
+    )
+    await screen.findByRole("heading", { name: "Recorded" })
+    // Sent as it is, with the chosen brokerage account filled in where the
+    // file names none.
+    const sent = importedRows()[0]
+    expect(sent.slice(0, 18)).toEqual(row.split(","))
+    expect(sent[19]).toBe("b-ibkr")
+  })
+
+  test("dates are read in the format every row proves, whatever the suggestion said", async () => {
+    backend.csvMapping = json({
+      data: {
+        columns: ["Date", "Type", "Code", "Quantity", "Price", null],
+        typeValues: { Bought: "BUY", Sold: "SELL", Gifted: "ADD" },
+        dateFormat: "MM/DD/YYYY",
+        market: "US",
+      },
+    })
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "03/02/2024,Bought,AAPL,10,150,",
+        "20/02/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(/Dates read as DD\/MM\/YYYY: 20\/02\/2024/),
+    ).toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", { name: "Record 2 Transactions" }),
+    )
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(importedRows().map((row) => row[8])).toEqual([
+      "2024-02-03",
+      "2024-02-20",
+    ])
+  })
+
+  test("when every date fits either format, Record waits until the format is confirmed", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "03/02/2024,Bought,AAPL,10,150,",
+        "04/02/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(/fits both DD\/MM\/YYYY and MM\/DD\/YYYY/),
+    ).toBeInTheDocument()
+    const record = screen.getByRole("button", { name: "Record 2 Transactions" })
+    expect(record).toBeDisabled()
+
+    await user.click(
+      screen.getByRole("button", { name: "The dates are DD/MM/YYYY" }),
+    )
+
+    expect(record).toBeEnabled()
+  })
+
+  test("dates that contradict each other block Record", async () => {
+    const user = userEvent.setup()
+    await uploadCsv(
+      user,
+      [
+        "Trade Date,Action,Symbol,Shares,Price,Notes",
+        "20/02/2024,Bought,AAPL,10,150,",
+        "2/21/2024,Sold,AAPL,2,160,",
+      ].join("\n"),
+    )
+
+    expect(
+      await screen.findByText(
+        /20\/02\/2024 is day-first but 2\/21\/2024 is month-first/,
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /^Record \d+ Transactions?$/ }),
+    ).toBeDisabled()
   })
 })

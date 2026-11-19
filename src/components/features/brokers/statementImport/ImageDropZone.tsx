@@ -2,10 +2,11 @@ import React from "react"
 import { useDropzone } from "react-dropzone"
 import { IMAGE_TYPES } from "./statementRows"
 
-/** react-dropzone's form of the types the reader takes. */
-const ACCEPTED: Record<string, string[]> = Object.fromEntries(
-  IMAGE_TYPES.split(",").map((type) => [type, []]),
-)
+/** react-dropzone's form of the types the import takes: images, and transaction CSVs. */
+const ACCEPTED: Record<string, string[]> = {
+  ...Object.fromEntries(IMAGE_TYPES.split(",").map((type) => [type, []])),
+  "text/csv": [".csv"],
+}
 
 interface ImageDropZoneProps {
   id: string
@@ -60,11 +61,14 @@ export default function ImageDropZone({
         </span>
         <span className="min-w-0">
           <span className="block font-medium text-gray-900">
-            {isDragActive ? "Drop the image here" : "Drop an image here"}
+            {isDragActive
+              ? "Drop the file here"
+              : "Drop an image or CSV file here"}
           </span>
           <span className="block text-gray-600 mt-0.5">
-            or paste one with Ctrl+V (⌘V on a Mac), or click to choose a file.
-            PNG, JPEG, WebP or GIF, up to 8 MB.
+            or paste an image with Ctrl+V (⌘V on a Mac), or click to choose a
+            file. PNG, JPEG, WebP or GIF, or a CSV of transactions in any
+            layout, up to 8 MB.
           </span>
         </span>
       </div>
