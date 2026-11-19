@@ -294,7 +294,6 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
           problems: [],
         }))
       : applyMapping(session.rows, session.mapping, {
-          batch: session.uploadId.slice(0, 8),
           brokerId,
           today,
         })

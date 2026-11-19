@@ -33,6 +33,8 @@ export type BcColumn = (typeof BC_COLUMNS)[number]
 
 /** The columns a user's own file can supply; the rest the import fills in. */
 export const MAPPABLE_COLUMNS: BcColumn[] = [
+  "CallerId",
+  "Batch",
   "Date",
   "Type",
   "Code",
@@ -93,8 +95,6 @@ export interface MappedRow {
 }
 
 interface MappingContext {
-  /** Shared by every row of one import, so its rows can be found together. */
-  batch: string
   /** The brokerage account the rows belong to. */
   brokerId: string
   /** yyyy-mm-dd; svc-data refuses a later trade date. */
@@ -209,9 +209,8 @@ function cleanNumber(value: string): string | null {
 /** One source row in Beancounter's column order, with what stops it recording. */
 function mapRow(
   source: string[],
-  index: number,
   mapping: CsvMapping,
-  { batch, brokerId, today }: MappingContext,
+  { brokerId, today }: MappingContext,
 ): MappedRow {
   const values = BC_COLUMNS.map(() => "")
   const set = (column: BcColumn, value: string): void => {
@@ -229,8 +228,6 @@ function mapRow(
     if (written === null) problems.push(`"${value}" is not a number`)
     else set(column, written)
   })
-  set("Batch", batch)
-  set("CallerId", `${batch}-${index + 1}`)
   set("Broker", brokerId)
   if (!shown("Market")) set("Market", mapping.market.trim())
 
@@ -251,13 +248,69 @@ function mapRow(
   return { values, problems }
 }
 
+// FNV-1a 32-bit, as published: offset basis and prime.
+const FNV_OFFSET_BASIS = 0x811c9dc5
+const FNV_PRIME = 0x01000193
+const HEX = 16
+const HASH_HEX_DIGITS = 8
+
+/** FNV-1a: a short, stable hash, so the same row always gets the same id. */
+function fnv1a(text: string): string {
+  let hash = FNV_OFFSET_BASIS
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, FNV_PRIME)
+  }
+  return (hash >>> 0).toString(HEX).padStart(HASH_HEX_DIGITS, "0")
+}
+
+/** One caller reference as a key: unique per batch. */
+const refKey = (batch: string, callerId: string): string =>
+  `${batch}|${callerId}`
+
+/**
+ * Each row's caller reference, which svc-data uses to update a row imported
+ * before. The batch is the mapped Batch, else the trade date as YYYYMMDD. The
+ * id is the mapped ID, else a key from the row's content, numbered when the
+ * same content repeats, so re-importing the file gives the same references. A
+ * mapped ID that repeats in its batch stops the later row.
+ */
+function withCallerRefs(rows: MappedRow[]): MappedRow[] {
+  const used = new Set<string>()
+  return rows.map((row) => {
+    const get = (column: BcColumn): string =>
+      row.values[BC_COLUMNS.indexOf(column)]
+    const values = [...row.values]
+    const set = (column: BcColumn, value: string): void => {
+      values[BC_COLUMNS.indexOf(column)] = value
+    }
+    const problems = [...row.problems]
+    const batch = get("Batch") || get("Date").replaceAll("-", "")
+    let callerId = get("CallerId")
+    if (callerId) {
+      if (used.has(refKey(batch, callerId)))
+        problems.push(`ID "${callerId}" is already used in batch ${batch}`)
+    } else {
+      const content = ["Date", "Type", "Code", "Quantity", "Price"] as const
+      const key = `${get("Code")}-${get("Type")}-${fnv1a(content.map(get).join("|"))}`
+      callerId = key
+      for (let n = 2; used.has(refKey(batch, callerId)); n++)
+        callerId = `${key}-${n}`
+    }
+    used.add(refKey(batch, callerId))
+    set("Batch", batch)
+    set("CallerId", callerId)
+    return { values, problems }
+  })
+}
+
 /** Each source row written in Beancounter's column order, with what stops it recording. */
 export function applyMapping(
   rows: string[][],
   mapping: CsvMapping,
   context: MappingContext,
 ): MappedRow[] {
-  return rows.map((source, index) => mapRow(source, index, mapping, context))
+  return withCallerRefs(rows.map((source) => mapRow(source, mapping, context)))
 }
 
 const isColumn = (value: unknown): value is BcColumn =>

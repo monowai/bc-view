@@ -18,6 +18,7 @@ export const MAPPING_SYSTEM_PROMPT = [
   `Transaction types: ${TRN_TYPES.join(", ")}.`,
   "BUY and SELL are trades for cash. ADD and REDUCE move shares in or out with no cash (transfers, gifts).",
   "DIVI is a dividend. DEPOSIT and WITHDRAWAL move cash.",
+  "CallerId is the broker's own unique id for a transaction (trade id, order id, reference). Batch groups transactions, such as a statement or settlement date. Leave both null when the file has no such column.",
   "Reply with JSON only, in this shape:",
   `{"columns": [one entry per header, in order: a column name or null], "typeValues": {"value as written in the type column": "TYPE"}, "dateFormat": one of ${DATE_FORMATS.map((f) => `"${f}"`).join(", ")}, "market": "the exchange code if the file implies one for every row, else empty"}`,
   "Use each column name at most once. Use null for a header that fits no column.",

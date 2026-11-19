@@ -25,7 +25,7 @@ const mapping: CsvMapping = {
   market: "US",
 }
 
-const context = { batch: "B1", brokerId: "b-ibkr", today: "2026-11-19" }
+const context = { brokerId: "b-ibkr", today: "2026-11-19" }
 
 describe("isBeancounterHeader", () => {
   it("recognises a header row in Beancounter's own order, case and spacing aside", () => {
@@ -57,8 +57,9 @@ describe("applyMapping", () => {
     const at = (column: (typeof BC_COLUMNS)[number]): string =>
       row.values[BC_COLUMNS.indexOf(column)]
     expect(row.values).toHaveLength(BC_COLUMNS.length)
-    expect(at("Batch")).toBe("B1")
-    expect(at("CallerId")).toBe("B1-1")
+    // No Batch or ID column: the batch is the trade date, the id a stable key.
+    expect(at("Batch")).toBe("20240203")
+    expect(at("CallerId")).toMatch(/^AAPL-BUY-[0-9a-f]{8}$/)
     expect(at("Type")).toBe("BUY")
     expect(at("Market")).toBe("US")
     expect(at("Code")).toBe("AAPL")
@@ -248,5 +249,51 @@ describe("inferDateFormat", () => {
 
   it("has nothing to say about no dates", () => {
     expect(inferDateFormat(["", "  "])).toEqual({ kind: "none" })
+  })
+})
+
+describe("caller reference", () => {
+  const withIds: CsvMapping = {
+    ...mapping,
+    columns: ["Date", "Type", "Code", "Quantity", "Price", "CallerId", "Batch"],
+  }
+  const at = (
+    row: { values: string[] },
+    column: (typeof BC_COLUMNS)[number],
+  ): string => row.values[BC_COLUMNS.indexOf(column)]
+
+  it("takes the ID and batch from mapped columns, so a re-import matches", () => {
+    const [row] = applyMapping(
+      [["03/02/2024", "Bought", "AAPL", "10", "150", "T-77", "BATCH-9"]],
+      withIds,
+      context,
+    )
+    expect(at(row, "CallerId")).toBe("T-77")
+    expect(at(row, "Batch")).toBe("BATCH-9")
+  })
+
+  it("gives the same row the same generated ID every time, and identical rows distinct ones", () => {
+    const rows = [
+      ["03/02/2024", "Bought", "AAPL", "10", "150", "", ""],
+      ["03/02/2024", "Bought", "AAPL", "10", "150", "", ""],
+    ]
+    const first = applyMapping(rows, mapping, context)
+    const again = applyMapping(rows, mapping, context)
+    expect(first.map((r) => at(r, "CallerId"))).toEqual(
+      again.map((r) => at(r, "CallerId")),
+    )
+    expect(at(first[1], "CallerId")).toBe(`${at(first[0], "CallerId")}-2`)
+  })
+
+  it("stops a row whose ID repeats one already in the same batch", () => {
+    const [, repeat] = applyMapping(
+      [
+        ["03/02/2024", "Bought", "AAPL", "10", "150", "T-1", "B"],
+        ["04/02/2024", "Sold", "MSFT", "1", "400", "T-1", "B"],
+      ],
+      withIds,
+      context,
+    )
+    expect(repeat.problems).toEqual(['ID "T-1" is already used in batch B'])
   })
 })

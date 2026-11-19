@@ -24,6 +24,7 @@ const PREVIEW_ROWS = 8
 
 /** Beancounter's names for its columns, in plain words. */
 const COLUMN_LABEL: Partial<Record<BcColumn, string>> = {
+  CallerId: "ID (updates on re-import)",
   TradeAmount: "Trade amount",
   CashAmount: "Cash amount",
   TradeCurrency: "Trade currency",
