@@ -50,6 +50,7 @@ const renderCards = (
       currencySymbol="$"
       spend={null}
       spendUnavailable={false}
+      spendOtherCurrency={null}
       onLogSpend={jest.fn()}
       {...overrides}
     />,
@@ -142,6 +143,13 @@ describe("RetiredMetrics", () => {
     renderCards({ spendUnavailable: true })
     expect(
       screen.getByText("Spend log unavailable — showing investment sales"),
+    ).toBeInTheDocument()
+  })
+
+  it("says why spend logged in another currency is not compared", () => {
+    renderCards({ spendOtherCurrency: "SGD" })
+    expect(
+      screen.getByText("Spend is logged in SGD — showing investment sales"),
     ).toBeInTheDocument()
   })
 

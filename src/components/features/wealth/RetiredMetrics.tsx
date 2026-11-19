@@ -50,6 +50,8 @@ interface RetiredMetricsProps {
   onLogSpend: () => void
   /** The spend log failed to load. */
   spendUnavailable: boolean
+  /** The spend log's currency when it is not the plan's, so it cannot be compared. */
+  spendOtherCurrency: string | null
 }
 
 function Bar({
@@ -83,6 +85,7 @@ export default function RetiredMetrics({
   spend,
   onLogSpend,
   spendUnavailable,
+  spendOtherCurrency,
 }: RetiredMetricsProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const money = (n: number): string =>
@@ -147,6 +150,11 @@ export default function RetiredMetrics({
         {spendUnavailable && !hideValues && (
           <p className="text-xs text-loss mb-1">
             Spend log unavailable — showing investment sales
+          </p>
+        )}
+        {spendOtherCurrency && !hideValues && (
+          <p className="text-xs text-gray-500 mb-1">
+            Spend is logged in {spendOtherCurrency} — showing investment sales
           </p>
         )}
         {hideValues ? (

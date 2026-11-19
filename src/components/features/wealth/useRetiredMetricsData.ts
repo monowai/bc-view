@@ -48,6 +48,8 @@ interface RetiredMetricsData {
   refreshSpend: () => void
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
+  /** The spend log's currency when it differs from the plan's; spend is then not compared. */
+  spendOtherCurrency: string | null
 }
 
 const DAYS_PER_YEAR = 365
@@ -126,12 +128,19 @@ export function useRetiredMetricsData(
     budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
   )
   const spendEntries = spendData?.data ?? []
+  // The service locks the log to its first currency; budgets are in the plan's.
+  const logCurrency = spendEntries[0]?.currency ?? null
+  const spendOtherCurrency =
+    logCurrency !== null && logCurrency !== projection.currency
+      ? logCurrency
+      : null
 
   return {
     budgets,
     spendEntries,
+    spendOtherCurrency,
     spend: spendSummary(
-      spendEntries,
+      spendOtherCurrency === null ? spendEntries : [],
       budgetByCategory,
       plannedAnnualDrawdown(projection),
       window,

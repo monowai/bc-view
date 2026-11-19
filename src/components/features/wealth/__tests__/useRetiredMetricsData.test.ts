@@ -80,8 +80,18 @@ describe("useRetiredMetricsData", () => {
       },
     ]
     spendRows = [
-      { month: thisMonth(), categoryLabelId: "housing", actual: 2_500 },
-      { month: thisMonth(), categoryLabelId: "travel", actual: 1_500 },
+      {
+        month: thisMonth(),
+        categoryLabelId: "housing",
+        actual: 2_500,
+        currency: "NZD",
+      },
+      {
+        month: thisMonth(),
+        categoryLabelId: "travel",
+        actual: 1_500,
+        currency: "NZD",
+      },
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.budgets.map((b) => b.categoryLabelId)).toEqual([
@@ -99,8 +109,18 @@ describe("useRetiredMetricsData", () => {
     const d = new Date()
     const yearAgo = `${d.getFullYear() - 1}-${String(d.getMonth() + 1).padStart(2, "0")}`
     spendRows = [
-      { month: yearAgo, categoryLabelId: "housing", actual: 9_999 },
-      { month: thisMonth(), categoryLabelId: "housing", actual: 2_000 },
+      {
+        month: yearAgo,
+        categoryLabelId: "housing",
+        actual: 9_999,
+        currency: "NZD",
+      },
+      {
+        month: thisMonth(),
+        categoryLabelId: "housing",
+        actual: 2_000,
+        currency: "NZD",
+      },
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.historyMonths).toHaveLength(24)
@@ -110,6 +130,40 @@ describe("useRetiredMetricsData", () => {
       monthsEntered: 1,
       actual: 2_000,
     })
+  })
+
+  it("leaves spend logged in another currency out of the plan comparison", () => {
+    expenseRows = [
+      {
+        categoryLabelId: "housing",
+        monthlyAmount: 2_000,
+        expensePhase: "RETIREMENT",
+      },
+    ]
+    spendRows = [
+      {
+        month: thisMonth(),
+        categoryLabelId: "housing",
+        actual: 2_500,
+        currency: "SGD",
+      },
+    ]
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.spend).toBeNull()
+    expect(result.current.spendOtherCurrency).toBe("SGD")
+  })
+
+  it("has no other currency when spend is logged in the plan's", () => {
+    spendRows = [
+      {
+        month: thisMonth(),
+        categoryLabelId: "housing",
+        actual: 2_000,
+        currency: "NZD",
+      },
+    ]
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.spendOtherCurrency).toBeNull()
   })
 
   it("has no spend summary before any spend is recorded", () => {

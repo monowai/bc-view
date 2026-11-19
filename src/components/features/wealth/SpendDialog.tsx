@@ -145,12 +145,19 @@ function SpendMonthForm({
         }))
         .filter((e) => e.projected != null || e.actual != null),
     }
+    const failed = `Could not save spend for ${monthLabel(month)}`
     try {
       const res = await saveSpend(month, request)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      onSaved()
+      if (res.ok) {
+        onSaved()
+      } else {
+        // A refusal (400) carries the reason, such as the log's locked currency.
+        const body: { message?: string } | null =
+          res.status === 400 ? await res.json().catch(() => null) : null
+        setError(body?.message || failed)
+      }
     } catch {
-      setError(`Could not save spend for ${monthLabel(month)}`)
+      setError(failed)
     } finally {
       setSaving(false)
     }

@@ -180,6 +180,24 @@ describe("SpendDialog", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("shows the service's reason when it refuses the save", async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () =>
+        Promise.resolve({
+          message: "Spend is recorded in SGD; NZD cannot be mixed in",
+        }),
+    })
+    renderDialog(jest.fn())
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    expect(
+      await screen.findByText(
+        "Spend is recorded in SGD; NZD cannot be mixed in",
+      ),
+    ).toBeInTheDocument()
+  })
+
   it("shows the error and stays open when the save fails", async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 500 })
     const onSaved = jest.fn()
