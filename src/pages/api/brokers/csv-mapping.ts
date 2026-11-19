@@ -13,6 +13,8 @@ import {
 } from "@utils/csvImport/mappingPrompt"
 
 const DEFAULT_MODEL = "deepseek-flash"
+/** A gateway that has not answered by then gets the 502 fallback, not a hung request. */
+const GATEWAY_TIMEOUT_MS = 30_000
 
 const isRow = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((cell) => typeof cell === "string")
@@ -26,6 +28,7 @@ async function askGateway(
 ): Promise<CsvMapping | null> {
   const reply = await fetch(`${gateway}/v1/chat/completions`, {
     method: "POST",
+    signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,

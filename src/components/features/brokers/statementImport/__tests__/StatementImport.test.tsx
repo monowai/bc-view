@@ -2306,6 +2306,58 @@ describe("<StatementImport /> CSV", () => {
     ).toBeInTheDocument()
   })
 
+  test("a second press of Continue while a CSV is read asks for one suggestion", async () => {
+    const user = userEvent.setup()
+    renderImport()
+    const read = screen.getByRole("button", { name: "Continue" })
+    await chooseAccount(user, "gb-ibkr", "b-ibkr")
+    await screen.findByRole("option", { name: /Growth/ })
+    await user.selectOptions(screen.getByLabelText("Portfolio"), "pf-1")
+    await user.upload(
+      screen.getByLabelText("Image or CSV file"),
+      csvFile(BROKER_CSV),
+    )
+    await waitFor(() => expect(read).toBeEnabled())
+
+    fireEvent.click(read)
+    fireEvent.click(read)
+
+    await screen.findByLabelText("Beancounter column for Symbol")
+    expect(callsTo(CSV_MAPPING_URL)).toBe(1)
+  })
+
+  test("Record again after a dropped connection sends only the rows not yet sent", async () => {
+    let imports = 0
+    fetchMock.mockResponse((req) => {
+      if (!req.url.includes(TRN_IMPORT_URL)) return respond(req)
+      imports++
+      return imports === 2
+        ? Promise.reject(new Error("offline"))
+        : Promise.resolve(json("ok"))
+    })
+    const user = userEvent.setup()
+    await uploadCsv(user, BROKER_CSV)
+    await screen.findByLabelText("Type for Gifted")
+    await user.selectOptions(screen.getByLabelText("Type for Gifted"), "ADD")
+
+    const record = screen.getByRole("button", {
+      name: "Record 3 Transactions",
+    })
+    await user.click(record)
+    expect(
+      await screen.findByText(/Beancounter could not be reached/),
+    ).toBeInTheDocument()
+    await user.click(record)
+
+    await screen.findByRole("heading", { name: "Recorded" })
+    expect(importedRows().map((row) => row[4])).toEqual([
+      "AAPL",
+      "MSFT",
+      "MSFT",
+      "TSLA",
+    ])
+  })
+
   test("Record waits for the required columns", async () => {
     const user = userEvent.setup()
     await uploadCsv(user, BROKER_CSV)

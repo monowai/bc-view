@@ -18,6 +18,10 @@ export function createPortfolios(request: unknown): Promise<Response> {
   return fetch(activePortfoliosKey, jsonInit("POST", request))
 }
 
+export function getPortfolio(portfolioId: string): Promise<Response> {
+  return fetch(portfolioKey(portfolioId))
+}
+
 export function deletePortfolio(portfolioId: string): Promise<Response> {
   return fetch(portfolioKey(portfolioId), { method: "DELETE" })
 }

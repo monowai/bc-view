@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import Papa from "papaparse"
 import { suggestCsvMapping } from "@utils/api/client/brokers"
-import { portfolioKey } from "@utils/api/client/portfolios"
+import { getPortfolio } from "@utils/api/client/portfolios"
 import { importTrnRow } from "@utils/api/client/trns"
 import { readServerMessage } from "@utils/api/client/request"
 import { todayIso } from "@utils/formatters"
@@ -141,6 +141,9 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
   const resolved = useRef<{ accountId?: string; portfolio?: ImportPortfolio }>(
     {},
   )
+  // The rows (by position in the file) already recorded, so a retry after a
+  // dropped connection does not send them again.
+  const sent = useRef(new Set<number>())
 
   const today = todayIso()
   const readCsv = async (
@@ -158,6 +161,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
     const { headers, rows } = parseCsv(text)
     const beancounterFormat = isBeancounterHeader(headers)
     resolved.current = {}
+    sent.current = new Set()
     setCsvRecordError(null)
     setMappingError(null)
     const session: CsvSession = {
@@ -254,7 +258,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       if (!target) return
       resolved.current.portfolio = target
       // svc-data reads the owner from the portfolio the row carries.
-      const portfolioRes = await fetch(portfolioKey(target.id))
+      const portfolioRes = await getPortfolio(target.id)
       if (!portfolioRes.ok) {
         setCsvRecordError(
           (await readServerMessage(portfolioRes)) ||
@@ -264,30 +268,32 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       }
       const portfolio = ((await portfolioRes.json()) as { data: Portfolio })
         .data
-      const ready = mappedRows(csv, accountId).filter(
-        (row) => row.problems.length === 0,
-      )
+      const ready = mappedRows(csv, accountId)
+        .map((row, at) => ({ row, at }))
+        .filter(({ row }) => row.problems.length === 0)
       const warnings: string[] = []
-      let recorded = 0
-      for (const row of ready) {
+      // One at a time, so svc-data receives the trades in the file's order
+      // and a dropped connection leaves a clear line between sent and not.
+      for (const { row, at } of ready) {
+        if (sent.current.has(at)) continue
         const res = await importTrnRow({
           hasHeader: true,
           portfolio,
           purge: false,
           row: row.values,
         })
-        if (res.ok) recorded++
+        if (res.ok) sent.current.add(at)
         else
           warnings.push(
             `${row.values[BC_COLUMNS.indexOf("Code")]} on ${row.values[BC_COLUMNS.indexOf("Date")]}: not sent (error ${res.status})`,
           )
       }
       const dates = ready
-        .map((row) => row.values[BC_COLUMNS.indexOf("Date")])
+        .map(({ row }) => row.values[BC_COLUMNS.indexOf("Date")])
         .filter(Boolean)
         .sort()
       deps.onRecorded({
-        recorded,
+        recorded: sent.current.size,
         warnings,
         brokerId: accountId,
         portfolio: target,
@@ -295,7 +301,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
       })
     } catch {
       setCsvRecordError(
-        "Beancounter could not be reached. Some rows may not have been sent; check the portfolio before trying again.",
+        "Beancounter could not be reached. Some rows may not have been sent; Record again sends only the rows that were not.",
       )
     } finally {
       recordInFlight.current = false
@@ -309,6 +315,7 @@ export function useCsvSession(deps: CsvRecordDeps): CsvFlow {
     setMappingError(null)
     setCsvRecordError(null)
     resolved.current = {}
+    sent.current = new Set()
   }
 
   return {

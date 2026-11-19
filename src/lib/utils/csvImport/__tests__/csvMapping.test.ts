@@ -74,6 +74,23 @@ describe("applyMapping", () => {
     expect(row.values[BC_COLUMNS.indexOf("Price")]).toBe("1050.10")
   })
 
+  it("stops a row whose number cannot be read rather than misreading it", () => {
+    const rows = applyMapping(
+      [
+        ["03/02/2024", "Bought", "SAP", "1,23", "1", "", ""],
+        ["03/02/2024", "Bought", "SAP", "1", "1.234.56", "", ""],
+        ["03/02/2024", "Bought", "SAP", "1", "1.234,56", "", ""],
+      ],
+      mapping,
+      context,
+    )
+    expect(rows.map((row) => row.problems)).toEqual([
+      ['"1,23" is not a number'],
+      ['"1.234.56" is not a number'],
+      ['"1.234,56" is not a number'],
+    ])
+  })
+
   it("says what is wrong with a row it cannot record", () => {
     const [unknownType, badDate, future] = applyMapping(
       [

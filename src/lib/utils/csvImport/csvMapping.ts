@@ -155,8 +155,19 @@ const NUMERIC: BcColumn[] = [
   "CashAmount",
 ]
 
-/** A number as svc-data parses it: no currency signs, spaces or thousands separators. */
-const cleanNumber = (value: string): string => value.replace(/[^0-9.\-]/g, "")
+/** Digits with an optional sign, comma thousands groups and a point decimal. */
+const NUMBER = /^-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$/
+
+/**
+ * A number as svc-data parses it: no currency signs, spaces or thousands
+ * separators. Null when what is left is not one number, such as a decimal
+ * comma ("1,23") or "1.234.56", so the row is stopped rather than misread.
+ */
+function cleanNumber(value: string): string | null {
+  const bare = value.replace(/[^0-9.,\-]/g, "")
+  if (!bare) return ""
+  return NUMBER.test(bare) ? bare.replaceAll(",", "") : null
+}
 
 /** One source row in Beancounter's column order, with what stops it recording. */
 function mapRow(
@@ -177,7 +188,9 @@ function mapRow(
   mapping.columns.forEach((column, at) => {
     if (!column) return
     const value = (source[at] ?? "").trim()
-    set(column, NUMERIC.includes(column) ? cleanNumber(value) : value)
+    const written = NUMERIC.includes(column) ? cleanNumber(value) : value
+    if (written === null) problems.push(`"${value}" is not a number`)
+    else set(column, written)
   })
   set("Batch", batch)
   set("CallerId", `${batch}-${index + 1}`)

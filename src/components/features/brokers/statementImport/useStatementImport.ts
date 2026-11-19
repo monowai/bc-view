@@ -455,8 +455,13 @@ export function useStatementImport(): StatementImportFlow {
   ): Promise<void> => {
     if (!file || readInFlight.current) return
     if (isCsvFile(file)) {
+      readInFlight.current = true
       setSession(null)
-      await csvFlow.readCsv(file, target, account)
+      try {
+        await csvFlow.readCsv(file, target, account)
+      } finally {
+        readInFlight.current = false
+      }
       return
     }
     readInFlight.current = true
