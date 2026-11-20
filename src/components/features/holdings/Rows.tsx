@@ -14,6 +14,7 @@ import {
   SetBalanceData,
   CashTransferData,
   CostAdjustData,
+  MoneyValues,
   MovePositionData,
   PortfolioBreakdown,
   PortfolioBreakdownData,
@@ -53,6 +54,7 @@ import {
   SectorWeightingsData,
 } from "./ActionsMenus"
 import { deriveTradeToPortfolioFxRate } from "@lib/trns/tradeFormHelpers"
+import { formatSignedPercent } from "@lib/formatters"
 import { COPYABLE_HOLDING_COLUMNS } from "./constants"
 
 export type { CorporateActionsData, SectorWeightingsData }
@@ -77,6 +79,47 @@ interface RowsProps extends HoldingValues {
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
   onEditAsset?: (asset: Asset) => void
   onGoToPortfolio?: (asset: Asset) => void
+}
+
+/**
+ * Returns behind a holding's IRR. The IRR covers the current holding only, so a
+ * holding re-bought after a sell-out adds the lifetime ROI and IRR of every cycle,
+ * under one "Lifetime" row label.
+ */
+function IrrTooltipLines({
+  moneyValues,
+}: {
+  moneyValues: MoneyValues
+}): React.ReactElement {
+  const { roi, irr, lifetimeIrr } = moneyValues
+  const lifetime = lifetimeIrr !== undefined && lifetimeIrr !== irr
+  return (
+    <span
+      className={`grid items-baseline gap-x-2 gap-y-0.5 ${
+        lifetime ? "grid-cols-[auto_auto_auto]" : "grid-cols-[auto_auto]"
+      }`}
+    >
+      {lifetime && <span className="row-span-2 text-slate-400">Lifetime</span>}
+      <span>ROI</span>
+      <span
+        className="text-right font-mono tabular-nums"
+        data-testid="tooltip-roi"
+      >
+        {formatSignedPercent(roi)}
+      </span>
+      {lifetime && (
+        <>
+          <span>IRR</span>
+          <span
+            className="text-right font-mono tabular-nums"
+            data-testid="tooltip-irr"
+          >
+            {formatSignedPercent(lifetimeIrr)}
+          </span>
+        </>
+      )}
+    </span>
+  )
 }
 
 // Helper function to truncate text with ellipsis
@@ -520,9 +563,11 @@ export default function Rows({
                     isPublic
                   />
                   {"%"}
-                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                    ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
-                    %
+                  <span
+                    data-testid="irr-tooltip"
+                    className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg"
+                  >
+                    <IrrTooltipLines moneyValues={moneyValues[valueIn]} />
                   </span>
                 </span>
               )}

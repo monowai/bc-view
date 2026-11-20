@@ -4,6 +4,7 @@ import {
   formatCompactSymbol,
   formatDate,
   formatQuantity,
+  formatSignedPercent,
   localIsoDate,
   todayIso,
 } from "./formatters"
@@ -149,5 +150,19 @@ describe("formatQuantity", () => {
     expect(formatQuantity(0.123456)).toBe(
       (0.1235).toLocaleString(undefined, { maximumFractionDigits: 4 }),
     )
+  })
+})
+
+describe("formatSignedPercent", () => {
+  it("prefixes a gain with a plus sign", () => {
+    expect(formatSignedPercent(0.16)).toBe("+16.00%")
+  })
+
+  it("keeps the minus sign of a loss", () => {
+    expect(formatSignedPercent(-0.0237)).toBe("-2.37%")
+  })
+
+  it("shows zero without a sign", () => {
+    expect(formatSignedPercent(0)).toBe("0.00%")
   })
 })
