@@ -46,6 +46,7 @@ export default function SpendLogDialog({
       categoriesUnavailable={log.categoriesUnavailable}
       accounts={log.accounts}
       debits={log.debits}
+      rememberedAccount={log.rememberedAccount}
       onClose={onClose}
       onSaved={() => {
         log.refresh()

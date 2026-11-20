@@ -69,6 +69,7 @@ const renderDialog = (
         categoriesUnavailable={false}
         accounts={accounts}
         debits={[]}
+        rememberedAccount={null}
         onClose={jest.fn()}
         onSaved={onSaved}
         {...overrides}
@@ -153,6 +154,7 @@ describe("SpendDialog", () => {
         historyMonths={["2026-10"]}
         accounts={[]}
         debits={[]}
+        rememberedAccount={null}
         onClose={jest.fn()}
         onSaved={jest.fn()}
       />,
@@ -347,11 +349,47 @@ describe("SpendDialog", () => {
     expect(savedBody().debit).toEqual({ portfolioId: "p1", cashAssetId: "dbs" })
   })
 
-  it("offers the last account debited for a month not yet debited", () => {
+  it("opens on the account the user last chose", () => {
     renderDialog(jest.fn(), {
-      debits: [debit("2026-09", "ocbc"), debit("2026-10", "dbs")],
+      rememberedAccount: { portfolioId: "p1", cashAssetId: "dbs" },
     })
     expect(screen.getByLabelText("Debit from")).toHaveValue("dbs")
+  })
+
+  it("opens a debited month on the account it was debited from", () => {
+    renderDialog(jest.fn(), {
+      debits: [debit("2026-11", "ocbc")],
+      rememberedAccount: { portfolioId: "p1", cashAssetId: "dbs" },
+    })
+    expect(screen.getByLabelText("Debit from")).toHaveValue("ocbc")
+  })
+
+  it("debits the remembered portfolio when several hold the account", async () => {
+    holders = {
+      dbs: [
+        { id: "p1", code: "MAIN" },
+        { id: "p2", code: "JOINT" },
+      ],
+    }
+    const onSaved = jest.fn()
+    renderDialog(onSaved, {
+      rememberedAccount: { portfolioId: "p2", cashAssetId: "dbs" },
+    })
+    expect(await screen.findByLabelText("Portfolio")).toHaveValue("p2")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(savedBody().debit).toEqual({ portfolioId: "p2", cashAssetId: "dbs" })
+  })
+
+  it("warns that a month with no account is a draft", () => {
+    renderDialog()
+    expect(screen.getByText(/^Draft/)).toHaveTextContent(
+      "Draft — this won't affect any account until you choose one to debit.",
+    )
+    fireEvent.change(screen.getByLabelText("Debit from"), {
+      target: { value: "dbs" },
+    })
+    expect(screen.queryByText(/^Draft/)).not.toBeInTheDocument()
   })
 
   it("debits nothing when no account is chosen", async () => {

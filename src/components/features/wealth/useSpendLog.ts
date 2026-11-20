@@ -1,5 +1,9 @@
 import useSwr from "swr"
-import type { SpendDebit, SpendEntry } from "types/independence"
+import type {
+  SpendAccountRef,
+  SpendDebit,
+  SpendEntry,
+} from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { accountsKey } from "@utils/api/client/assets"
 import { getAssetCurrency, toAssetArray } from "@lib/assets/assetUtils"
@@ -29,6 +33,8 @@ interface SpendLog {
   entries: SpendEntry[]
   /** The bank withdrawals already posted, one per debited month. */
   debits: SpendDebit[]
+  /** The account the user last chose to debit; null when none. */
+  rememberedAccount: SpendAccountRef | null
   /** Private bank accounts in the spend currency: the only ones it may debit. */
   accounts: SpendAccount[]
   /** The currency spend is recorded in; null only with no currency anywhere. */
@@ -90,6 +96,7 @@ export function useSpendLog(): SpendLog {
     budgets: retirementBudgets(expenses),
     entries: history.entries,
     debits: history.debits,
+    rememberedAccount: history.account,
     accounts,
     currency,
     planCurrency,

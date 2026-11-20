@@ -1,7 +1,11 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import MathInput from "@components/ui/MathInput"
-import type { SpendDebit, SpendEntry } from "types/independence"
+import type {
+  SpendAccountRef,
+  SpendDebit,
+  SpendEntry,
+} from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import {
@@ -39,6 +43,8 @@ interface SpendDialogProps {
   accounts: SpendAccount[]
   /** Withdrawals already posted, one per debited month. */
   debits: SpendDebit[]
+  /** The account the user last chose to debit; null when none. */
+  rememberedAccount: SpendAccountRef | null
   onClose: () => void
   onSaved: () => void
 }
@@ -121,19 +127,24 @@ function monthSource(
 }
 
 /**
- * The account a month opens on: the one it was debited from, else the one
- * debited most recently, so a regular account carries forward month to month.
+ * The account a month opens on: the one it was debited from, else the one the
+ * user last chose (svc-retire remembers it, "no account" included).
  */
 function defaultAccount(
-  debits: SpendDebit[],
-  month: string,
+  monthDebit: SpendDebit | undefined,
+  remembered: SpendAccountRef | null,
   accounts: SpendAccount[],
 ): string {
-  const latest = [...debits].sort((a, b) => b.month.localeCompare(a.month))[0]
-  const id =
-    debits.find((d) => d.month === month)?.cashAssetId ?? latest?.cashAssetId
+  const id = monthDebit?.cashAssetId ?? remembered?.cashAssetId
   return accounts.some((a) => a.id === id) ? (id as string) : ""
 }
+
+/** The portfolio [ref] posted [accountId] into, when it is that account. */
+const portfolioFor = (
+  ref: SpendAccountRef | null | undefined,
+  accountId: string,
+): string | undefined =>
+  ref?.cashAssetId === accountId ? ref.portfolioId : undefined
 
 type SpendTab = "month" | "history"
 
@@ -176,6 +187,7 @@ function SpendMonthForm({
   categoriesUnavailable,
   accounts,
   debits,
+  rememberedAccount,
   tab,
   onTabChange,
   onClose,
@@ -195,19 +207,20 @@ function SpendMonthForm({
   )
   const [source] = useState(() => monthSource(entries, month, rows))
   const [saving, setSaving] = useState(false)
+  const monthDebit = debits.find((d) => d.month === month)
   const [accountId, setAccountId] = useState(() =>
-    defaultAccount(debits, month, accounts),
+    defaultAccount(monthDebit, rememberedAccount, accounts),
   )
   const [portfolioPick, setPortfolioPick] = useState("")
   const holders = useAccountPortfolios(accountId)
-  const monthDebit = debits.find(
-    (d) => d.month === month && d.cashAssetId === accountId,
-  )
-  // Explicit pick, else where the month was posted before, else the first holder.
+  // Explicit pick, else where this account was posted before (this month, then
+  // the remembered choice), else the first portfolio holding it.
   const portfolioId =
-    [portfolioPick, monthDebit?.portfolioId].find((id) =>
-      holders.portfolios.some((p) => p.id === id),
-    ) ??
+    [
+      portfolioPick,
+      portfolioFor(monthDebit, accountId),
+      portfolioFor(rememberedAccount, accountId),
+    ].find((id) => holders.portfolios.some((p) => p.id === id)) ??
     holders.portfolios[0]?.id ??
     ""
   const accountName = accounts.find((a) => a.id === accountId)?.name
@@ -352,6 +365,12 @@ function SpendMonthForm({
           </div>
         )}
       </div>
+      {accountId === "" && (
+        <p className="mb-3 text-sm text-amber-700">
+          Draft — this won&apos;t affect any account until you choose one to
+          debit.
+        </p>
+      )}
       {accountId !== "" && !holders.isLoading && portfolioId === "" && (
         <p className="mb-3 text-sm text-loss">
           {accountName} is not held in a portfolio, so it cannot be debited.

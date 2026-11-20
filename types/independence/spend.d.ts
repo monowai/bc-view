@@ -24,9 +24,14 @@ export interface SpendDebit {
   currency: string
 }
 
+/** A bank account to debit, and the portfolio that holds it. */
+export type SpendAccountRef = Pick<SpendDebit, "portfolioId" | "cashAssetId">
+
 export interface SpendResponse {
   data: SpendEntry[]
   debits?: SpendDebit[]
+  /** The account the user last chose to debit; null when none. */
+  account?: SpendAccountRef | null
 }
 
 export interface SpendRequest {
@@ -35,5 +40,5 @@ export interface SpendRequest {
     Pick<SpendEntry, "categoryLabelId" | "categoryName" | "actual">
   >
   /** The account to debit for the month's actual total; null debits nothing. */
-  debit: Pick<SpendDebit, "portfolioId" | "cashAssetId"> | null
+  debit: SpendAccountRef | null
 }

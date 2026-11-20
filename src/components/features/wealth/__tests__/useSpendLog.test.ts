@@ -4,6 +4,7 @@ import type { RetirementPlan } from "types/independence"
 
 let spendRows: unknown[] | undefined
 let debitRows: unknown[] | undefined
+let rememberedAccount: unknown
 let accountRows: unknown
 let labelRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
@@ -18,7 +19,11 @@ jest.mock("swr", () => ({
   default: (key: unknown) => {
     if (typeof key === "string" && key.includes("/spend")) {
       return {
-        data: spendRows && { data: spendRows, debits: debitRows },
+        data: spendRows && {
+          data: spendRows,
+          debits: debitRows,
+          account: rememberedAccount,
+        },
         isLoading: spendRows === undefined,
         mutate: jest.fn(),
       }
@@ -63,6 +68,7 @@ describe("useSpendLog", () => {
   beforeEach(() => {
     spendRows = []
     debitRows = undefined
+    rememberedAccount = undefined
     accountRows = undefined
     labelRows = [
       { id: "travel", name: "Travel", sortOrder: 2 },
@@ -201,5 +207,19 @@ describe("useSpendLog", () => {
     ]
     const { result } = renderHook(() => useSpendLog())
     expect(result.current.debits).toHaveLength(1)
+  })
+
+  it("passes on the account the user last chose", () => {
+    rememberedAccount = { portfolioId: "p1", cashAssetId: "dbs" }
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.rememberedAccount).toEqual({
+      portfolioId: "p1",
+      cashAssetId: "dbs",
+    })
+  })
+
+  it("has no remembered account when none was chosen", () => {
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.rememberedAccount).toBeNull()
   })
 })
