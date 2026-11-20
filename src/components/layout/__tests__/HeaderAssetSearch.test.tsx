@@ -273,6 +273,70 @@ describe("HeaderAssetSearch", () => {
       ).toEqual({ assetId: "asset-newco" })
     })
 
+    it("shows a result new to BC as starred once it is added", async () => {
+      const newco = {
+        ...aapl,
+        symbol: "NEWCO",
+        displayCode: "NEWCO",
+        name: "New Co",
+        assetId: undefined,
+      }
+      const watched: unknown[] = []
+      serve([newco], watched)
+      const served = mockFetch.getMockImplementation() as (
+        url: string,
+        init?: RequestInit,
+      ) => Promise<unknown>
+      mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+        if (url === "/api/watchlist/items" && init?.method === "POST") {
+          watched.push({
+            id: "w-newco",
+            asset: {
+              id: "asset-newco",
+              code: "NEWCO",
+              market: { code: "NASDAQ" },
+            },
+          })
+        }
+        return served(url, init)
+      })
+      await search("NEWCO")
+
+      await userEvent
+        .setup({ advanceTimers: jest.advanceTimersByTime })
+        .click(
+          await screen.findByRole("button", { name: "Add NEWCO to watchlist" }),
+        )
+      await flushAsync()
+
+      expect(
+        await screen.findByRole("button", {
+          name: "Remove NEWCO from watchlist",
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it("leaves a same-code result on another market unstarred", async () => {
+      serve(
+        [{ ...aapl, market: "TSX", assetId: undefined }],
+        [
+          {
+            id: "w-1",
+            asset: {
+              id: "asset-aapl",
+              code: "AAPL",
+              market: { code: "NASDAQ" },
+            },
+          },
+        ],
+      )
+      await search("AAPL")
+
+      expect(
+        await screen.findByRole("button", { name: "Add AAPL to watchlist" }),
+      ).toBeInTheDocument()
+    })
+
     it("asks for an added price when the result has none yet", async () => {
       serve([aapl], [], {
         status: 400,

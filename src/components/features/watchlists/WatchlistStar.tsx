@@ -28,9 +28,15 @@ export default function WatchlistStar({
   const [message, setMessage] = useState<string | null>(null)
   if (!option.market || !option.watchable) return null
 
-  const watched = option.assetId
-    ? items?.find((item) => item.asset.id === option.assetId)
-    : undefined
+  // A hit new to BC has no asset id until the star creates the asset; it is then
+  // found on the watchlist by the code and market the asset was created with.
+  const createdCode = option.symbol.toUpperCase()
+  const watched = items?.find((item) =>
+    option.assetId
+      ? item.asset.id === option.assetId
+      : item.asset.code === createdCode &&
+        item.asset.market.code === option.market,
+  )
   const code = option.displayCode || option.symbol
   const label = watched
     ? `Remove ${code} from watchlist`
