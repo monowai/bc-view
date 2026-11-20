@@ -14,8 +14,11 @@ import { monthOf } from "@lib/independence/spendSummary"
  */
 export default function SpendLogDialog({
   onClose,
+  initialMonth,
 }: {
   onClose: () => void
+  /** `YYYY-MM` to open on; defaults to the current month. */
+  initialMonth?: string
 }): React.ReactElement {
   const log = useSpendLog()
   const { mutate } = useSWRConfig()
@@ -36,7 +39,7 @@ export default function SpendLogDialog({
       currency={currency}
       // Several currencies share "$"; the code says which one.
       currencySymbol={`${currency} `}
-      initialMonth={monthOf(new Date())}
+      initialMonth={initialMonth ?? monthOf(new Date())}
       historyMonths={log.historyMonths}
       planCurrency={log.planCurrency}
       budgetsUnavailable={log.budgetsUnavailable}
