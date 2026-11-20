@@ -1,4 +1,4 @@
-import type { SpendEntry } from "types/independence"
+import type { PlanExpense, SpendEntry } from "types/independence"
 import { localIsoDate } from "@lib/formatters"
 
 export const MONTHS_PER_YEAR = 12
@@ -17,6 +17,17 @@ export function monthStart(month: string, offset = 0): Date {
 /** Signed whole-unit money with a currency symbol, as the spend views show it. */
 export function formatSpendMoney(n: number, currencySymbol: string): string {
   return `${n < 0 ? "-" : ""}${currencySymbol}${Math.abs(Math.round(n)).toLocaleString()}`
+}
+
+/** A plan's monthly budget by category: its retirement-phase expenses only. */
+export function retirementBudgets(
+  expenses: PlanExpense[] | undefined,
+): Record<string, number> {
+  return Object.fromEntries(
+    (expenses ?? [])
+      .filter((e) => e.expensePhase !== "WORKING")
+      .map((e) => [e.categoryLabelId, e.monthlyAmount]),
+  )
 }
 
 /** The `count` months ending in the month of `today`, oldest first. */

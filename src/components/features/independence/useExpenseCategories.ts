@@ -14,10 +14,11 @@ const categoriesKey = expenseCategoriesKey
 export function useExpenseCategories(): {
   labels: CategoryLabel[] | undefined
   isLoading: boolean
+  error: unknown
 } {
-  const { data, isLoading } = useSwr<CategoryLabelsResponse>(
+  const { data, isLoading, error } = useSwr<CategoryLabelsResponse>(
     categoriesKey,
     simpleFetcher(categoriesKey),
   )
-  return { labels: data?.data, isLoading }
+  return { labels: data?.data, isLoading, error }
 }

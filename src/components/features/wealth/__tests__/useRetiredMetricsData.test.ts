@@ -8,7 +8,6 @@ const invested: Record<string, number> = {}
 let spendRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let spendError: Error | undefined
-let expenseError: Error | undefined
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -21,7 +20,7 @@ jest.mock("swr", () => ({
       }
     }
     if (typeof key === "string" && key.endsWith("/expenses")) {
-      return { data: expenseRows && { data: expenseRows }, error: expenseError }
+      return { data: expenseRows && { data: expenseRows } }
     }
     if (typeof key === "string") {
       const days = /days=(\d+)/.exec(key)?.[1] ?? ""
@@ -53,7 +52,6 @@ describe("useRetiredMetricsData", () => {
     spendRows = undefined
     expenseRows = undefined
     spendError = undefined
-    expenseError = undefined
   })
 
   it("reports the spend log unavailable when it fails to load", () => {
@@ -96,10 +94,6 @@ describe("useRetiredMetricsData", () => {
       },
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
-    expect(result.current.budgets.map((b) => b.categoryLabelId)).toEqual([
-      "housing",
-      "travel",
-    ])
     expect(result.current.spend).toMatchObject({
       monthsEntered: 1,
       actual: 4_000,
@@ -125,8 +119,6 @@ describe("useRetiredMetricsData", () => {
       },
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
-    expect(result.current.historyMonths).toHaveLength(24)
-    expect(result.current.historyMonths.at(-1)).toBe(thisMonth())
     // A year ago is in the history but outside the 12-month summary.
     expect(result.current.spend).toMatchObject({
       monthsEntered: 1,
@@ -166,12 +158,6 @@ describe("useRetiredMetricsData", () => {
     ]
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.spendOtherCurrency).toBeNull()
-  })
-
-  it("reports the plan budget unavailable when it fails to load", () => {
-    expenseError = new Error("HTTP 500")
-    const { result } = renderHook(() => useRetiredMetricsData(projection))
-    expect(result.current.budgetsUnavailable).toBe(true)
   })
 
   it("has no spend summary before any spend is recorded", () => {

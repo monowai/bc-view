@@ -15,7 +15,7 @@ import RetiredMetrics, {
   METRIC_CLS,
 } from "@components/features/wealth/RetiredMetrics"
 import { useRetiredMetricsData } from "@components/features/wealth/useRetiredMetricsData"
-import SpendDialog from "@components/features/wealth/SpendDialog"
+import SpendLogDialog from "@components/features/wealth/SpendLogDialog"
 
 interface MonthlyInvestmentData {
   startDate: string
@@ -42,15 +42,7 @@ function RetiredMetricsSection({
   projection: RetirementProjection
   displayCurrency: Currency | null
 }): React.ReactElement {
-  const {
-    budgets,
-    spendEntries,
-    currentMonth,
-    refreshSpend,
-    historyMonths,
-    budgetsUnavailable,
-    ...cardData
-  } = useRetiredMetricsData(projection)
+  const cardData = useRetiredMetricsData(projection)
   const [showSpend, setShowSpend] = useState(false)
   const currencySymbol =
     displayCurrency?.code === projection.currency
@@ -64,23 +56,7 @@ function RetiredMetricsSection({
         onLogSpend={() => setShowSpend(true)}
         {...cardData}
       />
-      {showSpend && (
-        <SpendDialog
-          budgets={budgets}
-          entries={spendEntries}
-          currency={projection.currency}
-          currencySymbol={currencySymbol}
-          initialMonth={currentMonth}
-          historyMonths={historyMonths}
-          budgetsUnavailable={budgetsUnavailable}
-          spendOtherCurrency={cardData.spendOtherCurrency}
-          onClose={() => setShowSpend(false)}
-          onSaved={() => {
-            refreshSpend()
-            setShowSpend(false)
-          }}
-        />
-      )}
+      {showSpend && <SpendLogDialog onClose={() => setShowSpend(false)} />}
     </>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
-import type { PlanExpense, SpendEntry } from "types/independence"
+import type { SpendEntry } from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import {
@@ -8,22 +8,28 @@ import {
   monthOf,
   monthStart,
 } from "@lib/independence/spendSummary"
+import type { SpendCategory } from "@components/features/wealth/useSpendLog"
 
 interface SpendDialogProps {
-  /** The plan's retirement expenses: one row per category, with its budget. */
-  budgets: PlanExpense[]
+  /** The user's expense categories: one row each. */
+  categories: SpendCategory[]
+  /** The plan's monthly budget by category; empty when there is no plan. */
+  budgets: Record<string, number>
   /** Spend already recorded, any months. */
   entries: SpendEntry[]
+  /** The currency spend is recorded in. */
   currency: string
   currencySymbol: string
   /** `YYYY-MM` to open on. */
   initialMonth: string
   /** `YYYY-MM`, oldest first: the months the History tab charts. */
   historyMonths: string[]
+  /** The budget's currency; a budget in another currency is not compared. */
+  planCurrency: string | null
   /** The plan's expenses failed to load. */
   budgetsUnavailable: boolean
-  /** The spend log's currency when it is not the plan's: not set against the budget. */
-  spendOtherCurrency: string | null
+  /** The expense categories failed to load. */
+  categoriesUnavailable: boolean
   onClose: () => void
   onSaved: () => void
 }
@@ -52,17 +58,37 @@ function monthLabel(month: string): string {
 const toNumber = (value: string): number | null =>
   value.trim() === "" ? null : Number(value)
 
+/**
+ * The month's rows: every listed category, then any category recorded for
+ * the month that is no longer listed. A save replaces the whole month, so a
+ * recorded category must stay on screen or the save would drop it.
+ */
+function monthCategories(
+  categories: SpendCategory[],
+  entries: SpendEntry[],
+  month: string,
+): SpendCategory[] {
+  const listed = new Set(categories.map((c) => c.categoryLabelId))
+  const recorded = entries
+    .filter((e) => e.month === month && !listed.has(e.categoryLabelId))
+    .map((e) => ({
+      categoryLabelId: e.categoryLabelId,
+      categoryName: e.categoryName,
+    }))
+  return [...categories, ...recorded]
+}
+
 function seedRows(
-  budgets: PlanExpense[],
+  categories: SpendCategory[],
   entries: SpendEntry[],
   month: string,
 ): Record<string, RowValues> {
   const rows: Record<string, RowValues> = {}
-  for (const b of budgets) {
+  for (const c of categories) {
     const e = entries.find(
-      (x) => x.month === month && x.categoryLabelId === b.categoryLabelId,
+      (x) => x.month === month && x.categoryLabelId === c.categoryLabelId,
     )
-    rows[b.categoryLabelId] = {
+    rows[c.categoryLabelId] = {
       projected: e?.projected != null ? String(e.projected) : "",
       actual: e?.actual != null && !e.estimated ? String(e.actual) : "",
       estimate: e?.actual != null && e.estimated ? String(e.actual) : "",
@@ -75,9 +101,10 @@ type SpendTab = "month" | "history"
 
 /**
  * Record a month's spend by category: what the owner expects to spend
- * (projected) and what they did spend (actual), against the plan's budget.
- * One number per category per month, not a transaction log. The History tab
- * charts the recorded months. The log is the user's, not the plan's.
+ * (projected) and what they did spend (actual), set against the primary
+ * plan's budget when there is one. One number per category per month, not a
+ * transaction log. The History tab charts the recorded months. The log is the
+ * user's actual outgoings, not a plan's.
  */
 export default function SpendDialog(
   props: SpendDialogProps,
@@ -98,15 +125,17 @@ export default function SpendDialog(
 }
 
 function SpendMonthForm({
-  budgets,
+  categories: listed,
+  budgets: planBudgets,
   entries,
   currency,
   currencySymbol,
   month,
   onMonthChange,
   historyMonths,
+  planCurrency,
   budgetsUnavailable,
-  spendOtherCurrency,
+  categoriesUnavailable,
   tab,
   onTabChange,
   onClose,
@@ -117,23 +146,31 @@ function SpendMonthForm({
   tab: SpendTab
   onTabChange: (tab: SpendTab) => void
 }): React.ReactElement {
-  const [rows, setRows] = useState(() => seedRows(budgets, entries, month))
+  const [categories] = useState(() => monthCategories(listed, entries, month))
+  const [rows, setRows] = useState(() => seedRows(categories, entries, month))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const money = (n: number): string => formatSpendMoney(n, currencySymbol)
-  // Budgets are in the plan's currency; a log in another cannot be set against them.
-  const comparable = spendOtherCurrency === null
+  // A budget in another currency cannot be set against the log.
+  const otherCurrency = planCurrency !== null && planCurrency !== currency
+  const budgets = otherCurrency ? {} : planBudgets
+  const hasBudget = Object.keys(budgets).length > 0
   const sum = (pick: (r: RowValues) => string): number =>
     Object.values(rows).reduce((t, r) => t + (toNumber(pick(r)) ?? 0), 0)
-  const totalBudget = budgets.reduce((t, b) => t + b.monthlyAmount, 0)
+  const totalBudget = categories.reduce(
+    (t, c) => t + (budgets[c.categoryLabelId] ?? 0),
+    0,
+  )
   const totalProjected = sum((r) => r.projected)
   const totalActual = sum((r) => r.actual)
   // A blank category is unrecorded, not unspent: compare only what is filled in.
-  const budgetRecorded = budgets.reduce(
-    (t, b) =>
+  const budgetRecorded = categories.reduce(
+    (t, c) =>
       t +
-      (toNumber(rows[b.categoryLabelId].actual) != null ? b.monthlyAmount : 0),
+      (toNumber(rows[c.categoryLabelId].actual) != null
+        ? (budgets[c.categoryLabelId] ?? 0)
+        : 0),
     0,
   )
 
@@ -145,12 +182,12 @@ function SpendMonthForm({
     setError(null)
     const request = {
       currency,
-      entries: budgets
-        .map((b) => ({
-          categoryLabelId: b.categoryLabelId,
-          categoryName: b.categoryName,
-          projected: toNumber(rows[b.categoryLabelId].projected),
-          actual: toNumber(rows[b.categoryLabelId].actual),
+      entries: categories
+        .map((c) => ({
+          categoryLabelId: c.categoryLabelId,
+          categoryName: c.categoryName,
+          projected: toNumber(rows[c.categoryLabelId].projected),
+          actual: toNumber(rows[c.categoryLabelId].actual),
         }))
         .filter((e) => e.projected != null || e.actual != null),
     }
@@ -187,7 +224,7 @@ function SpendMonthForm({
               label="Save"
               loadingLabel="Saving…"
               isSubmitting={saving}
-              disabled={budgets.length === 0}
+              disabled={categories.length === 0 || currency === ""}
               variant="green"
             />
           )}
@@ -211,13 +248,7 @@ function SpendMonthForm({
       {tab === "history" ? (
         <SpendHistoryChart
           entries={entries}
-          budgets={
-            comparable
-              ? Object.fromEntries(
-                  budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
-                )
-              : {}
-          }
+          budgets={budgets}
           months={historyMonths}
           currencySymbol={currencySymbol}
         />
@@ -250,21 +281,25 @@ function SpendMonthForm({
               Estimated — enter what you spent to replace it
             </p>
           )}
-          {!comparable && (
+          {otherCurrency && (
             <p className="mb-3 text-sm text-gray-600">
-              Spend is logged in {spendOtherCurrency}, so it is not compared
-              with this plan&apos;s {currency} budget.
+              Spend is logged in {currency}, so it is not compared with your
+              plan&apos;s {planCurrency} budget.
             </p>
           )}
           {budgetsUnavailable && (
             <p className="mb-3 text-sm text-loss">
-              Could not load this plan&apos;s budget. Try again later.
+              Could not load your plan&apos;s budget. Try again later.
             </p>
           )}
-          {budgets.length === 0 && !budgetsUnavailable && (
+          {categoriesUnavailable && (
+            <p className="mb-3 text-sm text-loss">
+              Could not load your expense categories. Try again later.
+            </p>
+          )}
+          {categories.length === 0 && !categoriesUnavailable && (
             <p className="mb-3 text-sm text-gray-600">
-              This plan has no retirement expenses yet. Add them in the plan to
-              record spend against them.
+              No expense categories yet.
             </p>
           )}
           <table className="min-w-full text-sm">
@@ -285,11 +320,16 @@ function SpendMonthForm({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {budgets.map((b) => (
+              {categories.map((b) => (
                 <tr key={b.categoryLabelId}>
                   <td className="px-3 py-2 text-gray-900">{b.categoryName}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-gray-600">
-                    {money(b.monthlyAmount)}
+                  <td
+                    className="px-3 py-2 text-right tabular-nums text-gray-600"
+                    data-testid={`budget-${b.categoryLabelId}`}
+                  >
+                    {budgets[b.categoryLabelId] == null
+                      ? "—"
+                      : money(budgets[b.categoryLabelId])}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <input
@@ -329,7 +369,7 @@ function SpendMonthForm({
               <tr>
                 <td className="px-3 py-2 text-gray-900">Total</td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {money(totalBudget)}
+                  {hasBudget ? money(totalBudget) : "—"}
                 </td>
                 <td
                   className="px-3 py-2 text-right tabular-nums"
@@ -344,7 +384,7 @@ function SpendMonthForm({
                   {money(totalActual)}
                 </td>
               </tr>
-              {comparable && (
+              {hasBudget && (
                 <tr>
                   <td
                     colSpan={3}

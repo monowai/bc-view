@@ -2,26 +2,14 @@ import React from "react"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import SpendDialog from "../SpendDialog"
-import type { PlanExpense, SpendEntry } from "types/independence"
+import type { SpendEntry } from "types/independence"
 
-const budget = (
-  categoryLabelId: string,
-  categoryName: string,
-  monthlyAmount: number,
-): PlanExpense => ({
-  id: categoryLabelId,
-  planId: "p1",
-  categoryLabelId,
-  categoryName,
-  monthlyAmount,
-  currency: "SGD",
-  sortOrder: 0,
-})
-
-const budgets = [
-  budget("housing", "Housing", 2000),
-  budget("travel", "Travel", 1000),
+const categories = [
+  { categoryLabelId: "housing", categoryName: "Housing" },
+  { categoryLabelId: "travel", categoryName: "Travel" },
 ]
+
+const budgets = { housing: 2000, travel: 1000 }
 
 const entries: SpendEntry[] = [
   {
@@ -41,14 +29,16 @@ const renderDialog = (
 ): void => {
   render(
     <SpendDialog
+      categories={categories}
       budgets={budgets}
       entries={entries}
       currency="SGD"
       currencySymbol="S$"
       initialMonth="2026-11"
       historyMonths={["2026-10", "2026-11"]}
+      planCurrency="SGD"
       budgetsUnavailable={false}
-      spendOtherCurrency={null}
+      categoriesUnavailable={false}
       onClose={jest.fn()}
       onSaved={onSaved}
       {...overrides}
@@ -64,7 +54,7 @@ describe("SpendDialog", () => {
     }) as jest.Mock
   })
 
-  it("lists each plan category with its budget and the month's recorded figures", () => {
+  it("lists each expense category with its budget and the month's recorded figures", () => {
     renderDialog()
     expect(screen.getByText("November 2026")).toBeInTheDocument()
     expect(screen.getByText("Housing")).toBeInTheDocument()
@@ -84,6 +74,7 @@ describe("SpendDialog", () => {
   it("offers a system estimate as a placeholder, not a value", () => {
     render(
       <SpendDialog
+        categories={categories}
         budgets={budgets}
         entries={[
           {
@@ -98,8 +89,9 @@ describe("SpendDialog", () => {
         ]}
         currency="SGD"
         currencySymbol="S$"
+        planCurrency="SGD"
         budgetsUnavailable={false}
-        spendOtherCurrency={null}
+        categoriesUnavailable={false}
         initialMonth="2026-10"
         historyMonths={["2026-10"]}
         onClose={jest.fn()}
@@ -155,27 +147,55 @@ describe("SpendDialog", () => {
     })
   })
 
-  it("explains when the plan has no retirement budget to record against", () => {
-    render(
-      <SpendDialog
-        budgets={[]}
-        entries={[]}
-        currency="SGD"
-        currencySymbol="S$"
-        budgetsUnavailable={false}
-        spendOtherCurrency={null}
-        initialMonth="2026-11"
-        historyMonths={["2026-10", "2026-11"]}
-        onClose={jest.fn()}
-        onSaved={jest.fn()}
-      />,
-    )
+  it("explains when there are no expense categories to record against", () => {
+    renderDialog(jest.fn(), { categories: [], entries: [] })
+    expect(screen.getByText("No expense categories yet.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+  })
+
+  it("records spend with no plan budget, showing no budget or variance", () => {
+    renderDialog(jest.fn(), { budgets: {}, planCurrency: null })
+    expect(screen.getByLabelText("Housing actual")).toHaveValue(2100)
+    expect(screen.getByTestId("budget-housing")).toHaveTextContent("—")
+    expect(screen.queryByTestId("total-variance")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled()
+  })
+
+  it("keeps a category already recorded for the month even when it is no longer listed", async () => {
+    const onSaved = jest.fn()
+    renderDialog(onSaved, {
+      entries: [
+        ...entries,
+        {
+          month: "2026-11",
+          categoryLabelId: "gone",
+          categoryName: "Old category",
+          projected: null,
+          actual: 75,
+          currency: "SGD",
+          estimated: false,
+        },
+      ],
+    })
+    expect(screen.getByLabelText("Old category actual")).toHaveValue(75)
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(
+      body.entries.map((e: { categoryLabelId: string }) => e.categoryLabelId),
+    ).toEqual(["housing", "gone"])
+  })
+
+  it("says the categories failed to load", () => {
+    renderDialog(jest.fn(), { categories: [], categoriesUnavailable: true })
     expect(
       screen.getByText(
-        "This plan has no retirement expenses yet. Add them in the plan to record spend against them.",
+        "Could not load your expense categories. Try again later.",
       ),
     ).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+    expect(
+      screen.queryByText("No expense categories yet."),
+    ).not.toBeInTheDocument()
   })
 
   it("charts recorded months on the History tab", () => {
@@ -208,23 +228,21 @@ describe("SpendDialog", () => {
     ).toBeInTheDocument()
   })
 
-  it("says the plan's budget failed to load rather than that it has none", () => {
-    renderDialog(jest.fn(), { budgets: [], budgetsUnavailable: true })
+  it("says the plan's budget failed to load", () => {
+    renderDialog(jest.fn(), { budgets: {}, budgetsUnavailable: true })
     expect(
-      screen.getByText("Could not load this plan's budget. Try again later."),
+      screen.getByText("Could not load your plan's budget. Try again later."),
     ).toBeInTheDocument()
-    expect(
-      screen.queryByText(/This plan has no retirement expenses yet/),
-    ).not.toBeInTheDocument()
   })
 
   it("does not set spend logged in another currency against the budget", () => {
-    renderDialog(jest.fn(), { spendOtherCurrency: "USD" })
+    renderDialog(jest.fn(), { currency: "USD" })
     expect(
       screen.getByText(
-        "Spend is logged in USD, so it is not compared with this plan's SGD budget.",
+        "Spend is logged in USD, so it is not compared with your plan's SGD budget.",
       ),
     ).toBeInTheDocument()
+    expect(screen.getByTestId("budget-housing")).toHaveTextContent("—")
     expect(screen.queryByTestId("total-variance")).not.toBeInTheDocument()
   })
 

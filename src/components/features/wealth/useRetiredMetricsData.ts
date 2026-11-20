@@ -1,27 +1,20 @@
-import { useState } from "react"
 import useSwr from "swr"
 import type {
   MonteCarloResponse,
   MonteCarloResult,
-  PlanExpense,
-  SpendEntry,
-  SpendResponse,
   RetirementProjection,
 } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { investmentsKey, investmentsMonthlyKey } from "@utils/api/client/trns"
-import {
-  monteCarloUrl,
-  spendKey,
-  runMonteCarlo,
-} from "@utils/api/client/independence"
+import { monteCarloUrl, runMonteCarlo } from "@utils/api/client/independence"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
+import { useSpendHistory } from "@components/features/wealth/useSpendHistory"
 import { plannedAnnualDrawdown } from "@lib/independence/retiredMetrics"
 import {
   MONTHS_PER_YEAR,
   type SpendSummary,
+  retirementBudgets,
   spendSummary,
-  trailingMonths,
 } from "@lib/independence/spendSummary"
 
 /** Fixed seed: the dashboard figure must not wobble between page loads. */
@@ -36,27 +29,14 @@ interface RetiredMetricsData {
   drawnLastYear: number | undefined
   monteCarlo: MonteCarloResult | null
   monteCarloLoading: boolean
-  /** The plan's retirement-phase expenses: the budget, by category. */
-  budgets: PlanExpense[]
-  /** Spend recorded over the history window. */
-  spendEntries: SpendEntry[]
   spend: SpendSummary | null
-  /** The month the spend log opens on, `YYYY-MM`. */
-  currentMonth: string
-  /** `YYYY-MM`, oldest first: the History tab's months. */
-  historyMonths: string[]
-  refreshSpend: () => void
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
-  /** The plan's expenses failed to load, so there is no budget to record against. */
-  budgetsUnavailable: boolean
   /** The spend log's currency when it differs from the plan's; spend is then not compared. */
   spendOtherCurrency: string | null
 }
 
 const DAYS_PER_YEAR = 365
-/** Months of spend history loaded for the chart; the summary uses the last 12. */
-const HISTORY_MONTHS = 24
 
 /** Net selling is a draw on the pot; net buying draws nothing. */
 const drawn = (window: InvestmentWindow | undefined): number | undefined =>
@@ -110,26 +90,10 @@ export function useRetiredMetricsData(
       { revalidateOnFocus: false },
     )
 
-  // Fixed at mount: the window must not shift between renders.
-  const [historyMonths] = useState(() =>
-    trailingMonths(new Date(), HISTORY_MONTHS),
-  )
-  const window = historyMonths.slice(-MONTHS_PER_YEAR)
-  const spendUrl = spendKey(
-    historyMonths[0],
-    historyMonths[historyMonths.length - 1],
-  )
-  const {
-    data: spendData,
-    error: spendError,
-    mutate: mutateSpend,
-  } = useSwr<SpendResponse>(spendUrl, simpleFetcher(spendUrl))
-  const { expenses, error: expensesError } = usePlanExpenses(projection.planId)
-  const budgets = (expenses ?? []).filter((e) => e.expensePhase !== "WORKING")
-  const budgetByCategory = Object.fromEntries(
-    budgets.map((b) => [b.categoryLabelId, b.monthlyAmount]),
-  )
-  const spendEntries = spendData?.data ?? []
+  const history = useSpendHistory()
+  const window = history.historyMonths.slice(-MONTHS_PER_YEAR)
+  const { expenses } = usePlanExpenses(projection.planId)
+  const spendEntries = history.entries
   // The service locks the log to its first currency; budgets are in the plan's.
   const logCurrency = spendEntries[0]?.currency ?? null
   const spendOtherCurrency =
@@ -138,20 +102,14 @@ export function useRetiredMetricsData(
       : null
 
   return {
-    budgets,
-    spendEntries,
     spendOtherCurrency,
     spend: spendSummary(
       spendOtherCurrency === null ? spendEntries : [],
-      budgetByCategory,
+      retirementBudgets(expenses),
       plannedAnnualDrawdown(projection),
       window,
     ),
-    currentMonth: window[window.length - 1],
-    historyMonths,
-    refreshSpend: () => void mutateSpend(),
-    spendUnavailable: spendError !== undefined,
-    budgetsUnavailable: expensesError !== undefined,
+    spendUnavailable: history.error !== undefined,
     drawnLastMonth: drawn(month),
     drawnLastYear: drawn(year),
     monteCarlo: monteCarlo ?? null,
