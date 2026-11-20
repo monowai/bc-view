@@ -10,8 +10,8 @@ import {
 import {
   formatCurrency,
   formatDate,
-  formatPercent,
   formatSignedNumber,
+  formatSignedPercent,
   gainLossClass,
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
@@ -48,10 +48,7 @@ const toTradeOption = (item: WatchlistItem): AssetOption => {
 }
 
 // Every figure is the backend's; this component only formats. Percent fields
-// are fractions (0.25 = 25%), hence formatPercent.
-const signedPercent = (value: number): string =>
-  `${value > 0 ? "+" : ""}${formatPercent(value)}`
-
+// are fractions (0.25 = 25%), hence formatSignedPercent.
 function Change({
   amount,
   percent,
@@ -71,7 +68,7 @@ function Change({
     <span data-testid={testId} className={`tabular-nums ${tone}`}>
       {amount == null ? DASH : formatSignedNumber(amount, decimals)}
       <span className="ml-1 text-xs">
-        {percent == null ? `(${DASH})` : `(${signedPercent(percent)})`}
+        {percent == null ? `(${DASH})` : `(${formatSignedPercent(percent)})`}
       </span>
     </span>
   )
