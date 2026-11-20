@@ -70,10 +70,9 @@ export function useSpendLog(): SpendLog {
     error: expensesError,
   } = usePlanExpenses(primaryPlan?.id)
   const { preferences } = useUserPreferences()
-  const { data: accountData } = useSwr<{ data: unknown }>(
-    accountsKey,
-    simpleFetcher(accountsKey),
-  )
+  const { data: accountData, isLoading: accountsLoading } = useSwr<{
+    data: unknown
+  }>(accountsKey, simpleFetcher(accountsKey))
 
   const planCurrency = primaryPlan?.expensesCurrency ?? null
   const categories = [...(labels ?? [])]
@@ -104,6 +103,8 @@ export function useSpendLog(): SpendLog {
     isLoading:
       history.isLoading ||
       labelsLoading ||
+      // The remembered account is chosen once, at open, from this list.
+      Boolean(accountsLoading) ||
       !resolved ||
       (primaryPlan !== undefined && expensesLoading),
     budgetsUnavailable: expensesError !== undefined,

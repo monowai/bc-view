@@ -5,6 +5,7 @@ import type { RetirementPlan } from "types/independence"
 let spendRows: unknown[] | undefined
 let debitRows: unknown[] | undefined
 let rememberedAccount: unknown
+let accountsLoading = false
 let accountRows: unknown
 let labelRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
@@ -29,7 +30,10 @@ jest.mock("swr", () => ({
       }
     }
     if (typeof key === "string" && key.includes("category=ACCOUNT")) {
-      return { data: accountRows && { data: accountRows }, isLoading: false }
+      return {
+        data: accountRows && { data: accountRows },
+        isLoading: accountsLoading,
+      }
     }
     if (typeof key === "string" && key.endsWith("/categories")) {
       return {
@@ -69,6 +73,7 @@ describe("useSpendLog", () => {
     spendRows = []
     debitRows = undefined
     rememberedAccount = undefined
+    accountsLoading = false
     accountRows = undefined
     labelRows = [
       { id: "travel", name: "Travel", sortOrder: 2 },
@@ -221,5 +226,11 @@ describe("useSpendLog", () => {
   it("has no remembered account when none was chosen", () => {
     const { result } = renderHook(() => useSpendLog())
     expect(result.current.rememberedAccount).toBeNull()
+  })
+
+  it("waits for the bank accounts, so the remembered one can be chosen", () => {
+    accountsLoading = true
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.isLoading).toBe(true)
   })
 })
