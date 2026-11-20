@@ -53,9 +53,6 @@ interface RowValues {
   actual: number | null
 }
 
-/** Where a month's opening actuals came from. */
-type MonthSource = "recorded" | "estimated" | "budget" | "none"
-
 const INPUT_CLS =
   "w-28 rounded border border-gray-300 px-2 py-0.5 text-right font-mono text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-independence-500"
 
@@ -115,15 +112,10 @@ function seedRows(
   return rows
 }
 
-function monthSource(
-  entries: SpendEntry[],
-  month: string,
-  rows: Record<string, RowValues>,
-): MonthSource {
+/** The month's figures are all svc-retire's estimates, none recorded by the user. */
+function isEstimatedMonth(entries: SpendEntry[], month: string): boolean {
   const actuals = entries.filter((e) => e.month === month && e.actual != null)
-  if (actuals.some((e) => !e.estimated)) return "recorded"
-  if (actuals.length > 0) return "estimated"
-  return Object.values(rows).some((r) => r.actual != null) ? "budget" : "none"
+  return actuals.length > 0 && actuals.every((e) => e.estimated)
 }
 
 /**
@@ -205,7 +197,7 @@ function SpendMonthForm({
   const [rows, setRows] = useState(() =>
     seedRows(categories, entries, month, budgets),
   )
-  const [source] = useState(() => monthSource(entries, month, rows))
+  const [estimated] = useState(() => isEstimatedMonth(entries, month))
   const [saving, setSaving] = useState(false)
   const monthDebit = debits.find((d) => d.month === month)
   const [accountId, setAccountId] = useState(() =>
@@ -417,14 +409,9 @@ function SpendMonthForm({
         ) : (
           <>
             <Dialog.ErrorAlert message={error} />
-            {source === "estimated" && (
+            {estimated && (
               <p className="text-sm text-gray-600">
                 Estimated — change what differs, then save to record it
-              </p>
-            )}
-            {source === "budget" && (
-              <p className="text-sm text-gray-600">
-                From your budget — change what differs, then save to record it
               </p>
             )}
             {otherCurrency && (
@@ -505,7 +492,7 @@ function SpendMonthForm({
                       colSpan={2}
                       className="px-3 py-1.5 font-normal text-gray-500"
                     >
-                      Actual against budget (categories filled in)
+                      Actual vs. Budget
                     </td>
                     <td
                       className={`py-1.5 pl-3 pr-5 text-right font-mono tabular-nums ${totalActual > budgetRecorded ? "text-loss" : totalActual < budgetRecorded ? "text-gain" : "text-gray-600"}`}

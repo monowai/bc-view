@@ -183,11 +183,12 @@ describe("SpendDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }))
     expect(screen.getByText("October 2026")).toBeInTheDocument()
     expect(screen.getByLabelText("Housing actual")).toHaveValue("2000")
-    expect(
-      screen.getByText(
-        "From your budget — change what differs, then save to record it",
-      ),
-    ).toBeInTheDocument()
+    expect(screen.queryByText(/From your budget/)).not.toBeInTheDocument()
+  })
+
+  it("labels the variance Actual vs. Budget", () => {
+    renderDialog()
+    expect(screen.getByText("Actual vs. Budget")).toBeInTheDocument()
   })
 
   it("works out an actual typed as a sum", async () => {
