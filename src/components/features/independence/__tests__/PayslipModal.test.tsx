@@ -587,7 +587,8 @@ describe("PayslipModal", () => {
         cashAssetId: "cash-sgd",
         grossSalary: 4000,
         tax: 300,
-        payDate: "2026-08-25",
+        dayOfMonth: 25,
+        nextPayDate: "2026-09-25",
       })
       const urls = fetchCalls().map((c) => c[0])
       expect(urls.indexOf("/api/payslips/recurring")).toBeLessThan(
@@ -673,9 +674,49 @@ describe("PayslipModal", () => {
         cashAssetId: "dbs-sgd",
         grossSalary: 9500,
         tax: 250,
-        payDate: "2026-12-25",
+        dayOfMonth: 25,
+        nextPayDate: "2026-12-25",
       })
       expect(callTo("/api/trns", "POST")).toBeUndefined()
+    })
+
+    it("keeps a 31st pay day when editing a repeat clamped to a shorter month", async () => {
+      mockRecurring = {
+        data: { ...activeRecurring, dayOfMonth: 31, nextPayDate: "2026-11-30" },
+      }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.dayOfMonth).toBe(31)
+      expect(body.nextPayDate).toBe("2026-11-30")
+    })
+
+    it("moves the pay day when the edited next pay date changes", async () => {
+      mockRecurring = { data: activeRecurring }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.change(screen.getByLabelText("Pay date"), {
+        target: { value: "2026-12-10" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.dayOfMonth).toBe(10)
+      expect(body.nextPayDate).toBe("2026-12-10")
     })
   })
 })

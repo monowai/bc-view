@@ -24,6 +24,7 @@ import {
   useDefinedContribution,
 } from "@components/features/independence/useDefinedContribution"
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
+import { nextPayDate, payDay } from "@utils/trns/payDates"
 import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
 import { formatCurrency, formatDate, todayIso } from "@lib/formatters"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
@@ -66,7 +67,7 @@ const SHORTEST_MONTH_DAYS = 28
 
 /** "Repeat monthly on the 31st, or the last day of shorter months". */
 const repeatLabel = (payDate: string): string => {
-  const day = Number(payDate.split("-")[2])
+  const day = payDay(payDate)
   if (!day) return "Repeat monthly"
   const late =
     day > SHORTEST_MONTH_DAYS ? ", or the last day of shorter months" : ""
@@ -360,13 +361,29 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     !!effectiveCashAssetId &&
     !!payDate
 
+  // Editing: the Pay date is the next pay date. Left unchanged it keeps the
+  // stored pay day (a 31st shown as 30 Nov stays the 31st); a new date sets
+  // the pay day. Otherwise the payslip being posted is paid now and the
+  // repeat starts a month later.
+  const repeatSchedule = (): { dayOfMonth: number; nextPayDate: string } => {
+    if (editingRepeat && recurring) {
+      const unchanged = payDate === recurring.nextPayDate
+      return {
+        dayOfMonth: unchanged ? recurring.dayOfMonth : payDay(payDate),
+        nextPayDate: payDate,
+      }
+    }
+    const day = payDay(payDate)
+    return { dayOfMonth: day, nextPayDate: nextPayDate(payDate, day) }
+  }
+
   const scheduleRepeat = async (): Promise<void> => {
     const response = await saveRecurringPayslip({
       portfolioId: effectivePortfolioId,
       cashAssetId: effectiveCashAssetId,
       grossSalary: grossNum,
       tax: parseNum(tax),
-      payDate,
+      ...repeatSchedule(),
     })
     if (!response.ok) throw await failure(response, "Failed to repeat payslip")
     globalMutate(recurringPayslipKey)

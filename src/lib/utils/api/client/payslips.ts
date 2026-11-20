@@ -23,13 +23,17 @@ export interface RecurringPayslipResponse {
   data: RecurringPayslip | null
 }
 
-/** The first payslip is posted by the caller; this schedules the next ones. */
+/**
+ * Schedules the next payslip on `nextPayDate`, which falls on `dayOfMonth` or
+ * the month's last day when the month is shorter.
+ */
 export interface RecurringPayslipRequest {
   portfolioId: string
   cashAssetId: string
   grossSalary: number
   tax: number
-  payDate: string
+  dayOfMonth: number
+  nextPayDate: string
 }
 
 export function saveRecurringPayslip(
