@@ -394,8 +394,17 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     setGrossSalary(String(recurring.grossSalary))
     setGrossTouched(true)
     setTax(recurring.tax ? String(recurring.tax) : "")
-    setPortfolioId(recurring.portfolioId)
-    setCashAssetId(recurring.cashAssetId)
+    // A stored id the user no longer holds would post to a dead target, and
+    // a hidden portfolio picker gives no way to correct it: keep the form's
+    // default instead, which the visible selectors show.
+    if (portfolios.some((p) => p.id === recurring.portfolioId))
+      setPortfolioId(recurring.portfolioId)
+    if (
+      [...accountOptions, ...cashOptions].some(
+        (o) => o.value === recurring.cashAssetId,
+      )
+    )
+      setCashAssetId(recurring.cashAssetId)
     setPayDate(recurring.nextPayDate)
     setEditingRepeat(true)
     reset()

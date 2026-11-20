@@ -680,6 +680,29 @@ describe("PayslipModal", () => {
       expect(callTo("/api/trns", "POST")).toBeUndefined()
     })
 
+    it("targets the defaults when the repeat's portfolio and account are gone", async () => {
+      mockRecurring = {
+        data: {
+          ...activeRecurring,
+          portfolioId: "pf-gone",
+          cashAssetId: "cash-gone",
+        },
+      }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.portfolioId).toBe("pf-1")
+      expect(body.cashAssetId).toBe("cash-sgd")
+    })
+
     it("keeps a 31st pay day when editing a repeat clamped to a shorter month", async () => {
       mockRecurring = {
         data: { ...activeRecurring, dayOfMonth: 31, nextPayDate: "2026-11-30" },
