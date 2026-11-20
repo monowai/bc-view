@@ -21,7 +21,6 @@ import { formatSpendMoney, monthStart } from "@lib/independence/spendSummary"
 
 const TICK = { fontSize: 11, fill: "#94a3b8" }
 const BUDGET_COLOR = "#334155"
-const PROJECTED_COLOR = "#64748b"
 const SURFACE = "#ffffff"
 /** Estimated months: same hue, lighter, so identity holds and the state reads. */
 const ESTIMATED_OPACITY = 0.4
@@ -98,20 +97,13 @@ function HistoryTooltip({
           )}
         </>
       )}
-      {row.projected != null && (
-        <p className="flex gap-2 text-gray-600">
-          Projected
-          <span className="ml-auto tabular-nums">{money(row.projected)}</span>
-        </p>
-      )}
     </div>
   )
 }
 
 /**
  * Monthly spend over time: actual stacked by the largest categories, against
- * the budget of the categories recorded (step line) and the projection
- * (dashed). One money axis. Legend and table always available, since three
+ * the budget of the categories recorded (step line). One money axis. Legend and table always available, since three
  * category hues sit under 3:1 contrast.
  */
 export default function SpendHistoryChart({
@@ -124,7 +116,7 @@ export default function SpendHistoryChart({
   const { series, rows } = spendHistory(entries, budgets, months)
   const money = (n: number): string => formatSpendMoney(n, currencySymbol)
 
-  if (series.length === 0 && rows.every((r) => r.projected == null)) {
+  if (series.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-gray-500">
         No spend recorded yet.
@@ -153,13 +145,6 @@ export default function SpendHistoryChart({
             style={{ backgroundColor: BUDGET_COLOR }}
           />
           Budget
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            className="inline-block h-0 w-4 border-t-2 border-dashed"
-            style={{ borderColor: PROJECTED_COLOR }}
-          />
-          Projected
         </li>
         {rows.some((r) => r.estimated) && (
           <li className="text-gray-500">Lighter bars are estimated</li>
@@ -226,21 +211,6 @@ export default function SpendHistoryChart({
               connectNulls={false}
               isAnimationActive={false}
             />
-            <Line
-              dataKey="projected"
-              name="Projected"
-              stroke={PROJECTED_COLOR}
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              dot={{
-                r: 4,
-                fill: PROJECTED_COLOR,
-                stroke: SURFACE,
-                strokeWidth: 2,
-              }}
-              connectNulls={false}
-              isAnimationActive={false}
-            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -256,16 +226,14 @@ export default function SpendHistoryChart({
         <table className="mt-2 min-w-full text-xs">
           <thead className="bg-gray-50">
             <tr>
-              {["Month", "Actual", "Budget", "Projected", "Against budget"].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="px-2 py-1 text-right font-medium uppercase text-gray-500 first:text-left"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
+              {["Month", "Actual", "Budget", "Against budget"].map((h) => (
+                <th
+                  key={h}
+                  className="px-2 py-1 text-right font-medium uppercase text-gray-500 first:text-left"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 tabular-nums">
@@ -284,9 +252,6 @@ export default function SpendHistoryChart({
                 </td>
                 <td className="px-2 py-1 text-right">
                   {r.budget == null ? "—" : money(r.budget)}
-                </td>
-                <td className="px-2 py-1 text-right">
-                  {r.projected == null ? "—" : money(r.projected)}
                 </td>
                 <td className="px-2 py-1 text-right">
                   {r.actual == null || r.budget == null

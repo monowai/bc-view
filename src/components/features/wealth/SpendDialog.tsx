@@ -1,6 +1,11 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
-import type { SpendEntry } from "types/independence"
+import MathInput from "@components/ui/MathInput"
+import type {
+  SpendAccountRef,
+  SpendDebit,
+  SpendEntry,
+} from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import {
@@ -8,7 +13,11 @@ import {
   monthOf,
   monthStart,
 } from "@lib/independence/spendSummary"
-import type { SpendCategory } from "@components/features/wealth/useSpendLog"
+import type {
+  SpendAccount,
+  SpendCategory,
+} from "@components/features/wealth/useSpendLog"
+import { useAccountPortfolios } from "@components/features/wealth/useAccountPortfolios"
 
 interface SpendDialogProps {
   /** The user's expense categories: one row each. */
@@ -30,19 +39,22 @@ interface SpendDialogProps {
   budgetsUnavailable: boolean
   /** The expense categories failed to load. */
   categoriesUnavailable: boolean
+  /** Bank accounts the month's actual total may be debited from. */
+  accounts: SpendAccount[]
+  /** Withdrawals already posted, one per debited month. */
+  debits: SpendDebit[]
+  /** The account the user last chose to debit; null when none. */
+  rememberedAccount: SpendAccountRef | null
   onClose: () => void
   onSaved: () => void
 }
 
 interface RowValues {
-  projected: string
-  actual: string
-  /** svc-retire's estimate for an unrecorded month, shown as a placeholder. */
-  estimate: string
+  actual: number | null
 }
 
 const INPUT_CLS =
-  "w-28 rounded border border-gray-300 px-2 py-1 text-right text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-independence-500"
+  "w-28 rounded border border-gray-300 px-2 py-0.5 text-right font-mono text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-independence-500"
 
 function shiftMonth(month: string, delta: number): string {
   return monthOf(monthStart(month, delta))
@@ -54,9 +66,6 @@ function monthLabel(month: string): string {
     year: "numeric",
   })
 }
-
-const toNumber = (value: string): number | null =>
-  value.trim() === "" ? null : Number(value)
 
 /**
  * The month's rows: every listed category, then any category recorded for
@@ -78,33 +87,66 @@ function monthCategories(
   return [...categories, ...recorded]
 }
 
+/**
+ * A month's opening rows: what was recorded (or svc-retire estimated). A month
+ * with nothing yet starts at the budget, so the user only changes what differs.
+ */
 function seedRows(
   categories: SpendCategory[],
   entries: SpendEntry[],
   month: string,
+  budgets: Record<string, number>,
 ): Record<string, RowValues> {
   const rows: Record<string, RowValues> = {}
+  // Once a month has figures, a category without one is unrecorded, not budget.
+  const fromBudget = !entries.some((e) => e.month === month && e.actual != null)
   for (const c of categories) {
     const e = entries.find(
       (x) => x.month === month && x.categoryLabelId === c.categoryLabelId,
     )
     rows[c.categoryLabelId] = {
-      projected: e?.projected != null ? String(e.projected) : "",
-      actual: e?.actual != null && !e.estimated ? String(e.actual) : "",
-      estimate: e?.actual != null && e.estimated ? String(e.actual) : "",
+      actual:
+        e?.actual ?? (fromBudget ? (budgets[c.categoryLabelId] ?? null) : null),
     }
   }
   return rows
 }
 
+/** The month's figures are all svc-retire's estimates, none recorded by the user. */
+function isEstimatedMonth(entries: SpendEntry[], month: string): boolean {
+  const actuals = entries.filter((e) => e.month === month && e.actual != null)
+  return actuals.length > 0 && actuals.every((e) => e.estimated)
+}
+
+/**
+ * The account a month opens on: the one it was debited from, else the one the
+ * user last chose (svc-retire remembers it, "no account" included).
+ */
+function defaultAccount(
+  monthDebit: SpendDebit | undefined,
+  remembered: SpendAccountRef | null,
+  accounts: SpendAccount[],
+): string {
+  const id = monthDebit?.cashAssetId ?? remembered?.cashAssetId
+  return accounts.some((a) => a.id === id) ? (id as string) : ""
+}
+
+/** The portfolio [ref] posted [accountId] into, when it is that account. */
+const portfolioFor = (
+  ref: SpendAccountRef | null | undefined,
+  accountId: string,
+): string | undefined =>
+  ref?.cashAssetId === accountId ? ref.portfolioId : undefined
+
 type SpendTab = "month" | "history"
 
 /**
- * Record a month's spend by category: what the owner expects to spend
- * (projected) and what they did spend (actual), set against the primary
- * plan's budget when there is one. One number per category per month, not a
- * transaction log. The History tab charts the recorded months. The log is the
- * user's actual outgoings, not a plan's.
+ * Record a month's actual spend by category, set against the primary plan's
+ * budget when there is one. A month opens on what was recorded (or svc-retire
+ * estimated); a month with nothing yet starts at the budget, so the user only
+ * changes what differs. One number per category per month, not a transaction
+ * log. The History tab charts the recorded months. The log is the user's actual
+ * outgoings, not a plan's.
  */
 export default function SpendDialog(
   props: SpendDialogProps,
@@ -136,6 +178,9 @@ function SpendMonthForm({
   planCurrency,
   budgetsUnavailable,
   categoriesUnavailable,
+  accounts,
+  debits,
+  rememberedAccount,
   tab,
   onTabChange,
   onClose,
@@ -146,36 +191,60 @@ function SpendMonthForm({
   tab: SpendTab
   onTabChange: (tab: SpendTab) => void
 }): React.ReactElement {
-  const [categories] = useState(() => monthCategories(listed, entries, month))
-  const [rows, setRows] = useState(() => seedRows(categories, entries, month))
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const money = (n: number): string => formatSpendMoney(n, currencySymbol)
   // A budget in another currency cannot be set against the log.
   const otherCurrency = planCurrency !== null && planCurrency !== currency
   const budgets = otherCurrency ? {} : planBudgets
-  const hasBudget = Object.keys(budgets).length > 0
-  const sum = (pick: (r: RowValues) => string): number =>
-    Object.values(rows).reduce((t, r) => t + (toNumber(pick(r)) ?? 0), 0)
+  const [categories] = useState(() => monthCategories(listed, entries, month))
+  const [rows, setRows] = useState(() =>
+    seedRows(categories, entries, month, budgets),
+  )
+  const [estimated] = useState(() => isEstimatedMonth(entries, month))
+  const [saving, setSaving] = useState(false)
+  const monthDebit = debits.find((d) => d.month === month)
+  const [accountId, setAccountId] = useState(() =>
+    defaultAccount(monthDebit, rememberedAccount, accounts),
+  )
+  const [portfolioPick, setPortfolioPick] = useState("")
+  const holders = useAccountPortfolios(accountId)
+  // Explicit pick, else where this account was posted before (this month, then
+  // the remembered choice), else the first portfolio holding it.
+  const portfolioId =
+    [
+      portfolioPick,
+      portfolioFor(monthDebit, accountId),
+      portfolioFor(rememberedAccount, accountId),
+    ].find((id) => holders.portfolios.some((p) => p.id === id)) ??
+    holders.portfolios[0]?.id ??
+    ""
+  const accountName = accounts.find((a) => a.id === accountId)?.name
+  const debitBlocked =
+    accountId !== "" && (holders.isLoading || portfolioId === "")
+  const [error, setError] = useState<string | null>(null)
+
+  const money = (n: number): string => formatSpendMoney(n, currencySymbol)
+  /** An amount, or a dash when there is none. */
+  const moneyOrDash = (n: number | null | undefined): string =>
+    n == null ? "—" : money(n)
+  const hasBudget = categories.some((c) => budgets[c.categoryLabelId] != null)
+  const sum = (pick: (r: RowValues) => number | null): number =>
+    Object.values(rows).reduce((t, r) => t + (pick(r) ?? 0), 0)
   const totalBudget = categories.reduce(
     (t, c) => t + (budgets[c.categoryLabelId] ?? 0),
     0,
   )
-  const totalProjected = sum((r) => r.projected)
   const totalActual = sum((r) => r.actual)
   // A blank category is unrecorded, not unspent: compare only what is filled in.
   const budgetRecorded = categories.reduce(
     (t, c) =>
       t +
-      (toNumber(rows[c.categoryLabelId].actual) != null
+      (rows[c.categoryLabelId].actual != null
         ? (budgets[c.categoryLabelId] ?? 0)
         : 0),
     0,
   )
 
-  const update = (id: string, field: keyof RowValues, value: string): void =>
-    setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  const setActual = (id: string, actual: number): void =>
+    setRows((prev) => ({ ...prev, [id]: { ...prev[id], actual } }))
 
   const save = async (): Promise<void> => {
     setSaving(true)
@@ -186,10 +255,10 @@ function SpendMonthForm({
         .map((c) => ({
           categoryLabelId: c.categoryLabelId,
           categoryName: c.categoryName,
-          projected: toNumber(rows[c.categoryLabelId].projected),
-          actual: toNumber(rows[c.categoryLabelId].actual),
+          actual: rows[c.categoryLabelId].actual,
         }))
-        .filter((e) => e.projected != null || e.actual != null),
+        .filter((e) => e.actual != null),
+      debit: accountId ? { portfolioId, cashAssetId: accountId } : null,
     }
     const failed = `Could not save spend for ${monthLabel(month)}`
     try {
@@ -211,7 +280,37 @@ function SpendMonthForm({
 
   return (
     <Dialog
-      title="Monthly Spend"
+      title={
+        <span className="flex items-center justify-between gap-4 pr-2">
+          Monthly Spend
+          {tab === "month" && (
+            <span className="flex items-center gap-1 text-base">
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => onMonthChange(-1)}
+                className="rounded px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-independence-500"
+              >
+                <i className="fas fa-chevron-left text-sm" aria-hidden="true" />
+              </button>
+              <span className="w-36 text-center font-semibold text-gray-900">
+                {monthLabel(month)}
+              </span>
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => onMonthChange(1)}
+                className="rounded px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-independence-500"
+              >
+                <i
+                  className="fas fa-chevron-right text-sm"
+                  aria-hidden="true"
+                />
+              </button>
+            </span>
+          )}
+        </span>
+      }
       onClose={onClose}
       maxWidth="2xl"
       scrollable
@@ -224,190 +323,202 @@ function SpendMonthForm({
               label="Save"
               loadingLabel="Saving…"
               isSubmitting={saving}
-              disabled={categories.length === 0 || currency === ""}
+              disabled={
+                categories.length === 0 || currency === "" || debitBlocked
+              }
               variant="green"
             />
           )}
         </>
       }
     >
-      <div role="tablist" className="mb-3 flex gap-4 border-b border-gray-200">
-        {(["month", "history"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => onTabChange(t)}
-            className={`-mb-px border-b-2 px-1 pb-2 text-sm ${tab === t ? "border-independence-500 font-medium text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-          >
-            {t === "month" ? "Month" : "History"}
-          </button>
-        ))}
-      </div>
-      {tab === "history" ? (
-        <SpendHistoryChart
-          entries={entries}
-          budgets={budgets}
-          months={historyMonths}
-          currencySymbol={currencySymbol}
-        />
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              aria-label="Previous month"
-              onClick={() => onMonthChange(-1)}
-              className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
-            >
-              <i className="fas fa-chevron-left" />
-            </button>
-            <span className="font-semibold text-gray-900">
-              {monthLabel(month)}
-            </span>
-            <button
-              type="button"
-              aria-label="Next month"
-              onClick={() => onMonthChange(1)}
-              className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
-            >
-              <i className="fas fa-chevron-right" />
-            </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-gray-200">
+          <div role="tablist" className="flex gap-4">
+            {(["month", "history"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => onTabChange(t)}
+                className={`-mb-px border-b-2 px-1 pb-2 text-sm ${tab === t ? "border-independence-500 font-medium text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+              >
+                {t === "month" ? "Month" : "History"}
+              </button>
+            ))}
           </div>
-          <Dialog.ErrorAlert message={error} />
-          {Object.values(rows).some((r) => r.estimate) && (
-            <p className="mb-3 text-sm text-gray-600">
-              Estimated — enter what you spent to replace it
-            </p>
-          )}
-          {otherCurrency && (
-            <p className="mb-3 text-sm text-gray-600">
-              Spend is logged in {currency}, so it is not compared with your
-              plan&apos;s {planCurrency} budget.
-            </p>
-          )}
-          {budgetsUnavailable && (
-            <p className="mb-3 text-sm text-loss">
-              Could not load your plan&apos;s budget. Try again later.
-            </p>
-          )}
-          {categoriesUnavailable && (
-            <p className="mb-3 text-sm text-loss">
-              Could not load your expense categories. Try again later.
-            </p>
-          )}
-          {categories.length === 0 && !categoriesUnavailable && (
-            <p className="mb-3 text-sm text-gray-600">
-              No expense categories yet.
-            </p>
-          )}
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Category
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Budget
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Projected
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Actual
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {categories.map((b) => (
-                <tr key={b.categoryLabelId}>
-                  <td className="px-3 py-2 text-gray-900">{b.categoryName}</td>
-                  <td
-                    className="px-3 py-2 text-right tabular-nums text-gray-600"
-                    data-testid={`budget-${b.categoryLabelId}`}
-                  >
-                    {budgets[b.categoryLabelId] == null
-                      ? "—"
-                      : money(budgets[b.categoryLabelId])}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
-                      aria-label={`${b.categoryName} projected`}
-                      className={INPUT_CLS}
-                      value={rows[b.categoryLabelId].projected}
-                      onChange={(e) =>
-                        update(b.categoryLabelId, "projected", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
-                      aria-label={`${b.categoryName} actual`}
-                      className={INPUT_CLS}
-                      value={rows[b.categoryLabelId].actual}
-                      placeholder={
-                        rows[b.categoryLabelId].estimate
-                          ? `est. ${rows[b.categoryLabelId].estimate}`
-                          : undefined
-                      }
-                      onChange={(e) =>
-                        update(b.categoryLabelId, "actual", e.target.value)
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
-              <tr>
-                <td className="px-3 py-2 text-gray-900">Total</td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {hasBudget ? money(totalBudget) : "—"}
-                </td>
-                <td
-                  className="px-3 py-2 text-right tabular-nums"
-                  data-testid="total-projected"
+          {accounts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 pb-2 text-sm">
+              <label className="flex items-center gap-2 text-gray-700">
+                Debit from
+                <select
+                  aria-label="Debit from"
+                  value={accountId}
+                  onChange={(e) => {
+                    setAccountId(e.target.value)
+                    setPortfolioPick("")
+                  }}
+                  className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
                 >
-                  {money(totalProjected)}
-                </td>
-                <td
-                  className="px-3 py-2 text-right tabular-nums"
-                  data-testid="total-actual"
-                >
-                  {money(totalActual)}
-                </td>
-              </tr>
-              {hasBudget && (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-3 py-2 text-gray-500 font-normal"
+                  <option value="">No account</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {holders.portfolios.length > 1 && (
+                <label className="flex items-center gap-2 text-gray-700">
+                  Portfolio
+                  <select
+                    aria-label="Portfolio"
+                    value={portfolioId}
+                    onChange={(e) => setPortfolioPick(e.target.value)}
+                    className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
                   >
-                    Actual against budget (categories filled in)
-                  </td>
-                  <td
-                    className={`px-3 py-2 text-right tabular-nums ${totalActual > budgetRecorded ? "text-loss" : "text-gain"}`}
-                    data-testid="total-variance"
-                  >
-                    {money(totalActual - budgetRecorded)}
-                  </td>
-                </tr>
+                    {holders.portfolios.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
-            </tfoot>
-          </table>
-          <p className="mt-3 text-xs text-gray-500">
-            One figure per category per month. Leave a cell blank if you have
-            nothing to record.
+            </div>
+          )}
+        </div>
+        {tab === "month" && accountId === "" && (
+          <p className="text-sm text-amber-700">
+            Draft — this won&apos;t affect any account until you choose one to
+            debit.
           </p>
-        </>
-      )}
+        )}
+        {accountId !== "" && holders.failed && (
+          <p className="text-sm text-loss">
+            Could not find which portfolio holds {accountName}, so it cannot be
+            debited.
+          </p>
+        )}
+        {accountId !== "" &&
+          !holders.isLoading &&
+          !holders.failed &&
+          portfolioId === "" && (
+            <p className="text-sm text-loss">
+              {accountName} is not held in a portfolio, so it cannot be debited.
+            </p>
+          )}
+        {tab === "history" ? (
+          <SpendHistoryChart
+            entries={entries}
+            budgets={budgets}
+            months={historyMonths}
+            currencySymbol={currencySymbol}
+          />
+        ) : (
+          <>
+            <Dialog.ErrorAlert message={error} />
+            {estimated && (
+              <p className="text-sm text-gray-600">
+                Estimated — change what differs, then save to record it
+              </p>
+            )}
+            {otherCurrency && (
+              <p className="text-sm text-gray-600">
+                Spend is logged in {currency}, so it is not compared with your
+                plan&apos;s {planCurrency} budget.
+              </p>
+            )}
+            {budgetsUnavailable && (
+              <p className="text-sm text-loss">
+                Could not load your plan&apos;s budget. Try again later.
+              </p>
+            )}
+            {categoriesUnavailable && (
+              <p className="text-sm text-loss">
+                Could not load your expense categories. Try again later.
+              </p>
+            )}
+            {categories.length === 0 && !categoriesUnavailable && (
+              <p className="text-sm text-gray-600">
+                No expense categories yet.
+              </p>
+            )}
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">
+                    Category
+                  </th>
+                  <th className="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase">
+                    Budget
+                  </th>
+                  <th className="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase">
+                    Actual
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {categories.map((b) => (
+                  <tr key={b.categoryLabelId}>
+                    <td className="px-3 py-1 text-gray-900">
+                      {b.categoryName}
+                    </td>
+                    <td
+                      className="px-3 py-1 text-right font-mono tabular-nums text-gray-600"
+                      data-testid={`budget-${b.categoryLabelId}`}
+                    >
+                      {moneyOrDash(budgets[b.categoryLabelId])}
+                    </td>
+                    <td className="px-3 py-1 text-right">
+                      <MathInput
+                        aria-label={`${b.categoryName} actual`}
+                        className={INPUT_CLS}
+                        value={rows[b.categoryLabelId].actual ?? ""}
+                        onChange={(n) => setActual(b.categoryLabelId, n)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
+                <tr>
+                  <td className="px-3 py-1.5 text-gray-900">Total</td>
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums">
+                    {moneyOrDash(hasBudget ? totalBudget : null)}
+                  </td>
+                  {/* pr-5 lines the figure up with the inputs' text above. */}
+                  <td
+                    className="py-1.5 pl-3 pr-5 text-right font-mono tabular-nums"
+                    data-testid="total-actual"
+                  >
+                    {money(totalActual)}
+                  </td>
+                </tr>
+                {hasBudget && (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-3 py-1.5 font-normal text-gray-500"
+                    >
+                      Actual vs. Budget
+                    </td>
+                    <td
+                      className={`py-1.5 pl-3 pr-5 text-right font-mono tabular-nums ${totalActual > budgetRecorded ? "text-loss" : totalActual < budgetRecorded ? "text-gain" : "text-gray-600"}`}
+                      data-testid="total-variance"
+                    >
+                      {/* Signed, so over and under read without the colour. */}
+                      {totalActual > budgetRecorded ? "+" : ""}
+                      {money(totalActual - budgetRecorded)}
+                    </td>
+                  </tr>
+                )}
+              </tfoot>
+            </table>
+          </>
+        )}
+      </div>
     </Dialog>
   )
 }

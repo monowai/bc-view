@@ -31,7 +31,6 @@ export type SpendHistoryRow = {
   month: string
   actual: number | null
   budget: number | null
-  projected: number | null
   /** Every actual this month was estimated by svc-retire. */
   estimated: boolean
 } & Record<string, number | string | boolean | null>
@@ -93,16 +92,14 @@ export function spendHistory(
       month,
       actual: null,
       budget: null,
-      projected: null,
       estimated: false,
     }
     let typedActual = false
-    const add = (key: "actual" | "budget" | "projected", n: number): void => {
+    const add = (key: "actual" | "budget", n: number): void => {
       row[key] = (row[key] ?? 0) + n
     }
     for (const e of recorded) {
       if (e.month !== month) continue
-      if (e.projected != null) add("projected", e.projected)
       if (e.actual == null) continue
       add("actual", e.actual)
       if (!e.estimated) typedActual = true

@@ -38,6 +38,8 @@ import {
   useTrnTabSignals,
 } from "@components/features/transactions/TrnListParts"
 import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
+import SpendLogDialog from "@components/features/wealth/SpendLogDialog"
+import { spendWithdrawalMonth } from "@lib/independence/spendWithdrawal"
 import {
   anyNonZero,
   settlementLabel,
@@ -387,6 +389,13 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           err instanceof Error ? err.message : "Failed to unsettle",
         )
       }
+    }
+
+    // svc-retire owns a month's spend withdrawal and rewrites it on every save,
+    // so it is edited through the spend log for that month.
+    const spendMonth = spendWithdrawalMonth(transaction)
+    if (spendMonth) {
+      return <SpendLogDialog initialMonth={spendMonth} onClose={handleClose} />
     }
 
     // Use FxEditModal for FX transactions (FX, FX_BUY, FX_SELL)

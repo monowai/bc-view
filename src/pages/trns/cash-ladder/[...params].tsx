@@ -3,7 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
-import { getAssetCurrency, isCash } from "@lib/assets/assetUtils"
+import { getAssetCurrency, isAccount, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -13,7 +13,6 @@ import {
   TrnColumn,
   TrnDeleteConfirm,
   TrnEmptyState,
-  TrnNumber,
   TrnNumberCell,
   TrnPageNav,
   TrnRowActions,
@@ -26,7 +25,6 @@ const COLUMNS: TrnColumn[] = [
   { label: "Trade Date" },
   { label: "Type" },
   { label: "Description" },
-  { label: "Price", align: "right" },
   { label: "Cash", align: "right" },
   { label: "Balance", align: "right" },
   { label: "Status" },
@@ -181,7 +179,6 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
         trn.tradeDate,
         trn.trnType,
         formatTransaction(trn),
-        trn.price.toFixed(2),
         trn.signedCashAmount.toFixed(2),
         trn.runningBalance.toFixed(2),
       ].join("\t")
@@ -334,11 +331,6 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatTransaction(trn)}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        {trn.price > 0 && (
-                          <TrnNumber value={trn.price} scale={2} />
-                        )}
-                      </td>
                       <TrnNumberCell
                         value={trn.signedCashAmount}
                         scale={2}
@@ -358,7 +350,11 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           onEdit={() => handleEditClick(trn)}
                           onCopy={(e) => copyRowToClipboard(trn, e)}
                           onDelete={
-                            isCash(trn.asset)
+                            // A cash move on a balance or bank account, not a trade.
+                            // Deleting a spend withdrawal removes only the
+                            // transaction; the month's spend stays, and its next
+                            // save posts a new one.
+                            isCash(trn.asset) || isAccount(trn.asset)
                               ? () => requestDelete(trn)
                               : undefined
                           }

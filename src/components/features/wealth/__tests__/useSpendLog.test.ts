@@ -3,6 +3,11 @@ import { useSpendLog } from "../useSpendLog"
 import type { RetirementPlan } from "types/independence"
 
 let spendRows: unknown[] | undefined
+let debitRows: unknown[] | undefined
+let rememberedAccount: unknown
+let accountsLoading = false
+let spendError: Error | undefined
+let accountRows: unknown
 let labelRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let expenseError: Error | undefined
@@ -16,9 +21,20 @@ jest.mock("swr", () => ({
   default: (key: unknown) => {
     if (typeof key === "string" && key.includes("/spend")) {
       return {
-        data: spendRows && { data: spendRows },
-        isLoading: spendRows === undefined,
+        data: spendRows && {
+          data: spendRows,
+          debits: debitRows,
+          account: rememberedAccount,
+        },
+        isLoading: spendRows === undefined && !spendError,
+        error: spendError,
         mutate: jest.fn(),
+      }
+    }
+    if (typeof key === "string" && key.includes("category=ACCOUNT")) {
+      return {
+        data: accountRows && { data: accountRows },
+        isLoading: accountsLoading,
       }
     }
     if (typeof key === "string" && key.endsWith("/categories")) {
@@ -57,6 +73,11 @@ const thisMonth = (): string => {
 describe("useSpendLog", () => {
   beforeEach(() => {
     spendRows = []
+    debitRows = undefined
+    rememberedAccount = undefined
+    accountsLoading = false
+    spendError = undefined
+    accountRows = undefined
     labelRows = [
       { id: "travel", name: "Travel", sortOrder: 2 },
       { id: "housing", name: "Housing", sortOrder: 1 },
@@ -165,5 +186,62 @@ describe("useSpendLog", () => {
     const { result } = renderHook(() => useSpendLog())
     expect(result.current.isLoading).toBe(false)
     expect(result.current.categoriesUnavailable).toBe(true)
+  })
+
+  it("offers only the private bank accounts in the spend currency", () => {
+    reportingCurrencyCode = "SGD"
+    accountRows = {
+      a: { id: "dbs", name: "DBS Savings", priceSymbol: "SGD" },
+      b: { id: "wise", name: "Wise", priceSymbol: "NZD" },
+      c: { id: "ocbc", name: "OCBC", priceSymbol: "SGD" },
+    }
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.accounts).toEqual([
+      { id: "dbs", name: "DBS Savings" },
+      { id: "ocbc", name: "OCBC" },
+    ])
+  })
+
+  it("passes on the withdrawals already posted for the log", () => {
+    debitRows = [
+      {
+        month: "2026-10",
+        portfolioId: "p1",
+        cashAssetId: "dbs",
+        trnId: "t1",
+        amount: 100,
+        currency: "SGD",
+      },
+    ]
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.debits).toHaveLength(1)
+  })
+
+  it("passes on the account the user last chose", () => {
+    rememberedAccount = { portfolioId: "p1", cashAssetId: "dbs" }
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.rememberedAccount).toEqual({
+      portfolioId: "p1",
+      cashAssetId: "dbs",
+    })
+  })
+
+  it("has no remembered account when none was chosen", () => {
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.rememberedAccount).toBeNull()
+  })
+
+  it("waits for the bank accounts, so the remembered one can be chosen", () => {
+    accountsLoading = true
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.isLoading).toBe(true)
+  })
+
+  it("reports the spend log unavailable when it fails to load", () => {
+    spendRows = undefined
+    spendError = new Error("HTTP 500")
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.spendUnavailable).toBe(true)
   })
 })

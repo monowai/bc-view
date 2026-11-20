@@ -5,13 +5,11 @@ const entry = (
   month: string,
   categoryLabelId: string,
   actual: number | null,
-  projected: number | null = null,
   estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
   categoryName: categoryLabelId.toUpperCase(),
-  projected,
   actual,
   currency: "SGD",
   estimated,
@@ -21,10 +19,10 @@ describe("spendHistory", () => {
   const months = ["2026-09", "2026-10", "2026-11"]
   const budgets = { a: 1000, b: 500 }
 
-  it("gives one row per month, oldest first, with actual, budget and projected totals", () => {
+  it("gives one row per month, oldest first, with actual and budget totals", () => {
     const h = spendHistory(
       [
-        entry("2026-09", "a", 1200, 1000),
+        entry("2026-09", "a", 1200),
         entry("2026-09", "b", 400),
         entry("2026-10", "a", 900),
       ],
@@ -32,22 +30,17 @@ describe("spendHistory", () => {
       months,
     )
     expect(h.rows.map((r) => r.month)).toEqual(months)
-    expect(h.rows[0]).toMatchObject({
-      actual: 1600,
-      budget: 1500,
-      projected: 1000,
-    })
+    expect(h.rows[0]).toEqual(
+      expect.objectContaining({ actual: 1600, budget: 1500 }),
+    )
+    expect(h.rows[0]).not.toHaveProperty("projected")
     // Only "a" recorded in October: compared with a's budget alone.
     expect(h.rows[1]).toMatchObject({ actual: 900, budget: 1000 })
   })
 
   it("leaves a month with nothing recorded empty rather than zero", () => {
     const h = spendHistory([entry("2026-09", "a", 1200)], budgets, months)
-    expect(h.rows[2]).toMatchObject({
-      actual: null,
-      budget: null,
-      projected: null,
-    })
+    expect(h.rows[2]).toMatchObject({ actual: null, budget: null })
   })
 
   it("stacks the largest categories by total and folds the rest into Other", () => {
@@ -90,7 +83,7 @@ describe("spendHistory", () => {
 
   it("flags a month whose actuals the system estimated", () => {
     const h = spendHistory(
-      [entry("2026-09", "a", 1000, null, true), entry("2026-10", "a", 900)],
+      [entry("2026-09", "a", 1000, true), entry("2026-10", "a", 900)],
       budgets,
       months,
     )
