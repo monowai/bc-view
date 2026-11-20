@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
+import MathInput from "@components/ui/MathInput"
 import type { SpendDebit, SpendEntry } from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
@@ -43,11 +44,13 @@ interface SpendDialogProps {
 }
 
 interface RowValues {
-  projected: string
-  actual: string
-  /** svc-retire's estimate for an unrecorded month, shown as a placeholder. */
-  estimate: string
+  /** Recorded projection; shown, not edited, and kept on save. */
+  projected: number | null
+  actual: number | null
 }
+
+/** Where a month's opening actuals came from. */
+type MonthSource = "recorded" | "estimated" | "budget" | "none"
 
 const INPUT_CLS =
   "w-28 rounded border border-gray-300 px-2 py-1 text-right text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-independence-500"
@@ -62,9 +65,6 @@ function monthLabel(month: string): string {
     year: "numeric",
   })
 }
-
-const toNumber = (value: string): number | null =>
-  value.trim() === "" ? null : Number(value)
 
 /**
  * The month's rows: every listed category, then any category recorded for
@@ -86,10 +86,15 @@ function monthCategories(
   return [...categories, ...recorded]
 }
 
+/**
+ * A month's opening rows: what was recorded (or svc-retire estimated), else
+ * the category's budget, so the user only changes what differs.
+ */
 function seedRows(
   categories: SpendCategory[],
   entries: SpendEntry[],
   month: string,
+  budgets: Record<string, number>,
 ): Record<string, RowValues> {
   const rows: Record<string, RowValues> = {}
   for (const c of categories) {
@@ -97,12 +102,22 @@ function seedRows(
       (x) => x.month === month && x.categoryLabelId === c.categoryLabelId,
     )
     rows[c.categoryLabelId] = {
-      projected: e?.projected != null ? String(e.projected) : "",
-      actual: e?.actual != null && !e.estimated ? String(e.actual) : "",
-      estimate: e?.actual != null && e.estimated ? String(e.actual) : "",
+      projected: e?.projected ?? null,
+      actual: e?.actual ?? budgets[c.categoryLabelId] ?? null,
     }
   }
   return rows
+}
+
+function monthSource(
+  entries: SpendEntry[],
+  month: string,
+  rows: Record<string, RowValues>,
+): MonthSource {
+  const actuals = entries.filter((e) => e.month === month && e.actual != null)
+  if (actuals.some((e) => !e.estimated)) return "recorded"
+  if (actuals.length > 0) return "estimated"
+  return Object.values(rows).some((r) => r.actual != null) ? "budget" : "none"
 }
 
 /**
@@ -171,8 +186,14 @@ function SpendMonthForm({
   tab: SpendTab
   onTabChange: (tab: SpendTab) => void
 }): React.ReactElement {
+  // A budget in another currency cannot be set against the log.
+  const otherCurrency = planCurrency !== null && planCurrency !== currency
+  const budgets = otherCurrency ? {} : planBudgets
   const [categories] = useState(() => monthCategories(listed, entries, month))
-  const [rows, setRows] = useState(() => seedRows(categories, entries, month))
+  const [rows, setRows] = useState(() =>
+    seedRows(categories, entries, month, budgets),
+  )
+  const [source] = useState(() => monthSource(entries, month, rows))
   const [saving, setSaving] = useState(false)
   const [accountId, setAccountId] = useState(() =>
     defaultAccount(debits, month, accounts),
@@ -195,12 +216,9 @@ function SpendMonthForm({
   const [error, setError] = useState<string | null>(null)
 
   const money = (n: number): string => formatSpendMoney(n, currencySymbol)
-  // A budget in another currency cannot be set against the log.
-  const otherCurrency = planCurrency !== null && planCurrency !== currency
-  const budgets = otherCurrency ? {} : planBudgets
   const hasBudget = Object.keys(budgets).length > 0
-  const sum = (pick: (r: RowValues) => string): number =>
-    Object.values(rows).reduce((t, r) => t + (toNumber(pick(r)) ?? 0), 0)
+  const sum = (pick: (r: RowValues) => number | null): number =>
+    Object.values(rows).reduce((t, r) => t + (pick(r) ?? 0), 0)
   const totalBudget = categories.reduce(
     (t, c) => t + (budgets[c.categoryLabelId] ?? 0),
     0,
@@ -211,14 +229,14 @@ function SpendMonthForm({
   const budgetRecorded = categories.reduce(
     (t, c) =>
       t +
-      (toNumber(rows[c.categoryLabelId].actual) != null
+      (rows[c.categoryLabelId].actual != null
         ? (budgets[c.categoryLabelId] ?? 0)
         : 0),
     0,
   )
 
-  const update = (id: string, field: keyof RowValues, value: string): void =>
-    setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  const setActual = (id: string, actual: number): void =>
+    setRows((prev) => ({ ...prev, [id]: { ...prev[id], actual } }))
 
   const save = async (): Promise<void> => {
     setSaving(true)
@@ -229,8 +247,8 @@ function SpendMonthForm({
         .map((c) => ({
           categoryLabelId: c.categoryLabelId,
           categoryName: c.categoryName,
-          projected: toNumber(rows[c.categoryLabelId].projected),
-          actual: toNumber(rows[c.categoryLabelId].actual),
+          projected: rows[c.categoryLabelId].projected,
+          actual: rows[c.categoryLabelId].actual,
         }))
         .filter((e) => e.projected != null || e.actual != null),
       debit: accountId ? { portfolioId, cashAssetId: accountId } : null,
@@ -322,9 +340,14 @@ function SpendMonthForm({
             </button>
           </div>
           <Dialog.ErrorAlert message={error} />
-          {Object.values(rows).some((r) => r.estimate) && (
+          {source === "estimated" && (
             <p className="mb-3 text-sm text-gray-600">
-              Estimated — enter what you spent to replace it
+              Estimated — change what differs, then save to record it
+            </p>
+          )}
+          {source === "budget" && (
+            <p className="mb-3 text-sm text-gray-600">
+              From your budget — change what differs, then save to record it
             </p>
           )}
           {otherCurrency && (
@@ -377,35 +400,20 @@ function SpendMonthForm({
                       ? "—"
                       : money(budgets[b.categoryLabelId])}
                   </td>
-                  <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
-                      aria-label={`${b.categoryName} projected`}
-                      className={INPUT_CLS}
-                      value={rows[b.categoryLabelId].projected}
-                      onChange={(e) =>
-                        update(b.categoryLabelId, "projected", e.target.value)
-                      }
-                    />
+                  <td
+                    className="px-3 py-2 text-right tabular-nums text-gray-600"
+                    data-testid={`projected-${b.categoryLabelId}`}
+                  >
+                    {rows[b.categoryLabelId].projected == null
+                      ? "—"
+                      : money(rows[b.categoryLabelId].projected as number)}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
+                    <MathInput
                       aria-label={`${b.categoryName} actual`}
                       className={INPUT_CLS}
-                      value={rows[b.categoryLabelId].actual}
-                      placeholder={
-                        rows[b.categoryLabelId].estimate
-                          ? `est. ${rows[b.categoryLabelId].estimate}`
-                          : undefined
-                      }
-                      onChange={(e) =>
-                        update(b.categoryLabelId, "actual", e.target.value)
-                      }
+                      value={rows[b.categoryLabelId].actual ?? ""}
+                      onChange={(n) => setActual(b.categoryLabelId, n)}
                     />
                   </td>
                 </tr>
@@ -421,7 +429,9 @@ function SpendMonthForm({
                   className="px-3 py-2 text-right tabular-nums"
                   data-testid="total-projected"
                 >
-                  {money(totalProjected)}
+                  {Object.values(rows).some((r) => r.projected != null)
+                    ? money(totalProjected)
+                    : "—"}
                 </td>
                 <td
                   className="px-3 py-2 text-right tabular-nums"
@@ -500,8 +510,8 @@ function SpendMonthForm({
             </p>
           )}
           <p className="mt-3 text-xs text-gray-500">
-            One figure per category per month. Leave a cell blank if you have
-            nothing to record.
+            One figure per category per month. Sums like 120+45 are worked out
+            when you leave the cell.
           </p>
         </>
       )}

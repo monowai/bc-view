@@ -108,19 +108,36 @@ describe("SpendDialog", () => {
     expect(screen.getByText("November 2026")).toBeInTheDocument()
     expect(screen.getByText("Housing")).toBeInTheDocument()
     expect(screen.getByText("S$2,000")).toBeInTheDocument()
-    expect(screen.getByLabelText("Housing actual")).toHaveValue(2100)
-    expect(screen.getByLabelText("Travel actual")).toHaveValue(null)
+    expect(screen.getByLabelText("Housing actual")).toHaveValue("2100")
+  })
+
+  it("shows projected spend as a figure, not a field", () => {
+    renderDialog()
+    expect(screen.queryByLabelText("Housing projected")).not.toBeInTheDocument()
+    expect(screen.getByTestId("projected-housing")).toHaveTextContent("S$1,900")
+    expect(screen.getByTestId("projected-travel")).toHaveTextContent("—")
+  })
+
+  it("shows no projected total when nothing is projected", () => {
+    renderDialog(jest.fn(), {
+      entries: [{ ...entries[0], projected: null }],
+    })
+    expect(screen.getByTestId("total-projected")).toHaveTextContent("—")
+  })
+
+  it("starts an unrecorded category's actual at its budget", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Travel actual")).toHaveValue("1000")
   })
 
   it("totals budget, projected and actual, with the variance against the budget of the categories filled in", () => {
     renderDialog()
-    expect(screen.getByText("S$3,000")).toBeInTheDocument()
-    expect(screen.getByTestId("total-actual")).toHaveTextContent("S$2,100")
-    // Only housing has an actual: 2,100 against its 2,000 budget.
+    expect(screen.getByTestId("total-actual")).toHaveTextContent("S$3,100")
+    // Housing 2,100 + Travel 1,000 (its budget) against 3,000 budgeted.
     expect(screen.getByTestId("total-variance")).toHaveTextContent("S$100")
   })
 
-  it("offers a system estimate as a placeholder, not a value", () => {
+  it("starts an estimated month at the system's estimate", () => {
     render(
       <SpendDialog
         categories={categories}
@@ -131,7 +148,7 @@ describe("SpendDialog", () => {
             categoryLabelId: "housing",
             categoryName: "Housing",
             projected: null,
-            actual: 2000,
+            actual: 2500,
             currency: "SGD",
             estimated: true,
           },
@@ -149,27 +166,47 @@ describe("SpendDialog", () => {
         onSaved={jest.fn()}
       />,
     )
-    const actual = screen.getByLabelText("Housing actual")
-    expect(actual).toHaveValue(null)
-    expect(actual).toHaveAttribute("placeholder", "est. 2000")
+    expect(screen.getByLabelText("Housing actual")).toHaveValue("2500")
     expect(
-      screen.getByText("Estimated — enter what you spent to replace it"),
+      screen.getByText(
+        "Estimated — change what differs, then save to record it",
+      ),
     ).toBeInTheDocument()
   })
 
-  it("starts a month with nothing recorded empty", () => {
+  it("starts a month with nothing recorded at the budget", () => {
     renderDialog()
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }))
     expect(screen.getByText("October 2026")).toBeInTheDocument()
-    expect(screen.getByLabelText("Housing actual")).toHaveValue(null)
+    expect(screen.getByLabelText("Housing actual")).toHaveValue("2000")
+    expect(
+      screen.getByText(
+        "From your budget — change what differs, then save to record it",
+      ),
+    ).toBeInTheDocument()
   })
 
-  it("saves the month's entries, leaving out categories with nothing entered", async () => {
+  it("works out an actual typed as a sum", async () => {
     const onSaved = jest.fn()
     renderDialog(onSaved)
-    fireEvent.change(screen.getByLabelText("Housing projected"), {
-      target: { value: "" },
+    const travel = screen.getByLabelText("Travel actual")
+    fireEvent.focus(travel)
+    fireEvent.change(travel, { target: { value: "200+300" } })
+    fireEvent.blur(travel)
+    expect(travel).toHaveValue("500")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(savedBody().entries).toContainEqual({
+      categoryLabelId: "travel",
+      categoryName: "Travel",
+      projected: null,
+      actual: 500,
     })
+  })
+
+  it("saves the month's entries, keeping the recorded projection", async () => {
+    const onSaved = jest.fn()
+    renderDialog(onSaved)
     fireEvent.change(screen.getByLabelText("Travel actual"), {
       target: { value: "450" },
     })
@@ -186,7 +223,7 @@ describe("SpendDialog", () => {
         {
           categoryLabelId: "housing",
           categoryName: "Housing",
-          projected: null,
+          projected: 1900,
           actual: 2100,
         },
         {
@@ -208,7 +245,8 @@ describe("SpendDialog", () => {
 
   it("records spend with no plan budget, showing no budget or variance", () => {
     renderDialog(jest.fn(), { budgets: {}, planCurrency: null })
-    expect(screen.getByLabelText("Housing actual")).toHaveValue(2100)
+    expect(screen.getByLabelText("Housing actual")).toHaveValue("2100")
+    expect(screen.getByLabelText("Travel actual")).toHaveValue("")
     expect(screen.getByTestId("budget-housing")).toHaveTextContent("—")
     expect(screen.queryByTestId("total-variance")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save" })).toBeEnabled()
@@ -230,13 +268,13 @@ describe("SpendDialog", () => {
         },
       ],
     })
-    expect(screen.getByLabelText("Old category actual")).toHaveValue(75)
+    expect(screen.getByLabelText("Old category actual")).toHaveValue("75")
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     const body = savedBody()
     expect(
       body.entries.map((e: { categoryLabelId: string }) => e.categoryLabelId),
-    ).toEqual(["housing", "gone"])
+    ).toEqual(["housing", "travel", "gone"])
   })
 
   it("says the categories failed to load", () => {
@@ -314,7 +352,7 @@ describe("SpendDialog", () => {
     const onSaved = jest.fn()
     renderDialog(onSaved, { debits: [debit("2026-11", "dbs")] })
     expect(screen.getByLabelText("Debit from")).toHaveValue("dbs")
-    await screen.findByText(/one withdrawal of S\$2,100/)
+    await screen.findByText(/one withdrawal of S\$3,100/)
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(savedBody().debit).toEqual({ portfolioId: "p1", cashAssetId: "dbs" })
