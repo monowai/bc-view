@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PayslipModal from "../PayslipModal"
 import { SGD, makePortfolio } from "@test-fixtures/beancounter"
-import { todayIso } from "@lib/formatters"
+import { formatDate, todayIso } from "@lib/formatters"
 
 // Two portfolios by default → "master" mode where the Portfolio selector is
 // shown. Zen mode (a single portfolio, selector hidden) is exercised below by
@@ -57,6 +57,7 @@ let mockScenarios: {
   data: Array<{ isCurrent: boolean; workingIncomeMonthly?: number }>
 } = { data: [] }
 const mockMutate = jest.fn()
+let mockRecurring: { data: Record<string, unknown> | null } = { data: null }
 
 // Synchronous SWR: route by key substring.
 jest.mock("swr", () => ({
@@ -64,6 +65,8 @@ jest.mock("swr", () => ({
   default: (key: string | null) => {
     if (!key) return { data: undefined, error: undefined, isLoading: false }
     // CPF "where held" lookup → the CPF asset lives in pf-1.
+    if (key.includes("payslips/recurring"))
+      return { data: mockRecurring, error: undefined, isLoading: false }
     if (key.includes("/positions"))
       return { data: "pf-1", error: undefined, isLoading: false }
     if (key.includes("work-scenarios"))
@@ -124,6 +127,7 @@ describe("PayslipModal", () => {
     mockDc = undefined
     mockPlans = { data: [] }
     mockScenarios = { data: [] }
+    mockRecurring = { data: null }
     mockMutate.mockClear()
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -519,5 +523,223 @@ describe("PayslipModal", () => {
     ])
     expect(body.data[0].cashAmount).toBe(4000)
     expect(body.data[1].cashAmount).toBe(-300)
+  })
+  describe("recurring payslip", () => {
+    const fetchCalls = (): unknown[][] => (global.fetch as jest.Mock).mock.calls
+    const callTo = (url: string, method?: string): unknown[] | undefined =>
+      fetchCalls().find(
+        (c) =>
+          c[0] === url &&
+          (method === undefined ||
+            (c[1] as RequestInit | undefined)?.method === method),
+      )
+    const activeRecurring = {
+      id: "rp-1",
+      portfolioId: "pf-2",
+      cashAssetId: "dbs-sgd",
+      grossSalary: 9000,
+      tax: 250,
+      dayOfMonth: 25,
+      nextPayDate: "2026-12-25",
+    }
+
+    it("offers Repeat monthly on the Pay date's day", () => {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Pay date"), {
+        target: { value: "2026-08-25" },
+      })
+      const repeat = screen.getByRole("checkbox", {
+        name: /Repeat monthly on the 25th/,
+      })
+      expect(repeat).not.toBeChecked()
+    })
+
+    it("says a late day moves to the month's last day", () => {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Pay date"), {
+        target: { value: "2026-08-31" },
+      })
+      expect(
+        screen.getByRole("checkbox", {
+          name: /Repeat monthly on the 31st, or the last day of shorter months/,
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it("schedules the repeat before posting the payslip when ticked", async () => {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Gross salary"), {
+        target: { value: "4000" },
+      })
+      fireEvent.change(screen.getByLabelText("Tax deducted"), {
+        target: { value: "300" },
+      })
+      fireEvent.change(screen.getByLabelText("Pay date"), {
+        target: { value: "2026-08-25" },
+      })
+      fireEvent.click(screen.getByRole("checkbox", { name: /Repeat monthly/ }))
+      fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+      await waitFor(() => expect(callTo("/api/trns", "POST")).toBeDefined())
+      const put = callTo("/api/payslips/recurring", "PUT")!
+      expect(JSON.parse((put[1] as RequestInit).body as string)).toEqual({
+        portfolioId: "pf-1",
+        cashAssetId: "cash-sgd",
+        grossSalary: 4000,
+        tax: 300,
+        dayOfMonth: 25,
+        nextPayDate: "2026-09-25",
+      })
+      const urls = fetchCalls().map((c) => c[0])
+      expect(urls.indexOf("/api/payslips/recurring")).toBeLessThan(
+        urls.indexOf("/api/trns"),
+      )
+    })
+
+    it("does not schedule anything when Repeat monthly is not ticked", async () => {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Gross salary"), {
+        target: { value: "4000" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Save" }))
+      await waitFor(() => expect(callTo("/api/trns", "POST")).toBeDefined())
+      expect(callTo("/api/payslips/recurring", "PUT")).toBeUndefined()
+    })
+
+    it("does not post the payslip when scheduling the repeat fails", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        statusText: "Bad Request",
+        json: () => Promise.resolve({ message: "Portfolio not found" }),
+      }) as unknown as typeof fetch
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Gross salary"), {
+        target: { value: "4000" },
+      })
+      fireEvent.click(screen.getByRole("checkbox", { name: /Repeat monthly/ }))
+      fireEvent.click(screen.getByRole("button", { name: "Save" }))
+      expect(await screen.findByText("Portfolio not found")).toBeInTheDocument()
+      expect(callTo("/api/trns", "POST")).toBeUndefined()
+    })
+
+    it("shows the active repeat with its next pay date and gross", () => {
+      mockRecurring = { data: activeRecurring }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      const banner = screen.getByTestId("recurring-payslip")
+      expect(banner).toHaveTextContent("Repeats monthly")
+      expect(banner).toHaveTextContent("9,000.00")
+      expect(banner).toHaveTextContent(formatDate("2026-12-25"))
+    })
+
+    it("stops the repeat", async () => {
+      mockRecurring = { data: activeRecurring }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Stop" }))
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "DELETE")).toBeDefined(),
+      )
+      await waitFor(() =>
+        expect(mockMutate).toHaveBeenCalledWith("/api/payslips/recurring"),
+      )
+    })
+
+    it("edits the repeat without posting a payslip", async () => {
+      mockRecurring = { data: activeRecurring }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+
+      expect(
+        (screen.getByLabelText("Gross salary") as HTMLInputElement).value,
+      ).toBe("9000")
+      expect(
+        (screen.getByLabelText("Pay date") as HTMLInputElement).value,
+      ).toBe("2026-12-25")
+      expect(
+        (screen.getByLabelText("Portfolio") as HTMLSelectElement).value,
+      ).toBe("pf-2")
+      expect(
+        (screen.getByLabelText("Pay into") as HTMLSelectElement).value,
+      ).toBe("dbs-sgd")
+      fireEvent.change(screen.getByLabelText("Gross salary"), {
+        target: { value: "9500" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const put = callTo("/api/payslips/recurring", "PUT")!
+      expect(JSON.parse((put[1] as RequestInit).body as string)).toEqual({
+        portfolioId: "pf-2",
+        cashAssetId: "dbs-sgd",
+        grossSalary: 9500,
+        tax: 250,
+        dayOfMonth: 25,
+        nextPayDate: "2026-12-25",
+      })
+      expect(callTo("/api/trns", "POST")).toBeUndefined()
+    })
+
+    it("targets the defaults when the repeat's portfolio and account are gone", async () => {
+      mockRecurring = {
+        data: {
+          ...activeRecurring,
+          portfolioId: "pf-gone",
+          cashAssetId: "cash-gone",
+        },
+      }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.portfolioId).toBe("pf-1")
+      expect(body.cashAssetId).toBe("cash-sgd")
+    })
+
+    it("keeps a 31st pay day when editing a repeat clamped to a shorter month", async () => {
+      mockRecurring = {
+        data: { ...activeRecurring, dayOfMonth: 31, nextPayDate: "2026-11-30" },
+      }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.dayOfMonth).toBe(31)
+      expect(body.nextPayDate).toBe("2026-11-30")
+    })
+
+    it("moves the pay day when the edited next pay date changes", async () => {
+      mockRecurring = { data: activeRecurring }
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+      fireEvent.change(screen.getByLabelText("Pay date"), {
+        target: { value: "2026-12-10" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Save repeat" }))
+
+      await waitFor(() =>
+        expect(callTo("/api/payslips/recurring", "PUT")).toBeDefined(),
+      )
+      const body = JSON.parse(
+        (callTo("/api/payslips/recurring", "PUT")![1] as RequestInit)
+          .body as string,
+      )
+      expect(body.dayOfMonth).toBe(10)
+      expect(body.nextPayDate).toBe("2026-12-10")
+    })
   })
 })

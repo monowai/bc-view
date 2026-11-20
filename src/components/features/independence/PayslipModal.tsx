@@ -24,14 +24,22 @@ import {
   useDefinedContribution,
 } from "@components/features/independence/useDefinedContribution"
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
+import { nextPayDate, payDay } from "@utils/trns/payDates"
 import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
-import { formatCurrency, todayIso } from "@lib/formatters"
+import { formatCurrency, formatDate, todayIso } from "@lib/formatters"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { assetPositionsKey } from "@utils/api/client/assets"
 import { createTrns } from "@utils/api/client/trns"
 import { plansKey, workScenariosKey } from "@utils/api/client/independence"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 import { updateMe } from "@utils/api/client/account"
+import { readServerMessage } from "@utils/api/client/request"
+import {
+  recurringPayslipKey,
+  RecurringPayslipResponse,
+  saveRecurringPayslip,
+  stopRecurringPayslip,
+} from "@utils/api/client/payslips"
 
 interface PayslipModalProps {
   modalOpen: boolean
@@ -42,6 +50,32 @@ const parseNum = (s: string): number => {
   const n = parseFloat(s)
   return isNaN(n) ? 0 : n
 }
+
+const ordinalRules = new Intl.PluralRules("en", { type: "ordinal" })
+const ordinalSuffix: Record<string, string> = {
+  one: "st",
+  two: "nd",
+  few: "rd",
+  other: "th",
+}
+const ordinal = (n: number): string =>
+  `${n}${ordinalSuffix[ordinalRules.select(n)] ?? "th"}`
+
+// Every month has at least this many days; a later pay day moves to the
+// month's last day in shorter months.
+const SHORTEST_MONTH_DAYS = 28
+
+/** "Repeat monthly on the 31st, or the last day of shorter months". */
+const repeatLabel = (payDate: string): string => {
+  const day = payDay(payDate)
+  if (!day) return "Repeat monthly"
+  const late =
+    day > SHORTEST_MONTH_DAYS ? ", or the last day of shorter months" : ""
+  return `Repeat monthly on the ${ordinal(day)}${late}`
+}
+
+const failure = async (res: Response, fallback: string): Promise<Error> =>
+  new Error((await readServerMessage(res)) || `${fallback}: ${res.statusText}`)
 
 /**
  * Apply per-bucket user overrides on top of the computed defined-contribution
@@ -104,6 +138,12 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     modalOpen ? plansKey : null,
     simpleFetcher(plansKey),
   )
+  // The user's recurring payslip, if one is scheduled (one per user).
+  const { data: recurringData } = useSWR<RecurringPayslipResponse>(
+    modalOpen ? recurringPayslipKey : null,
+    simpleFetcher(recurringPayslipKey),
+  )
+  const recurring = recurringData?.data ?? null
   const scenarioIncome = scenariosData?.data?.find(
     (s) => s.isCurrent,
   )?.workingIncomeMonthly
@@ -182,12 +222,24 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   const [bucketOverrides, setBucketOverrides] = useState<
     Record<string, string>
   >({})
-  const { isSubmitting, submitError, submitSuccess, handleSubmit, reset } =
-    useDialogSubmit({
-      onSuccess: onClose,
-      autoCloseDelay: 1000,
-      fallbackError: "Failed to save payslip",
-    })
+  // Repeat this payslip monthly from the Pay date.
+  const [repeat, setRepeat] = useState(false)
+  // Editing the scheduled repeat: the form holds its values and Save only
+  // reschedules, posting no payslip.
+  const [editingRepeat, setEditingRepeat] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const {
+    isSubmitting,
+    submitError,
+    submitSuccess,
+    handleSubmit,
+    reset,
+    setError,
+  } = useDialogSubmit({
+    onSuccess: onClose,
+    autoCloseDelay: 1000,
+    fallbackError: "Failed to save payslip",
+  })
 
   // Reset + prefill on open (render-phase reset; React "store previous value").
   const [prevOpen, setPrevOpen] = useState(modalOpen)
@@ -199,6 +251,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       setTax("")
       setPayDate(todayIso())
       setBucketOverrides({})
+      setRepeat(false)
+      setEditingRepeat(false)
       reset()
       setPortfolioId("")
       setCashAssetId(preferences?.defaultPayslipCashAssetId ?? "")
@@ -307,9 +361,77 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     !!effectiveCashAssetId &&
     !!payDate
 
+  // Editing: the Pay date is the next pay date. Left unchanged it keeps the
+  // stored pay day (a 31st shown as 30 Nov stays the 31st); a new date sets
+  // the pay day. Otherwise the payslip being posted is paid now and the
+  // repeat starts a month later.
+  const repeatSchedule = (): { dayOfMonth: number; nextPayDate: string } => {
+    if (editingRepeat && recurring) {
+      const unchanged = payDate === recurring.nextPayDate
+      return {
+        dayOfMonth: unchanged ? recurring.dayOfMonth : payDay(payDate),
+        nextPayDate: payDate,
+      }
+    }
+    const day = payDay(payDate)
+    return { dayOfMonth: day, nextPayDate: nextPayDate(payDate, day) }
+  }
+
+  const scheduleRepeat = async (): Promise<void> => {
+    const response = await saveRecurringPayslip({
+      portfolioId: effectivePortfolioId,
+      cashAssetId: effectiveCashAssetId,
+      grossSalary: grossNum,
+      tax: parseNum(tax),
+      ...repeatSchedule(),
+    })
+    if (!response.ok) throw await failure(response, "Failed to repeat payslip")
+    globalMutate(recurringPayslipKey)
+  }
+
+  const handleEditRepeat = (): void => {
+    if (!recurring) return
+    setGrossSalary(String(recurring.grossSalary))
+    setGrossTouched(true)
+    setTax(recurring.tax ? String(recurring.tax) : "")
+    // A stored id the user no longer holds would post to a dead target, and
+    // a hidden portfolio picker gives no way to correct it: keep the form's
+    // default instead, which the visible selectors show.
+    if (portfolios.some((p) => p.id === recurring.portfolioId))
+      setPortfolioId(recurring.portfolioId)
+    if (
+      [...accountOptions, ...cashOptions].some(
+        (o) => o.value === recurring.cashAssetId,
+      )
+    )
+      setCashAssetId(recurring.cashAssetId)
+    setPayDate(recurring.nextPayDate)
+    setEditingRepeat(true)
+    reset()
+  }
+
+  const handleStopRepeat = async (): Promise<void> => {
+    setIsStopping(true)
+    setError(null)
+    try {
+      const response = await stopRecurringPayslip()
+      if (!response.ok) throw await failure(response, "Failed to stop repeat")
+      globalMutate(recurringPayslipKey)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to stop repeat")
+    } finally {
+      setIsStopping(false)
+    }
+  }
+
   const handleSave = async (): Promise<void> => {
     if (!canSubmit) return
     await handleSubmit(async () => {
+      // Schedule first: if that fails nothing is posted, so a retry cannot
+      // record the payslip twice. The schedule itself is an upsert.
+      if (editingRepeat || repeat) await scheduleRepeat()
+      if (editingRepeat) return
+
       const payload = buildPayload()
       const response = await createTrns(payload)
       if (!response.ok) {
@@ -363,7 +485,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           ) : (
             <Dialog.SubmitButton
               onClick={handleSave}
-              label={"Save"}
+              label={editingRepeat ? "Save repeat" : "Save"}
               loadingLabel={"Saving..."}
               isSubmitting={isSubmitting}
               disabled={!canSubmit}
@@ -377,6 +499,35 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           "Record your pay: salary in, deductions out, and your pension contribution credited."
         }
       </p>
+
+      {recurring && !editingRepeat && (
+        <div
+          className="rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-center justify-between gap-3"
+          data-testid="recurring-payslip"
+        >
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold">{"Repeats monthly"}</span>
+            {`: next payslip ${formatDate(recurring.nextPayDate)}, gross ${formatCurrency(recurring.grossSalary)}.`}
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleEditRepeat}
+              className="px-3 py-1 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100"
+            >
+              {"Edit"}
+            </button>
+            <button
+              type="button"
+              onClick={handleStopRepeat}
+              disabled={isStopping}
+              className="px-3 py-1 text-sm rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
+            >
+              {"Stop"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Gross salary */}
       <div>
@@ -410,14 +561,40 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           onChange={(e) => setPayDate(e.target.value)}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
         />
+        {editingRepeat ? (
+          <p className="mt-1 text-xs text-gray-500">
+            {hasCpfAsset
+              ? "Next payslip date. CPF is recalculated from the gross each month."
+              : "Next payslip date."}
+          </p>
+        ) : (
+          <label className="mt-2 flex items-start gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={repeat}
+              onChange={(e) => setRepeat(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              {repeatLabel(payDate)}
+              {repeat && hasCpfAsset && (
+                <span className="block text-xs text-gray-500">
+                  {"CPF is recalculated from the gross each month."}
+                </span>
+              )}
+            </span>
+          </label>
+        )}
       </div>
 
       {/* Pension section — sits directly under Gross salary since CPF is
           derived from gross and the user reviews it before allocating pay.
           Shown whenever the user has a CPF plan (not gated on the live
           recompute landing) so it never blinks out mid-edit; the per-bucket
-          and total figures fill in once `dc` resolves. */}
-      {showPension && (
+          and total figures fill in once `dc` resolves. Hidden while editing
+          the repeat: each month's CPF is recalculated from the gross, so
+          bucket overrides would not apply. */}
+      {showPension && !editingRepeat && (
         <div
           className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3"
           data-testid="pension-section"
