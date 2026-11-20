@@ -3,7 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
-import { getAssetCurrency, isCash } from "@lib/assets/assetUtils"
+import { getAssetCurrency, isAccount, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -350,7 +350,11 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           onEdit={() => handleEditClick(trn)}
                           onCopy={(e) => copyRowToClipboard(trn, e)}
                           onDelete={
-                            isCash(trn.asset)
+                            // A cash move on a balance or bank account, not a trade.
+                            // Deleting a spend withdrawal removes only the
+                            // transaction; the month's spend stays, and its next
+                            // save posts a new one.
+                            isCash(trn.asset) || isAccount(trn.asset)
                               ? () => requestDelete(trn)
                               : undefined
                           }

@@ -264,6 +264,23 @@ describe("transaction list scales", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("offers delete on a bank account's rows, not on trades", () => {
+    const bank = {
+      id: "dbs",
+      code: "DBS",
+      name: "DBS Current Account",
+      market: { code: "PRIVATE" },
+      assetCategory: { id: "ACCOUNT", name: "Bank Account" },
+      priceSymbol: "SGD",
+    }
+    ladderView([
+      makeTrn({ trnType: "WITHDRAWAL", asset: bank, quantity: 88, price: 1 }),
+      makeTrn({ id: "t2", trnType: "BUY", cashAmount: -250.5, price: 0 }),
+    ])
+    render(<CashLadder />)
+    expect(screen.getAllByTitle("Delete")).toHaveLength(1)
+  })
+
   it("signs cash ladder credits", () => {
     ladderView(ladder.slice(0, 1))
     render(<CashLadder />)
