@@ -85,8 +85,8 @@ function monthCategories(
 }
 
 /**
- * A month's opening rows: what was recorded (or svc-retire estimated), else
- * the category's budget, so the user only changes what differs.
+ * A month's opening rows: what was recorded (or svc-retire estimated). A month
+ * with nothing yet starts at the budget, so the user only changes what differs.
  */
 function seedRows(
   categories: SpendCategory[],
@@ -95,12 +95,15 @@ function seedRows(
   budgets: Record<string, number>,
 ): Record<string, RowValues> {
   const rows: Record<string, RowValues> = {}
+  // Once a month has figures, a category without one is unrecorded, not budget.
+  const fromBudget = !entries.some((e) => e.month === month && e.actual != null)
   for (const c of categories) {
     const e = entries.find(
       (x) => x.month === month && x.categoryLabelId === c.categoryLabelId,
     )
     rows[c.categoryLabelId] = {
-      actual: e?.actual ?? budgets[c.categoryLabelId] ?? null,
+      actual:
+        e?.actual ?? (fromBudget ? (budgets[c.categoryLabelId] ?? null) : null),
     }
   }
   return rows
@@ -293,20 +296,67 @@ function SpendMonthForm({
         </>
       }
     >
-      <div role="tablist" className="mb-3 flex gap-4 border-b border-gray-200">
-        {(["month", "history"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => onTabChange(t)}
-            className={`-mb-px border-b-2 px-1 pb-2 text-sm ${tab === t ? "border-independence-500 font-medium text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-          >
-            {t === "month" ? "Month" : "History"}
-          </button>
-        ))}
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-6 border-b border-gray-200">
+        <div role="tablist" className="flex gap-4">
+          {(["month", "history"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => onTabChange(t)}
+              className={`-mb-px border-b-2 px-1 pb-2 text-sm ${tab === t ? "border-independence-500 font-medium text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              {t === "month" ? "Month" : "History"}
+            </button>
+          ))}
+        </div>
+        {accounts.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 pb-2 text-sm">
+            <label className="flex items-center gap-2 text-gray-700">
+              Debit from
+              <select
+                aria-label="Debit from"
+                value={accountId}
+                onChange={(e) => {
+                  setAccountId(e.target.value)
+                  setPortfolioPick("")
+                }}
+                className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
+              >
+                <option value="">No account</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {holders.portfolios.length > 1 && (
+              <label className="flex items-center gap-2 text-gray-700">
+                Portfolio
+                <select
+                  aria-label="Portfolio"
+                  value={portfolioId}
+                  onChange={(e) => setPortfolioPick(e.target.value)}
+                  className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
+                >
+                  {holders.portfolios.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        )}
       </div>
+      {accountId !== "" && !holders.isLoading && portfolioId === "" && (
+        <p className="mb-3 text-sm text-loss">
+          {accountName} is not held in a portfolio, so it cannot be debited.
+        </p>
+      )}
       {tab === "history" ? (
         <SpendHistoryChart
           entries={entries}
@@ -435,61 +485,6 @@ function SpendMonthForm({
               )}
             </tfoot>
           </table>
-          {accounts.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-              <label className="flex items-center gap-2 text-gray-700">
-                Debit from
-                <select
-                  aria-label="Debit from"
-                  value={accountId}
-                  onChange={(e) => {
-                    setAccountId(e.target.value)
-                    setPortfolioPick("")
-                  }}
-                  className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
-                >
-                  <option value="">No account</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {holders.portfolios.length > 1 && (
-                <label className="flex items-center gap-2 text-gray-700">
-                  Portfolio
-                  <select
-                    aria-label="Portfolio"
-                    value={portfolioId}
-                    onChange={(e) => setPortfolioPick(e.target.value)}
-                    className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
-                  >
-                    {holders.portfolios.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-          )}
-          {accountId !== "" && !holders.isLoading && portfolioId === "" && (
-            <p className="mt-2 text-sm text-loss">
-              {accountName} is not held in a portfolio, so it cannot be debited.
-            </p>
-          )}
-          {accountId !== "" && portfolioId !== "" && totalActual > 0 && (
-            <p className="mt-2 text-sm text-gray-600">
-              Saving posts one withdrawal of {money(totalActual)} from{" "}
-              {accountName} for the month.
-            </p>
-          )}
-          <p className="mt-3 text-xs text-gray-500">
-            One figure per category per month. Sums like 120+45 are worked out
-            when you leave the cell.
-          </p>
         </>
       )}
     </Dialog>

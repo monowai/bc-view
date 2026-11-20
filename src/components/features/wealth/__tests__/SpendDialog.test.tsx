@@ -117,15 +117,15 @@ describe("SpendDialog", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("starts an unrecorded category's actual at its budget", () => {
+  it("opens an unrecorded category empty in a month with spend recorded", () => {
     renderDialog()
-    expect(screen.getByLabelText("Travel actual")).toHaveValue("1000")
+    expect(screen.getByLabelText("Travel actual")).toHaveValue("")
   })
 
   it("totals budget and actual, with the variance against the budget of the categories filled in", () => {
     renderDialog()
-    expect(screen.getByTestId("total-actual")).toHaveTextContent("S$3,100")
-    // Housing 2,100 + Travel 1,000 (its budget) against 3,000 budgeted.
+    expect(screen.getByTestId("total-actual")).toHaveTextContent("S$2,100")
+    // Only housing has an actual: 2,100 against its 2,000 budget.
     expect(screen.getByTestId("total-variance")).toHaveTextContent("S$100")
   })
 
@@ -261,7 +261,7 @@ describe("SpendDialog", () => {
     const body = savedBody()
     expect(
       body.entries.map((e: { categoryLabelId: string }) => e.categoryLabelId),
-    ).toEqual(["housing", "travel", "gone"])
+    ).toEqual(["housing", "gone"])
   })
 
   it("says the categories failed to load", () => {
@@ -339,7 +339,9 @@ describe("SpendDialog", () => {
     const onSaved = jest.fn()
     renderDialog(onSaved, { debits: [debit("2026-11", "dbs")] })
     expect(screen.getByLabelText("Debit from")).toHaveValue("dbs")
-    await screen.findByText(/one withdrawal of S\$3,100/)
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save" })).toBeEnabled(),
+    )
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(savedBody().debit).toEqual({ portfolioId: "p1", cashAssetId: "dbs" })
@@ -394,5 +396,20 @@ describe("SpendDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(savedBody().debit).toEqual({ portfolioId: "p2", cashAssetId: "dbs" })
+  })
+
+  it("offers the account to debit beside the tabs, on both tabs", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Debit from")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("tab", { name: "History" }))
+    expect(screen.getByLabelText("Debit from")).toBeInTheDocument()
+  })
+
+  it("carries no explanatory footnotes", () => {
+    renderDialog(jest.fn(), { debits: [debit("2026-11", "dbs")] })
+    expect(screen.queryByText(/Saving posts/)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/One figure per category/),
+    ).not.toBeInTheDocument()
   })
 })
