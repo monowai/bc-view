@@ -142,10 +142,11 @@ type SpendTab = "month" | "history"
 
 /**
  * Record a month's actual spend by category, set against the primary plan's
- * budget when there is one. Actuals start at the budget (or svc-retire's
- * estimate), so the user only changes what differs. One number per category per month, not a
- * transaction log. The History tab charts the recorded months. The log is the
- * user's actual outgoings, not a plan's.
+ * budget when there is one. A month opens on what was recorded (or svc-retire
+ * estimated); a month with nothing yet starts at the budget, so the user only
+ * changes what differs. One number per category per month, not a transaction
+ * log. The History tab charts the recorded months. The log is the user's actual
+ * outgoings, not a plan's.
  */
 export default function SpendDialog(
   props: SpendDialogProps,
