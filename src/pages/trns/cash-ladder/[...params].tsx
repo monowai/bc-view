@@ -13,7 +13,6 @@ import {
   TrnColumn,
   TrnDeleteConfirm,
   TrnEmptyState,
-  TrnNumber,
   TrnNumberCell,
   TrnPageNav,
   TrnRowActions,
@@ -26,7 +25,6 @@ const COLUMNS: TrnColumn[] = [
   { label: "Trade Date" },
   { label: "Type" },
   { label: "Description" },
-  { label: "Price", align: "right" },
   { label: "Cash", align: "right" },
   { label: "Balance", align: "right" },
   { label: "Status" },
@@ -181,7 +179,6 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
         trn.tradeDate,
         trn.trnType,
         formatTransaction(trn),
-        trn.price.toFixed(2),
         trn.signedCashAmount.toFixed(2),
         trn.runningBalance.toFixed(2),
       ].join("\t")
@@ -333,11 +330,6 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatTransaction(trn)}
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        {trn.price > 0 && (
-                          <TrnNumber value={trn.price} scale={2} />
-                        )}
                       </td>
                       <TrnNumberCell
                         value={trn.signedCashAmount}

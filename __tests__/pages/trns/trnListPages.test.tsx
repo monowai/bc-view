@@ -256,6 +256,14 @@ describe("transaction list scales", () => {
     expect(screen.queryByText("Tax:")).not.toBeInTheDocument()
   })
 
+  it("shows no price column on the cash ladder", () => {
+    ladderView(ladder)
+    render(<CashLadder />)
+    expect(
+      screen.queryByRole("columnheader", { name: "Price" }),
+    ).not.toBeInTheDocument()
+  })
+
   it("signs cash ladder credits", () => {
     ladderView(ladder.slice(0, 1))
     render(<CashLadder />)
