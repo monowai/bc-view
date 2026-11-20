@@ -44,20 +44,18 @@ const entry = (
   categoryLabelId: string,
   categoryName: string,
   actual: number | null,
-  projected: number | null = null,
   estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
   categoryName,
-  projected,
   actual,
   currency: "SGD",
   estimated,
 })
 
 const entries = [
-  entry("2026-10", "housing", "Housing", 3400, 3000),
+  entry("2026-10", "housing", "Housing", 3400),
   entry("2026-10", "food", "Food", 1100),
   entry("2026-11", "housing", "Housing", 3000),
 ]
@@ -76,10 +74,10 @@ const renderChart = (e: SpendEntry[] = entries): void => {
 }
 
 describe("SpendHistoryChart", () => {
-  it("stacks a bar per category and draws budget and projected lines", () => {
+  it("stacks a bar per category and draws a budget line", () => {
     renderChart()
     const drawn = screen.getAllByTestId("series").map((s) => s.textContent)
-    expect(drawn).toEqual(["Housing", "Food", "Budget", "Projected"])
+    expect(drawn).toEqual(["Housing", "Food", "Budget"])
   })
 
   it("names every series in a legend", () => {
@@ -88,7 +86,7 @@ describe("SpendHistoryChart", () => {
     expect(within(legend).getByText("Housing")).toBeInTheDocument()
     expect(within(legend).getByText("Food")).toBeInTheDocument()
     expect(within(legend).getByText("Budget")).toBeInTheDocument()
-    expect(within(legend).getByText("Projected")).toBeInTheDocument()
+    expect(within(legend).queryByText("Projected")).not.toBeInTheDocument()
   })
 
   it("shows the months as a table on request", () => {
@@ -97,13 +95,15 @@ describe("SpendHistoryChart", () => {
     const row = screen.getByRole("row", { name: /Oct 2026/ })
     expect(row).toHaveTextContent("S$4,500")
     expect(row).toHaveTextContent("S$4,200")
-    expect(row).toHaveTextContent("S$3,000")
     expect(row).toHaveTextContent("S$300")
+    expect(
+      screen.queryByRole("columnheader", { name: "Projected" }),
+    ).not.toBeInTheDocument()
   })
 
   it("draws estimated months lighter and marks them in the table", () => {
     renderChart([
-      entry("2026-10", "housing", "Housing", 3000, null, true),
+      entry("2026-10", "housing", "Housing", 3000, true),
       entry("2026-11", "housing", "Housing", 3100),
     ])
     const opacities = screen

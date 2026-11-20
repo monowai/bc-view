@@ -44,8 +44,6 @@ interface SpendDialogProps {
 }
 
 interface RowValues {
-  /** Recorded projection; shown, not edited, and kept on save. */
-  projected: number | null
   actual: number | null
 }
 
@@ -102,7 +100,6 @@ function seedRows(
       (x) => x.month === month && x.categoryLabelId === c.categoryLabelId,
     )
     rows[c.categoryLabelId] = {
-      projected: e?.projected ?? null,
       actual: e?.actual ?? budgets[c.categoryLabelId] ?? null,
     }
   }
@@ -140,7 +137,7 @@ type SpendTab = "month" | "history"
 /**
  * Record a month's actual spend by category, set against the primary plan's
  * budget when there is one. Actuals start at the budget (or svc-retire's
- * estimate); a recorded projection is shown, not edited. One number per category per month, not a
+ * estimate), so the user only changes what differs. One number per category per month, not a
  * transaction log. The History tab charts the recorded months. The log is the
  * user's actual outgoings, not a plan's.
  */
@@ -226,7 +223,6 @@ function SpendMonthForm({
     (t, c) => t + (budgets[c.categoryLabelId] ?? 0),
     0,
   )
-  const totalProjected = sum((r) => r.projected)
   const totalActual = sum((r) => r.actual)
   // A blank category is unrecorded, not unspent: compare only what is filled in.
   const budgetRecorded = categories.reduce(
@@ -250,10 +246,9 @@ function SpendMonthForm({
         .map((c) => ({
           categoryLabelId: c.categoryLabelId,
           categoryName: c.categoryName,
-          projected: rows[c.categoryLabelId].projected,
           actual: rows[c.categoryLabelId].actual,
         }))
-        .filter((e) => e.projected != null || e.actual != null),
+        .filter((e) => e.actual != null),
       debit: accountId ? { portfolioId, cashAssetId: accountId } : null,
     }
     const failed = `Could not save spend for ${monthLabel(month)}`
@@ -384,9 +379,6 @@ function SpendMonthForm({
                   Budget
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Projected
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Actual
                 </th>
               </tr>
@@ -400,12 +392,6 @@ function SpendMonthForm({
                     data-testid={`budget-${b.categoryLabelId}`}
                   >
                     {moneyOrDash(budgets[b.categoryLabelId])}
-                  </td>
-                  <td
-                    className="px-3 py-2 text-right tabular-nums text-gray-600"
-                    data-testid={`projected-${b.categoryLabelId}`}
-                  >
-                    {moneyOrDash(rows[b.categoryLabelId].projected)}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <MathInput
@@ -426,16 +412,6 @@ function SpendMonthForm({
                 </td>
                 <td
                   className="px-3 py-2 text-right tabular-nums"
-                  data-testid="total-projected"
-                >
-                  {moneyOrDash(
-                    Object.values(rows).some((r) => r.projected != null)
-                      ? totalProjected
-                      : null,
-                  )}
-                </td>
-                <td
-                  className="px-3 py-2 text-right tabular-nums"
                   data-testid="total-actual"
                 >
                   {money(totalActual)}
@@ -444,7 +420,7 @@ function SpendMonthForm({
               {hasBudget && (
                 <tr>
                   <td
-                    colSpan={3}
+                    colSpan={2}
                     className="px-3 py-2 text-gray-500 font-normal"
                   >
                     Actual against budget (categories filled in)

@@ -5,13 +5,11 @@ const entry = (
   month: string,
   categoryLabelId: string,
   actual: number | null,
-  projected: number | null = null,
   estimated = false,
 ): SpendEntry => ({
   month,
   categoryLabelId,
   categoryName: categoryLabelId,
-  projected,
   actual,
   currency: "SGD",
   estimated,
@@ -65,7 +63,7 @@ describe("spendSummary", () => {
         entry("2026-09", "housing", 2000),
         entry("2026-09", "travel", 1500),
         entry("2026-10", "housing", 2000),
-        entry("2026-11", "housing", null, 2100),
+        entry("2026-11", "housing", null),
       ],
       budgets,
       36_000,
@@ -129,7 +127,7 @@ describe("spendSummary", () => {
   it("counts the months the system estimated", () => {
     const s = spendSummary(
       [
-        entry("2026-09", "housing", 2000, null, true),
+        entry("2026-09", "housing", 2000, true),
         entry("2026-10", "housing", 2100),
       ],
       budgets,
@@ -141,12 +139,7 @@ describe("spendSummary", () => {
 
   it("is null when no month in the window has an actual", () => {
     expect(
-      spendSummary(
-        [entry("2026-11", "housing", null, 2000)],
-        budgets,
-        0,
-        window,
-      ),
+      spendSummary([entry("2026-11", "housing", null)], budgets, 0, window),
     ).toBeNull()
   })
 })

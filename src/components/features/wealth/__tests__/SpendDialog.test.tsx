@@ -23,7 +23,6 @@ const entries: SpendEntry[] = [
     month: "2026-11",
     categoryLabelId: "housing",
     categoryName: "Housing",
-    projected: 1900,
     actual: 2100,
     currency: "SGD",
     estimated: false,
@@ -111,18 +110,11 @@ describe("SpendDialog", () => {
     expect(screen.getByLabelText("Housing actual")).toHaveValue("2100")
   })
 
-  it("shows projected spend as a figure, not a field", () => {
+  it("has no projected column", () => {
     renderDialog()
-    expect(screen.queryByLabelText("Housing projected")).not.toBeInTheDocument()
-    expect(screen.getByTestId("projected-housing")).toHaveTextContent("S$1,900")
-    expect(screen.getByTestId("projected-travel")).toHaveTextContent("—")
-  })
-
-  it("shows no projected total when nothing is projected", () => {
-    renderDialog(jest.fn(), {
-      entries: [{ ...entries[0], projected: null }],
-    })
-    expect(screen.getByTestId("total-projected")).toHaveTextContent("—")
+    expect(
+      screen.queryByRole("columnheader", { name: "Projected" }),
+    ).not.toBeInTheDocument()
   })
 
   it("starts an unrecorded category's actual at its budget", () => {
@@ -130,7 +122,7 @@ describe("SpendDialog", () => {
     expect(screen.getByLabelText("Travel actual")).toHaveValue("1000")
   })
 
-  it("totals budget, projected and actual, with the variance against the budget of the categories filled in", () => {
+  it("totals budget and actual, with the variance against the budget of the categories filled in", () => {
     renderDialog()
     expect(screen.getByTestId("total-actual")).toHaveTextContent("S$3,100")
     // Housing 2,100 + Travel 1,000 (its budget) against 3,000 budgeted.
@@ -147,7 +139,6 @@ describe("SpendDialog", () => {
             month: "2026-10",
             categoryLabelId: "housing",
             categoryName: "Housing",
-            projected: null,
             actual: 2500,
             currency: "SGD",
             estimated: true,
@@ -199,12 +190,11 @@ describe("SpendDialog", () => {
     expect(savedBody().entries).toContainEqual({
       categoryLabelId: "travel",
       categoryName: "Travel",
-      projected: null,
       actual: 500,
     })
   })
 
-  it("saves the month's entries, keeping the recorded projection", async () => {
+  it("saves the month's entries", async () => {
     const onSaved = jest.fn()
     renderDialog(onSaved)
     fireEvent.change(screen.getByLabelText("Travel actual"), {
@@ -223,13 +213,11 @@ describe("SpendDialog", () => {
         {
           categoryLabelId: "housing",
           categoryName: "Housing",
-          projected: 1900,
           actual: 2100,
         },
         {
           categoryLabelId: "travel",
           categoryName: "Travel",
-          projected: null,
           actual: 450,
         },
       ],
@@ -261,7 +249,6 @@ describe("SpendDialog", () => {
           month: "2026-11",
           categoryLabelId: "gone",
           categoryName: "Old category",
-          projected: null,
           actual: 75,
           currency: "SGD",
           estimated: false,
