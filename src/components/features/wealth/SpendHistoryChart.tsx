@@ -103,8 +103,7 @@ function HistoryTooltip({
 
 /**
  * Monthly spend over time: actual stacked by the largest categories, against
- * the budget of the categories recorded (step line) and the projection
- * (dashed). One money axis. Legend and table always available, since three
+ * the budget of the categories recorded (step line). One money axis. Legend and table always available, since three
  * category hues sit under 3:1 contrast.
  */
 export default function SpendHistoryChart({
