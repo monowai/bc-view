@@ -138,9 +138,9 @@ function defaultAccount(
 type SpendTab = "month" | "history"
 
 /**
- * Record a month's spend by category: what the owner expects to spend
- * (projected) and what they did spend (actual), set against the primary
- * plan's budget when there is one. One number per category per month, not a
+ * Record a month's actual spend by category, set against the primary plan's
+ * budget when there is one. Actuals start at the budget (or svc-retire's
+ * estimate); a recorded projection is shown, not edited. One number per category per month, not a
  * transaction log. The History tab charts the recorded months. The log is the
  * user's actual outgoings, not a plan's.
  */
@@ -216,6 +216,9 @@ function SpendMonthForm({
   const [error, setError] = useState<string | null>(null)
 
   const money = (n: number): string => formatSpendMoney(n, currencySymbol)
+  /** An amount, or a dash when there is none. */
+  const moneyOrDash = (n: number | null | undefined): string =>
+    n == null ? "—" : money(n)
   const hasBudget = Object.keys(budgets).length > 0
   const sum = (pick: (r: RowValues) => number | null): number =>
     Object.values(rows).reduce((t, r) => t + (pick(r) ?? 0), 0)
@@ -396,17 +399,13 @@ function SpendMonthForm({
                     className="px-3 py-2 text-right tabular-nums text-gray-600"
                     data-testid={`budget-${b.categoryLabelId}`}
                   >
-                    {budgets[b.categoryLabelId] == null
-                      ? "—"
-                      : money(budgets[b.categoryLabelId])}
+                    {moneyOrDash(budgets[b.categoryLabelId])}
                   </td>
                   <td
                     className="px-3 py-2 text-right tabular-nums text-gray-600"
                     data-testid={`projected-${b.categoryLabelId}`}
                   >
-                    {rows[b.categoryLabelId].projected == null
-                      ? "—"
-                      : money(rows[b.categoryLabelId].projected as number)}
+                    {moneyOrDash(rows[b.categoryLabelId].projected)}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <MathInput
@@ -423,15 +422,17 @@ function SpendMonthForm({
               <tr>
                 <td className="px-3 py-2 text-gray-900">Total</td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {hasBudget ? money(totalBudget) : "—"}
+                  {moneyOrDash(hasBudget ? totalBudget : null)}
                 </td>
                 <td
                   className="px-3 py-2 text-right tabular-nums"
                   data-testid="total-projected"
                 >
-                  {Object.values(rows).some((r) => r.projected != null)
-                    ? money(totalProjected)
-                    : "—"}
+                  {moneyOrDash(
+                    Object.values(rows).some((r) => r.projected != null)
+                      ? totalProjected
+                      : null,
+                  )}
                 </td>
                 <td
                   className="px-3 py-2 text-right tabular-nums"
