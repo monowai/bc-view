@@ -1,10 +1,20 @@
-import type { SpendEntry } from "types/independence"
+import useSwr from "swr"
+import type { SpendDebit, SpendEntry } from "types/independence"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+import { accountsKey } from "@utils/api/client/assets"
+import { getAssetCurrency, toAssetArray } from "@lib/assets/assetUtils"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { usePrimaryPlan } from "@components/features/independence/usePrimaryPlan"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { useExpenseCategories } from "@components/features/independence/useExpenseCategories"
 import { useSpendHistory } from "@components/features/wealth/useSpendHistory"
 import { retirementBudgets } from "@lib/independence/spendSummary"
+
+/** A private bank account the month's spend can be debited from. */
+export interface SpendAccount {
+  id: string
+  name: string
+}
 
 export interface SpendCategory {
   categoryLabelId: string
@@ -17,6 +27,10 @@ interface SpendLog {
   /** The primary plan's monthly budget by category; empty without a plan. */
   budgets: Record<string, number>
   entries: SpendEntry[]
+  /** The bank withdrawals already posted, one per debited month. */
+  debits: SpendDebit[]
+  /** Private bank accounts in the spend currency: the only ones it may debit. */
+  accounts: SpendAccount[]
   /** The currency spend is recorded in; null only with no currency anywhere. */
   currency: string | null
   /** The primary plan's expenses currency, or null without a plan. */
@@ -50,22 +64,34 @@ export function useSpendLog(): SpendLog {
     error: expensesError,
   } = usePlanExpenses(primaryPlan?.id)
   const { preferences } = useUserPreferences()
+  const { data: accountData } = useSwr<{ data: unknown }>(
+    accountsKey,
+    simpleFetcher(accountsKey),
+  )
 
   const planCurrency = primaryPlan?.expensesCurrency ?? null
   const categories = [...(labels ?? [])]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((l) => ({ categoryLabelId: l.id, categoryName: l.name }))
 
+  const currency =
+    history.entries[0]?.currency ??
+    planCurrency ??
+    preferences?.reportingCurrencyCode ??
+    preferences?.baseCurrencyCode ??
+    null
+  // No FX: the withdrawal must equal the recorded total.
+  const accounts = toAssetArray(accountData?.data)
+    .filter((a) => getAssetCurrency(a) === currency)
+    .map((a) => ({ id: a.id, name: a.name || a.code }))
+
   return {
     categories,
     budgets: retirementBudgets(expenses),
     entries: history.entries,
-    currency:
-      history.entries[0]?.currency ??
-      planCurrency ??
-      preferences?.reportingCurrencyCode ??
-      preferences?.baseCurrencyCode ??
-      null,
+    debits: history.debits,
+    accounts,
+    currency,
     planCurrency,
     historyMonths: history.historyMonths,
     isLoading:

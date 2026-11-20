@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
-import type { SpendEntry } from "types/independence"
+import type { SpendDebit, SpendEntry } from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
 import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import {
@@ -8,7 +8,11 @@ import {
   monthOf,
   monthStart,
 } from "@lib/independence/spendSummary"
-import type { SpendCategory } from "@components/features/wealth/useSpendLog"
+import type {
+  SpendAccount,
+  SpendCategory,
+} from "@components/features/wealth/useSpendLog"
+import { useAccountPortfolios } from "@components/features/wealth/useAccountPortfolios"
 
 interface SpendDialogProps {
   /** The user's expense categories: one row each. */
@@ -30,6 +34,10 @@ interface SpendDialogProps {
   budgetsUnavailable: boolean
   /** The expense categories failed to load. */
   categoriesUnavailable: boolean
+  /** Bank accounts the month's actual total may be debited from. */
+  accounts: SpendAccount[]
+  /** Withdrawals already posted, one per debited month. */
+  debits: SpendDebit[]
   onClose: () => void
   onSaved: () => void
 }
@@ -97,6 +105,21 @@ function seedRows(
   return rows
 }
 
+/**
+ * The account a month opens on: the one it was debited from, else the one
+ * debited most recently, so a regular account carries forward month to month.
+ */
+function defaultAccount(
+  debits: SpendDebit[],
+  month: string,
+  accounts: SpendAccount[],
+): string {
+  const latest = [...debits].sort((a, b) => b.month.localeCompare(a.month))[0]
+  const id =
+    debits.find((d) => d.month === month)?.cashAssetId ?? latest?.cashAssetId
+  return accounts.some((a) => a.id === id) ? (id as string) : ""
+}
+
 type SpendTab = "month" | "history"
 
 /**
@@ -136,6 +159,8 @@ function SpendMonthForm({
   planCurrency,
   budgetsUnavailable,
   categoriesUnavailable,
+  accounts,
+  debits,
   tab,
   onTabChange,
   onClose,
@@ -149,6 +174,24 @@ function SpendMonthForm({
   const [categories] = useState(() => monthCategories(listed, entries, month))
   const [rows, setRows] = useState(() => seedRows(categories, entries, month))
   const [saving, setSaving] = useState(false)
+  const [accountId, setAccountId] = useState(() =>
+    defaultAccount(debits, month, accounts),
+  )
+  const [portfolioPick, setPortfolioPick] = useState("")
+  const holders = useAccountPortfolios(accountId)
+  const monthDebit = debits.find(
+    (d) => d.month === month && d.cashAssetId === accountId,
+  )
+  // Explicit pick, else where the month was posted before, else the first holder.
+  const portfolioId =
+    [portfolioPick, monthDebit?.portfolioId].find((id) =>
+      holders.portfolios.some((p) => p.id === id),
+    ) ??
+    holders.portfolios[0]?.id ??
+    ""
+  const accountName = accounts.find((a) => a.id === accountId)?.name
+  const debitBlocked =
+    accountId !== "" && (holders.isLoading || portfolioId === "")
   const [error, setError] = useState<string | null>(null)
 
   const money = (n: number): string => formatSpendMoney(n, currencySymbol)
@@ -190,6 +233,7 @@ function SpendMonthForm({
           actual: toNumber(rows[c.categoryLabelId].actual),
         }))
         .filter((e) => e.projected != null || e.actual != null),
+      debit: accountId ? { portfolioId, cashAssetId: accountId } : null,
     }
     const failed = `Could not save spend for ${monthLabel(month)}`
     try {
@@ -224,7 +268,9 @@ function SpendMonthForm({
               label="Save"
               loadingLabel="Saving…"
               isSubmitting={saving}
-              disabled={categories.length === 0 || currency === ""}
+              disabled={
+                categories.length === 0 || currency === "" || debitBlocked
+              }
               variant="green"
             />
           )}
@@ -402,6 +448,57 @@ function SpendMonthForm({
               )}
             </tfoot>
           </table>
+          {accounts.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <label className="flex items-center gap-2 text-gray-700">
+                Debit from
+                <select
+                  aria-label="Debit from"
+                  value={accountId}
+                  onChange={(e) => {
+                    setAccountId(e.target.value)
+                    setPortfolioPick("")
+                  }}
+                  className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
+                >
+                  <option value="">No account</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {holders.portfolios.length > 1 && (
+                <label className="flex items-center gap-2 text-gray-700">
+                  Portfolio
+                  <select
+                    aria-label="Portfolio"
+                    value={portfolioId}
+                    onChange={(e) => setPortfolioPick(e.target.value)}
+                    className="rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-independence-500"
+                  >
+                    {holders.portfolios.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+          {accountId !== "" && !holders.isLoading && portfolioId === "" && (
+            <p className="mt-2 text-sm text-loss">
+              {accountName} is not held in a portfolio, so it cannot be debited.
+            </p>
+          )}
+          {accountId !== "" && portfolioId !== "" && totalActual > 0 && (
+            <p className="mt-2 text-sm text-gray-600">
+              Saving posts one withdrawal of {money(totalActual)} from{" "}
+              {accountName} for the month.
+            </p>
+          )}
           <p className="mt-3 text-xs text-gray-500">
             One figure per category per month. Leave a cell blank if you have
             nothing to record.

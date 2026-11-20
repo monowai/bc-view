@@ -1,8 +1,15 @@
 import React from "react"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
+import { SWRConfig } from "swr"
 import "@testing-library/jest-dom"
 import SpendDialog from "../SpendDialog"
-import type { SpendEntry } from "types/independence"
+import type { SpendDebit, SpendEntry } from "types/independence"
 
 const categories = [
   { categoryLabelId: "housing", categoryName: "Housing" },
@@ -23,36 +30,78 @@ const entries: SpendEntry[] = [
   },
 ]
 
+const accounts = [
+  { id: "dbs", name: "DBS Savings" },
+  { id: "ocbc", name: "OCBC" },
+]
+
+const debit = (
+  month: string,
+  cashAssetId: string,
+  portfolioId = "p1",
+): SpendDebit => ({
+  month,
+  portfolioId,
+  cashAssetId,
+  trnId: `t-${month}`,
+  amount: 100,
+  currency: "SGD",
+})
+
+// Portfolios holding each account, served by the asset positions endpoint.
+let holders: Record<string, Array<{ id: string; code: string }>> = {}
+
 const renderDialog = (
   onSaved = jest.fn(),
   overrides: Partial<React.ComponentProps<typeof SpendDialog>> = {},
 ): void => {
   render(
-    <SpendDialog
-      categories={categories}
-      budgets={budgets}
-      entries={entries}
-      currency="SGD"
-      currencySymbol="S$"
-      initialMonth="2026-11"
-      historyMonths={["2026-10", "2026-11"]}
-      planCurrency="SGD"
-      budgetsUnavailable={false}
-      categoriesUnavailable={false}
-      onClose={jest.fn()}
-      onSaved={onSaved}
-      {...overrides}
-    />,
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <SpendDialog
+        categories={categories}
+        budgets={budgets}
+        entries={entries}
+        currency="SGD"
+        currencySymbol="S$"
+        initialMonth="2026-11"
+        historyMonths={["2026-10", "2026-11"]}
+        planCurrency="SGD"
+        budgetsUnavailable={false}
+        categoriesUnavailable={false}
+        accounts={accounts}
+        debits={[]}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+        {...overrides}
+      />
+    </SWRConfig>,
   )
 }
 
 describe("SpendDialog", () => {
   beforeEach(() => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: [] }),
+    holders = { dbs: [{ id: "p1", code: "MAIN" }] }
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      const held = /assets\/([^/]+)\/positions/.exec(url)?.[1]
+      const data = held
+        ? (holders[held] ?? []).map((portfolio) => ({ portfolio }))
+        : []
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data }),
+      })
     }) as jest.Mock
   })
+
+  const savedBody = (): {
+    entries: Array<{ categoryLabelId: string }>
+    debit: { portfolioId: string; cashAssetId: string } | null
+  } => {
+    const call = (global.fetch as jest.Mock).mock.calls.find(
+      ([, init]) => init?.method === "PUT",
+    )
+    return JSON.parse(call[1].body)
+  }
 
   it("lists each expense category with its budget and the month's recorded figures", () => {
     renderDialog()
@@ -94,6 +143,8 @@ describe("SpendDialog", () => {
         categoriesUnavailable={false}
         initialMonth="2026-10"
         historyMonths={["2026-10"]}
+        accounts={[]}
+        debits={[]}
         onClose={jest.fn()}
         onSaved={jest.fn()}
       />,
@@ -125,9 +176,10 @@ describe("SpendDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    const [url, init] = (global.fetch as jest.Mock).mock.calls[0]
+    const [url, init] = (global.fetch as jest.Mock).mock.calls.find(
+      ([, i]) => i?.method === "PUT",
+    )
     expect(url).toBe("/api/independence/spend/2026-11")
-    expect(init.method).toBe("PUT")
     expect(JSON.parse(init.body)).toEqual({
       currency: "SGD",
       entries: [
@@ -144,6 +196,7 @@ describe("SpendDialog", () => {
           actual: 450,
         },
       ],
+      debit: null,
     })
   })
 
@@ -180,7 +233,7 @@ describe("SpendDialog", () => {
     expect(screen.getByLabelText("Old category actual")).toHaveValue(75)
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    const body = savedBody()
     expect(
       body.entries.map((e: { categoryLabelId: string }) => e.categoryLabelId),
     ).toEqual(["housing", "gone"])
@@ -255,5 +308,66 @@ describe("SpendDialog", () => {
       await screen.findByText("Could not save spend for November 2026"),
     ).toBeInTheDocument()
     expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it("debits the account the month was debited from, in the portfolio that holds it", async () => {
+    const onSaved = jest.fn()
+    renderDialog(onSaved, { debits: [debit("2026-11", "dbs")] })
+    expect(screen.getByLabelText("Debit from")).toHaveValue("dbs")
+    await screen.findByText(/one withdrawal of S\$2,100/)
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(savedBody().debit).toEqual({ portfolioId: "p1", cashAssetId: "dbs" })
+  })
+
+  it("offers the last account debited for a month not yet debited", () => {
+    renderDialog(jest.fn(), {
+      debits: [debit("2026-09", "ocbc"), debit("2026-10", "dbs")],
+    })
+    expect(screen.getByLabelText("Debit from")).toHaveValue("dbs")
+  })
+
+  it("debits nothing when no account is chosen", async () => {
+    const onSaved = jest.fn()
+    renderDialog(onSaved, { debits: [debit("2026-11", "dbs")] })
+    fireEvent.change(screen.getByLabelText("Debit from"), {
+      target: { value: "" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(savedBody().debit).toBeNull()
+  })
+
+  it("will not save against an account no portfolio holds", async () => {
+    renderDialog()
+    fireEvent.change(screen.getByLabelText("Debit from"), {
+      target: { value: "ocbc" },
+    })
+    expect(
+      await screen.findByText(
+        "OCBC is not held in a portfolio, so it cannot be debited.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+  })
+
+  it("asks which portfolio when more than one holds the account", async () => {
+    holders = {
+      dbs: [
+        { id: "p1", code: "MAIN" },
+        { id: "p2", code: "JOINT" },
+      ],
+    }
+    const onSaved = jest.fn()
+    renderDialog(onSaved)
+    fireEvent.change(screen.getByLabelText("Debit from"), {
+      target: { value: "dbs" },
+    })
+    const portfolio = await screen.findByLabelText("Portfolio")
+    expect(within(portfolio).getAllByRole("option")).toHaveLength(2)
+    fireEvent.change(portfolio, { target: { value: "p2" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(savedBody().debit).toEqual({ portfolioId: "p2", cashAssetId: "dbs" })
   })
 })

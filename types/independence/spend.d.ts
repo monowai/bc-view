@@ -13,8 +13,21 @@ export interface SpendEntry {
   estimated: boolean
 }
 
+/** The bank withdrawal svc-retire posted for one month's actual spend. */
+export interface SpendDebit {
+  /** YYYY-MM */
+  month: string
+  portfolioId: string
+  /** The private bank account debited. */
+  cashAssetId: string
+  trnId: string
+  amount: number
+  currency: string
+}
+
 export interface SpendResponse {
   data: SpendEntry[]
+  debits?: SpendDebit[]
 }
 
 export interface SpendRequest {
@@ -25,4 +38,6 @@ export interface SpendRequest {
       "categoryLabelId" | "categoryName" | "projected" | "actual"
     >
   >
+  /** The account to debit for the month's actual total; null debits nothing. */
+  debit: Pick<SpendDebit, "portfolioId" | "cashAssetId"> | null
 }

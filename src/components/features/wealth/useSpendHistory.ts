@@ -1,6 +1,6 @@
 import { useState } from "react"
 import useSwr from "swr"
-import type { SpendEntry, SpendResponse } from "types/independence"
+import type { SpendDebit, SpendEntry, SpendResponse } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { spendKey } from "@utils/api/client/independence"
 import { trailingMonths } from "@lib/independence/spendSummary"
@@ -16,6 +16,8 @@ export function useSpendHistory(): {
   /** `YYYY-MM`, oldest first. */
   historyMonths: string[]
   entries: SpendEntry[]
+  /** The bank withdrawals posted for months in the window. */
+  debits: SpendDebit[]
   isLoading: boolean
   error: unknown
   refresh: () => void
@@ -35,6 +37,7 @@ export function useSpendHistory(): {
   return {
     historyMonths,
     entries: data?.data ?? [],
+    debits: data?.debits ?? [],
     isLoading: Boolean(isLoading),
     error,
     refresh: () => void mutate(),

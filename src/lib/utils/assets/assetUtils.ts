@@ -18,6 +18,12 @@ export function getAssetCurrency(asset: {
   )
 }
 
+/** SWR payloads arrive as either an array or a keyed object; normalise to array. */
+export function toAssetArray(raw: unknown): Asset[] {
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : (Object.values(raw) as Asset[])
+}
+
 export function isNonTradeable(asset: Asset): boolean {
   return asset.assetCategory.id === "RE" || isCash(asset) || isAccount(asset)
 }

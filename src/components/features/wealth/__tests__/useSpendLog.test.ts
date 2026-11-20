@@ -3,6 +3,8 @@ import { useSpendLog } from "../useSpendLog"
 import type { RetirementPlan } from "types/independence"
 
 let spendRows: unknown[] | undefined
+let debitRows: unknown[] | undefined
+let accountRows: unknown
 let labelRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let expenseError: Error | undefined
@@ -16,10 +18,13 @@ jest.mock("swr", () => ({
   default: (key: unknown) => {
     if (typeof key === "string" && key.includes("/spend")) {
       return {
-        data: spendRows && { data: spendRows },
+        data: spendRows && { data: spendRows, debits: debitRows },
         isLoading: spendRows === undefined,
         mutate: jest.fn(),
       }
+    }
+    if (typeof key === "string" && key.includes("category=ACCOUNT")) {
+      return { data: accountRows && { data: accountRows }, isLoading: false }
     }
     if (typeof key === "string" && key.endsWith("/categories")) {
       return {
@@ -57,6 +62,8 @@ const thisMonth = (): string => {
 describe("useSpendLog", () => {
   beforeEach(() => {
     spendRows = []
+    debitRows = undefined
+    accountRows = undefined
     labelRows = [
       { id: "travel", name: "Travel", sortOrder: 2 },
       { id: "housing", name: "Housing", sortOrder: 1 },
@@ -165,5 +172,34 @@ describe("useSpendLog", () => {
     const { result } = renderHook(() => useSpendLog())
     expect(result.current.isLoading).toBe(false)
     expect(result.current.categoriesUnavailable).toBe(true)
+  })
+
+  it("offers only the private bank accounts in the spend currency", () => {
+    reportingCurrencyCode = "SGD"
+    accountRows = {
+      a: { id: "dbs", name: "DBS Savings", priceSymbol: "SGD" },
+      b: { id: "wise", name: "Wise", priceSymbol: "NZD" },
+      c: { id: "ocbc", name: "OCBC", priceSymbol: "SGD" },
+    }
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.accounts).toEqual([
+      { id: "dbs", name: "DBS Savings" },
+      { id: "ocbc", name: "OCBC" },
+    ])
+  })
+
+  it("passes on the withdrawals already posted for the log", () => {
+    debitRows = [
+      {
+        month: "2026-10",
+        portfolioId: "p1",
+        cashAssetId: "dbs",
+        trnId: "t1",
+        amount: 100,
+        currency: "SGD",
+      },
+    ]
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.debits).toHaveLength(1)
   })
 })

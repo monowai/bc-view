@@ -3,6 +3,7 @@ import useSWR, { mutate as globalMutate } from "swr"
 import Dialog from "@components/ui/Dialog"
 import MathInput from "@components/ui/MathInput"
 import { Asset, Portfolio } from "types/beancounter"
+import { toAssetArray } from "@lib/assets/assetUtils"
 import { PlansResponse, WorkScenariosResponse } from "types/independence"
 import {
   accountsKey,
@@ -40,12 +41,6 @@ interface PayslipModalProps {
 const parseNum = (s: string): number => {
   const n = parseFloat(s)
   return isNaN(n) ? 0 : n
-}
-
-// SWR payloads arrive as either an array or a keyed object; normalise to array.
-const toAssetArray = (raw: unknown): Asset[] => {
-  if (!raw) return []
-  return Array.isArray(raw) ? raw : (Object.values(raw) as Asset[])
 }
 
 /**

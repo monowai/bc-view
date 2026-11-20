@@ -1,4 +1,6 @@
 import React from "react"
+import { useSWRConfig } from "swr"
+import { portfoliosKey } from "@utils/api/client/portfolios"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import SpendDialog from "@components/features/wealth/SpendDialog"
@@ -16,6 +18,7 @@ export default function SpendLogDialog({
   onClose: () => void
 }): React.ReactElement {
   const log = useSpendLog()
+  const { mutate } = useSWRConfig()
 
   if (log.isLoading) {
     return (
@@ -38,9 +41,16 @@ export default function SpendLogDialog({
       planCurrency={log.planCurrency}
       budgetsUnavailable={log.budgetsUnavailable}
       categoriesUnavailable={log.categoriesUnavailable}
+      accounts={log.accounts}
+      debits={log.debits}
       onClose={onClose}
       onSaved={() => {
         log.refresh()
+        // A save can post, move or remove a bank withdrawal.
+        void mutate(portfoliosKey)
+        void mutate(
+          (key) => typeof key === "string" && key.startsWith("/api/holdings"),
+        )
         onClose()
       }}
     />
