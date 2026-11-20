@@ -62,6 +62,8 @@ rounded:
   sm: "4px"
   md: "6px"
   lg: "8px"
+  xl: "12px"
+  full: "9999px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -98,11 +100,26 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.lg}"
     padding: "16px"
+  dialog:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.lg}"
+    padding: "16px"
+  dialog-confirm:
+    backgroundColor: "#22c55e"
+    textColor: "{colors.primary-fg}"
+    rounded: "{rounded.sm}"
+    padding: "8px 16px"
+  dialog-cancel:
+    backgroundColor: "#d1d5db"
+    textColor: "#374151"
+    rounded: "{rounded.sm}"
+    padding: "8px 16px"
 ---
 
 # Design System: bc-view
 
-## 1. Overview
+## Overview
 
 **Creative North Star: "The Almanac"**
 
@@ -136,7 +153,7 @@ and always topped by one clear primary figure.
 - Warm, teaching defaults; depth available but never forced.
 - One primary blue CTA per region; the accent is rare on purpose.
 
-## 2. Colors
+## Colors
 
 A restrained system: a neutral gray-and-white stage, one blue action color, and
 a small vocabulary of meaning-bearing hues that only appear when they say
@@ -184,7 +201,7 @@ no accent color used because a surface "felt empty."
 Always pair the green/red with a sign, arrow, or label so red/green colorblind
 users read direction correctly.
 
-## 3. Typography
+## Typography
 
 **Display / Body Font:** DM Sans (with system-ui, sans-serif fallback) — one
 humanist sans carries headings, labels, and body.
@@ -219,7 +236,31 @@ that doesn't align to the decimal reads as untrustworthy.
 **The One Sans Rule.** DM Sans is the only proportional face. Never introduce a
 second sans for "display"; weight and size carry hierarchy.
 
-## 4. Elevation
+## Layout
+
+Every screen sits on the gray Page Field inside one centred column: a
+`container` with `16px` side padding and `16–24px` above and below. Focused
+screens narrow the column (`max-w-2xl` to `max-w-5xl`) so prose and forms keep
+a readable measure; wide data screens (holdings, transactions) open to
+`max-w-7xl`. The header spans the full width above it.
+
+Spacing runs on a 4px base (`xs 4px`, `sm 8px`, `md 12px`, `lg 16px`). Related
+items sit 4–8px apart, groups 12–16px, sections 24px or more; the contrast
+between tight and generous intervals carries the grouping, not extra boxes.
+
+Breakpoints are Tailwind's defaults (`sm 640px`, `md 768px`, `lg 1024px`,
+`xl 1280px`, `2xl 1536px`), plus `portrait` / `landscape` and a
+`mobile-portrait` variant (portrait below 640px). Responsiveness is
+structural: below `md` a dense table may become stacked cards (the cash ladder
+does), other tables scroll sideways inside their panel, headers collapse, and
+padding steps down. Type does not scale fluidly.
+
+**The No-Scroll Dialog Rule.** A task dialog fits its job in one view on a
+laptop screen (about 750px tall). When it doesn't, move context into the
+header and tighten rows before reaching for a scrollbar; scrolling is for
+long lists, not for a form.
+
+## Elevation & Depth
 
 Flat by default. Depth is conveyed by **tonal layering**, not drop shadows: the
 gray page field (`#f3f4f6`) recedes, white surfaces (`#ffffff`) sit on top of
@@ -235,12 +276,26 @@ ambient decoration on a resting card.
   surface.
 - **Transient lift** (`box-shadow: 0 2px 10px rgb(0 0 0 / 0.1)`): flyout menus
   and toasts that float above content while active.
+- **Overlay** (`box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)`):
+  dialogs, above a 50% black scrim.
 
 **The Flat-By-Default Rule.** Surfaces are flat at rest. If a card has a shadow
 just to look "designed," remove it. Elevation is earned by interaction (hover,
 focus, float), not granted at rest.
 
-## 5. Components
+## Shapes
+
+Soft, consistent corners on a short ladder: `4px` for dialog buttons and small
+badges, `6px` for inputs and small buttons, `8px` for buttons, cards, alerts
+and dialogs, `12px` for page-level panels on the planning screens, and fully
+round ends for pills, status chips and avatars. Edges are `1px` borders in
+Border gray (#e5e7eb) where a white surface needs separating from white;
+never a thicker or coloured stripe down one side.
+
+**The Short Ladder Rule.** A new element takes a radius already on the ladder.
+A one-off corner reads as a different product.
+
+## Components
 
 ### Buttons
 
@@ -270,9 +325,11 @@ focus, float), not granted at rest.
 - **Style:** White fill, `1px #e5e7eb` border, `rounded-md` (6px), fixed `40px`
   height (`.input-height`) so text inputs line up with `react-select` controls.
 - **Focus:** Border shifts to Action Blue with a soft ring; 150ms.
-- **Numeric inputs:** `DecimalInput` preserves intermediate text (`"5."`),
-  strips pasted thousands-commas, commits parsed number on blur.
-  `inputMode="decimal"`.
+- **Numeric inputs:** `MathInput` is the standard money and quantity field. It
+  accepts sums and shorthand (`120+45`, `4k`, `1.5m`), works them out on blur or
+  Enter, tints yellow while an expression is pending, strips pasted
+  thousands-commas, and uses `inputMode="decimal"`. Figures sit right-aligned
+  in the Data face.
 - **Error / Disabled:** Error border + helper text in Loss Red; disabled drops
   to Faint (#9ca3af) text on a muted fill.
 
@@ -283,6 +340,19 @@ four variants on the 50/200/700 ramp of their hue:
 
 - **error** red-50/200/700 · **warning** yellow-50/200/700 · **info**
   blue-50/200/700 · **success** green-50/200/700.
+
+### Dialogs
+
+One shared modal shell: a white `8px` panel with the Overlay shadow over a 50%
+black scrim, a title bar and a button bar each divided off by a `1px` border,
+and `16px` padding throughout. Widths step from `max-w-sm` to `max-w-5xl` by
+task; long content scrolls inside the body while the title and buttons stay
+put (`max-h 90vh`). The title slot may carry the dialog's context, such as a
+month stepper. The button bar is right-aligned: a gray Cancel or Close
+(#d1d5db fill, #374151 text) and a filled confirm, green by default, red for
+destructive actions, blue or amber where the task calls for it. Confirm
+buttons show a spinner and a "…ing" label while saving and fall back to gray
+when disabled.
 
 ### Empty States
 
@@ -307,7 +377,7 @@ transition; a deep-linked row briefly flashes Wealth-100 (`asset-target-flash`)
 so a jumped-to asset stands out. All monetary cells use the mono Data face with
 `tabular-nums`. Custom thin scrollbar (slate-300 thumb on slate-100 track).
 
-## 6. Do's and Don'ts
+## Do's and Don'ts
 
 ### Do
 

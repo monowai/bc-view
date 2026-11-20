@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-12T00:00:00Z",
+  "generatedAt": "2026-11-20T07:40:21+00:00",
   "title": "Design System: bc-view",
   "extensions": {
     "colorMeta": {
@@ -149,6 +149,11 @@
         "name": "transient-lift",
         "value": "0 2px 10px rgb(0 0 0 / 0.1)",
         "purpose": "Flyout menus and toasts floating above content while active."
+      },
+      {
+        "name": "overlay",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Dialogs, above a 50% black scrim."
       }
     ],
     "motion": [
@@ -164,9 +169,18 @@
       }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "xl", "value": "1280px" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
     ]
   },
   "components": [
@@ -190,7 +204,7 @@
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Default field — white fill, thin gray border, 40px height to align with react-select.",
+      "description": "White field, 6px corners, 40px tall. Money and quantities use MathInput: sums and shorthand (120+45, 4k) are worked out on blur or Enter, tinted yellow while pending, figures right-aligned in the Data face.",
       "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search assets\" />",
       "css": ".ds-input { height: 40px; width: 100%; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; color: #111827; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgb(37 99 235 / 0.15); }"
     },
@@ -225,6 +239,14 @@
       "description": "Teaching empty state — faint icon, muted title, optional description and action. Never 'nothing here'.",
       "html": "<div class=\"ds-empty\"><div class=\"ds-empty-icon\">▢</div><p class=\"ds-empty-title\">No holdings yet</p><p class=\"ds-empty-desc\">Import a CSV or add your first transaction to start tracking value.</p></div>",
       "css": ".ds-empty { text-align: center; padding: 48px 16px; font-family: 'DM Sans', system-ui, sans-serif; } .ds-empty-icon { font-size: 2.25rem; color: #d1d5db; margin-bottom: 16px; } .ds-empty-title { margin: 0; font-size: 1.125rem; color: #6b7280; } .ds-empty-desc { margin: 4px 0 0; font-size: 0.875rem; color: #9ca3af; }"
+    },
+    {
+      "name": "Dialog",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "The shared modal shell: white 8px panel, overlay shadow, bordered title and button bars, gray Cancel and a filled confirm (green by default).",
+      "html": "<div class=\"ds-dialog\"><header class=\"ds-dialog-head\"><h2>Monthly Spend</h2><button class=\"ds-dialog-x\" aria-label=\"Close\">&times;</button></header><div class=\"ds-dialog-body\">Housing <span class=\"ds-dialog-fig\">SGD 3,000</span></div><footer class=\"ds-dialog-foot\"><button class=\"ds-dialog-cancel\">Close</button><button class=\"ds-dialog-confirm\">Save</button></footer></div>",
+      "css": ".ds-dialog { width: 360px; background: #fff; color: #111827; border-radius: 8px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); font-family: 'DM Sans', system-ui, sans-serif; } .ds-dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e5e7eb; } .ds-dialog-head h2 { margin: 0; font-size: 1.25rem; font-weight: 600; } .ds-dialog-x { border: none; background: none; font-size: 1.5rem; line-height: 1; color: #6b7280; cursor: pointer; } .ds-dialog-x:hover { color: #374151; } .ds-dialog-body { padding: 16px; font-size: 0.875rem; display: flex; justify-content: space-between; } .ds-dialog-fig { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #4b5563; } .ds-dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px; border-top: 1px solid #e5e7eb; } .ds-dialog-cancel, .ds-dialog-confirm { border: none; border-radius: 4px; padding: 8px 16px; font-size: 0.875rem; cursor: pointer; transition: background-color 150ms; } .ds-dialog-cancel { background: #d1d5db; color: #374151; } .ds-dialog-cancel:hover { background: #9ca3af; } .ds-dialog-confirm { background: #22c55e; color: #fff; } .ds-dialog-confirm:hover { background: #16a34a; } .ds-dialog-cancel:focus-visible, .ds-dialog-confirm:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }"
     }
   ],
   "narrative": {
@@ -240,48 +262,58 @@
     "rules": [
       {
         "name": "The Status-Only Color Rule",
-        "body": "Color carries meaning or it does not appear. Gain/loss hues, capability hues, and the one Action Blue are the entire working palette. No decorative gradients, no tinted backgrounds for warmth.",
+        "body": "Color carries meaning or it does not appear. Gain/loss hues, capability hues, and the one Action Blue are the entire working palette. No decorative gradients, no tinted backgrounds for \"warmth,\" no accent color used because a surface \"felt empty.\"",
         "section": "colors"
       },
       {
         "name": "The Colorblind Honesty Rule",
-        "body": "Gain and loss must never rely on hue alone. Always pair the green/red with a sign, arrow, or label.",
+        "body": "Gain and loss must never rely on hue alone. Always pair the green/red with a sign, arrow, or label so red/green colorblind users read direction correctly.",
         "section": "colors"
       },
       {
         "name": "The Tabular Numerals Rule",
-        "body": "Every figure that lives in a column is set in JetBrains Mono with tabular-nums. Money that doesn't align to the decimal reads as untrustworthy.",
+        "body": "Every figure that lives in a column — prices, balances, gains, weights — is set in JetBrains Mono with `tabular-nums`. Money that doesn't align to the decimal reads as untrustworthy.",
         "section": "typography"
       },
       {
         "name": "The One Sans Rule",
-        "body": "DM Sans is the only proportional face. Never introduce a second sans for display; weight and size carry hierarchy.",
+        "body": "DM Sans is the only proportional face. Never introduce a second sans for \"display\"; weight and size carry hierarchy.",
         "section": "typography"
       },
       {
+        "name": "The No-Scroll Dialog Rule",
+        "body": "A task dialog fits its job in one view on a laptop screen (about 750px tall). When it doesn't, move context into the header and tighten rows before reaching for a scrollbar; scrolling is for long lists, not for a form.",
+        "section": "layout"
+      },
+      {
         "name": "The Flat-By-Default Rule",
-        "body": "Surfaces are flat at rest. Elevation is earned by interaction (hover, focus, float), not granted at rest.",
+        "body": "Surfaces are flat at rest. If a card has a shadow just to look \"designed,\" remove it. Elevation is earned by interaction (hover, focus, float), not granted at rest.",
         "section": "elevation"
+      },
+      {
+        "name": "The Short Ladder Rule",
+        "body": "A new element takes a radius already on the ladder. A one-off corner reads as a different product.",
+        "section": "shapes"
       }
     ],
     "dos": [
-      "Do set every figure in JetBrains Mono with tabular-nums.",
+      "Do set every figure in JetBrains Mono with `tabular-nums` (The Tabular Numerals Rule).",
       "Do keep one Action Blue (#2563eb) CTA per region; the accent's rarity is its power.",
-      "Do convey depth with the gray→white→slate tonal layers; keep cards flat at rest.",
+      "Do convey depth with the gray→white→slate tonal layers; keep cards flat at rest (The Flat-By-Default Rule).",
       "Do use capability hues (Wealth #3b82f6 / Independence #f97316 / Invest #10b981) to signal which domain a screen belongs to.",
-      "Do pair gain/loss color with a sign or arrow so colorblind users read direction.",
+      "Do pair gain/loss color with a sign or arrow so colorblind users read direction (The Colorblind Honesty Rule).",
       "Do write empty states that teach the interface; give them an icon, a title, and a next action.",
       "Do keep body text at Muted (#6b7280) or darker — never Faint for paragraphs (contrast floor 4.5:1)."
     ],
     "donts": [
-      "Don't look like a legacy bank / brokerage: no gray-on-gray clutter, no density without a clear primary figure.",
+      "Don't look like a legacy bank / brokerage: no gray-on-gray clutter, no density without a clear primary figure on top.",
       "Don't look like crypto / meme hype: no neon gradients, no gamified dopamine, no confetti, no casino energy.",
       "Don't look like a spreadsheet / enterprise grid: every dense table still needs hierarchy and a scannable lead figure.",
-      "Don't use border-left/border-right > 1px as a colored accent stripe on cards or alerts.",
-      "Don't use gradient text or decorative glassmorphism anywhere.",
-      "Don't add a second proportional sans for display — DM Sans only.",
-      "Don't apply color decoratively; if it doesn't mean gain/loss, a capability domain, or the action, it doesn't appear.",
-      "Don't introduce fluid clamp() heading sizes; product UI uses the fixed rem scale."
+      "Don't use `border-left`/`border-right` > 1px as a colored accent stripe on cards or alerts — full-bordered tint blocks only.",
+      "Don't use gradient text (`background-clip: text`) or decorative glassmorphism anywhere.",
+      "Don't add a second proportional sans for \"display\" — DM Sans only (The One Sans Rule).",
+      "Don't apply color decoratively; if it doesn't mean gain/loss, a capability domain, or the action, it doesn't appear (The Status-Only Color Rule).",
+      "Don't introduce fluid `clamp()` heading sizes; product UI uses the fixed rem scale."
     ]
   }
 }
