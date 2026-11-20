@@ -130,6 +130,17 @@ describe("SpendDialog", () => {
     expect(screen.getByTestId("total-variance")).toHaveTextContent("S$100")
   })
 
+  it("signs spend over budget and leaves an exact match uncoloured", () => {
+    renderDialog()
+    expect(screen.getByTestId("total-variance")).toHaveTextContent("+S$100")
+    expect(screen.getByTestId("total-variance")).toHaveClass("text-loss")
+    fireEvent.change(screen.getByLabelText("Housing actual"), {
+      target: { value: "2000" },
+    })
+    expect(screen.getByTestId("total-variance")).toHaveTextContent("S$0")
+    expect(screen.getByTestId("total-variance")).not.toHaveClass("text-gain")
+  })
+
   it("starts an estimated month at the system's estimate", () => {
     render(
       <SpendDialog
