@@ -8,10 +8,11 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
 import { IMAGE_IMPORT_PATH } from "@lib/holdings/importPath"
 import PayslipModal from "@components/features/independence/PayslipModal"
+import SpendLogDialog from "@components/features/wealth/SpendLogDialog"
 
 // Sentinel `action` values for nav items that open a modal instead of
 // navigating. The href is kept (as a hash) so existing rendering still works.
-type NavAction = "payslip"
+type NavAction = "payslip" | "spend"
 
 interface NavItem {
   href: string
@@ -58,6 +59,18 @@ const navSections: NavSection[] = [
         label: "Independence",
         icon: "fa-umbrella-beach",
       },
+      {
+        href: "#enter-payslip",
+        label: "Enter Payslip",
+        icon: "fa-money-check-dollar",
+        action: "payslip",
+      },
+      {
+        href: "#enter-spend",
+        label: "Enter Spend",
+        icon: "fa-receipt",
+        action: "spend",
+      },
     ],
   },
   {
@@ -77,12 +90,6 @@ const navSections: NavSection[] = [
     title: "Tools",
     items: [
       { href: "/chat", label: "Chat", icon: "fa-comments", aiOnly: true },
-      {
-        href: "#enter-payslip",
-        label: "Enter Payslip",
-        icon: "fa-money-check-dollar",
-        action: "payslip",
-      },
       { href: "/brokers", label: "Brokerage Accounts", icon: "fa-building" },
       {
         href: "/tools/cost-stack",
@@ -375,13 +382,15 @@ function HeaderBrand(): React.ReactElement {
   const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [payslipOpen, setPayslipOpen] = useState(false)
+  const [spendOpen, setSpendOpen] = useState(false)
   const isAuthed = !!user
 
   const openAction = useCallback(
     (action: NavAction): void => {
       if (action === "payslip") setPayslipOpen(true)
+      if (action === "spend") setSpendOpen(true)
     },
-    [setPayslipOpen],
+    [setPayslipOpen, setSpendOpen],
   )
 
   const closeMobileMenu = useCallback((): void => {
@@ -558,12 +567,15 @@ function HeaderBrand(): React.ReactElement {
         </nav>
       )}
 
-      {/* Tools → Enter Payslip modal, rendered once for the whole header. */}
+      {/* Plan → Enter Payslip and Enter Spend, rendered once for the whole header. */}
       {isAuthed && (
         <PayslipModal
           modalOpen={payslipOpen}
           onClose={() => setPayslipOpen(false)}
         />
+      )}
+      {isAuthed && spendOpen && (
+        <SpendLogDialog onClose={() => setSpendOpen(false)} />
       )}
     </div>
   )

@@ -11,11 +11,12 @@ import { planExpensesKey } from "@utils/api/client/independence"
 export function usePlanExpenses(planId: string | undefined): {
   expenses: PlanExpense[] | undefined
   isLoading: boolean
+  error: unknown
 } {
   const key = planId ? planExpensesKey(planId) : null
-  const { data, isLoading } = useSwr<PlanExpensesResponse>(
+  const { data, isLoading, error } = useSwr<PlanExpensesResponse>(
     key,
     key ? simpleFetcher(key) : null,
   )
-  return { expenses: data?.data, isLoading }
+  return { expenses: data?.data, isLoading, error }
 }

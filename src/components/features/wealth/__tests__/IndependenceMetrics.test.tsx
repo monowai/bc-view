@@ -66,6 +66,36 @@ const render_ = (
   )
 }
 
+describe("IndependenceMetrics — retired mode", () => {
+  const retired = {
+    liquidAssets: 1_000_000,
+    currency: "USD",
+    yearlyProjections: [{ year: 2026, withdrawals: 40_000 }],
+    planInputs: { currentAge: 66, retirementAge: 65 },
+  } as unknown as RetirementProjection
+
+  it("shows drawdown cards once the owner has reached retirement age", () => {
+    render_(retired)
+    expect(screen.getByText("Withdrawal Rate")).toBeInTheDocument()
+    expect(screen.getByText("Money Lasts To")).toBeInTheDocument()
+  })
+
+  it("hides the saving-phase cards once retired", () => {
+    render_(retired)
+    expect(screen.queryByText("Monthly Investment")).not.toBeInTheDocument()
+    expect(screen.queryByText("Years to FI")).not.toBeInTheDocument()
+  })
+
+  it("keeps the saving-phase cards while still working", () => {
+    render_({
+      ...retired,
+      planInputs: { currentAge: 58, retirementAge: 65 },
+    } as unknown as RetirementProjection)
+    expect(screen.getByText("Monthly Investment")).toBeInTheDocument()
+    expect(screen.queryByText("Withdrawal Rate")).not.toBeInTheDocument()
+  })
+})
+
 describe("IndependenceMetrics — Monthly Investment target", () => {
   it("uses the projection's net-contribution echo as the target", () => {
     render_({

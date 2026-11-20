@@ -32,8 +32,10 @@ export const settledTrnsUrl = (from: string, to: string): string =>
   `${trnsKey}/settled?from=${from}&to=${to}`
 export const incomeMonthlyKey = (params: URLSearchParams | string): string =>
   `${trnsKey}/income/monthly?${params}`
+export const investmentsKey = (currency: string, days: number): string =>
+  `${trnsKey}/investments/monthly?currency=${currency}&days=${days}`
 export const investmentsMonthlyKey = (currency: string): string =>
-  `${trnsKey}/investments/monthly?currency=${currency}&days=30`
+  investmentsKey(currency, 30)
 export const investmentsMonthlyTransactionsKey = `${trnsKey}/investments/monthly/transactions?days=30`
 export const brokerTrnHoldingsKey = (brokerId: string): string =>
   `${trnsKey}/broker/${brokerId}/holdings`

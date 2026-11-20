@@ -30,6 +30,11 @@ jest.mock("@hooks/usePortfolios", () => ({
   usePortfolios: () => ({ portfolios: mockPortfolios }),
 }))
 
+jest.mock("@components/features/wealth/SpendLogDialog", () => ({
+  __esModule: true,
+  default: () => <div role="dialog" aria-label="Monthly Spend" />,
+}))
+
 describe("HeaderBrand", () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -137,6 +142,34 @@ describe("HeaderBrand", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
     expect(
       screen.queryByRole("link", { name: /^Chat/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("Plan dropdown offers Enter Payslip", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Plan/i }))
+    expect(
+      screen.getByRole("button", { name: /^Enter Payslip$/i }),
+    ).toBeInTheDocument()
+  })
+
+  it("Plan dropdown opens the spend log from Enter Spend", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Plan/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^Enter Spend$/i }))
+    expect(
+      screen.getByRole("dialog", { name: "Monthly Spend" }),
+    ).toBeInTheDocument()
+  })
+
+  it("Tools dropdown no longer offers Enter Payslip", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
+    expect(
+      screen.getByRole("link", { name: /Cost Stack/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /^Enter Payslip$/i }),
     ).not.toBeInTheDocument()
   })
 

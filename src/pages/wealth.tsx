@@ -10,7 +10,6 @@ import {
   holdingKey,
 } from "@utils/api/fetchHelper"
 import { Portfolio, Currency, HoldingContract } from "types/beancounter"
-import { PlansResponse as IndependencePlansResponse } from "types/independence"
 import {
   useAssetBreakdown,
   useFiProjectionSimple,
@@ -18,12 +17,7 @@ import {
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useFxRates } from "@hooks/useFxRates"
-import { useIndependencePlans } from "@hooks/useIndependencePlans"
-import {
-  journeyPhasePlans,
-  landingPlan,
-  primaryJourney,
-} from "@lib/independence/journeyPhases"
+import { usePrimaryPlan } from "@components/features/independence/usePrimaryPlan"
 import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
 import IndependenceMetrics from "@components/features/wealth/IndependenceMetrics"
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
@@ -39,7 +33,6 @@ import {
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
 import { investmentsMonthlyKey } from "@utils/api/client/trns"
-import { plansKey } from "@utils/api/client/independence"
 
 type SortConfig = {
   key: string | null
@@ -122,27 +115,7 @@ function WealthDashboard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
 
-  // Fetch phase plans (every journey's, flat) and the journeys themselves
-  const { data: plansData } = useSwr<IndependencePlansResponse>(
-    plansKey,
-    simpleFetcher(plansKey),
-  )
-  const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
-
-  const phasePlans = useMemo(() => plansData?.data ?? [], [plansData?.data])
-
-  // The phase plan whose numbers drive the independence headline.
-  // `/plans` returns phase plans across *every* plan the user owns, so an
-  // index into that list picks whichever journey happens to sort first —
-  // "life renting" reported under a dashboard the user reads as "life owning
-  // the house". Resolve through the primary journey and take a phase of its
-  // own. With no journey at all (legacy account, or the list still loading)
-  // degrade to the plan the user flagged primary, and to nothing rather than
-  // an arbitrary row — the section below is hidden when nothing resolves.
-  const primaryPlan = useMemo(() => {
-    const ownPhases = journeyPhasePlans(primaryJourney(journeys), phasePlans)
-    return landingPlan(ownPhases) ?? phasePlans.find((plan) => plan.isPrimary)
-  }, [journeys, phasePlans])
+  const { primaryPlan, resolved: primaryPlanResolved } = usePrimaryPlan()
 
   const currencies = useMemo(
     () => currencyData?.data || [],
@@ -364,7 +337,7 @@ function WealthDashboard(): React.ReactElement {
               this product". Only once we know there is no plan — while the
               journeys or their phases are still loading, "none" is not yet
               true and the CTA would flash under a plan that does exist. */}
-          {!primaryPlan && !journeysLoading && plansData !== undefined && (
+          {!primaryPlan && primaryPlanResolved && (
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-center">
               <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <i className="fas fa-compass text-xl text-independence-500"></i>
