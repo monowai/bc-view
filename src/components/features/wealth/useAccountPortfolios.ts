@@ -14,14 +14,21 @@ export interface HoldingPortfolio {
 export function useAccountPortfolios(assetId: string): {
   portfolios: HoldingPortfolio[]
   isLoading: boolean
+  /** The lookup failed: where the asset is held is unknown, not "nowhere". */
+  failed: boolean
 } {
   const key = assetId ? assetPositionsKey(assetId) : null
-  const { data, isLoading } = useSwr<{
+  const { data, isLoading, error } = useSwr<{
     data?: Array<{ portfolio?: HoldingPortfolio }>
   }>(key, key ? simpleFetcher(key) : null)
   const portfolios = (data?.data ?? [])
     .map((p) => p.portfolio)
     .filter((p): p is HoldingPortfolio => p !== undefined)
     .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i)
-  return { portfolios, isLoading: key !== null && (isLoading || !data) }
+  const failed = key !== null && error !== undefined
+  return {
+    portfolios,
+    isLoading: key !== null && !failed && (isLoading || !data),
+    failed,
+  }
 }

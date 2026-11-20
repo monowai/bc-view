@@ -225,7 +225,7 @@ function SpendMonthForm({
   /** An amount, or a dash when there is none. */
   const moneyOrDash = (n: number | null | undefined): string =>
     n == null ? "—" : money(n)
-  const hasBudget = Object.keys(budgets).length > 0
+  const hasBudget = categories.some((c) => budgets[c.categoryLabelId] != null)
   const sum = (pick: (r: RowValues) => number | null): number =>
     Object.values(rows).reduce((t, r) => t + (pick(r) ?? 0), 0)
   const totalBudget = categories.reduce(
@@ -395,11 +395,20 @@ function SpendMonthForm({
             debit.
           </p>
         )}
-        {accountId !== "" && !holders.isLoading && portfolioId === "" && (
+        {accountId !== "" && holders.failed && (
           <p className="text-sm text-loss">
-            {accountName} is not held in a portfolio, so it cannot be debited.
+            Could not find which portfolio holds {accountName}, so it cannot be
+            debited.
           </p>
         )}
+        {accountId !== "" &&
+          !holders.isLoading &&
+          !holders.failed &&
+          portfolioId === "" && (
+            <p className="text-sm text-loss">
+              {accountName} is not held in a portfolio, so it cannot be debited.
+            </p>
+          )}
         {tab === "history" ? (
           <SpendHistoryChart
             entries={entries}

@@ -1,6 +1,7 @@
 import React from "react"
 import { useSWRConfig } from "swr"
 import { portfoliosKey } from "@utils/api/client/portfolios"
+import { isHoldingsKey } from "@utils/api/client/holdings"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import SpendDialog from "@components/features/wealth/SpendDialog"
@@ -63,9 +64,7 @@ export default function SpendLogDialog({
         log.refresh()
         // A save can post, move or remove a bank withdrawal.
         void mutate(portfoliosKey)
-        void mutate(
-          (key) => typeof key === "string" && key.startsWith("/api/holdings"),
-        )
+        void mutate(isHoldingsKey)
         onClose()
       }}
     />

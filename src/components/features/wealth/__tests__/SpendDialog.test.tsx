@@ -428,6 +428,27 @@ describe("SpendDialog", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
   })
 
+  it("says the account's portfolios could not be looked up when that request fails", async () => {
+    ;(global.fetch as jest.Mock).mockImplementation(() =>
+      Promise.resolve({ ok: false, json: () => Promise.resolve({}) }),
+    )
+    renderDialog()
+    fireEvent.change(screen.getByLabelText("Debit from"), {
+      target: { value: "dbs" },
+    })
+    expect(
+      await screen.findByText(
+        "Could not find which portfolio holds DBS Savings, so it cannot be debited.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
+  })
+
+  it("shows no budget total when no listed category has a budget", () => {
+    renderDialog(jest.fn(), { budgets: { gone: 500 } })
+    expect(screen.queryByText("Actual vs. Budget")).not.toBeInTheDocument()
+  })
+
   it("asks which portfolio when more than one holds the account", async () => {
     holders = {
       dbs: [

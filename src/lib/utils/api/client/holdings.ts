@@ -17,6 +17,10 @@ export const holdingKey = (portfolioCode: string, asAt: string): string =>
 export const holdingByIdKey = (portfolioId: string, asAt: string): string =>
   `${holdingsBase}/id/${portfolioId}?asAt=${asAt}`
 
+/** Any holdings cache key, for revalidating every holdings view at once. */
+export const isHoldingsKey = (key: unknown): boolean =>
+  typeof key === "string" && key.startsWith(holdingsBase)
+
 /** Today's aggregated holdings across every portfolio: the shared cache key. */
 export const aggregatedHoldingsTodayKey = `${holdingsBase}/aggregated?asAt=today`
 /** Today's aggregated holdings, optionally limited to portfolio codes. */
