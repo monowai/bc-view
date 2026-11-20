@@ -68,14 +68,16 @@ export function spendHistory(
     totals.set(e.categoryLabelId, t)
   }
   const ranked = [...totals.entries()].sort((a, b) => b[1].total - a[1].total)
-  const top = ranked.slice(0, maxSeries)
+  // Each series needs a colour of its own: never more than the palette holds.
+  const limit = Math.min(maxSeries, CATEGORY_COLORS.length)
+  const top = ranked.slice(0, limit)
   const topKeys = new Set(top.map(([key]) => key))
   const series: SpendSeries[] = top.map(([key, t], i) => ({
     key,
     name: t.name,
     color: CATEGORY_COLORS[i],
   }))
-  if (ranked.length > maxSeries) {
+  if (ranked.length > limit) {
     series.push({ key: OTHER_KEY, name: "Other", color: OTHER_COLOR })
   }
 

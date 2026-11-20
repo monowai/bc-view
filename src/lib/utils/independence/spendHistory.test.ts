@@ -67,6 +67,16 @@ describe("spendHistory", () => {
     expect(h.rows[0][OTHER_KEY]).toBe(300)
   })
 
+  it("never asks for more series than it has colours for", () => {
+    const entries = ["c1", "c2", "c3", "c4", "c5", "c6", "c7"].map((c, i) =>
+      entry("2026-09", c, (i + 1) * 100),
+    )
+    const h = spendHistory(entries, {}, months, 10)
+    expect(h.series).toHaveLength(6)
+    expect(h.series[5].key).toBe(OTHER_KEY)
+    expect(h.series.every((s) => typeof s.color === "string")).toBe(true)
+  })
+
   it("keeps a category's colour fixed by its rank over the whole window", () => {
     const h = spendHistory(
       [entry("2026-09", "a", 100), entry("2026-10", "b", 900)],

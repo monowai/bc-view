@@ -8,6 +8,7 @@ const invested: Record<string, number> = {}
 let spendRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let spendError: Error | undefined
+let spendLoading = false
 let monteCarloError: Error | undefined
 
 jest.mock("swr", () => ({
@@ -17,6 +18,7 @@ jest.mock("swr", () => ({
       return {
         data: spendRows && { data: spendRows },
         error: spendError,
+        isLoading: spendLoading,
         mutate: jest.fn(),
       }
     }
@@ -55,6 +57,7 @@ describe("useRetiredMetricsData", () => {
     spendRows = undefined
     expenseRows = undefined
     spendError = undefined
+    spendLoading = false
     monteCarloError = undefined
   })
 
@@ -184,6 +187,15 @@ describe("useRetiredMetricsData", () => {
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.drawnLastMonth).toBe(0)
     expect(result.current.drawnLastYear).toBe(0)
+  })
+
+  it("withholds investment sales until the spend log has loaded", () => {
+    invested["30"] = -3_500
+    invested["365"] = -44_000
+    spendLoading = true
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.drawnLastMonth).toBeUndefined()
+    expect(result.current.drawnLastYear).toBeUndefined()
   })
 
   it("leaves the draw unknown until the windows load", () => {

@@ -19,14 +19,15 @@ import {
  * house". Resolve through the primary journey and take a phase of its own.
  * With no journey at all (legacy account, or the list still loading) degrade
  * to the plan the user flagged primary, and to nothing rather than an
- * arbitrary row. `resolved` turns true once both lists have loaded, so
- * "no primary plan" can be told apart from "not loaded yet".
+ * arbitrary row. `resolved` turns true once both lists have answered, so
+ * "no primary plan" can be told apart from "not loaded yet". A failed plans
+ * request counts as answered with no plan, so callers are not left waiting.
  */
 export function usePrimaryPlan(): {
   primaryPlan: RetirementPlan | undefined
   resolved: boolean
 } {
-  const { data: plansData } = useSwr<PlansResponse>(
+  const { data: plansData, error: plansError } = useSwr<PlansResponse>(
     plansKey,
     simpleFetcher(plansKey),
   )
@@ -38,6 +39,7 @@ export function usePrimaryPlan(): {
   }, [journeys, phasePlans])
   return {
     primaryPlan,
-    resolved: !journeysLoading && plansData !== undefined,
+    resolved:
+      !journeysLoading && (plansData !== undefined || plansError !== undefined),
   }
 }

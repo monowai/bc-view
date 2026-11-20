@@ -115,8 +115,10 @@ export function useRetiredMetricsData(
       window,
     ),
     spendUnavailable: history.error !== undefined,
-    drawnLastMonth: drawn(month),
-    drawnLastYear: drawn(year),
+    // Investment sales are the fallback for no spend: withhold them until the
+    // log has loaded, or the card shows sales and then flips to spend.
+    drawnLastMonth: history.isLoading ? undefined : drawn(month),
+    drawnLastYear: history.isLoading ? undefined : drawn(year),
     monteCarlo: monteCarlo ?? null,
     monteCarloLoading,
     monteCarloUnavailable: monteCarloError !== undefined,
