@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import Rows from "../Rows"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
@@ -35,27 +35,32 @@ function renderRow(moneyValues: Partial<MoneyValues>): void {
 }
 
 describe("Rows IRR tooltip", () => {
-  it("shows the lifetime IRR of a re-bought holding beside its lifetime ROI", () => {
-    renderRow({ irr: -0.0237, roi: 0.16, lifetimeIrr: 0.21 })
+  it("labels a re-bought holding's ROI and IRR as lifetime once", () => {
+    renderRow({ irr: -0.0237, roi: 0.16, lifetimeIrr: 0.31 })
 
     const tooltip = screen.getByTestId("irr-tooltip")
-    expect(tooltip).toHaveTextContent("ROI: +16.00%")
-    expect(tooltip).toHaveTextContent("Lifetime IRR: +21.00%")
+    expect(within(tooltip).getAllByText("Lifetime")).toHaveLength(1)
+    expect(within(tooltip).getByTestId("tooltip-roi")).toHaveTextContent(
+      /^\+16\.00%$/,
+    )
+    expect(within(tooltip).getByTestId("tooltip-irr")).toHaveTextContent(
+      /^\+31\.00%$/,
+    )
   })
 
-  it("shows a negative lifetime IRR with its sign", () => {
+  it("shows negative lifetime returns with their sign", () => {
     renderRow({ irr: 0.05, roi: -0.1, lifetimeIrr: -0.08 })
 
-    const tooltip = screen.getByTestId("irr-tooltip")
-    expect(tooltip).toHaveTextContent("ROI: -10.00%")
-    expect(tooltip).toHaveTextContent("Lifetime IRR: -8.00%")
+    expect(screen.getByTestId("tooltip-roi")).toHaveTextContent(/^-10\.00%$/)
+    expect(screen.getByTestId("tooltip-irr")).toHaveTextContent(/^-8\.00%$/)
   })
 
-  it("omits the lifetime IRR when it matches the position IRR", () => {
+  it("shows only the ROI of a holding never sold out", () => {
     renderRow({ irr: 0.2, roi: 0.5, lifetimeIrr: 0.2 })
 
-    expect(screen.getByTestId("irr-tooltip")).not.toHaveTextContent(
-      "Lifetime IRR",
-    )
+    const tooltip = screen.getByTestId("irr-tooltip")
+    expect(tooltip).toHaveTextContent(/^ROI\s*\+50\.00%$/)
+    expect(within(tooltip).queryByText("Lifetime")).not.toBeInTheDocument()
+    expect(within(tooltip).queryByTestId("tooltip-irr")).not.toBeInTheDocument()
   })
 })
