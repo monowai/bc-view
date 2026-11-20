@@ -6,6 +6,7 @@ let spendRows: unknown[] | undefined
 let debitRows: unknown[] | undefined
 let rememberedAccount: unknown
 let accountsLoading = false
+let spendError: Error | undefined
 let accountRows: unknown
 let labelRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
@@ -25,7 +26,8 @@ jest.mock("swr", () => ({
           debits: debitRows,
           account: rememberedAccount,
         },
-        isLoading: spendRows === undefined,
+        isLoading: spendRows === undefined && !spendError,
+        error: spendError,
         mutate: jest.fn(),
       }
     }
@@ -74,6 +76,7 @@ describe("useSpendLog", () => {
     debitRows = undefined
     rememberedAccount = undefined
     accountsLoading = false
+    spendError = undefined
     accountRows = undefined
     labelRows = [
       { id: "travel", name: "Travel", sortOrder: 2 },
@@ -232,5 +235,13 @@ describe("useSpendLog", () => {
     accountsLoading = true
     const { result } = renderHook(() => useSpendLog())
     expect(result.current.isLoading).toBe(true)
+  })
+
+  it("reports the spend log unavailable when it fails to load", () => {
+    spendRows = undefined
+    spendError = new Error("HTTP 500")
+    const { result } = renderHook(() => useSpendLog())
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.spendUnavailable).toBe(true)
   })
 })

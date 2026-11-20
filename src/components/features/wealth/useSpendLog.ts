@@ -46,6 +46,8 @@ interface SpendLog {
   isLoading: boolean
   budgetsUnavailable: boolean
   categoriesUnavailable: boolean
+  /** The spend log failed to load; nothing may be saved over it. */
+  spendUnavailable: boolean
   refresh: () => void
 }
 
@@ -109,6 +111,7 @@ export function useSpendLog(): SpendLog {
       (primaryPlan !== undefined && expensesLoading),
     budgetsUnavailable: expensesError !== undefined,
     categoriesUnavailable: labelsError !== undefined,
+    spendUnavailable: history.error !== undefined,
     refresh: history.refresh,
   }
 }

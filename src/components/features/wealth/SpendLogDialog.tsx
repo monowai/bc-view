@@ -23,6 +23,17 @@ export default function SpendLogDialog({
   const log = useSpendLog()
   const { mutate } = useSWRConfig()
 
+  // A save replaces the whole month, so a form opened over an unloaded log
+  // would wipe what is already recorded.
+  if (log.spendUnavailable) {
+    return (
+      <Dialog title="Monthly Spend" onClose={onClose}>
+        <p className="text-sm text-loss">
+          Could not load your spend. Try again later.
+        </p>
+      </Dialog>
+    )
+  }
   if (log.isLoading) {
     return (
       <Dialog title="Monthly Spend" onClose={onClose}>
