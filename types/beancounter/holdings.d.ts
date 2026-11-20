@@ -68,7 +68,10 @@ export interface MoneyValues {
   /** Cash reserved for pending/unsettled settlement; marketValue + earmarked = nominal */
   earmarked: number
   weight: number
+  /** IRR of the current holding, since it opened or was re-bought after a sell-out */
   irr: number
+  /** IRR over every holding cycle of the asset, closed round trips included */
+  lifetimeIrr?: number
   roi: number
   priceData: PriceData
   averageCost: number

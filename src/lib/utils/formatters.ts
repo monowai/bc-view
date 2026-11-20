@@ -38,6 +38,15 @@ export const formatPercent = (value: number, fractionDigits = 2): string => {
 }
 
 /**
+ * Format a decimal as a percentage carrying its sign, e.g. 0.16 -> "+16.00%".
+ * Zero has no sign.
+ */
+export const formatSignedPercent = (
+  value: number,
+  fractionDigits = 2,
+): string => `${value > 0 ? "+" : ""}${formatPercent(value, fractionDigits)}`
+
+/**
  * Format a number as percentage from a value that's already a percentage.
  * @param value - Numeric value already as percentage (e.g., 25 for 25%)
  * @param fractionDigits - Number of decimal places (default: 1)
