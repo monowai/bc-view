@@ -50,17 +50,26 @@ const parseNum = (s: string): number => {
   return isNaN(n) ? 0 : n
 }
 
-const ordinal = (n: number): string => {
-  const teen = n % 100 >= 11 && n % 100 <= 13
-  const suffix = teen ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th")
-  return `${n}${suffix}`
+const ordinalRules = new Intl.PluralRules("en", { type: "ordinal" })
+const ordinalSuffix: Record<string, string> = {
+  one: "st",
+  two: "nd",
+  few: "rd",
+  other: "th",
 }
+const ordinal = (n: number): string =>
+  `${n}${ordinalSuffix[ordinalRules.select(n)] ?? "th"}`
+
+// Every month has at least this many days; a later pay day moves to the
+// month's last day in shorter months.
+const SHORTEST_MONTH_DAYS = 28
 
 /** "Repeat monthly on the 31st, or the last day of shorter months". */
 const repeatLabel = (payDate: string): string => {
-  const day = Number(payDate.slice(8, 10))
+  const day = Number(payDate.split("-")[2])
   if (!day) return "Repeat monthly"
-  const late = day > 28 ? ", or the last day of shorter months" : ""
+  const late =
+    day > SHORTEST_MONTH_DAYS ? ", or the last day of shorter months" : ""
   return `Repeat monthly on the ${ordinal(day)}${late}`
 }
 
@@ -556,7 +565,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           derived from gross and the user reviews it before allocating pay.
           Shown whenever the user has a CPF plan (not gated on the live
           recompute landing) so it never blinks out mid-edit; the per-bucket
-          and total figures fill in once `dc` resolves. */}
+          and total figures fill in once `dc` resolves. Hidden while editing
+          the repeat: each month's CPF is recalculated from the gross, so
+          bucket overrides would not apply. */}
       {showPension && !editingRepeat && (
         <div
           className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3"
