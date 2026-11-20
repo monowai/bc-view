@@ -1,5 +1,5 @@
-import { spendSummary, trailingMonths } from "./spendSummary"
-import type { SpendEntry } from "types/independence"
+import { retirementBudgets, spendSummary, trailingMonths } from "./spendSummary"
+import type { PlanExpense, SpendEntry } from "types/independence"
 
 const entry = (
   month: string,
@@ -15,6 +15,34 @@ const entry = (
   actual,
   currency: "SGD",
   estimated,
+})
+
+const expense = (
+  categoryLabelId: string,
+  monthlyAmount: number,
+  expensePhase?: PlanExpense["expensePhase"],
+): PlanExpense => ({
+  id: `${categoryLabelId}-${monthlyAmount}`,
+  planId: "p1",
+  categoryLabelId,
+  categoryName: categoryLabelId,
+  monthlyAmount,
+  currency: "SGD",
+  sortOrder: 0,
+  expensePhase,
+})
+
+describe("retirementBudgets", () => {
+  it("adds up several rows for one category and leaves out working-life rows", () => {
+    expect(
+      retirementBudgets([
+        expense("housing", 2000),
+        expense("housing", 500, "RETIREMENT"),
+        expense("housing", 900, "WORKING"),
+        expense("travel", 300),
+      ]),
+    ).toEqual({ housing: 2500, travel: 300 })
+  })
 })
 
 describe("trailingMonths", () => {

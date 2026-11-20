@@ -19,15 +19,20 @@ export function formatSpendMoney(n: number, currencySymbol: string): string {
   return `${n < 0 ? "-" : ""}${currencySymbol}${Math.abs(Math.round(n)).toLocaleString()}`
 }
 
-/** A plan's monthly budget by category: its retirement-phase expenses only. */
+/**
+ * A plan's monthly budget by category: its retirement-phase expenses only.
+ * A plan can hold several rows for one category; their amounts add up.
+ */
 export function retirementBudgets(
   expenses: PlanExpense[] | undefined,
 ): Record<string, number> {
-  return Object.fromEntries(
-    (expenses ?? [])
-      .filter((e) => e.expensePhase !== "WORKING")
-      .map((e) => [e.categoryLabelId, e.monthlyAmount]),
-  )
+  const budgets: Record<string, number> = {}
+  for (const e of expenses ?? []) {
+    if (e.expensePhase === "WORKING") continue
+    budgets[e.categoryLabelId] =
+      (budgets[e.categoryLabelId] ?? 0) + e.monthlyAmount
+  }
+  return budgets
 }
 
 /** The `count` months ending in the month of `today`, oldest first. */

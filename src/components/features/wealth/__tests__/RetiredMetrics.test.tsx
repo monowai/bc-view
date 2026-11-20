@@ -47,6 +47,7 @@ const renderCards = (
       drawnLastYear={44_000}
       monteCarlo={monteCarlo}
       monteCarloLoading={false}
+      monteCarloUnavailable={false}
       currencySymbol="$"
       spend={null}
       spendUnavailable={false}
@@ -101,6 +102,11 @@ describe("RetiredMetrics", () => {
   it("says the simulation is running while it has no result", () => {
     renderCards({ monteCarlo: null, monteCarloLoading: true })
     expect(screen.getAllByText("Simulating…")).toHaveLength(2)
+  })
+
+  it("says the simulation is unavailable when it failed", () => {
+    renderCards({ monteCarlo: null, monteCarloUnavailable: true })
+    expect(screen.getAllByText("Simulation unavailable")).toHaveLength(2)
   })
 
   describe("with recorded spend", () => {

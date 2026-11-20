@@ -29,6 +29,8 @@ interface RetiredMetricsData {
   drawnLastYear: number | undefined
   monteCarlo: MonteCarloResult | null
   monteCarloLoading: boolean
+  /** The Monte Carlo run failed. */
+  monteCarloUnavailable: boolean
   spend: SpendSummary | null
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
@@ -63,32 +65,35 @@ export function useRetiredMetricsData(
   )
 
   const nonSpendableAssets = projection.totalAssets - projection.liquidAssets
-  const { data: monteCarlo, isLoading: monteCarloLoading } =
-    useSwr<MonteCarloResult | null>(
-      [
-        monteCarloUrl(projection.planId),
-        projection.currency,
-        projection.liquidAssets,
-        nonSpendableAssets,
-      ],
-      async ([, currency, liquidAssets, nonSpendable]: [
-        string,
-        string,
-        number,
-        number,
-      ]) => {
-        const res = await runMonteCarlo(projection.planId, {
-          currency,
-          liquidAssets,
-          nonSpendableAssets: nonSpendable,
-          seed: DASHBOARD_SEED,
-        })
-        if (!res.ok) throw new Error("Failed to run Monte Carlo simulation")
-        const body: MonteCarloResponse = await res.json()
-        return body.data
-      },
-      { revalidateOnFocus: false },
-    )
+  const {
+    data: monteCarlo,
+    isLoading: monteCarloLoading,
+    error: monteCarloError,
+  } = useSwr<MonteCarloResult | null>(
+    [
+      monteCarloUrl(projection.planId),
+      projection.currency,
+      projection.liquidAssets,
+      nonSpendableAssets,
+    ],
+    async ([, currency, liquidAssets, nonSpendable]: [
+      string,
+      string,
+      number,
+      number,
+    ]) => {
+      const res = await runMonteCarlo(projection.planId, {
+        currency,
+        liquidAssets,
+        nonSpendableAssets: nonSpendable,
+        seed: DASHBOARD_SEED,
+      })
+      if (!res.ok) throw new Error("Failed to run Monte Carlo simulation")
+      const body: MonteCarloResponse = await res.json()
+      return body.data
+    },
+    { revalidateOnFocus: false },
+  )
 
   const history = useSpendHistory()
   const window = history.historyMonths.slice(-MONTHS_PER_YEAR)
@@ -114,5 +119,6 @@ export function useRetiredMetricsData(
     drawnLastYear: drawn(year),
     monteCarlo: monteCarlo ?? null,
     monteCarloLoading,
+    monteCarloUnavailable: monteCarloError !== undefined,
   }
 }

@@ -8,6 +8,7 @@ const invested: Record<string, number> = {}
 let spendRows: unknown[] | undefined
 let expenseRows: unknown[] | undefined
 let spendError: Error | undefined
+let monteCarloError: Error | undefined
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -28,7 +29,9 @@ jest.mock("swr", () => ({
         ? { data: { totalInvested: invested[days] }, isLoading: false }
         : { data: undefined, isLoading: true }
     }
-    return { data: undefined, isLoading: true }
+    return monteCarloError
+      ? { data: undefined, isLoading: false, error: monteCarloError }
+      : { data: undefined, isLoading: true }
   },
 }))
 
@@ -52,6 +55,7 @@ describe("useRetiredMetricsData", () => {
     spendRows = undefined
     expenseRows = undefined
     spendError = undefined
+    monteCarloError = undefined
   })
 
   it("reports the spend log unavailable when it fails to load", () => {
@@ -186,5 +190,12 @@ describe("useRetiredMetricsData", () => {
     const { result } = renderHook(() => useRetiredMetricsData(projection))
     expect(result.current.drawnLastYear).toBeUndefined()
     expect(result.current.monteCarloLoading).toBe(true)
+    expect(result.current.monteCarloUnavailable).toBe(false)
+  })
+
+  it("reports the simulation unavailable when it fails", () => {
+    monteCarloError = new Error("Failed to run Monte Carlo simulation")
+    const { result } = renderHook(() => useRetiredMetricsData(projection))
+    expect(result.current.monteCarloUnavailable).toBe(true)
   })
 })

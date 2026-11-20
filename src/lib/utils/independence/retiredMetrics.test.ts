@@ -77,6 +77,17 @@ describe("plannedAnnualDrawdown", () => {
     expect(plannedAnnualDrawdown(p)).toBe(42_000)
   })
 
+  it("reads the current age's row when retirement began years ago", () => {
+    const p = projection({
+      planInputs: { currentAge: 66, retirementAge: 60 } as never,
+      yearlyProjections: [
+        { year: 2020, age: 60, withdrawals: 36_000 },
+        { year: 2026, age: 66, withdrawals: 42_000 },
+      ] as never,
+    })
+    expect(plannedAnnualDrawdown(p)).toBe(42_000)
+  })
+
   it("is zero when the projection has no years", () => {
     expect(plannedAnnualDrawdown(projection())).toBe(0)
   })

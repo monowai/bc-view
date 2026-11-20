@@ -16,12 +16,17 @@ export function isRetired(projection: RetirementProjection | null): boolean {
 
 /**
  * This year's planned draw on the liquid pot: expenses less guaranteed
- * income, as svc-retire projects it.
+ * income, as svc-retire projects it. The retirement rows start at the
+ * retirement age, which for someone retired years ago is in the past, so
+ * take the row for the owner's current age.
  */
 export function plannedAnnualDrawdown(
   projection: RetirementProjection,
 ): number {
-  return projection.yearlyProjections[0]?.withdrawals ?? 0
+  const rows = projection.yearlyProjections
+  const currentAge = projection.planInputs?.currentAge
+  const row = rows.find((y) => y.age != null && y.age === currentAge) ?? rows[0]
+  return row?.withdrawals ?? 0
 }
 
 export type GuardrailBand = "under" | "onTrack" | "over" | "none"

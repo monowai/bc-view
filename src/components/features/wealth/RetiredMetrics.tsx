@@ -22,6 +22,9 @@ const HIDDEN_VALUE = (
   <span className="text-2xl font-bold text-gray-400">****</span>
 )
 const SIMULATING = <p className={NOTE_CLS}>Simulating…</p>
+const SIMULATION_FAILED = (
+  <p className="text-xs text-loss mt-2">Simulation unavailable</p>
+)
 
 const BAND_TEXT: Record<GuardrailBand, string> = {
   under: "Below plan — room to spend",
@@ -45,6 +48,8 @@ interface RetiredMetricsProps {
   drawnLastYear: number | undefined
   monteCarlo: MonteCarloResult | null
   monteCarloLoading: boolean
+  /** The Monte Carlo run failed. */
+  monteCarloUnavailable: boolean
   currencySymbol: string
   /** Recorded monthly spend over the last 12 months; null until any is recorded. */
   spend: SpendSummary | null
@@ -82,6 +87,7 @@ export default function RetiredMetrics({
   drawnLastYear,
   monteCarlo,
   monteCarloLoading,
+  monteCarloUnavailable,
   currencySymbol,
   spend,
   onLogSpend,
@@ -100,6 +106,9 @@ export default function RetiredMetrics({
       ? null
       : withdrawalGuardrail(annualDraw, planned, projection.liquidAssets)
   const lastsTo = monteCarlo ? moneyLastsTo(monteCarlo.yearlyBands) : null
+  const simulationNote = monteCarloLoading
+    ? SIMULATING
+    : monteCarloUnavailable && SIMULATION_FAILED
   const lifeExpectancy = projection.planInputs?.lifeExpectancy
   const beyondPlan = lifeExpectancy ? `${lifeExpectancy}+` : "Lasts the plan"
 
@@ -223,7 +232,7 @@ export default function RetiredMetrics({
         ) : (
           <>
             {MUTED_VALUE}
-            {monteCarloLoading && SIMULATING}
+            {simulationNote}
           </>
         )}
       </div>
@@ -250,7 +259,7 @@ export default function RetiredMetrics({
         ) : (
           <>
             {MUTED_VALUE}
-            {monteCarloLoading && SIMULATING}
+            {simulationNote}
           </>
         )}
       </div>
