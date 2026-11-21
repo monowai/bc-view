@@ -268,10 +268,11 @@ body {
    In the components layer so a row's active-state utilities still win. */
 @layer components {
   .menu-panel {
-    background-color: #ffffff;
+    background-color: #fff;
     border-radius: 0.625rem;
     padding: 0.25rem;
     color: #1f2937; /* gray-800 */
+
     /* Elevation declared once: a hairline ring plus the transient lift. */
     box-shadow:
       0 0 0 1px rgb(17 24 39 / 0.07),
@@ -310,10 +311,6 @@ body {
     cursor: not-allowed;
   }
 
-  .menu-row:disabled:hover {
-    background-color: transparent;
-  }
-
   .menu-icon {
     width: 1rem;
     flex-shrink: 0;
@@ -321,6 +318,10 @@ body {
     font-size: 0.8125rem;
     color: #9ca3af; /* gray-400 */
     transition: color 120ms ease-out;
+  }
+
+  .menu-row--danger .menu-icon {
+    color: currentColor;
   }
 
   .menu-row:hover .menu-icon,
@@ -332,7 +333,6 @@ body {
     color: #dc2626;
   }
 
-  .menu-row--danger .menu-icon,
   .menu-row--danger:hover .menu-icon,
   .menu-row--danger:focus-visible .menu-icon {
     color: currentColor;
@@ -379,6 +379,11 @@ body {
 
   .dark .menu-sep {
     background-color: #1f2937;
+  }
+
+  /* Last, so a disabled row shows no hover in either theme. */
+  .menu-row:disabled:hover {
+    background-color: transparent;
   }
 }
 
