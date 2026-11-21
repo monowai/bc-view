@@ -43,7 +43,7 @@ function keyStatusBadge(key: ApiKey): React.ReactElement {
  * view only ever shows the short `prefix`.
  */
 export default function ApiKeysTab(): React.ReactElement {
-  const { keys, error, isLoading, createKey, revokeKey } = useApiKeys()
+  const { keys, error, isLoading, createKey, deleteKey } = useApiKeys()
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [name, setName] = useState("")
@@ -54,9 +54,9 @@ export default function ApiKeysTab(): React.ReactElement {
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
 
-  const [revokeTarget, setRevokeTarget] = useState<ApiKey | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ApiKey | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [revokeError, setRevokeError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const {
     isSubmitting,
@@ -126,18 +126,18 @@ export default function ApiKeysTab(): React.ReactElement {
     }
   }
 
-  const handleRevokeConfirm = async (): Promise<void> => {
-    if (!revokeTarget) return
-    const id = revokeTarget.id
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
     setBusyId(id)
-    setRevokeError(null)
+    setDeleteError(null)
     try {
-      await revokeKey(id)
+      await deleteKey(id)
     } catch (e) {
-      setRevokeError(e instanceof Error ? e.message : String(e))
+      setDeleteError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusyId(null)
-      setRevokeTarget(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -159,9 +159,9 @@ export default function ApiKeysTab(): React.ReactElement {
         </button>
       </div>
 
-      {revokeError && (
+      {deleteError && (
         <Alert variant="error" className="mb-4">
-          {revokeError}
+          {deleteError}
         </Alert>
       )}
 
@@ -211,16 +211,14 @@ export default function ApiKeysTab(): React.ReactElement {
                       : "—"}
                   </td>
                   <td className={tdBase}>
-                    {!key.revokedAt && (
-                      <button
-                        type="button"
-                        onClick={() => setRevokeTarget(key)}
-                        disabled={busyId === key.id}
-                        className="text-red-600 hover:text-red-700 disabled:text-gray-400 text-xs font-medium"
-                      >
-                        {busyId === key.id ? "Revoking…" : "Revoke"}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(key)}
+                      disabled={busyId === key.id}
+                      className="text-red-600 hover:text-red-700 disabled:text-gray-400 text-xs font-medium"
+                    >
+                      {busyId === key.id ? "Deleting…" : "Delete"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -317,19 +315,19 @@ export default function ApiKeysTab(): React.ReactElement {
         </Dialog>
       )}
 
-      {revokeTarget && (
+      {deleteTarget && (
         <ConfirmDialog
-          title={"Revoke API Key"}
+          title={"Delete API Key"}
           message={
-            "Revoking is immediate — anything using this key loses access on its next request."
+            "Deleting is permanent — anything using this key loses access on its next request."
           }
-          confirmLabel={"Revoke Key"}
-          loadingLabel={"Revoking…"}
+          confirmLabel={"Delete Key"}
+          loadingLabel={"Deleting…"}
           cancelLabel={"Cancel"}
           variant="red"
-          isSubmitting={busyId === revokeTarget.id}
-          onConfirm={handleRevokeConfirm}
-          onCancel={() => setRevokeTarget(null)}
+          isSubmitting={busyId === deleteTarget.id}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>

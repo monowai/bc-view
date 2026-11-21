@@ -13,11 +13,11 @@ const RAW_KEY = "bc_test1234567890abcdef1234567890"
 
 function setupHook(overrides: Partial<ReturnType<typeof useApiKeys>> = {}): {
   createKey: jest.Mock
-  revokeKey: jest.Mock
+  deleteKey: jest.Mock
   mutate: jest.Mock
 } {
   const createKey = jest.fn()
-  const revokeKey = jest.fn().mockResolvedValue(undefined)
+  const deleteKey = jest.fn().mockResolvedValue(undefined)
   const mutate = jest.fn()
   mockUseApiKeys.mockReturnValue({
     keys: [],
@@ -25,10 +25,10 @@ function setupHook(overrides: Partial<ReturnType<typeof useApiKeys>> = {}): {
     isLoading: false,
     mutate,
     createKey,
-    revokeKey,
+    deleteKey,
     ...overrides,
   })
-  return { createKey, revokeKey, mutate }
+  return { createKey, deleteKey, mutate }
 }
 
 describe("ApiKeysTab", () => {
@@ -48,10 +48,12 @@ describe("ApiKeysTab", () => {
     expect(screen.getByText("My Agent")).toBeInTheDocument()
     expect(screen.getByText("bc_a1b2c…")).toBeInTheDocument()
     expect(screen.getByText("Active")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /revoke/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /^delete$/i }),
+    ).toBeInTheDocument()
   })
 
-  it("shows Revoked badge and no revoke button for a revoked key", () => {
+  it("shows Revoked badge and a delete button for a revoked key", () => {
     setupHook({
       keys: [
         makeApiKey({
@@ -65,8 +67,8 @@ describe("ApiKeysTab", () => {
 
     expect(screen.getByText("Revoked")).toBeInTheDocument()
     expect(
-      screen.queryByRole("button", { name: /revoke/i }),
-    ).not.toBeInTheDocument()
+      screen.getByRole("button", { name: /^delete$/i }),
+    ).toBeInTheDocument()
   })
 
   it("renders 'Never' when lastUsedAt is null", () => {
@@ -195,55 +197,55 @@ describe("ApiKeysTab", () => {
     expect(screen.queryByText("Copied!")).not.toBeInTheDocument()
   })
 
-  it("keeps the confirm dialog open with a loading label while the revoke is in flight", async () => {
-    let resolveRevoke: () => void = () => undefined
-    const { revokeKey } = setupHook({
-      keys: [makeApiKey({ id: "k6b", name: "Slow Revoke" })],
+  it("keeps the confirm dialog open with a loading label while the delete is in flight", async () => {
+    let resolveDelete: () => void = () => undefined
+    const { deleteKey } = setupHook({
+      keys: [makeApiKey({ id: "k6b", name: "Slow Delete" })],
     })
-    revokeKey.mockImplementation(
+    deleteKey.mockImplementation(
       () =>
         new Promise<void>((resolve) => {
-          resolveRevoke = resolve
+          resolveDelete = resolve
         }),
     )
 
     render(<ApiKeysTab />)
 
-    fireEvent.click(screen.getByRole("button", { name: /^revoke$/i }))
-    fireEvent.click(screen.getByRole("button", { name: /revoke key/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /delete key/i }))
 
-    // Dialog stays open while the revoke runs; its confirm button (and the
+    // Dialog stays open while the delete runs; its confirm button (and the
     // table row behind it) shows the loading label, disabled.
-    expect(screen.getByText(/revoking is immediate/i)).toBeInTheDocument()
-    const revokingButtons = await screen.findAllByRole("button", {
-      name: /revoking/i,
+    expect(screen.getByText(/deleting is permanent/i)).toBeInTheDocument()
+    const deletingButtons = await screen.findAllByRole("button", {
+      name: /deleting/i,
     })
-    revokingButtons.forEach((button) => expect(button).toBeDisabled())
+    deletingButtons.forEach((button) => expect(button).toBeDisabled())
 
-    resolveRevoke()
+    resolveDelete()
 
     await waitFor(() => {
       expect(
-        screen.queryByText(/revoking is immediate/i),
+        screen.queryByText(/deleting is permanent/i),
       ).not.toBeInTheDocument()
     })
   })
 
-  it("revokes a key after confirming in the ConfirmDialog", async () => {
-    const { revokeKey } = setupHook({
-      keys: [makeApiKey({ id: "k6", name: "Agent To Revoke" })],
+  it("deletes a key after confirming in the ConfirmDialog", async () => {
+    const { deleteKey } = setupHook({
+      keys: [makeApiKey({ id: "k6", name: "Agent To Delete" })],
     })
 
     render(<ApiKeysTab />)
 
-    fireEvent.click(screen.getByRole("button", { name: /^revoke$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }))
 
-    expect(screen.getByText(/revoking is immediate/i)).toBeInTheDocument()
+    expect(screen.getByText(/deleting is permanent/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: /revoke key/i }))
+    fireEvent.click(screen.getByRole("button", { name: /delete key/i }))
 
     await waitFor(() => {
-      expect(revokeKey).toHaveBeenCalledWith("k6")
+      expect(deleteKey).toHaveBeenCalledWith("k6")
     })
   })
 
