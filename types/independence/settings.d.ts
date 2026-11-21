@@ -5,6 +5,12 @@ export interface UserIndependenceSettings {
   yearOfBirth?: number
   monthOfBirth?: number
   targetIndependenceAge?: number
+  /**
+   * yyyy-MM-dd the user retired, or null while still working. When set,
+   * svc-retire uses the age at this date as the plan's retirement age;
+   * `targetIndependenceAge` is kept so un-retiring restores it.
+   */
+  retiredOn?: string | null
   lifeExpectancy: number
   compositeDisplayCurrency?: string
   compositePhases?: string
@@ -32,6 +38,13 @@ export interface UpdateSettingsRequest {
   monthOfBirth?: number
   lifeExpectancy?: number
   targetIndependenceAge?: number
+  /**
+   * true records that the user has retired (needs `retiredOn`, not after
+   * today); false clears it; omit to leave it unchanged.
+   */
+  retired?: boolean
+  /** yyyy-MM-dd; required with `retired: true`. */
+  retiredOn?: string
   compositeDisplayCurrency?: string
   compositePhases?: string
   compositeExcludedPlanIds?: string

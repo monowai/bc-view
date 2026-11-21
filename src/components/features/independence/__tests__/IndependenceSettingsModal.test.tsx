@@ -90,6 +90,39 @@ describe("IndependenceSettingsModal", () => {
     })
   })
 
+  it("rejects a retired-on date before the birth month, as svc-retire does", async () => {
+    render(<IndependenceSettingsModal {...defaultProps} />)
+
+    fireEvent.click(screen.getByLabelText(/i'm retired/i))
+    fireEvent.change(screen.getByLabelText(/retired on/i), {
+      target: { value: "1971-05-31" },
+    })
+    fireEvent.click(screen.getByText(/save settings/i))
+
+    expect(
+      await screen.findByText(
+        /retired on date cannot be before you were born/i,
+      ),
+    ).toBeInTheDocument()
+    expect(mockUpdateSettings).not.toHaveBeenCalled()
+  })
+
+  it("accepts a retired-on date in the birth month", async () => {
+    render(<IndependenceSettingsModal {...defaultProps} />)
+
+    fireEvent.click(screen.getByLabelText(/i'm retired/i))
+    fireEvent.change(screen.getByLabelText(/retired on/i), {
+      target: { value: "1971-06-01" },
+    })
+    fireEvent.click(screen.getByText(/save settings/i))
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ retired: true, retiredOn: "1971-06-01" }),
+      )
+    })
+  })
+
   it("calls onClose when cancel is clicked", () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 

@@ -55,6 +55,19 @@ describe("seedFromPlan", () => {
     expect(seed.lifeExpectancy).toBe(92)
   })
 
+  it("seeds retirementAge from the age at retiredOn when retired", () => {
+    const retired: UserIndependenceSettings = {
+      ...settings,
+      yearOfBirth: 1960,
+      monthOfBirth: 6,
+      targetIndependenceAge: 70,
+      retiredOn: "2024-03-01",
+    }
+    const seed = seedFromPlan(plan, retired, 2026)
+    expect(seed.currentAge).toBe(66)
+    expect(seed.retirementAge).toBe(63)
+  })
+
   it("falls back to plan.lifeExpectancy when settings lacks one", () => {
     const partial: UserIndependenceSettings = {
       ...settings,
