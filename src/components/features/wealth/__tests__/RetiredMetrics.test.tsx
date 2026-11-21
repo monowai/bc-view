@@ -84,10 +84,10 @@ describe("RetiredMetrics", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows the simulated plan success odds", () => {
+  it("does not show a pass-fail success rate", () => {
     renderCards()
-    expect(screen.getByText("Plan Success")).toBeInTheDocument()
-    expect(screen.getByText("87%")).toBeInTheDocument()
+    expect(screen.queryByText("Plan Success")).not.toBeInTheDocument()
+    expect(screen.queryByText("87%")).not.toBeInTheDocument()
   })
 
   it("shows the age the money lasts to on the median and bad-case paths", () => {
@@ -101,12 +101,12 @@ describe("RetiredMetrics", () => {
 
   it("says the simulation is running while it has no result", () => {
     renderCards({ monteCarlo: null, monteCarloLoading: true })
-    expect(screen.getAllByText("Simulating…")).toHaveLength(2)
+    expect(screen.getByText("Simulating…")).toBeInTheDocument()
   })
 
   it("says the simulation is unavailable when it failed", () => {
     renderCards({ monteCarlo: null, monteCarloUnavailable: true })
-    expect(screen.getAllByText("Simulation unavailable")).toHaveLength(2)
+    expect(screen.getByText("Simulation unavailable")).toBeInTheDocument()
   })
 
   describe("with recorded spend", () => {

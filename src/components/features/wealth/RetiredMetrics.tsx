@@ -113,7 +113,7 @@ export default function RetiredMetrics({
   const beyondPlan = lifeExpectancy ? `${lifeExpectancy}+` : "Lasts the plan"
 
   return (
-    <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-gray-100">
+    <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-gray-100">
       <div className={METRIC_CLS}>
         <p className={LABEL_CLS}>Withdrawal Rate</p>
         {hideValues ? (
@@ -213,26 +213,6 @@ export default function RetiredMetrics({
                 {money(planned / MONTHS_PER_YEAR)}
               </p>
             )}
-          </>
-        )}
-      </div>
-
-      <div className={METRIC_CLS}>
-        <p className={LABEL_CLS}>Plan Success</p>
-        {hideValues ? (
-          HIDDEN_VALUE
-        ) : monteCarlo ? (
-          <>
-            <span className={VALUE_CLS}>
-              {Math.round(monteCarlo.successRate)}%
-            </span>
-            <Bar percent={monteCarlo.successRate} className="bg-gain" />
-            <p className={NOTE_CLS}>Simulated markets where the money lasts</p>
-          </>
-        ) : (
-          <>
-            {MUTED_VALUE}
-            {simulationNote}
           </>
         )}
       </div>
