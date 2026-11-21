@@ -1,8 +1,16 @@
 import React, { useState } from "react"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
+import { planRetirementAge } from "@lib/independence/age"
 import IndependenceSettingsModal from "./IndependenceSettingsModal"
+import { MONTHS } from "./useIndependenceSettingsForm"
 
 const currentYear = new Date().getFullYear()
+
+/** "March 2024" from a yyyy-MM-dd date. */
+function monthYear(isoDate: string): string {
+  const [year, month] = isoDate.split("-").map(Number)
+  return `${MONTHS[month - 1] ?? ""} ${year}`.trim()
+}
 
 export default function IndependenceSettingsSummary(): React.ReactElement {
   const { settings, isLoading } = useIndependenceSettings()
@@ -10,7 +18,10 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
 
   const yearOfBirth = settings?.yearOfBirth
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : undefined
+  const retiredOn = settings?.retiredOn ?? undefined
   const targetIndependenceAge = settings?.targetIndependenceAge ?? 65
+  // Horizon starts at the age the user retired, once they have.
+  const horizonStartAge = planRetirementAge(settings) ?? 65
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
   return (
@@ -46,14 +57,23 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
                   </p>
                 )}
               </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">
-                  Target Independence Age
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {targetIndependenceAge}
-                </p>
-              </div>
+              {retiredOn ? (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Retirement</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    Retired since {monthYear(retiredOn)}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    Target Independence Age
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {targetIndependenceAge}
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Life Expectancy</p>
                 <p className="text-sm font-medium text-gray-900">
@@ -70,10 +90,9 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
             <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">
-                Your planning horizon will be{" "}
-                {lifeExpectancy - targetIndependenceAge} years (from age{" "}
-                {targetIndependenceAge} to {lifeExpectancy}). These settings
-                apply across all your independence plans.
+                Your planning horizon will be {lifeExpectancy - horizonStartAge}{" "}
+                years (from age {horizonStartAge} to {lifeExpectancy}). These
+                settings apply across all your independence plans.
               </p>
             </div>
           </div>

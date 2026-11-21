@@ -17,6 +17,13 @@ export const MONTHS = [
   "December",
 ]
 
+/** Today as yyyy-MM-dd in local time — the latest valid retired-on date. */
+function todayIso(now: Date): string {
+  const mm = String(now.getMonth() + 1).padStart(2, "0")
+  const dd = String(now.getDate()).padStart(2, "0")
+  return `${now.getFullYear()}-${mm}-${dd}`
+}
+
 function calculateAge(
   yearOfBirth: number,
   monthOfBirth?: number,
@@ -50,6 +57,12 @@ interface UseIndependenceSettingsFormResult {
   setTargetIndependenceAge: (value: number | undefined) => void
   lifeExpectancy: number | undefined
   setLifeExpectancy: (value: number | undefined) => void
+  retired: boolean
+  setRetired: (value: boolean) => void
+  retiredOn: string
+  setRetiredOn: (value: string) => void
+  /** Today (yyyy-MM-dd): a retired-on date may not be later. */
+  maxRetiredOn: string
   maxYearOfBirth: number
   ageDisplay: string
   validate: () => string | null
@@ -63,7 +76,9 @@ export function useIndependenceSettingsForm({
 }: UseIndependenceSettingsFormOptions = {}): UseIndependenceSettingsFormResult {
   const { settings, updateSettings } = useIndependenceSettings()
 
-  const maxYearOfBirth = new Date().getFullYear() - 18
+  const now = new Date()
+  const maxYearOfBirth = now.getFullYear() - 18
+  const maxRetiredOn = todayIso(now)
   // Empty when unset — never seed a plausible default the user might save
   // unchanged (it silently mis-models the whole projection).
   const [yearOfBirth, setYearOfBirth] = useState<number | undefined>(
@@ -78,12 +93,14 @@ export function useIndependenceSettingsForm({
   const [lifeExpectancy, setLifeExpectancy] = useState<number | undefined>(
     settings?.lifeExpectancy ?? undefined,
   )
+  const [retired, setRetired] = useState<boolean>(!!settings?.retiredOn)
+  const [retiredOn, setRetiredOn] = useState<string>(settings?.retiredOn ?? "")
 
   // Re-seed the form whenever it activates or the settings change.
   // Render-phase "store previous value" pattern keyed on a stable value
   // signature (not the settings object ref, which may change identity each
   // render). Mount is handled by the lazy initializers above.
-  const seedSignature = `${isActive}:${settings?.yearOfBirth}:${settings?.monthOfBirth}:${settings?.targetIndependenceAge}:${settings?.lifeExpectancy}`
+  const seedSignature = `${isActive}:${settings?.yearOfBirth}:${settings?.monthOfBirth}:${settings?.targetIndependenceAge}:${settings?.lifeExpectancy}:${settings?.retiredOn}`
   const [prevSeedSignature, setPrevSeedSignature] = useState(seedSignature)
   if (seedSignature !== prevSeedSignature) {
     setPrevSeedSignature(seedSignature)
@@ -92,6 +109,8 @@ export function useIndependenceSettingsForm({
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
       setTargetIndependenceAge(settings.targetIndependenceAge ?? undefined)
       setLifeExpectancy(settings.lifeExpectancy ?? undefined)
+      setRetired(!!settings.retiredOn)
+      setRetiredOn(settings.retiredOn ?? "")
       onReseed?.()
     }
   }
@@ -114,19 +133,33 @@ export function useIndependenceSettingsForm({
     if (monthOfBirth < 1 || monthOfBirth > 12) {
       return "Month must be between 1 and 12"
     }
-    if (targetIndependenceAge == null) {
-      return "Target independence age is required"
-    }
-    if (targetIndependenceAge < currentAge) {
-      return "Target independence age must be at or after your current age"
-    }
-    if (targetIndependenceAge < 18 || targetIndependenceAge > 100) {
-      return "Target independence age must be between 18 and 100"
+    if (retired) {
+      if (!retiredOn) {
+        return "Retired on date is required"
+      }
+      // yyyy-MM-dd strings compare in date order.
+      if (retiredOn > maxRetiredOn) {
+        return "Retired on date cannot be in the future"
+      }
+    } else {
+      if (targetIndependenceAge == null) {
+        return "Target independence age is required"
+      }
+      if (targetIndependenceAge < currentAge) {
+        return "Target independence age must be at or after your current age"
+      }
+      if (targetIndependenceAge < 18 || targetIndependenceAge > 100) {
+        return "Target independence age must be between 18 and 100"
+      }
     }
     if (lifeExpectancy == null) {
       return "Life expectancy is required"
     }
-    if (lifeExpectancy <= targetIndependenceAge) {
+    if (
+      !retired &&
+      targetIndependenceAge != null &&
+      lifeExpectancy <= targetIndependenceAge
+    ) {
       return "Life expectancy must be after target independence age"
     }
     if (lifeExpectancy < 50 || lifeExpectancy > 120) {
@@ -136,12 +169,18 @@ export function useIndependenceSettingsForm({
   }
 
   const save = async (): Promise<void> => {
-    const request: UpdateSettingsRequest = {
-      yearOfBirth,
-      monthOfBirth,
-      targetIndependenceAge,
-      lifeExpectancy,
-    }
+    // Retired: send the date and leave the stored target age alone, so
+    // unticking later restores it. Unticked after being retired: clear it.
+    // Never retired: omit `retired` so the backend leaves it unchanged.
+    const request: UpdateSettingsRequest = retired
+      ? { yearOfBirth, monthOfBirth, lifeExpectancy, retired: true, retiredOn }
+      : {
+          yearOfBirth,
+          monthOfBirth,
+          targetIndependenceAge,
+          lifeExpectancy,
+          ...(settings?.retiredOn ? { retired: false } : {}),
+        }
     await updateSettings(request)
   }
 
@@ -154,6 +193,11 @@ export function useIndependenceSettingsForm({
     setTargetIndependenceAge,
     lifeExpectancy,
     setLifeExpectancy,
+    retired,
+    setRetired,
+    retiredOn,
+    setRetiredOn,
+    maxRetiredOn,
     maxYearOfBirth,
     ageDisplay,
     validate,

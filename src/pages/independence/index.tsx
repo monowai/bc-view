@@ -27,6 +27,7 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { useActiveIndependencePlan } from "@hooks/useIndependencePlans"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
+import { planRetirementAge } from "@lib/independence/age"
 import {
   isJourneyPhased,
   journeyPhasePlans,
@@ -421,7 +422,7 @@ function RetirementPlanning(): React.ReactElement {
     settings !== undefined &&
     (!settings.yearOfBirth ||
       !settings.monthOfBirth ||
-      !settings.targetIndependenceAge ||
+      !planRetirementAge(settings) ||
       !settings.lifeExpectancy)
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Deep links keep working after the collapse from five views to two
