@@ -6,6 +6,7 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences, solePortfolio } from "@lib/user/zenMode"
 import { WealthSummary, LIQUIDITY_COLORS } from "@lib/wealth/liquidityGroups"
+import { formatCurrency } from "@lib/formatters"
 
 interface WealthHeroSectionProps {
   summary: WealthSummary
@@ -18,6 +19,27 @@ interface WealthHeroSectionProps {
 
 const SHORTCUT_CLS =
   "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
+
+const sign = (value: number): string => (value >= 0 ? "+" : "-")
+
+/** "+$1,234.56" as plain text, for a tooltip. */
+const signedText = (value: number, symbol: string): string =>
+  `${sign(value)}${symbol}${formatCurrency(Math.abs(value))}`
+
+/** "+$1,234.56" with the privacy-aware amount. */
+const SignedMoney: React.FC<{ value: number; symbol: string }> = ({
+  value,
+  symbol,
+}) => (
+  <>
+    {sign(value)}
+    {symbol}
+    <FormatValue value={Math.abs(value)} />
+  </>
+)
+
+const gainClass = (value: number): string =>
+  value > 0 ? "text-gain" : "text-loss"
 
 const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   summary,
@@ -53,8 +75,20 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
         )}`
       : "/holdings/aggregated"
 
-  const previousValue = summary.totalValue - summary.totalGainOnDay
-  const gainSign = summary.totalGainOnDay >= 0 ? "+" : "-"
+  // Today's change = market movement (gainOnDay, cash excluded) + external cash
+  // flows (deposits, income, withdrawals, spending). Yesterday's net worth backs
+  // both out, so the market percent is not distorted by today's spending.
+  const gain = summary.totalGainOnDay
+  const flows = summary.flowsOnDay
+  const previousValue = summary.totalValue - gain - flows
+  const symbol = displayCurrency?.symbol ?? ""
+  const gainPercent =
+    previousValue > 0 ? (
+      <span className="ml-1">
+        ({sign(gain)}
+        {((Math.abs(gain) / previousValue) * 100).toFixed(2)}%)
+      </span>
+    ) : null
 
   return (
     <section className="mb-4 rounded-lg border border-gray-200 bg-white px-5 py-5 sm:px-6">
@@ -133,22 +167,52 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
             ))}
           </select>
         )}
-        {summary.totalGainOnDay !== 0 && !hideValues && (
+        {(gain !== 0 || flows !== 0) && !hideValues && (
           <span
-            className={`text-base font-semibold tabular-nums ${summary.totalGainOnDay > 0 ? "text-gain" : "text-loss"}`}
+            data-testid="net-worth-today"
+            className="text-base font-semibold tabular-nums"
           >
-            {gainSign}
-            {displayCurrency?.symbol}
-            <FormatValue value={Math.abs(summary.totalGainOnDay)} />
-            {previousValue > 0 && (
-              <span className="ml-1">
-                ({gainSign}
-                {(
-                  (Math.abs(summary.totalGainOnDay) / previousValue) *
-                  100
-                ).toFixed(2)}
-                %)
+            {flows === 0 ? (
+              <span className={gainClass(gain)}>
+                <SignedMoney value={gain} symbol={symbol} />
+                {gainPercent}
               </span>
+            ) : (
+              <>
+                {gain !== 0 && (
+                  <>
+                    <span className="text-sm font-normal text-gray-500">
+                      Markets{" "}
+                    </span>
+                    <span className={gainClass(gain)}>
+                      <SignedMoney value={gain} symbol={symbol} />
+                      {gainPercent}
+                    </span>
+                    <span className="mx-1.5 text-gray-300">·</span>
+                  </>
+                )}
+                <span
+                  title={`In ${signedText(summary.flowsInOnDay, symbol)} · Out ${signedText(summary.flowsOutOnDay, symbol)}`}
+                >
+                  <span className="text-sm font-normal text-gray-500">
+                    Cash flow{" "}
+                  </span>
+                  <span className="text-gray-700">
+                    <SignedMoney value={flows} symbol={symbol} />
+                  </span>
+                </span>
+                {gain !== 0 && (
+                  <>
+                    <span className="mx-1.5 text-gray-300">·</span>
+                    <span className="text-sm font-normal text-gray-500">
+                      Net{" "}
+                    </span>
+                    <span className={gainClass(gain + flows)}>
+                      <SignedMoney value={gain + flows} symbol={symbol} />
+                    </span>
+                  </>
+                )}
+              </>
             )}
             <span className="ml-1 text-sm font-normal text-gray-500">
               today

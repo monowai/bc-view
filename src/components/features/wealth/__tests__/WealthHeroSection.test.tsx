@@ -14,6 +14,9 @@ function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
   return {
     totalValue: 100_000,
     totalGainOnDay: 0,
+    flowsOnDay: 0,
+    flowsInOnDay: 0,
+    flowsOutOnDay: 0,
     portfolioCount: 1,
     healthcareReserve: 0,
     classificationBreakdown: [],
@@ -73,6 +76,65 @@ describe("WealthHeroSection — today's gain percent", () => {
     renderHero(makeSummary({ totalValue: 500, totalGainOnDay: 500 }))
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
     expect(screen.getByText(/today/)).toBeInTheDocument()
+  })
+})
+
+describe("WealthHeroSection — today's change split into markets and cash flow", () => {
+  it("shows markets, cash flow and the net change when both moved", () => {
+    // Yesterday 1,000,000; markets -10,000 and spending -1,200 leave 988,800.
+    renderHero(
+      makeSummary({
+        totalValue: 988_800,
+        totalGainOnDay: -10_000,
+        flowsOnDay: -1_200,
+        flowsOutOnDay: -1_200,
+      }),
+    )
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).toHaveTextContent(/Markets\s*-\$10,000/)
+    // The market percent is against yesterday's net worth, before the flows.
+    expect(today).toHaveTextContent(/\(-1\.00%\)/)
+    expect(today).toHaveTextContent(/Cash flow\s*-\$1,200/)
+    expect(today).toHaveTextContent(/Net\s*-\$11,200/)
+    expect(today).toHaveTextContent(/today/)
+  })
+
+  it("explains a cash flow on a day the markets did not move", () => {
+    renderHero(
+      makeSummary({
+        totalValue: 99_500,
+        totalGainOnDay: 0,
+        flowsOnDay: -500,
+        flowsOutOnDay: -500,
+      }),
+    )
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).toHaveTextContent(/Cash flow\s*-\$500/)
+    expect(today).not.toHaveTextContent(/Markets/)
+    expect(today).not.toHaveTextContent(/Net/)
+    expect(today).not.toHaveTextContent(/%/)
+  })
+
+  it("names the money in and out behind a netted cash flow", () => {
+    renderHero(
+      makeSummary({
+        totalValue: 100_000,
+        totalGainOnDay: 1_000,
+        flowsOnDay: -700,
+        flowsInOnDay: 500,
+        flowsOutOnDay: -1_200,
+      }),
+    )
+    expect(screen.getByTitle("In +$500.00 · Out -$1,200.00")).toHaveTextContent(
+      /Cash flow\s*-\$700/,
+    )
+  })
+
+  it("keeps the market-only line when there is no cash flow", () => {
+    renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).not.toHaveTextContent(/Markets|Cash flow|Net/)
+    expect(today).toHaveTextContent(/\(\+2\.56%\)/)
   })
 })
 

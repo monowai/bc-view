@@ -16,6 +16,9 @@ function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
   return {
     totalValue: 100_000,
     totalGainOnDay: 0,
+    flowsOnDay: 0,
+    flowsInOnDay: 0,
+    flowsOutOnDay: 0,
     portfolioCount: 1,
     healthcareReserve: 0,
     classificationBreakdown: [],
