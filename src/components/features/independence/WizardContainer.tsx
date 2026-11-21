@@ -45,6 +45,10 @@ import {
 } from "@hooks/useIndependencePlans"
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 import {
+  DEFAULT_RETIREMENT_AGE,
+  planRetirementAge,
+} from "@lib/independence/age"
+import {
   createPlan,
   createPlanExpense,
   deletePlanExpense,
@@ -382,7 +386,8 @@ export default function WizardContainer({
 
       // Calculate planning horizon from user settings
       const settingsLifeExpectancy = settings?.lifeExpectancy ?? 90
-      const settingsTargetAge = settings?.targetIndependenceAge ?? 65
+      const settingsTargetAge =
+        planRetirementAge(settings) ?? DEFAULT_RETIREMENT_AGE
       const planningHorizonYears = settingsLifeExpectancy - settingsTargetAge
 
       // Backend stores decimals (0.07 for 7%), so convert from percentage

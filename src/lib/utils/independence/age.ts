@@ -37,6 +37,41 @@ export function currentAgeFromSettings(
   return age
 }
 
+/** Retirement age assumed when the user has set neither a target age nor a retired date. */
+export const DEFAULT_RETIREMENT_AGE = 65
+
+/** Settings fields that decide the plan's retirement age. */
+export interface RetirementDemographics extends ProfileDemographics {
+  targetIndependenceAge?: number
+  /** yyyy-MM-dd the user retired, or null/undefined while working. */
+  retiredOn?: string | null
+}
+
+/**
+ * The age the plan treats as the retirement age. A retired user's plan
+ * retires at the age they were on `retiredOn` (same birth-month rule as
+ * `currentAgeFromSettings`); everyone else's at `targetIndependenceAge`.
+ * Mirrors svc-retire's `UserIndependenceSettings.retirementAge()` so first
+ * paint agrees with the projection echo. Reads no clock: svc-retire rejects
+ * a future `retiredOn` on save, so a stored one is never in the future.
+ */
+export function planRetirementAge(
+  settings: RetirementDemographics | undefined | null,
+): number | undefined {
+  const retiredOn = parseIsoDate(settings?.retiredOn)
+  if (retiredOn && settings?.yearOfBirth) {
+    return currentAgeFromSettings(settings, retiredOn)
+  }
+  return settings?.targetIndependenceAge
+}
+
+/** Parse yyyy-MM-dd as a local date (no UTC shift); undefined when absent or malformed. */
+function parseIsoDate(value: string | null | undefined): Date | undefined {
+  const match = value ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null
+  if (!match) return undefined
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
 /** Ages echoed back on `RetirementProjection.planInputs` (see types/independence.d.ts). */
 export interface ProjectionEchoedAges {
   currentAge?: number

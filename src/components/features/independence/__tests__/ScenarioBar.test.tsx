@@ -137,6 +137,52 @@ describe("ScenarioBar", () => {
     expect(props.onScenarioChange).toHaveBeenCalledWith({ liquidAssets: null })
   })
 
+  describe("Retirement Age slider", () => {
+    const retirementSlider = (): HTMLInputElement =>
+      screen
+        .getByText("Retirement Age")
+        .closest(".space-y-2")
+        ?.querySelector('input[type="range"]') as HTMLInputElement
+
+    it("starts after the current age for a user still working", () => {
+      render(<ScenarioBar {...baseProps} />)
+      fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+      expect(retirementSlider().min).toBe("47")
+    })
+
+    it("reaches the retirement age of a user already retired", () => {
+      const props = {
+        ...baseProps,
+        scenario: { ...baseScenario, currentAge: 66, retirementAge: 63 },
+      }
+      render(<ScenarioBar {...props} />)
+      fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+      expect(retirementSlider().min).toBe("40")
+      expect(retirementSlider().value).toBe("63")
+    })
+
+    it("lets an early retiree reach an age below 40", () => {
+      const props = {
+        ...baseProps,
+        scenario: { ...baseScenario, currentAge: 45, retirementAge: 35 },
+      }
+      render(<ScenarioBar {...props} />)
+      fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+      expect(retirementSlider().min).toBe("35")
+    })
+
+    it("treats the user as retired when told so", () => {
+      const props = {
+        ...baseProps,
+        retired: true,
+        scenario: { ...baseScenario, currentAge: 46, retirementAge: 50 },
+      }
+      render(<ScenarioBar {...props} />)
+      fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+      expect(retirementSlider().min).toBe("40")
+    })
+  })
+
   describe("Expected Real Return slider", () => {
     it("is present in the slider grid when expanded", () => {
       render(<ScenarioBar {...baseProps} />)

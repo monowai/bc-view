@@ -72,6 +72,11 @@ export default function IndependenceSettingsModal({
           ageDisplay={form.ageDisplay}
           targetIndependenceAge={form.targetIndependenceAge}
           lifeExpectancy={form.lifeExpectancy}
+          retired={form.retired}
+          onRetiredChange={form.setRetired}
+          retiredOn={form.retiredOn}
+          onRetiredOnChange={form.setRetiredOn}
+          maxRetiredOn={form.maxRetiredOn}
           yearOfBirthInput={
             <MathInput
               id="settings-yearOfBirth"

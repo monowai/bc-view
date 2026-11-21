@@ -10,6 +10,9 @@ import StrategyGaugesStrip from "./StrategyGaugesStrip"
 import { STRATEGY_VIEW_LABELS, type StrategyView } from "./strategyView"
 import WhatIfSlider from "./WhatIfSlider"
 
+/** Lowest age the Retirement Age slider offers. */
+const MIN_RETIREMENT_AGE = 40
+
 export interface ScenarioBarProps {
   scenario: ScenarioState
   /** Patch one or more fields. */
@@ -56,6 +59,8 @@ export interface ScenarioBarProps {
    * Null/absent when on-track.
    */
   pathToHorizon?: PathToHorizon | null
+  /** The user has recorded a retirement date (`settings.retiredOn`). */
+  retired?: boolean
 }
 
 const N0 = (n: number): string => Math.round(n).toLocaleString()
@@ -85,6 +90,7 @@ export default function ScenarioBar({
   planEquityRate,
   planCashAlloc,
   pathToHorizon,
+  retired = false,
 }: ScenarioBarProps): React.ReactElement {
   // Sliders default-collapsed at every viewport to keep the page chrome
   // minimal. Gauges + action row stay visible. User clicks "Assumptions" to
@@ -209,7 +215,12 @@ export default function ScenarioBar({
               label="Retirement Age"
               value={scenario.retirementAge}
               onChange={(retirementAge) => onScenarioChange({ retirementAge })}
-              min={Math.max(scenario.currentAge + 1, 40)}
+              min={
+                retired || scenario.retirementAge <= scenario.currentAge
+                  ? // Retired: keep the age they retired at reachable.
+                    Math.min(scenario.retirementAge, MIN_RETIREMENT_AGE)
+                  : Math.max(scenario.currentAge + 1, MIN_RETIREMENT_AGE)
+              }
               max={75}
               step={1}
               unit="y"
