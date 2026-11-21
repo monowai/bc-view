@@ -6,7 +6,7 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences, solePortfolio } from "@lib/user/zenMode"
 import { WealthSummary, LIQUIDITY_COLORS } from "@lib/wealth/liquidityGroups"
-import { formatCurrency } from "@lib/formatters"
+import { formatSignedNumber } from "@lib/formatters"
 
 interface WealthHeroSectionProps {
   summary: WealthSummary
@@ -22,9 +22,11 @@ const SHORTCUT_CLS =
 
 const sign = (value: number): string => (value >= 0 ? "+" : "-")
 
-/** "+$1,234.56" as plain text, for a tooltip. */
-const signedText = (value: number, symbol: string): string =>
-  `${sign(value)}${symbol}${formatCurrency(Math.abs(value))}`
+/** "+$1,234.56" as plain text, for a tooltip: the symbol goes after the sign. */
+const signedText = (value: number, symbol: string): string => {
+  const signed = formatSignedNumber(value)
+  return `${signed[0]}${symbol}${signed.slice(1)}`
+}
 
 /** "+$1,234.56" with the privacy-aware amount. */
 const SignedMoney: React.FC<{ value: number; symbol: string }> = ({
