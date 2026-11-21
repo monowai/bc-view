@@ -6,7 +6,7 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { deriveZenModeFromPreferences, solePortfolio } from "@lib/user/zenMode"
 import { WealthSummary, LIQUIDITY_COLORS } from "@lib/wealth/liquidityGroups"
-import { formatSignedNumber } from "@lib/formatters"
+import { formatSignedNumber, signOf } from "@lib/formatters"
 
 interface WealthHeroSectionProps {
   summary: WealthSummary
@@ -20,8 +20,6 @@ interface WealthHeroSectionProps {
 const SHORTCUT_CLS =
   "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
 
-const sign = (value: number): string => (value >= 0 ? "+" : "-")
-
 /** "+$1,234.56" as plain text, for a tooltip: the symbol goes after the sign. */
 const signedText = (value: number, symbol: string): string => {
   const signed = formatSignedNumber(value)
@@ -34,14 +32,15 @@ const SignedMoney: React.FC<{ value: number; symbol: string }> = ({
   symbol,
 }) => (
   <>
-    {sign(value)}
+    {signOf(value)}
     {symbol}
     <FormatValue value={Math.abs(value)} />
   </>
 )
 
+/** A flat figure is neither gain nor loss, so it carries no status colour. */
 const gainClass = (value: number): string =>
-  value > 0 ? "text-gain" : "text-loss"
+  value > 0 ? "text-gain" : value < 0 ? "text-loss" : "text-gray-900"
 
 /** One signed money figure of today's change, in the data face. */
 const Figure: React.FC<{
@@ -124,7 +123,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   const gainPercent =
     previousValue > 0 ? (
       <span className="ml-1.5 font-normal">
-        ({sign(gain)}
+        ({signOf(gain)}
         {((Math.abs(gain) / previousValue) * 100).toFixed(2)}%)
       </span>
     ) : null

@@ -130,6 +130,22 @@ describe("WealthHeroSection — today's change split into markets and cash flow"
     )
   })
 
+  it("shows a flat net change unsigned and uncoloured", () => {
+    // Markets +1,000 exactly offset by a -1,000 spend: no gain, no loss.
+    renderHero(
+      makeSummary({
+        totalValue: 100_000,
+        totalGainOnDay: 1_000,
+        flowsOnDay: -1_000,
+        flowsOutOnDay: -1_000,
+      }),
+    )
+    const net = screen.getByText("Net").parentElement as HTMLElement
+    expect(net).toHaveTextContent(/Net\s*\$0/)
+    expect(net).not.toHaveTextContent(/[+-]\$0/)
+    expect(net.querySelector(".text-loss, .text-gain")).toBeNull()
+  })
+
   it("keeps the market-only line when there is no cash flow", () => {
     renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
     const today = screen.getByTestId("net-worth-today")

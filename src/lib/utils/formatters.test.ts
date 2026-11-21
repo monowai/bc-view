@@ -6,6 +6,7 @@ import {
   formatQuantity,
   formatSignedPercent,
   localIsoDate,
+  signOf,
   todayIso,
 } from "./formatters"
 import { LOCAL_MIDNIGHT_EDGES, pinDate } from "@test-fixtures/clock"
@@ -164,5 +165,13 @@ describe("formatSignedPercent", () => {
 
   it("shows zero without a sign", () => {
     expect(formatSignedPercent(0)).toBe("0.00%")
+  })
+})
+
+describe("signOf", () => {
+  it("leads a gain with plus, a loss with minus and zero with nothing", () => {
+    expect(signOf(12.5)).toBe("+")
+    expect(signOf(-0.01)).toBe("-")
+    expect(signOf(0)).toBe("")
   })
 })

@@ -17,7 +17,7 @@ import {
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
 import { getGroupComparator } from "@lib/categoryMapping"
-import { formatPercent } from "@lib/formatters"
+import { formatPercent, signOf } from "@lib/formatters"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 
 // Color palette for report categories
@@ -66,8 +66,6 @@ const Direction: React.FC<{ value: number }> = ({ value }) =>
     ></i>
   )
 
-const sign = (value: number): string => (value > 0 ? "+" : value < 0 ? "-" : "")
-
 const Money: React.FC<{
   value: number
   currencySymbol: string
@@ -75,7 +73,7 @@ const Money: React.FC<{
 }> = ({ value, currencySymbol, signed = false }) => (
   <>
     {signed && <Direction value={value} />}
-    {signed ? sign(value) : value < 0 ? "-" : ""}
+    {signed ? signOf(value) : value < 0 ? "-" : ""}
     {currencySymbol}
     <FormatValue value={Math.abs(value)} />
   </>
@@ -84,7 +82,7 @@ const Money: React.FC<{
 const Percent: React.FC<{ value: number }> = ({ value }) => (
   <>
     <Direction value={value} />
-    {`${sign(value)}${formatPercent(Math.abs(value))}`}
+    {`${signOf(value)}${formatPercent(Math.abs(value))}`}
   </>
 )
 
