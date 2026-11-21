@@ -2,7 +2,10 @@ import type {
   RetirementPlan,
   UserIndependenceSettings,
 } from "types/independence"
-import { planRetirementAge } from "@lib/independence/age"
+import {
+  DEFAULT_RETIREMENT_AGE,
+  planRetirementAge,
+} from "@lib/independence/age"
 import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./types"
 
 /**
@@ -26,7 +29,7 @@ export function seedFromPlan(
 
   return {
     currentAge,
-    retirementAge: planRetirementAge(settings) ?? 65,
+    retirementAge: planRetirementAge(settings) ?? DEFAULT_RETIREMENT_AGE,
     lifeExpectancy: settings?.lifeExpectancy ?? plan.lifeExpectancy ?? 90,
     liquidAssets: null,
     monthlyExpenses: plan.monthlyExpenses,

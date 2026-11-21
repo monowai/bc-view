@@ -1,3 +1,4 @@
+import { localIsoDate } from "@lib/formatters"
 import { useState } from "react"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
@@ -16,13 +17,6 @@ export const MONTHS = [
   "November",
   "December",
 ]
-
-/** Today as yyyy-MM-dd in local time — the latest valid retired-on date. */
-function todayIso(now: Date): string {
-  const mm = String(now.getMonth() + 1).padStart(2, "0")
-  const dd = String(now.getDate()).padStart(2, "0")
-  return `${now.getFullYear()}-${mm}-${dd}`
-}
 
 function calculateAge(
   yearOfBirth: number,
@@ -78,7 +72,7 @@ export function useIndependenceSettingsForm({
 
   const now = new Date()
   const maxYearOfBirth = now.getFullYear() - 18
-  const maxRetiredOn = todayIso(now)
+  const maxRetiredOn = localIsoDate(now)
   // Empty when unset — never seed a plausible default the user might save
   // unchanged (it silently mis-models the whole projection).
   const [yearOfBirth, setYearOfBirth] = useState<number | undefined>(

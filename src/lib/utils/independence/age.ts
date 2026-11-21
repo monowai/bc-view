@@ -37,6 +37,9 @@ export function currentAgeFromSettings(
   return age
 }
 
+/** Retirement age assumed when the user has set neither a target age nor a retired date. */
+export const DEFAULT_RETIREMENT_AGE = 65
+
 /** Settings fields that decide the plan's retirement age. */
 export interface RetirementDemographics extends ProfileDemographics {
   targetIndependenceAge?: number

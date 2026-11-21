@@ -1,6 +1,9 @@
 import React, { useState } from "react"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
-import { planRetirementAge } from "@lib/independence/age"
+import {
+  DEFAULT_RETIREMENT_AGE,
+  planRetirementAge,
+} from "@lib/independence/age"
 import IndependenceSettingsModal from "./IndependenceSettingsModal"
 import { MONTHS } from "./useIndependenceSettingsForm"
 
@@ -19,9 +22,10 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
   const yearOfBirth = settings?.yearOfBirth
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : undefined
   const retiredOn = settings?.retiredOn ?? undefined
-  const targetIndependenceAge = settings?.targetIndependenceAge ?? 65
+  const targetIndependenceAge =
+    settings?.targetIndependenceAge ?? DEFAULT_RETIREMENT_AGE
   // Horizon starts at the age the user retired, once they have.
-  const horizonStartAge = planRetirementAge(settings) ?? 65
+  const horizonStartAge = planRetirementAge(settings) ?? DEFAULT_RETIREMENT_AGE
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
   return (

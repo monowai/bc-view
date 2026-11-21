@@ -10,6 +10,9 @@ import StrategyGaugesStrip from "./StrategyGaugesStrip"
 import { STRATEGY_VIEW_LABELS, type StrategyView } from "./strategyView"
 import WhatIfSlider from "./WhatIfSlider"
 
+/** Lowest age the Retirement Age slider offers. */
+const MIN_RETIREMENT_AGE = 40
+
 export interface ScenarioBarProps {
   scenario: ScenarioState
   /** Patch one or more fields. */
@@ -215,8 +218,8 @@ export default function ScenarioBar({
               min={
                 retired || scenario.retirementAge <= scenario.currentAge
                   ? // Retired: keep the age they retired at reachable.
-                    Math.min(scenario.retirementAge, 40)
-                  : Math.max(scenario.currentAge + 1, 40)
+                    Math.min(scenario.retirementAge, MIN_RETIREMENT_AGE)
+                  : Math.max(scenario.currentAge + 1, MIN_RETIREMENT_AGE)
               }
               max={75}
               step={1}
