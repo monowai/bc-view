@@ -172,7 +172,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
         {(gain !== 0 || flows !== 0) && !hideValues && (
           <span
             data-testid="net-worth-today"
-            className="text-base font-semibold tabular-nums"
+            className="flex flex-wrap items-baseline text-base font-semibold tabular-nums"
           >
             {flows === 0 ? (
               <span className={gainClass(gain)}>
@@ -183,17 +183,20 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
               <>
                 {gain !== 0 && (
                   <>
-                    <span className="text-sm font-normal text-gray-500">
-                      Markets{" "}
-                    </span>
-                    <span className={gainClass(gain)}>
-                      <SignedMoney value={gain} symbol={symbol} />
-                      {gainPercent}
+                    <span className="whitespace-nowrap">
+                      <span className="text-sm font-normal text-gray-500">
+                        Markets{" "}
+                      </span>
+                      <span className={gainClass(gain)}>
+                        <SignedMoney value={gain} symbol={symbol} />
+                        {gainPercent}
+                      </span>
                     </span>
                     <span className="mx-1.5 text-gray-300">·</span>
                   </>
                 )}
                 <span
+                  className="whitespace-nowrap"
                   title={`In ${signedText(summary.flowsInOnDay, symbol)} · Out ${signedText(summary.flowsOutOnDay, symbol)}`}
                 >
                   <span className="text-sm font-normal text-gray-500">
@@ -206,17 +209,19 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
                 {gain !== 0 && (
                   <>
                     <span className="mx-1.5 text-gray-300">·</span>
-                    <span className="text-sm font-normal text-gray-500">
-                      Net{" "}
-                    </span>
-                    <span className={gainClass(gain + flows)}>
-                      <SignedMoney value={gain + flows} symbol={symbol} />
+                    <span className="whitespace-nowrap">
+                      <span className="text-sm font-normal text-gray-500">
+                        Net{" "}
+                      </span>
+                      <span className={gainClass(gain + flows)}>
+                        <SignedMoney value={gain + flows} symbol={symbol} />
+                      </span>
                     </span>
                   </>
                 )}
               </>
             )}
-            <span className="ml-1 text-sm font-normal text-gray-500">
+            <span className="ml-1 whitespace-nowrap text-sm font-normal text-gray-500">
               today
             </span>
           </span>
