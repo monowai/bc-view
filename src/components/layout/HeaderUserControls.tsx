@@ -51,8 +51,15 @@ export default function HeaderUserControls(): React.ReactElement {
         setDropdownOpen(false)
       }
     }
+    function handleKey(event: KeyboardEvent): void {
+      if (event.key === "Escape") setDropdownOpen(false)
+    }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener("keydown", handleKey)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleKey)
+    }
   }, [dropdownOpen])
 
   const displayName = preferences?.preferredName || user?.nickname
@@ -98,26 +105,37 @@ export default function HeaderUserControls(): React.ReactElement {
         </button>
       </div>
       {dropdownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-[0_2px_10px_rgb(0_0_0/0.1)] z-50 text-gray-800 overflow-hidden py-1 animate-menu-in">
+        <div className="menu-panel absolute right-0 top-full z-50 mt-1.5 w-60 origin-top-right animate-menu-in">
+          {/* Who is signed in — the trigger hides the name below sm. */}
+          <div className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
+            <Avatar user={user} size={32} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-gray-900">
+                {displayName}
+              </p>
+              {user.email && (
+                <p className="truncate text-xs text-gray-500">{user.email}</p>
+              )}
+            </div>
+          </div>
+          <div role="separator" className="menu-sep" />
           {userMenuLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="menu-row"
               onClick={() => setDropdownOpen(false)}
             >
               <i
-                className={`fas ${link.icon} w-4 text-center text-xs text-gray-400`}
+                aria-hidden="true"
+                className={`fas ${link.icon} menu-icon`}
               ></i>
               {link.label}
             </Link>
           ))}
-          <hr className="my-1 border-gray-100" />
-          <a
-            href="/auth/logout"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <i className="fas fa-sign-out-alt w-4 text-center text-xs"></i>
+          <div role="separator" className="menu-sep" />
+          <a href="/auth/logout" className="menu-row menu-row--danger">
+            <i aria-hidden="true" className="fas fa-sign-out-alt menu-icon"></i>
             {"Logout"}
           </a>
         </div>

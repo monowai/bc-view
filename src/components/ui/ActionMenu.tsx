@@ -116,8 +116,10 @@ export default function ActionMenu({
           role="menu"
           aria-label={label}
           onKeyDown={onMenuKeyDown}
-          className={`absolute z-30 mt-1 min-w-52 rounded-lg border border-gray-200 bg-white py-1 shadow-[0_2px_10px_rgb(0,0,0,0.1)] dark:border-gray-700 dark:bg-gray-900 ${
-            align === "right" ? "right-0" : "left-0"
+          className={`menu-panel animate-menu-in absolute z-30 mt-1.5 min-w-56 ${
+            align === "right"
+              ? "right-0 origin-top-right"
+              : "left-0 origin-top-left"
           }`}
         >
           {items.map((item, idx) => {
@@ -128,12 +130,7 @@ export default function ActionMenu({
               // ("Delete"), and a duplicate key makes React reconcile the wrong
               // row.
               <React.Fragment key={idx}>
-                {dividerAbove && (
-                  <div
-                    role="separator"
-                    className="my-1 border-t border-gray-100 dark:border-gray-800"
-                  />
-                )}
+                {dividerAbove && <div role="separator" className="menu-sep" />}
                 <button
                   type="button"
                   role="menuitem"
@@ -148,16 +145,14 @@ export default function ActionMenu({
                     close()
                     item.onSelect()
                   }}
-                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors duration-150 disabled:opacity-50 motion-reduce:transition-none ${
-                    item.destructive
-                      ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
-                      : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className={`menu-row motion-reduce:transition-none ${
+                    item.destructive ? "menu-row--danger" : ""
                   }`}
                 >
                   {item.icon && (
                     <i
                       aria-hidden="true"
-                      className={`fas ${item.icon} w-4 text-center text-xs`}
+                      className={`fas ${item.icon} menu-icon`}
                     />
                   )}
                   {item.label}
