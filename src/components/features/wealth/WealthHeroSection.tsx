@@ -43,6 +43,43 @@ const SignedMoney: React.FC<{ value: number; symbol: string }> = ({
 const gainClass = (value: number): string =>
   value > 0 ? "text-gain" : "text-loss"
 
+/** One signed money figure of today's change, in the data face. */
+const Figure: React.FC<{
+  value: number
+  symbol: string
+  tone: string
+  children?: React.ReactNode
+}> = ({ value, symbol, tone, children }) => (
+  <span className={`font-mono font-semibold tabular-nums ${tone}`}>
+    <SignedMoney value={value} symbol={symbol} />
+    {children}
+  </span>
+)
+
+/**
+ * A labelled term of the day's reconciliation, Markets + Cash flow = Net. The
+ * operator leads its term so a wrapped line still reads as the sum.
+ */
+const Term: React.FC<{
+  operator?: string
+  label: string
+  title?: string
+  children: React.ReactNode
+}> = ({ operator, label, title, children }) => (
+  <span
+    className="inline-flex items-baseline gap-1.5 whitespace-nowrap"
+    title={title}
+  >
+    {operator && (
+      <span aria-hidden="true" className="font-mono text-gray-400">
+        {operator}
+      </span>
+    )}
+    <span className="text-gray-500">{label}</span>
+    {children}
+  </span>
+)
+
 const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   summary,
   displayCurrency,
@@ -54,9 +91,9 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   const { hideValues } = usePrivacyMode()
   const { preferences } = useUserPreferences()
 
-  // Zen mode (single portfolio): the portfolio list and the "across N
-  // portfolios" count are noise — there's nothing to compare or navigate to.
-  // Hide the entry points only; the /portfolios route stays reachable.
+  // Zen mode (single portfolio): the portfolio list is noise — there's
+  // nothing to compare or navigate to. Hide the entry point only; the
+  // /portfolios route stays reachable.
   const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
 
   // Net worth is the sum across every contributing portfolio. Clicking it
@@ -86,7 +123,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   const symbol = displayCurrency?.symbol ?? ""
   const gainPercent =
     previousValue > 0 ? (
-      <span className="ml-1">
+      <span className="ml-1.5 font-normal">
         ({sign(gain)}
         {((Math.abs(gain) / previousValue) * 100).toFixed(2)}%)
       </span>
@@ -169,68 +206,44 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
             ))}
           </select>
         )}
-        {(gain !== 0 || flows !== 0) && !hideValues && (
-          <span
-            data-testid="net-worth-today"
-            className="flex flex-wrap items-baseline text-base font-semibold tabular-nums"
-          >
-            {flows === 0 ? (
-              <span className={gainClass(gain)}>
-                <SignedMoney value={gain} symbol={symbol} />
-                {gainPercent}
-              </span>
-            ) : (
-              <>
-                {gain !== 0 && (
-                  <>
-                    <span className="whitespace-nowrap">
-                      <span className="text-sm font-normal text-gray-500">
-                        Markets{" "}
-                      </span>
-                      <span className={gainClass(gain)}>
-                        <SignedMoney value={gain} symbol={symbol} />
-                        {gainPercent}
-                      </span>
-                    </span>
-                    <span className="mx-1.5 text-gray-300">·</span>
-                  </>
-                )}
-                <span
-                  className="whitespace-nowrap"
-                  title={`In ${signedText(summary.flowsInOnDay, symbol)} · Out ${signedText(summary.flowsOutOnDay, symbol)}`}
-                >
-                  <span className="text-sm font-normal text-gray-500">
-                    Cash flow{" "}
-                  </span>
-                  <span className="text-gray-700">
-                    <SignedMoney value={flows} symbol={symbol} />
-                  </span>
-                </span>
-                {gain !== 0 && (
-                  <>
-                    <span className="mx-1.5 text-gray-300">·</span>
-                    <span className="whitespace-nowrap">
-                      <span className="text-sm font-normal text-gray-500">
-                        Net{" "}
-                      </span>
-                      <span className={gainClass(gain + flows)}>
-                        <SignedMoney value={gain + flows} symbol={symbol} />
-                      </span>
-                    </span>
-                  </>
-                )}
-              </>
-            )}
-            <span className="ml-1 whitespace-nowrap text-sm font-normal text-gray-500">
-              today
-            </span>
-          </span>
-        )}
       </div>
-      {!zenMode && (
-        <p className="mt-1 text-sm text-gray-500">
-          Across {summary.portfolioCount} portfolio
-          {summary.portfolioCount !== 1 ? "s" : ""}
+      {(gain !== 0 || flows !== 0) && !hideValues && (
+        <p
+          data-testid="net-worth-today"
+          className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm"
+        >
+          <span className="font-medium text-gray-500">Today</span>
+          {flows === 0 ? (
+            <Figure value={gain} symbol={symbol} tone={gainClass(gain)}>
+              {gainPercent}
+            </Figure>
+          ) : (
+            <>
+              {gain !== 0 && (
+                <Term label="Markets">
+                  <Figure value={gain} symbol={symbol} tone={gainClass(gain)}>
+                    {gainPercent}
+                  </Figure>
+                </Term>
+              )}
+              <Term
+                operator={gain !== 0 ? "+" : undefined}
+                label="Cash flow"
+                title={`In ${signedText(summary.flowsInOnDay, symbol)} · Out ${signedText(summary.flowsOutOnDay, symbol)}`}
+              >
+                <Figure value={flows} symbol={symbol} tone="text-gray-900" />
+              </Term>
+              {gain !== 0 && (
+                <Term operator="=" label="Net">
+                  <Figure
+                    value={gain + flows}
+                    symbol={symbol}
+                    tone={gainClass(gain + flows)}
+                  />
+                </Term>
+              )}
+            </>
+          )}
         </p>
       )}
       {summary.healthcareReserve > 0 && (
