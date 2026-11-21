@@ -35,6 +35,7 @@ import {
 } from "@utils/api/client/assets"
 import { sectorsKey, setAssetSector } from "@utils/api/client/classifications"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import { writePrice } from "@utils/api/client/prices"
 
 const categoryLabels: Record<string, string> = {
@@ -167,6 +168,7 @@ function AccountsPage(): React.ReactElement {
     // Refresh the assets list and invalidate holdings
     await mutate(assetsKey)
     mutate(aggregatedHoldingsTodayKey)
+    refreshNetWorth()
     setDeleteData(undefined)
   }, [])
 

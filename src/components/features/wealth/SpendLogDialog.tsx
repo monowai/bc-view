@@ -1,7 +1,7 @@
 import React from "react"
 import { useSWRConfig } from "swr"
 import { portfoliosKey } from "@utils/api/client/portfolios"
-import { isHoldingsKey } from "@utils/api/client/holdings"
+import { isHoldingsKey, isNetWorthKey } from "@utils/api/client/holdings"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import SpendDialog from "@components/features/wealth/SpendDialog"
@@ -62,9 +62,10 @@ export default function SpendLogDialog({
       onClose={onClose}
       onSaved={() => {
         log.refresh()
-        // A save can post, move or remove a bank withdrawal.
+        // A save can post, move or remove a bank withdrawal, which moves net worth.
         void mutate(portfoliosKey)
         void mutate(isHoldingsKey)
+        void mutate(isNetWorthKey)
         onClose()
       }}
     />

@@ -1,7 +1,10 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import SpendLogDialog from "../SpendLogDialog"
+import { isHoldingsKey, isNetWorthKey } from "@utils/api/client/holdings"
+
+const mockMutate = jest.fn()
 
 let log: Record<string, unknown>
 
@@ -11,11 +14,13 @@ jest.mock("../useSpendLog", () => ({
 jest.mock("swr", () => ({
   __esModule: true,
   default: jest.fn(),
-  useSWRConfig: () => ({ mutate: jest.fn() }),
+  useSWRConfig: () => ({ mutate: mockMutate }),
 }))
 jest.mock("../SpendDialog", () => ({
   __esModule: true,
-  default: () => <div>spend form</div>,
+  default: ({ onSaved }: { onSaved: () => void }) => (
+    <button onClick={onSaved}>spend form</button>
+  ),
 }))
 
 describe("SpendLogDialog", () => {
@@ -41,6 +46,14 @@ describe("SpendLogDialog", () => {
   it("opens the form once the spend log has loaded", () => {
     render(<SpendLogDialog onClose={jest.fn()} />)
     expect(screen.getByText("spend form")).toBeInTheDocument()
+  })
+
+  it("refreshes holdings and net worth after a save, which can post a bank withdrawal", () => {
+    mockMutate.mockClear()
+    render(<SpendLogDialog onClose={jest.fn()} />)
+    fireEvent.click(screen.getByText("spend form"))
+    expect(mockMutate).toHaveBeenCalledWith(isHoldingsKey)
+    expect(mockMutate).toHaveBeenCalledWith(isNetWorthKey)
   })
 
   it("offers no form when the spend log failed to load, so a save cannot wipe a month", () => {

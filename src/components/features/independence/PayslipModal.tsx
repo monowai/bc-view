@@ -32,6 +32,7 @@ import { assetPositionsKey } from "@utils/api/client/assets"
 import { createTrns } from "@utils/api/client/trns"
 import { plansKey, workScenariosKey } from "@utils/api/client/independence"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import { updateMe } from "@utils/api/client/account"
 import { readServerMessage } from "@utils/api/client/request"
 import {
@@ -454,6 +455,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       const portfolio = portfolios.find((p) => p.id === effectivePortfolioId)
       if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
       globalMutate(aggregatedHoldingsTodayKey)
+      refreshNetWorth()
       // Wealth screen sums portfolio.marketValue from this list; without
       // invalidating it the top-line total stays stale after a payslip posts.
       globalMutate(portfoliosKey)

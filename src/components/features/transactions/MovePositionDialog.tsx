@@ -6,6 +6,7 @@ import { holdingKey } from "@utils/api/fetchHelper"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { moveTrns } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 interface MovePositionDialogProps {
   modalOpen: boolean
@@ -66,6 +67,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
       }
       mutate(holdingKey(sourceData.portfolioCode, "today"))
       mutate(aggregatedHoldingsTodayKey)
+      refreshNetWorth()
       const targetPortfolio = portfolios.find(
         (p) => p.id === selectedPortfolioId,
       )

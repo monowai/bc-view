@@ -16,6 +16,7 @@ import {
   updateTrn,
 } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 type MutateFn = (key: string) => Promise<any>
 
@@ -92,6 +93,7 @@ export async function submitEditMode(
       setTimeout(() => {
         mutate(holdingKey(transaction.portfolio.code, "today"))
         mutate(aggregatedHoldingsTodayKey)
+        refreshNetWorth()
         if (portfolioChanged) {
           const newPortfolio = portfolios.find(
             (p) => p.id === selectedPortfolioId,
@@ -159,6 +161,7 @@ async function submitCashFlow(
       setTimeout(() => {
         mutate(holdingKey(portfolio.code, "today"))
         mutate(aggregatedHoldingsTodayKey)
+        refreshNetWorth()
       }, 1500)
       setSubmitWarnings?.(warnings)
       if (warnings.length === 0) {
@@ -231,6 +234,7 @@ export async function submitCreateMode(
         setTimeout(() => {
           mutate(holdingKey(portfolio.code, "today"))
           mutate(aggregatedHoldingsTodayKey)
+          refreshNetWorth()
         }, 1500)
       }
     },
