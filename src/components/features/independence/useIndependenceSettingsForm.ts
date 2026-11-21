@@ -136,6 +136,11 @@ export function useIndependenceSettingsForm({
       if (retiredOn > maxRetiredOn) {
         return "Retired on date cannot be in the future"
       }
+      // Same floor as svc-retire: not before the first of the birth month.
+      const birthMonth = String(monthOfBirth).padStart(2, "0")
+      if (retiredOn < `${yearOfBirth}-${birthMonth}-01`) {
+        return "Retired on date cannot be before you were born"
+      }
     } else {
       if (targetIndependenceAge == null) {
         return "Target independence age is required"
@@ -152,7 +157,7 @@ export function useIndependenceSettingsForm({
     }
     // A retired user's horizon starts at the age they were on retiredOn.
     const retirementAge = retired
-      ? planRetirementAge({ yearOfBirth, monthOfBirth, retiredOn }, now)
+      ? planRetirementAge({ yearOfBirth, monthOfBirth, retiredOn })
       : targetIndependenceAge
     if (retirementAge != null && lifeExpectancy <= retirementAge) {
       return retired

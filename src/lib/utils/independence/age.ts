@@ -51,15 +51,15 @@ export interface RetirementDemographics extends ProfileDemographics {
  * The age the plan treats as the retirement age. A retired user's plan
  * retires at the age they were on `retiredOn` (same birth-month rule as
  * `currentAgeFromSettings`); everyone else's at `targetIndependenceAge`.
- * Mirrors svc-retire so first paint agrees with the projection echo.
- * A `retiredOn` after `now` is ignored — the backend rejects one anyway.
+ * Mirrors svc-retire's `UserIndependenceSettings.retirementAge()` so first
+ * paint agrees with the projection echo. Reads no clock: svc-retire rejects
+ * a future `retiredOn` on save, so a stored one is never in the future.
  */
 export function planRetirementAge(
   settings: RetirementDemographics | undefined | null,
-  now: Date = new Date(),
 ): number | undefined {
   const retiredOn = parseIsoDate(settings?.retiredOn)
-  if (retiredOn && settings?.yearOfBirth && retiredOn <= now) {
+  if (retiredOn && settings?.yearOfBirth) {
     return currentAgeFromSettings(settings, retiredOn)
   }
   return settings?.targetIndependenceAge

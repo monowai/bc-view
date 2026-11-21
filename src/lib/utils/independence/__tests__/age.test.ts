@@ -51,19 +51,14 @@ describe("resolveDisplayAges", () => {
 })
 
 describe("planRetirementAge", () => {
-  const now = new Date(2026, 10, 21)
-
   it("is the age at retiredOn when the user has retired", () => {
     expect(
-      planRetirementAge(
-        {
-          yearOfBirth: 1960,
-          monthOfBirth: 1,
-          targetIndependenceAge: 70,
-          retiredOn: "2024-03-01",
-        },
-        now,
-      ),
+      planRetirementAge({
+        yearOfBirth: 1960,
+        monthOfBirth: 1,
+        targetIndependenceAge: 70,
+        retiredOn: "2024-03-01",
+      }),
     ).toBe(64)
   })
 
@@ -71,35 +66,38 @@ describe("planRetirementAge", () => {
     const base = { yearOfBirth: 1960, targetIndependenceAge: 70 }
     // Retired in March: born in March has turned 64, born in April has not.
     expect(
-      planRetirementAge(
-        { ...base, monthOfBirth: 3, retiredOn: "2024-03-01" },
-        now,
-      ),
+      planRetirementAge({ ...base, monthOfBirth: 3, retiredOn: "2024-03-01" }),
     ).toBe(64)
     expect(
-      planRetirementAge(
-        { ...base, monthOfBirth: 4, retiredOn: "2024-03-01" },
-        now,
-      ),
+      planRetirementAge({ ...base, monthOfBirth: 4, retiredOn: "2024-03-01" }),
     ).toBe(63)
   })
 
   it("falls back to the target age when yearOfBirth is missing", () => {
     expect(
-      planRetirementAge(
-        { targetIndependenceAge: 62, retiredOn: "2024-03-01" },
-        now,
-      ),
+      planRetirementAge({ targetIndependenceAge: 62, retiredOn: "2024-03-01" }),
     ).toBe(62)
+  })
+
+  it("uses a stored retiredOn without reading the clock, as svc-retire does", () => {
+    expect(
+      planRetirementAge({
+        yearOfBirth: 1960,
+        monthOfBirth: 1,
+        targetIndependenceAge: 70,
+        retiredOn: "2099-01-01",
+      }),
+    ).toBe(139)
   })
 
   it("is the target age when the user has not retired", () => {
     expect(
-      planRetirementAge(
-        { yearOfBirth: 1980, targetIndependenceAge: 60, retiredOn: null },
-        now,
-      ),
+      planRetirementAge({
+        yearOfBirth: 1980,
+        targetIndependenceAge: 60,
+        retiredOn: null,
+      }),
     ).toBe(60)
-    expect(planRetirementAge(undefined, now)).toBeUndefined()
+    expect(planRetirementAge(undefined)).toBeUndefined()
   })
 })
