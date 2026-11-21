@@ -46,7 +46,7 @@
      `.btn-primary` component class) so theme changes flip in one place. */
   --color-primary: #2563eb; /* blue-600 */
   --color-primary-hover: #1d4ed8; /* blue-700 */
-  --color-primary-fg: #ffffff;
+  --color-primary-fg: #fff;
 
   /* Font stacks — DM Sans and JetBrains Mono are loaded by next/font in
      _app.tsx. We reference the font names directly here so Tailwind's
@@ -148,7 +148,7 @@ body {
 .dark {
   --color-primary: #3b82f6; /* blue-500 — lighter for contrast on dark bg */
   --color-primary-hover: #60a5fa; /* blue-400 */
-  --color-primary-fg: #ffffff;
+  --color-primary-fg: #fff;
 }
 
 @layer components {
@@ -451,6 +451,7 @@ body {
 }
 
 /* ---- Marketing landing: SVG self-draw reveals --------------------------- */
+
 /* Paths are fully drawn by default so headless renderers and reduced-motion
    users always see the complete chart. The `.ld-animate` ancestor (added by
    the IntersectionObserver when a section scrolls into view) replays the draw
