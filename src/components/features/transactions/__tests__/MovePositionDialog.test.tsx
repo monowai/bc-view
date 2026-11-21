@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import MovePositionDialog from "../MovePositionDialog"
 import { makePortfolio } from "@test-fixtures/portfolio"
 import { makeAsset } from "@test-fixtures/asset"
+import { isNetWorthKey } from "@utils/api/client/holdings"
 
 const mockMoveTrns = jest.fn()
 const mockMutate = jest.fn()
@@ -95,7 +96,9 @@ describe("MovePositionDialog", () => {
       }),
     )
     await screen.findByRole("button", { name: "Success" })
-    expect(mockMutate).toHaveBeenCalledTimes(3)
+    // Both portfolios, the aggregate, and every net-worth headline.
+    expect(mockMutate).toHaveBeenCalledTimes(4)
+    expect(mockMutate).toHaveBeenCalledWith(isNetWorthKey)
     await waitFor(() => expect(closed).toHaveBeenCalled(), { timeout: 2000 })
   })
 

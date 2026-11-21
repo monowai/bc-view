@@ -14,6 +14,9 @@ function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
   return {
     totalValue: 100_000,
     totalGainOnDay: 0,
+    flowsOnDay: 0,
+    flowsInOnDay: 0,
+    flowsOutOnDay: 0,
     portfolioCount: 1,
     healthcareReserve: 0,
     classificationBreakdown: [],
@@ -48,7 +51,7 @@ describe("WealthHeroSection — today's gain percent", () => {
     // gain 2,500 on prior-day value 97,500 → ~2.56% rise
     renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
     expect(screen.getByText(/\(\+2\.56%\)/)).toBeInTheDocument()
-    expect(screen.getByText(/today/)).toBeInTheDocument()
+    expect(screen.getByText(/today/i)).toBeInTheDocument()
   })
 
   it("renders a negative percent when totalGainOnDay < 0", () => {
@@ -65,14 +68,89 @@ describe("WealthHeroSection — today's gain percent", () => {
   it("omits the percent when totalGainOnDay equals zero (whole gain block is hidden)", () => {
     renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 0 }))
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/today/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/today/i)).not.toBeInTheDocument()
   })
 
   it("omits the percent when prior-day value resolves to zero (avoid divide-by-zero)", () => {
     // edge case: a new account where today's first deposit equals totalValue
     renderHero(makeSummary({ totalValue: 500, totalGainOnDay: 500 }))
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
-    expect(screen.getByText(/today/)).toBeInTheDocument()
+    expect(screen.getByText(/today/i)).toBeInTheDocument()
+  })
+})
+
+describe("WealthHeroSection — today's change split into markets and cash flow", () => {
+  it("shows markets, cash flow and the net change when both moved", () => {
+    // Yesterday 1,000,000; markets -10,000 and spending -1,200 leave 988,800.
+    renderHero(
+      makeSummary({
+        totalValue: 988_800,
+        totalGainOnDay: -10_000,
+        flowsOnDay: -1_200,
+        flowsOutOnDay: -1_200,
+      }),
+    )
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).toHaveTextContent(/Markets\s*-\$10,000/)
+    // The market percent is against yesterday's net worth, before the flows.
+    expect(today).toHaveTextContent(/\(-1\.00%\)/)
+    expect(today).toHaveTextContent(/Cash flow\s*-\$1,200/)
+    expect(today).toHaveTextContent(/Net\s*-\$11,200/)
+    expect(today).toHaveTextContent(/today/i)
+  })
+
+  it("explains a cash flow on a day the markets did not move", () => {
+    renderHero(
+      makeSummary({
+        totalValue: 99_500,
+        totalGainOnDay: 0,
+        flowsOnDay: -500,
+        flowsOutOnDay: -500,
+      }),
+    )
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).toHaveTextContent(/Cash flow\s*-\$500/)
+    expect(today).not.toHaveTextContent(/Markets/)
+    expect(today).not.toHaveTextContent(/Net/)
+    expect(today).not.toHaveTextContent(/%/)
+  })
+
+  it("names the money in and out behind a netted cash flow", () => {
+    renderHero(
+      makeSummary({
+        totalValue: 100_000,
+        totalGainOnDay: 1_000,
+        flowsOnDay: -700,
+        flowsInOnDay: 500,
+        flowsOutOnDay: -1_200,
+      }),
+    )
+    expect(screen.getByTitle("In +$500.00 · Out -$1,200.00")).toHaveTextContent(
+      /Cash flow\s*-\$700/,
+    )
+  })
+
+  it("shows a flat net change unsigned and uncoloured", () => {
+    // Markets +1,000 exactly offset by a -1,000 spend: no gain, no loss.
+    renderHero(
+      makeSummary({
+        totalValue: 100_000,
+        totalGainOnDay: 1_000,
+        flowsOnDay: -1_000,
+        flowsOutOnDay: -1_000,
+      }),
+    )
+    const net = screen.getByText("Net").parentElement as HTMLElement
+    expect(net).toHaveTextContent(/Net\s*\$0/)
+    expect(net).not.toHaveTextContent(/[+-]\$0/)
+    expect(net.querySelector(".text-loss, .text-gain")).toBeNull()
+  })
+
+  it("keeps the market-only line when there is no cash flow", () => {
+    renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
+    const today = screen.getByTestId("net-worth-today")
+    expect(today).not.toHaveTextContent(/Markets|Cash flow|Net/)
+    expect(today).toHaveTextContent(/\(\+2\.56%\)/)
   })
 })
 
@@ -105,19 +183,18 @@ describe("WealthHeroSection — net worth links to aggregate holdings", () => {
 })
 
 describe("WealthHeroSection — zen mode hides portfolio chrome", () => {
-  it("hides the Portfolios link and portfolio count in zen mode (one portfolio)", () => {
+  it("hides the Portfolios link in zen mode (one portfolio)", () => {
     renderHero(makeSummary({ portfolioCount: 1 }), [makePortfolio()])
     expect(screen.queryByTitle("Portfolios")).not.toBeInTheDocument()
-    expect(screen.queryByText(/Across \d+ portfolio/)).not.toBeInTheDocument()
   })
 
-  it("shows the Portfolios link and count in master mode (multiple portfolios)", () => {
+  it("shows the Portfolios link in master mode (multiple portfolios)", () => {
     renderHero(makeSummary({ portfolioCount: 2 }), [
       makePortfolio({ code: "ALPHA" }),
       makePortfolio({ code: "BETA" }),
     ])
     expect(screen.getByTitle("Portfolios")).toBeInTheDocument()
-    expect(screen.getByText(/Across 2 portfolios/)).toBeInTheDocument()
+    expect(screen.queryByText(/Across \d+ portfolio/)).not.toBeInTheDocument()
   })
 })
 

@@ -11,6 +11,11 @@ jest.mock("@utils/api/client/trns", () => ({
 
 const { updateTrn } = jest.requireMock("@utils/api/client/trns")
 
+jest.mock("@lib/wealth/refreshNetWorth", () => ({
+  refreshNetWorth: jest.fn(),
+}))
+const { refreshNetWorth } = jest.requireMock("@lib/wealth/refreshNetWorth")
+
 // Mock global fetch for submitExpense
 const mockFetch = jest.fn()
 global.fetch = mockFetch
@@ -37,6 +42,10 @@ const mockPortfolio: Portfolio = makePortfolio({
   id: "p1",
   marketValue: 100000,
   irr: 0,
+})
+
+beforeEach(() => {
+  refreshNetWorth.mockClear()
 })
 
 describe("tradeSubmit", () => {
@@ -106,6 +115,7 @@ describe("tradeSubmit", () => {
       expect(params.mutate).toHaveBeenCalledWith(
         "/api/holdings/aggregated?asAt=today",
       )
+      expect(refreshNetWorth).toHaveBeenCalled()
     })
 
     test("mutates new portfolio on portfolio change", async () => {
@@ -215,6 +225,7 @@ describe("tradeSubmit", () => {
       expect(params.mutate).toHaveBeenCalledWith(
         "/api/holdings/aggregated?asAt=today",
       )
+      expect(refreshNetWorth).toHaveBeenCalled()
     })
 
     test("sets error on non-ok response", async () => {

@@ -36,6 +36,11 @@ export function isLiquidPortfolio(portfolio: Portfolio): boolean {
 export interface WealthSummary {
   totalValue: number
   totalGainOnDay: number
+  // Today's external cash flows (deposits, income, withdrawals, spending).
+  // They move totalValue but not totalGainOnDay, which is market movement only.
+  flowsOnDay: number
+  flowsInOnDay: number
+  flowsOutOnDay: number
   portfolioCount: number
   // Healthcare Reserve (e.g. CPF Medisave Account) — statutory, not
   // spendable wealth. Reported separately so the UI can surface it as a

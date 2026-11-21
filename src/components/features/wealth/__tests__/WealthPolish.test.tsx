@@ -16,6 +16,9 @@ jest.mock("@hooks/usePrivacyMode", () => ({
 const summary = (overrides: Partial<WealthSummary> = {}): WealthSummary => ({
   totalValue: 100_000,
   totalGainOnDay: 0,
+  flowsOnDay: 0,
+  flowsInOnDay: 0,
+  flowsOutOnDay: 0,
   portfolioCount: 2,
   healthcareReserve: 0,
   classificationBreakdown: [],

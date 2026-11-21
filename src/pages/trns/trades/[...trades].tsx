@@ -23,6 +23,7 @@ import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
 import { buildTradeGroups } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import {
   TrnCardValue,
   TrnColumn,
@@ -354,6 +355,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           setTimeout(() => {
             mutate(holdingKey(transaction.portfolio.code, "today"))
             mutate(aggregatedHoldingsTodayKey)
+            refreshNetWorth()
           }, 1500)
           router.back()
         }
@@ -381,6 +383,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         setTimeout(() => {
           mutate(holdingKey(transaction.portfolio.code, "today"))
           mutate(aggregatedHoldingsTodayKey)
+          refreshNetWorth()
         }, 1500)
         router.back()
       } catch (err) {

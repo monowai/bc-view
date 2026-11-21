@@ -14,6 +14,7 @@ import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { accountsKey } from "@utils/api/client/assets"
 import { createTrns } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -258,6 +259,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       // Invalidate caches
       mutate(holdingKey(sourceData.portfolioCode, "today"))
       mutate(aggregatedHoldingsTodayKey)
+      refreshNetWorth()
       if (sourceData.portfolioId !== targetPortfolioId) {
         const tp = portfolios.find((p) => p.id === targetPortfolioId)
         if (tp) {

@@ -90,6 +90,12 @@ export interface NetWorth {
   standaloneCompositeValue: number
   healthcareReserve: number
   gainOnDay: number
+  /** Money into the portfolios today (>= 0): deposits and income. Absent from an older svc-position. */
+  flowsInOnDay?: number
+  /** Money out of the portfolios today (<= 0): withdrawals, deductions and expenses. */
+  flowsOutOnDay?: number
+  /** flowsInOnDay + flowsOutOnDay. */
+  flowsOnDay?: number
   portfolioCount: number
   /** Sorted by value, descending. */
   classificationBreakdown: NetWorthClassification[]

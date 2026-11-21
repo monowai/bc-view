@@ -36,6 +36,7 @@ import {
 import { todayIso } from "@lib/formatters"
 import { accountsKey, tradeAccountsKey } from "@utils/api/client/assets"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
 
 const TradeTypeValues = [
@@ -460,6 +461,7 @@ const CashInputForm: React.FC<{
                     setTimeout(() => {
                       mutate(holdingKey(portfolio.code, "today"))
                       mutate(aggregatedHoldingsTodayKey)
+                      refreshNetWorth()
                     }, 1500)
                   }
                 })

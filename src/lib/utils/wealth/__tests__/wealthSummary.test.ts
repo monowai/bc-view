@@ -29,6 +29,27 @@ describe("toWealthSummary", () => {
     expect(summary.portfolioCount).toBe(3)
   })
 
+  it("carries today's external cash flows through", () => {
+    const summary = toWealthSummary(
+      makeNetWorth({
+        flowsOnDay: -700,
+        flowsInOnDay: 500,
+        flowsOutOnDay: -1200,
+      }),
+      NO_SORT,
+    )
+    expect(summary.flowsOnDay).toBe(-700)
+    expect(summary.flowsInOnDay).toBe(500)
+    expect(summary.flowsOutOnDay).toBe(-1200)
+  })
+
+  it("reads missing cash flows (an older svc-position) as none", () => {
+    const summary = toWealthSummary(makeNetWorth(), NO_SORT)
+    expect(summary.flowsOnDay).toBe(0)
+    expect(summary.flowsInOnDay).toBe(0)
+    expect(summary.flowsOutOnDay).toBe(0)
+  })
+
   it("passes the classification breakdown through as-is", () => {
     const netWorth = makeNetWorth()
     const summary = toWealthSummary(netWorth, NO_SORT)

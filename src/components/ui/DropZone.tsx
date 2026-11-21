@@ -8,6 +8,7 @@ import { mutate } from "swr"
 import { holdingKey } from "@utils/api/fetchHelper"
 import { importTrnRow } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 // Read a CSV file into rows.
 async function readFile(file: Blob): Promise<string[][]> {
@@ -84,6 +85,7 @@ export default function TrnDropZone({
         setTimeout(() => {
           mutate(holdingKey(portfolio.code, "today"))
           mutate(aggregatedHoldingsTodayKey)
+          refreshNetWorth()
         }, 1500)
       }
     },

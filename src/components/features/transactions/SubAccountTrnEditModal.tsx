@@ -12,6 +12,7 @@ import { updateTrn } from "@utils/api/client/trns"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { getAssetConfig } from "@utils/api/client/assets"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 interface SubAccountTrnEditModalProps {
   trn: Transaction
@@ -115,6 +116,7 @@ export default function SubAccountTrnEditModal({
       setTimeout(() => {
         mutate(holdingKey(trn.portfolio.code, "today"))
         mutate(aggregatedHoldingsTodayKey)
+        refreshNetWorth()
       }, 1500)
     })
   }

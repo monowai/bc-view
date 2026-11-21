@@ -48,8 +48,12 @@ export const benchmarkPerformanceKey = (
     indexAssetId,
   )}&months=${months}`
 
+const netWorthBase = "/api/net-worth"
 export const netWorthUrl = (params: URLSearchParams | string): string =>
-  `/api/net-worth?${params}`
+  `${netWorthBase}?${params}`
+/** Any net-worth cache key, whatever its currency or portfolio scope. */
+export const isNetWorthKey = (key: unknown): boolean =>
+  typeof key === "string" && key.startsWith(`${netWorthBase}?`)
 
 /** Drop a portfolio's cached performance series so it is rebuilt. */
 export function resetPerformanceCache(

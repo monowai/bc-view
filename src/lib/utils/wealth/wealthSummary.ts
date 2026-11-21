@@ -21,6 +21,9 @@ function noRows<T>(): T[] {
 const emptyWealthSummary: WealthSummary = {
   totalValue: 0,
   totalGainOnDay: 0,
+  flowsOnDay: 0,
+  flowsInOnDay: 0,
+  flowsOutOnDay: 0,
   portfolioCount: 0,
   healthcareReserve: 0,
   classificationBreakdown: noRows(),
@@ -91,6 +94,9 @@ export function toWealthSummary(
   return {
     totalValue: netWorth.totalValue,
     totalGainOnDay: netWorth.gainOnDay,
+    flowsOnDay: netWorth.flowsOnDay ?? 0,
+    flowsInOnDay: netWorth.flowsInOnDay ?? 0,
+    flowsOutOnDay: netWorth.flowsOutOnDay ?? 0,
     portfolioCount: netWorth.portfolioCount,
     healthcareReserve: netWorth.healthcareReserve,
     classificationBreakdown: netWorth.classificationBreakdown,

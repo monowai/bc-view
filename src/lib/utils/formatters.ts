@@ -37,6 +37,10 @@ export const formatPercent = (value: number, fractionDigits = 2): string => {
   return `${(value * 100).toFixed(fractionDigits)}%`
 }
 
+/** The sign a signed figure leads with: "+", "-", or nothing for zero. */
+export const signOf = (value: number): string =>
+  value > 0 ? "+" : value < 0 ? "-" : ""
+
 /**
  * Format a decimal as a percentage carrying its sign, e.g. 0.16 -> "+16.00%".
  * Zero has no sign.

@@ -18,6 +18,7 @@ import Dialog from "@components/ui/Dialog"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { deleteTrn, isProposedTrnsKey } from "@utils/api/client/trns"
 import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
 
 interface FxEditFormData {
@@ -223,6 +224,7 @@ export default function FxEditModal({
     setTimeout(() => {
       mutate(holdingKey(portfolioCode, "today"))
       mutate(aggregatedHoldingsTodayKey)
+      refreshNetWorth()
     }, 1500)
   }
 
