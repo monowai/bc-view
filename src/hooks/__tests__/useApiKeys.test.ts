@@ -123,7 +123,7 @@ describe("useApiKeys", () => {
     ).rejects.toThrow("API key name is required")
   })
 
-  it("revokeKey calls DELETE and mutates", async () => {
+  it("deleteKey calls DELETE and mutates", async () => {
     const mutateFn = jest.fn()
     mockUseSwr.mockReturnValue({
       data: { data: [makeApiKey({ id: "k1" })] },
@@ -137,7 +137,7 @@ describe("useApiKeys", () => {
     const { result } = renderHook(() => useApiKeys())
 
     await act(async () => {
-      await result.current.revokeKey("k1")
+      await result.current.deleteKey("k1")
     })
 
     expect(global.fetch).toHaveBeenCalledWith("/api/me/api-keys/k1", {
@@ -146,7 +146,7 @@ describe("useApiKeys", () => {
     expect(mutateFn).toHaveBeenCalled()
   })
 
-  it("revokeKey throws with the server error message on failure", async () => {
+  it("deleteKey throws with the server error message on failure", async () => {
     mockUseSwr.mockReturnValue({
       data: { data: [] },
       mutate: jest.fn(),
@@ -163,7 +163,7 @@ describe("useApiKeys", () => {
 
     await expect(
       act(async () => {
-        await result.current.revokeKey("missing")
+        await result.current.deleteKey("missing")
       }),
     ).rejects.toThrow("Not found")
   })

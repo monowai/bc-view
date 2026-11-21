@@ -9,7 +9,7 @@ interface UseApiKeysResult {
   isLoading: boolean
   mutate: () => Promise<unknown>
   createKey: (request: ApiKeyRequest) => Promise<ApiKeyCreatedResponse>
-  revokeKey: (id: string) => Promise<void>
+  deleteKey: (id: string) => Promise<void>
 }
 
 export function useApiKeys(): UseApiKeysResult {
@@ -27,7 +27,7 @@ export function useApiKeys(): UseApiKeysResult {
     [mutate],
   )
 
-  const revokeKey = useCallback(
+  const deleteKey = useCallback(
     async (id: string): Promise<void> => {
       const response = await fetch(`${apiKeysKey}/${id}`, {
         method: "DELETE",
@@ -35,7 +35,7 @@ export function useApiKeys(): UseApiKeysResult {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(
-          errorData?.message || errorData?.error || "Failed to revoke API key",
+          errorData?.message || errorData?.error || "Failed to delete API key",
         )
       }
       await mutate()
@@ -49,6 +49,6 @@ export function useApiKeys(): UseApiKeysResult {
     isLoading: !data && !error,
     mutate,
     createKey,
-    revokeKey,
+    deleteKey,
   }
 }
