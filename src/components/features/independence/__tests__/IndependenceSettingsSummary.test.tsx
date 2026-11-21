@@ -40,4 +40,18 @@ describe("IndependenceSettingsSummary", () => {
       screen.queryByText("Target Independence Age"),
     ).not.toBeInTheDocument()
   })
+
+  it("never shows a negative horizon when life expectancy precedes retirement", () => {
+    mockSettings = {
+      yearOfBirth: 1950,
+      monthOfBirth: 6,
+      lifeExpectancy: 70,
+      retiredOn: "2024-03-01",
+    }
+    render(<IndependenceSettingsSummary />)
+    expect(screen.queryByText(/-\d+ years/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/life expectancy is at or before your retirement age/i),
+    ).toBeInTheDocument()
+  })
 })

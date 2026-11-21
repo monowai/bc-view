@@ -151,6 +151,23 @@ describe("IndependenceSettingsModal", () => {
       expect(mockUpdateSettings).not.toHaveBeenCalled()
     })
 
+    it("rejects a life expectancy at or before the age the user retired", async () => {
+      mockSettings = {
+        ...WORKING_SETTINGS,
+        yearOfBirth: 1950,
+        retiredOn: "2024-03-01",
+        lifeExpectancy: 70,
+      }
+      render(<IndependenceSettingsModal isOpen={true} onClose={jest.fn()} />)
+      fireEvent.click(screen.getByRole("button", { name: /save settings/i }))
+      expect(
+        await screen.findByText(
+          "Life expectancy must be after your retirement age",
+        ),
+      ).toBeInTheDocument()
+      expect(mockUpdateSettings).not.toHaveBeenCalled()
+    })
+
     it("requires a retired-on date when ticked", async () => {
       render(<IndependenceSettingsModal isOpen={true} onClose={jest.fn()} />)
       fireEvent.click(screen.getByRole("checkbox", { name: /i'm retired/i }))

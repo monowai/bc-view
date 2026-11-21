@@ -59,7 +59,11 @@ import {
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
 import { buildCpfSubAccountRows } from "@lib/independence/cpfSubAccountTags"
-import { planRetirementAge, resolveDisplayAges } from "@lib/independence/age"
+import {
+  DEFAULT_RETIREMENT_AGE,
+  planRetirementAge,
+  resolveDisplayAges,
+} from "@lib/independence/age"
 import {
   copyPlan,
   exportPlan,
@@ -482,7 +486,7 @@ function PlanView(): React.ReactElement {
     planRetirementAge(independenceSettings) ??
     (plan?.planningHorizonYears
       ? lifeExpectancy - plan.planningHorizonYears
-      : 65)
+      : DEFAULT_RETIREMENT_AGE)
 
   // Identify pension/policy assets with lump sum settings for FV projection
   const lumpSumAssets = useMemo((): LumpSumAsset[] => {

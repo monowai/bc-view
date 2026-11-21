@@ -27,6 +27,7 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
   // Horizon starts at the age the user retired, once they have.
   const horizonStartAge = planRetirementAge(settings) ?? DEFAULT_RETIREMENT_AGE
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
+  const horizonYears = lifeExpectancy - horizonStartAge
 
   return (
     <>
@@ -94,9 +95,10 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
             <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">
-                Your planning horizon will be {lifeExpectancy - horizonStartAge}{" "}
-                years (from age {horizonStartAge} to {lifeExpectancy}). These
-                settings apply across all your independence plans.
+                {horizonYears > 0
+                  ? `Your planning horizon will be ${horizonYears} years (from age ${horizonStartAge} to ${lifeExpectancy}).`
+                  : `Your life expectancy is at or before your retirement age (${horizonStartAge}); edit your settings to set a planning horizon.`}{" "}
+                These settings apply across all your independence plans.
               </p>
             </div>
           </div>

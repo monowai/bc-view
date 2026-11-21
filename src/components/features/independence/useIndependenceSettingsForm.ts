@@ -1,4 +1,5 @@
 import { localIsoDate } from "@lib/formatters"
+import { planRetirementAge } from "@lib/independence/age"
 import { useState } from "react"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
@@ -149,12 +150,14 @@ export function useIndependenceSettingsForm({
     if (lifeExpectancy == null) {
       return "Life expectancy is required"
     }
-    if (
-      !retired &&
-      targetIndependenceAge != null &&
-      lifeExpectancy <= targetIndependenceAge
-    ) {
-      return "Life expectancy must be after target independence age"
+    // A retired user's horizon starts at the age they were on retiredOn.
+    const retirementAge = retired
+      ? planRetirementAge({ yearOfBirth, monthOfBirth, retiredOn }, now)
+      : targetIndependenceAge
+    if (retirementAge != null && lifeExpectancy <= retirementAge) {
+      return retired
+        ? "Life expectancy must be after your retirement age"
+        : "Life expectancy must be after target independence age"
     }
     if (lifeExpectancy < 50 || lifeExpectancy > 120) {
       return "Life expectancy must be between 50 and 120"
