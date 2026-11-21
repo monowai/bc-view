@@ -50,7 +50,7 @@ interface UseDropdownMenuResult {
 }
 
 // Matches Tailwind w-48 (12rem ≈ 192px) on the menu panel below.
-const MENU_WIDTH = 192
+const MENU_WIDTH = 208 // w-52
 const VIEWPORT_MARGIN = 8
 
 const useDropdownMenu = (): UseDropdownMenuResult => {
@@ -130,8 +130,7 @@ const useDropdownMenu = (): UseDropdownMenuResult => {
 
 const TRIGGER_CLASSES =
   "inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
-const MENU_ITEM_CLASSES =
-  "w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+const MENU_ITEM_CLASSES = "menu-row"
 
 interface MenuItemProps {
   iconClass: string
@@ -141,7 +140,7 @@ interface MenuItemProps {
 
 const MenuItem: React.FC<MenuItemProps> = ({ iconClass, label, onClick }) => (
   <button type="button" className={MENU_ITEM_CLASSES} onClick={onClick}>
-    <i className={iconClass}></i>
+    <i aria-hidden="true" className={`${iconClass} menu-icon`}></i>
     {label}
   </button>
 )
@@ -175,10 +174,10 @@ const MenuFrame: React.FC<MenuFrameProps> = ({
       createPortal(
         <div
           ref={menuRef}
-          className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+          className="menu-panel animate-menu-in fixed z-50 w-52 max-h-[80vh] overflow-y-auto"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
-          <div className="py-1">{children}</div>
+          {children}
         </div>,
         document.body,
       )}
@@ -296,21 +295,21 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     >
       {onTrade && (
         <MenuItem
-          iconClass="fas fa-right-left text-emerald-500 w-4"
+          iconClass="fas fa-right-left"
           label="Trade"
           onClick={handle(() => onTrade(tradePayload()))}
         />
       )}
       {onQuickSell && (
         <MenuItem
-          iconClass="fas fa-money-bill-transfer text-red-500 w-4"
+          iconClass="fas fa-money-bill-transfer"
           label="Quick Sell"
           onClick={handle(() => onQuickSell(tradePayload()))}
         />
       )}
       {onCorporateActions && (
         <MenuItem
-          iconClass="fas fa-calendar-check text-blue-500 w-4"
+          iconClass="fas fa-calendar-check"
           label="Corporate Actions"
           onClick={handle(() =>
             onCorporateActions({
@@ -327,7 +326,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
         isConstantPrice(asset) &&
         onSetBalance && (
           <MenuItem
-            iconClass="fas fa-piggy-bank text-amber-500 w-4"
+            iconClass="fas fa-piggy-bank"
             label="Set Balance"
             onClick={handle(() => onSetBalance({ asset }))}
           />
@@ -336,21 +335,21 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
         asset.market?.code === "PRIVATE" &&
         !isConstantPrice(asset) && (
           <MenuItem
-            iconClass="fas fa-tag text-green-500 w-4"
+            iconClass="fas fa-tag"
             label="Set Price"
             onClick={handle(() => onSetPrice({ asset }))}
           />
         )}
       {onSectorWeightings && isFundLike(asset) && (
         <MenuItem
-          iconClass="fas fa-chart-pie text-purple-500 w-4"
+          iconClass="fas fa-chart-pie"
           label="View Sectors"
           onClick={handle(() => onSectorWeightings({ asset }))}
         />
       )}
       {onCostAdjust && (
         <MenuItem
-          iconClass="fas fa-scale-balanced text-orange-500 w-4"
+          iconClass="fas fa-scale-balanced"
           label="Adjust Cost"
           onClick={handle(() =>
             onCostAdjust({
@@ -364,7 +363,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onMovePosition && (
         <MenuItem
-          iconClass="fas fa-arrow-right-arrow-left text-indigo-500 w-4"
+          iconClass="fas fa-arrow-right-arrow-left"
           label="Move Position"
           onClick={handle(() =>
             onMovePosition({ asset, portfolioId, portfolioCode }),
@@ -373,7 +372,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onRecordIncome && (
         <MenuItem
-          iconClass="fas fa-arrow-down text-green-500 w-4"
+          iconClass="fas fa-arrow-down text-green-500"
           label="Record Income"
           onClick={handle(() =>
             onRecordIncome({
@@ -390,7 +389,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onRecordExpense && (
         <MenuItem
-          iconClass="fas fa-arrow-up text-red-500 w-4"
+          iconClass="fas fa-arrow-up text-red-500"
           label="Record Expense"
           onClick={handle(() =>
             onRecordExpense({
@@ -407,28 +406,28 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onAnalyseHolding && (
         <MenuItem
-          iconClass="fas fa-magnifying-glass-chart text-purple-500 w-4"
+          iconClass="fas fa-magnifying-glass-chart"
           label="Analyse my holding"
           onClick={handle(onAnalyseHolding)}
         />
       )}
       {canWatch && (
         <MenuItem
-          iconClass="fas fa-eye text-sky-500 w-4"
+          iconClass="fas fa-eye"
           label="Add to Watchlist"
           onClick={handle(() => setWatching(true))}
         />
       )}
       {onGoToPortfolio && (
         <MenuItem
-          iconClass="fas fa-folder-open text-slate-500 w-4"
+          iconClass="fas fa-folder-open"
           label="Go to portfolio"
           onClick={handle(() => onGoToPortfolio(asset))}
         />
       )}
       {onEditAsset && canEditAsset(asset, isAdmin) && (
         <MenuItem
-          iconClass="fas fa-pen-to-square text-slate-500 w-4"
+          iconClass="fas fa-pen-to-square"
           label="Edit Asset"
           onClick={handle(() => onEditAsset(asset))}
         />
@@ -478,7 +477,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
     <MenuFrame assetCode={assetCode} menu={menu}>
       {onSetCashBalance && (
         <MenuItem
-          iconClass="fas fa-balance-scale text-purple-500 w-4"
+          iconClass="fas fa-balance-scale"
           label="Set Balance"
           onClick={handle(() => {
             const isAccountAsset = isAccount(asset)
@@ -497,7 +496,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onCashTransfer && (
         <MenuItem
-          iconClass="fas fa-exchange-alt text-blue-500 w-4"
+          iconClass="fas fa-exchange-alt"
           label="Transfer Cash"
           onClick={handle(() => {
             const isAccountAsset = isAccount(asset)
@@ -517,21 +516,21 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onCashTransaction && (
         <MenuItem
-          iconClass="fas fa-right-left text-blue-500 w-4"
+          iconClass="fas fa-right-left"
           label="Exchange Cash"
           onClick={handle(() => onCashTransaction(assetCode, "FX"))}
         />
       )}
       {onCashTransaction && (
         <MenuItem
-          iconClass="fas fa-dollar-sign text-green-500 w-4"
+          iconClass="fas fa-dollar-sign"
           label="Cash Transaction"
           onClick={handle(() => onCashTransaction(assetCode))}
         />
       )}
       {onRecordIncome && (
         <MenuItem
-          iconClass="fas fa-arrow-down text-green-500 w-4"
+          iconClass="fas fa-arrow-down text-green-500"
           label="Record Income"
           onClick={handle(() =>
             onRecordIncome({
@@ -549,7 +548,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onRecordExpense && (
         <MenuItem
-          iconClass="fas fa-arrow-up text-red-500 w-4"
+          iconClass="fas fa-arrow-up text-red-500"
           label="Record Expense"
           onClick={handle(() =>
             onRecordExpense({
@@ -567,14 +566,14 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onGoToPortfolio && (
         <MenuItem
-          iconClass="fas fa-folder-open text-slate-500 w-4"
+          iconClass="fas fa-folder-open"
           label="Go to portfolio"
           onClick={handle(() => onGoToPortfolio(asset))}
         />
       )}
       {onEditAsset && asset.market?.code === "PRIVATE" && (
         <MenuItem
-          iconClass="fas fa-pen-to-square text-slate-500 w-4"
+          iconClass="fas fa-pen-to-square"
           label="Edit Asset"
           onClick={handle(() => onEditAsset(asset))}
         />
