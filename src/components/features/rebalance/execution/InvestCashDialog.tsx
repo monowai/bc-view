@@ -3,6 +3,7 @@ import { formatCurrency } from "@lib/formatters"
 import useSWR from "swr"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
+import { useConfirm } from "@hooks/useConfirm"
 import Spinner from "@components/ui/Spinner"
 import { simpleFetcher, accountsKey } from "@utils/api/fetchHelper"
 import { resolveBrokerCashAssetId } from "@utils/trns/tradeFormHelpers"
@@ -73,6 +74,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 }) => {
   // Step state
   const [step, setStep] = useState<"input" | "preview">("input")
+  const [confirm, confirmDialog] = useConfirm()
 
   // Input state
   const [amount, setAmount] = useState<string>("")
@@ -243,7 +245,10 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
     // Warn (but don't block) when the user has more than one broker but
     // hasn't tagged the orders. They can still proceed if they meant to.
-    if (!confirmBrokerSelection(brokers.length, selectedBrokerId)) return
+    if (
+      !(await confirmBrokerSelection(brokers.length, selectedBrokerId, confirm))
+    )
+      return
 
     setCommitting(true)
     setError(null)
@@ -369,371 +374,374 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     )
 
   return (
-    <Dialog
-      title={step === "input" ? "Invest Cash" : "Preview"}
-      onClose={handleClose}
-      maxWidth="2xl"
-      scrollable={true}
-      footer={stepFooter}
-    >
-      <Dialog.ErrorAlert message={error} />
+    <>
+      {confirmDialog}
+      <Dialog
+        title={step === "input" ? "Invest Cash" : "Preview"}
+        onClose={handleClose}
+        maxWidth="2xl"
+        scrollable={true}
+        footer={stepFooter}
+      >
+        <Dialog.ErrorAlert message={error} />
 
-      {step === "input" ? (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {"Investment Amount"}
-            </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="10k"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              {"Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)"}
-              {amount && hasShorthandSuffix(amount) && (
-                <span className="ml-2 text-blue-600 font-medium">
-                  = {parseShorthandAmount(amount).toLocaleString()}
-                </span>
-              )}
-            </p>
-          </div>
+        {step === "input" ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {"Investment Amount"}
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="10k"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {"Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)"}
+                {amount && hasShorthandSuffix(amount) && (
+                  <span className="ml-2 text-blue-600 font-medium">
+                    = {parseShorthandAmount(amount).toLocaleString()}
+                  </span>
+                )}
+              </p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {"Select Model"}
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {"Select Model"}
+              </label>
 
-            {loadingModels ? (
-              <div className="py-4 text-center text-gray-500">
-                <Spinner className="mr-2" />
-                {"Loading..."}
-              </div>
-            ) : modelsWithApprovedPlans.length === 0 ? (
-              <div className="py-4 text-center text-gray-500">
-                <i className="fas fa-folder-open text-2xl mb-2"></i>
-                <p className="text-sm">
-                  {
-                    "No approved models found. Create a model and approve a plan first."
-                  }
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                {modelsWithApprovedPlans.map((model) => (
-                  <ModelCard
-                    key={model.id}
-                    model={model}
-                    variant="grid"
-                    selected={selectedModel?.id === model.id}
-                    onClick={() => setSelectedModel(model)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Plan Preview - show when a model is selected */}
-            {selectedModel && (
-              <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                  <h4 className="text-sm font-medium text-gray-700">
-                    <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
-                    {"Plan Allocations"}
-                  </h4>
+              {loadingModels ? (
+                <div className="py-4 text-center text-gray-500">
+                  <Spinner className="mr-2" />
+                  {"Loading..."}
                 </div>
-                {loadingPlan ? (
-                  <div className="py-4 text-center text-gray-500 text-sm">
-                    <Spinner className="mr-2" />
-                    {"Loading..."}
+              ) : modelsWithApprovedPlans.length === 0 ? (
+                <div className="py-4 text-center text-gray-500">
+                  <i className="fas fa-folder-open text-2xl mb-2"></i>
+                  <p className="text-sm">
+                    {
+                      "No approved models found. Create a model and approve a plan first."
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                  {modelsWithApprovedPlans.map((model) => (
+                    <ModelCard
+                      key={model.id}
+                      model={model}
+                      variant="grid"
+                      selected={selectedModel?.id === model.id}
+                      onClick={() => setSelectedModel(model)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Plan Preview - show when a model is selected */}
+              {selectedModel && (
+                <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700">
+                      <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
+                      {"Plan Allocations"}
+                    </h4>
                   </div>
-                ) : planAssets.length === 0 ? (
-                  <div className="py-4 text-center text-gray-500 text-sm">
-                    {"No assets in plan"}
-                  </div>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            {"Asset"}
-                          </th>
-                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
-                            {"Weight"}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {planAssets
-                          .sort((a, b) => b.weight - a.weight)
-                          .map((asset) => (
-                            <tr key={asset.id}>
-                              <td
-                                className="px-3 py-2"
-                                title={asset.rationale || undefined}
-                              >
-                                <div className="font-medium text-gray-900 text-sm">
-                                  {formatAssetCode(asset.assetCode) ||
-                                    asset.assetId}
-                                  {asset.rationale && (
-                                    <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
-                                  )}
-                                </div>
-                                {asset.assetName && (
-                                  <div className="text-xs text-gray-500 truncate max-w-48">
-                                    {asset.assetName}
+                  {loadingPlan ? (
+                    <div className="py-4 text-center text-gray-500 text-sm">
+                      <Spinner className="mr-2" />
+                      {"Loading..."}
+                    </div>
+                  ) : planAssets.length === 0 ? (
+                    <div className="py-4 text-center text-gray-500 text-sm">
+                      {"No assets in plan"}
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                              {"Asset"}
+                            </th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
+                              {"Weight"}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {planAssets
+                            .sort((a, b) => b.weight - a.weight)
+                            .map((asset) => (
+                              <tr key={asset.id}>
+                                <td
+                                  className="px-3 py-2"
+                                  title={asset.rationale || undefined}
+                                >
+                                  <div className="font-medium text-gray-900 text-sm">
+                                    {formatAssetCode(asset.assetCode) ||
+                                      asset.assetId}
+                                    {asset.rationale && (
+                                      <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                                    )}
                                   </div>
-                                )}
+                                  {asset.assetName && (
+                                    <div className="text-xs text-gray-500 truncate max-w-48">
+                                      {asset.assetName}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-right text-sm text-gray-700">
+                                  {(asset.weight * 100).toFixed(1)}%
+                                </td>
+                              </tr>
+                            ))}
+                          {cashWeight > 0 && (
+                            <tr className="bg-blue-50">
+                              <td className="px-3 py-2">
+                                <div className="font-medium text-blue-700 text-sm">
+                                  <i className="fas fa-coins mr-1"></i>
+                                  {"Cash"}
+                                </div>
                               </td>
-                              <td className="px-3 py-2 text-right text-sm text-gray-700">
-                                {(asset.weight * 100).toFixed(1)}%
+                              <td className="px-3 py-2 text-right text-sm text-blue-700">
+                                {(cashWeight * 100).toFixed(1)}%
                               </td>
                             </tr>
-                          ))}
-                        {cashWeight > 0 && (
-                          <tr className="bg-blue-50">
-                            <td className="px-3 py-2">
-                              <div className="font-medium text-blue-700 text-sm">
-                                <i className="fas fa-coins mr-1"></i>
-                                {"Cash"}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-right text-sm text-blue-700">
-                              {(cashWeight * 100).toFixed(1)}%
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Mobile: card per buy item */}
-          <div className="sm:hidden space-y-2">
-            {buyItems.map((item) => {
-              const { value, qtyText, priceText } = getItemValues(item)
-              const displayCode = formatAssetCode(item.assetCode)
-              return (
-                <div
-                  key={item.assetId}
-                  className="bg-green-50 border border-gray-200 rounded-lg p-3"
-                >
-                  <div
-                    className="flex items-start justify-between gap-2 mb-3"
-                    title={item.rationale || undefined}
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium text-gray-900">
-                        {displayCode || item.assetId}
-                        {item.rationale && (
-                          <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
-                        )}
-                      </div>
-                      {item.assetName && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {item.assetName}
-                        </div>
-                      )}
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                    <div className="text-green-700 font-semibold text-sm whitespace-nowrap">
-                      {formatCurrency(value)}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="block">
-                      <span className="block text-xs text-gray-500 mb-1">
-                        {"Qty"}
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        value={qtyText}
-                        onChange={(e) =>
-                          handleQuantityChange(item.assetId, e.target.value)
-                        }
-                        className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-gray-500 mb-1">
-                        {"Price"}
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        value={priceText}
-                        onChange={(e) =>
-                          handlePriceChange(item.assetId, e.target.value)
-                        }
-                        className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </label>
-                  </div>
+                  )}
                 </div>
-              )
-            })}
+              )}
+            </div>
           </div>
-
-          {/* Desktop: table */}
-          <div className="hidden sm:block border rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    {"Asset"}
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
-                    {"Qty"}
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                    {"Price"}
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                    {"Value"}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {buyItems.map((item) => {
-                  const { value, qtyText, priceText } = getItemValues(item)
-                  const displayCode = formatAssetCode(item.assetCode)
-                  return (
-                    <tr key={item.assetId} className="bg-green-50">
-                      <td
-                        className="px-3 py-2"
-                        title={item.rationale || undefined}
-                      >
-                        <div className="font-medium text-gray-900 text-sm cursor-help">
+        ) : (
+          <div className="space-y-4">
+            {/* Mobile: card per buy item */}
+            <div className="sm:hidden space-y-2">
+              {buyItems.map((item) => {
+                const { value, qtyText, priceText } = getItemValues(item)
+                const displayCode = formatAssetCode(item.assetCode)
+                return (
+                  <div
+                    key={item.assetId}
+                    className="bg-green-50 border border-gray-200 rounded-lg p-3"
+                  >
+                    <div
+                      className="flex items-start justify-between gap-2 mb-3"
+                      title={item.rationale || undefined}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900">
                           {displayCode || item.assetId}
                           {item.rationale && (
                             <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
                           )}
                         </div>
                         {item.assetName && (
-                          <div className="text-xs text-gray-500 truncate max-w-45">
+                          <div className="text-xs text-gray-500 truncate">
                             {item.assetName}
                           </div>
                         )}
-                      </td>
-                      <td className="px-3 py-2">
+                      </div>
+                      <div className="text-green-700 font-semibold text-sm whitespace-nowrap">
+                        {formatCurrency(value)}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="block text-xs text-gray-500 mb-1">
+                          {"Qty"}
+                        </span>
                         <input
                           type="text"
                           inputMode="decimal"
                           autoComplete="off"
-                          aria-label="Qty"
                           value={qtyText}
                           onChange={(e) =>
                             handleQuantityChange(item.assetId, e.target.value)
                           }
-                          className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                         />
-                      </td>
-                      <td className="px-3 py-2">
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs text-gray-500 mb-1">
+                          {"Price"}
+                        </span>
                         <input
                           type="text"
                           inputMode="decimal"
                           autoComplete="off"
-                          aria-label="Price"
                           value={priceText}
                           onChange={(e) =>
                             handlePriceChange(item.assetId, e.target.value)
                           }
-                          className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                         />
-                      </td>
-                      <td className="px-3 py-2 text-right text-green-700 font-medium text-sm">
-                        {formatCurrency(value)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </label>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
 
-          {/* Summary panel */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <div className="text-gray-500">{"Portfolio Cash"}</div>
-                <div className="font-semibold">
-                  {formatCurrency(portfolioCash)}
+            {/* Desktop: table */}
+            <div className="hidden sm:block border rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      {"Asset"}
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
+                      {"Qty"}
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                      {"Price"}
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                      {"Value"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {buyItems.map((item) => {
+                    const { value, qtyText, priceText } = getItemValues(item)
+                    const displayCode = formatAssetCode(item.assetCode)
+                    return (
+                      <tr key={item.assetId} className="bg-green-50">
+                        <td
+                          className="px-3 py-2"
+                          title={item.rationale || undefined}
+                        >
+                          <div className="font-medium text-gray-900 text-sm cursor-help">
+                            {displayCode || item.assetId}
+                            {item.rationale && (
+                              <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                            )}
+                          </div>
+                          {item.assetName && (
+                            <div className="text-xs text-gray-500 truncate max-w-45">
+                              {item.assetName}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            aria-label="Qty"
+                            value={qtyText}
+                            onChange={(e) =>
+                              handleQuantityChange(item.assetId, e.target.value)
+                            }
+                            className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            aria-label="Price"
+                            value={priceText}
+                            onChange={(e) =>
+                              handlePriceChange(item.assetId, e.target.value)
+                            }
+                            className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right text-green-700 font-medium text-sm">
+                          {formatCurrency(value)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary panel */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">{"Portfolio Cash"}</div>
+                  <div className="font-semibold">
+                    {formatCurrency(portfolioCash)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">{"Spending"}</div>
+                  <div className="font-semibold text-green-700">
+                    {formatCurrency(totalSpending)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">{"Cash After"}</div>
+                  <div
+                    className={`font-semibold ${
+                      cashAfter < 0 ? "text-red-600" : "text-green-700"
+                    }`}
+                  >
+                    {formatCurrency(cashAfter)}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-gray-500">{"Spending"}</div>
-                <div className="font-semibold text-green-600">
-                  {formatCurrency(totalSpending)}
+              {cashAfter < 0 && (
+                <div className="mt-2 text-xs text-amber-700">
+                  <i className="fas fa-exclamation-triangle mr-1"></i>
+                  {
+                    "Warning: Insufficient cash. You may still create proposed transactions for review."
+                  }
                 </div>
-              </div>
-              <div>
-                <div className="text-gray-500">{"Cash After"}</div>
-                <div
-                  className={`font-semibold ${
-                    cashAfter < 0 ? "text-red-600" : "text-green-600"
-                  }`}
+              )}
+            </div>
+
+            {/* Broker Selection */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="invest-cash-broker"
+                  className="text-sm font-medium text-gray-700"
                 >
-                  {formatCurrency(cashAfter)}
-                </div>
+                  {"Brokerage account"}
+                </label>
+                <a
+                  href="/brokers"
+                  target="_blank"
+                  className="text-xs text-invest-600 hover:text-invest-700"
+                >
+                  {"Manage"}
+                </a>
               </div>
+              <BrokerSelect
+                id="invest-cash-broker"
+                brokers={brokers}
+                value={selectedBrokerId}
+                onChange={setSelectedBrokerId}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
             </div>
-            {cashAfter < 0 && (
-              <div className="mt-2 text-xs text-amber-600">
-                <i className="fas fa-exclamation-triangle mr-1"></i>
+
+            <div className="text-sm text-gray-500 flex items-start gap-2">
+              <i className="fas fa-info-circle mt-0.5"></i>
+              <span>
                 {
-                  "Warning: Insufficient cash. You may still create proposed transactions for review."
+                  "Transactions will be created as PROPOSED. You can review and settle them from the transaction list."
                 }
-              </div>
-            )}
-          </div>
-
-          {/* Broker Selection */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <label
-                htmlFor="invest-cash-broker"
-                className="text-sm font-medium text-gray-700"
-              >
-                {"Brokerage account"}
-              </label>
-              <a
-                href="/brokers"
-                target="_blank"
-                className="text-xs text-invest-600 hover:text-invest-700"
-              >
-                {"Manage"}
-              </a>
+              </span>
             </div>
-            <BrokerSelect
-              id="invest-cash-broker"
-              brokers={brokers}
-              value={selectedBrokerId}
-              onChange={setSelectedBrokerId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
           </div>
-
-          <div className="text-sm text-gray-500 flex items-start gap-2">
-            <i className="fas fa-info-circle mt-0.5"></i>
-            <span>
-              {
-                "Transactions will be created as PROPOSED. You can review and settle them from the transaction list."
-              }
-            </span>
-          </div>
-        </div>
-      )}
-    </Dialog>
+        )}
+      </Dialog>
+    </>
   )
 }
 

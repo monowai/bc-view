@@ -260,7 +260,7 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
       {changePercent !== undefined && (
         <span
           className={`text-sm font-medium tabular-nums ${
-            changePercent >= 0 ? "text-emerald-600" : "text-red-600"
+            changePercent >= 0 ? "text-emerald-700" : "text-red-600"
           }`}
         >
           {changePercent > 0 ? "+" : ""}
@@ -290,7 +290,7 @@ const PositionPnL: React.FC<PositionPnLProps> = ({
   <div className="flex justify-between items-center pt-3 border-t border-gray-100">
     <div>
       <div
-        className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
+        className={`text-lg font-semibold ${isPositive ? "text-green-700" : "text-red-600"}`}
       >
         {isPositive && totalGain > 0 ? "+" : ""}
         {currencySymbol}
@@ -303,7 +303,7 @@ const PositionPnL: React.FC<PositionPnLProps> = ({
     {!asset.cashLike && (
       <div className="text-right">
         <div
-          className={`text-lg font-semibold ${irr >= 0 ? "text-green-600" : "text-red-600"}`}
+          className={`text-lg font-semibold ${irr >= 0 ? "text-green-700" : "text-red-600"}`}
         >
           {irr >= 0 ? "+" : ""}
           {(irr * 100).toFixed(1)}%
@@ -876,7 +876,7 @@ const CardView: React.FC<CardViewProps> = ({
               className="flex items-center gap-2 px-2 w-full text-left hover:bg-gray-50 rounded-lg py-2 -my-1 transition-colors"
             >
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${
+                className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${
                   isCollapsed ? "" : "rotate-90"
                 }`}
                 fill="none"
@@ -931,7 +931,7 @@ const CardView: React.FC<CardViewProps> = ({
                 </span>
                 <span
                   className={`w-16 sm:w-24 text-right text-xs font-medium tabular-nums ${
-                    isGroupDayPositive ? "text-green-600" : "text-red-600"
+                    isGroupDayPositive ? "text-green-700" : "text-red-600"
                   }`}
                 >
                   {isGroupDayPositive ? "+" : ""}

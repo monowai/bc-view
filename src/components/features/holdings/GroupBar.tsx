@@ -37,7 +37,7 @@ export default function GroupBar({
         aria-expanded={!isCollapsed}
       >
         <svg
-          className={`w-4 h-4 text-blue-500 transition-transform ${
+          className={`w-4 h-4 text-blue-600 transition-transform ${
             isCollapsed ? "" : "rotate-90"
           }`}
           fill="none"

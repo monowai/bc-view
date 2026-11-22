@@ -134,7 +134,7 @@ function PrivacyMoneyInput({
     <div className="relative">
       <span className="absolute left-3 top-2.5 text-gray-500">$</span>
       {hideValues && !isFocused && (
-        <div className="absolute inset-0 flex items-center pl-8 text-gray-400 pointer-events-none">
+        <div className="absolute inset-0 flex items-center pl-8 text-gray-500 pointer-events-none">
           {HIDDEN_VALUE}
         </div>
       )}
@@ -550,7 +550,7 @@ export default function EditPlanDetailsModal({
       <div className="border-t pt-4 mt-4">
         <h3 className="text-sm font-medium text-gray-700 mb-3">Portfolios</h3>
         <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <i className="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0 text-sm"></i>
+          <i className="fas fa-info-circle text-blue-600 mt-0.5 flex-shrink-0 text-sm"></i>
           <p className="text-xs text-blue-800">
             Portfolio selection is set account-wide on the{" "}
             <span className="font-medium">Net Worth tab</span> on the
@@ -597,7 +597,7 @@ export default function EditPlanDetailsModal({
                   key={config.assetId}
                   className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
                     isExcluded
-                      ? "bg-gray-50 text-gray-400"
+                      ? "bg-gray-50 text-gray-600"
                       : "hover:bg-green-50"
                   }`}
                 >
@@ -615,7 +615,7 @@ export default function EditPlanDetailsModal({
                             : [...prev.excludedRentalAssetIds, config.assetId],
                         }))
                       }}
-                      className="w-4 h-4 text-green-500 rounded border-gray-300"
+                      className="w-4 h-4 text-green-700 rounded border-gray-300"
                     />
                     <span
                       className={`text-sm ${isExcluded ? "line-through" : "text-gray-700"}`}
@@ -624,7 +624,7 @@ export default function EditPlanDetailsModal({
                     </span>
                   </div>
                   <span
-                    className={`text-sm font-medium ${isExcluded ? "line-through" : "text-green-600"}`}
+                    className={`text-sm font-medium ${isExcluded ? "line-through" : "text-green-700"}`}
                   >
                     {config.rentalCurrency}{" "}
                     {netIncome.toLocaleString(undefined, {
@@ -644,7 +644,7 @@ export default function EditPlanDetailsModal({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Net Monthly Need</span>
           <span
-            className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+            className={`font-medium ${hideValues ? "text-gray-500" : "text-independence-700"}`}
           >
             {hideValues ? HIDDEN_VALUE : `$${netMonthlyNeed.toLocaleString()}`}
           </span>

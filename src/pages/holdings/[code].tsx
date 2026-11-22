@@ -55,8 +55,6 @@ import MovePositionDialog from "@components/features/transactions/MovePositionDi
 import CostAdjustDialog from "@components/features/transactions/CostAdjustDialog"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import TrnDropZone from "@components/ui/DropZone"
-import IncomeView from "@components/features/holdings/IncomeView"
-import PerformanceChart from "@components/features/holdings/PerformanceChart"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
@@ -64,6 +62,17 @@ import InvestCashDialog from "@components/features/rebalance/execution/InvestCas
 import { ModelDto, PlanDto } from "types/rebalance"
 import { createTrns } from "@utils/api/client/trns"
 import { writePrice } from "@utils/api/client/prices"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const PerformanceChart = dynamic(
+  () => import("@components/features/holdings/PerformanceChart"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
+const IncomeView = dynamic(
+  () => import("@components/features/holdings/IncomeView"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()

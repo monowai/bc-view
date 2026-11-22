@@ -50,7 +50,7 @@ const AccountActions = ({
         {"Import"}
       </button>
       <button
-        className="bg-blue-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-blue-600 transition-colors"
+        className="bg-blue-600 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-blue-700 transition-colors"
         onClick={() => {
           // Pass category if on a specific category tab (not "overview" or "all")
           const categoryParam =

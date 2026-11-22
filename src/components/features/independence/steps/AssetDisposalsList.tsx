@@ -90,7 +90,7 @@ export default function AssetDisposalsList({
                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <i className="fas fa-home text-amber-600 text-xs"></i>
+                    <i className="fas fa-home text-amber-700 text-xs"></i>
                     <span className="text-sm font-medium text-gray-900">
                       {name}
                     </span>
@@ -98,7 +98,7 @@ export default function AssetDisposalsList({
                       @ age {disposal.disposalAge}
                     </span>
                     {!enabled && (
-                      <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+                      <span className="text-micro uppercase tracking-wide text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
                         disabled
                       </span>
                     )}
@@ -126,7 +126,7 @@ export default function AssetDisposalsList({
                           e.target.checked,
                         )
                       }
-                      className="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500"
+                      className="w-3.5 h-3.5 rounded text-amber-700 focus:ring-amber-500"
                     />
                     Enabled
                   </label>
@@ -154,7 +154,7 @@ export default function AssetDisposalsList({
           </div>
         )
       })}
-      <p className="text-[10px] text-gray-400 italic">
+      <p className="text-micro text-gray-500 italic">
         Click any disposal to edit. Toggle Enabled to model &ldquo;what if I
         don&rsquo;t sell?&rdquo; without losing the record.
       </p>
@@ -195,9 +195,9 @@ function DisposalEditRow({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <i className="fas fa-home text-amber-600 text-xs"></i>
+        <i className="fas fa-home text-amber-700 text-xs"></i>
         <span className="text-sm font-medium text-gray-900">{name}</span>
-        <span className="text-[10px] text-gray-400">
+        <span className="text-micro text-gray-500">
           (asset locked — remove + re-add to change)
         </span>
       </div>

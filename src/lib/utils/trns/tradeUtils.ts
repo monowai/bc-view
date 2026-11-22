@@ -359,20 +359,20 @@ export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
     return {
       bg: "bg-blue-50",
       border: "border-blue-100",
-      text: "text-blue-500",
+      text: "text-blue-600",
     }
   }
   if (isSellSide(tradeType)) {
     return {
       bg: "bg-red-50",
       border: "border-red-100",
-      text: "text-red-500",
+      text: "text-red-600",
     }
   }
   return {
     bg: "bg-emerald-50",
     border: "border-emerald-100",
-    text: "text-emerald-600",
+    text: "text-emerald-700",
   }
 }
 

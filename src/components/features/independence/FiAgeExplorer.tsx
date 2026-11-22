@@ -137,7 +137,7 @@ export default function FiAgeExplorer({
               onChange={(e) => setTargetAge(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
-            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+            <div className="flex justify-between text-micro text-gray-500 mt-1">
               <span>{currentAge}</span>
               <span>{yearsToTarget} years from now</span>
               <span>{Math.max(currentAge + 40, 65)}</span>
@@ -178,7 +178,7 @@ export default function FiAgeExplorer({
                 </div>
                 {requiredSavingsRate > currentSavingsRate ? (
                   <div className="mt-2 text-xs">
-                    <span className="text-amber-600">
+                    <span className="text-amber-700">
                       <i className="fas fa-arrow-up mr-1"></i>
                       Need{" "}
                       {(requiredSavingsRate - currentSavingsRate).toFixed(1)}%
@@ -193,7 +193,7 @@ export default function FiAgeExplorer({
                     </span>
                   </div>
                 ) : (
-                  <div className="mt-2 text-xs text-green-600">
+                  <div className="mt-2 text-xs text-green-700">
                     <i className="fas fa-check mr-1"></i>
                     You&apos;re already saving enough for this target!
                   </div>
@@ -203,7 +203,7 @@ export default function FiAgeExplorer({
           )}
 
           {requiredSavingsRate !== null && requiredSavingsRate > 100 && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-amber-700">
               <i className="fas fa-exclamation-triangle mr-1"></i>
               This target requires saving more than your income. Consider a
               later target age or increasing income.

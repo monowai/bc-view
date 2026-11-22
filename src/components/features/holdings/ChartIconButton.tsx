@@ -17,7 +17,7 @@ const ChartIconButton: React.FC<ChartIconButtonProps> = ({
     type="button"
     aria-label={ariaLabel}
     title="Open price chart"
-    className="ml-1 shrink-0 text-[10px] leading-none text-gray-400 hover:text-wealth-700 transition-colors cursor-pointer"
+    className="-my-1.5 -mr-1.5 ml-0 shrink-0 cursor-pointer rounded p-1.5 text-micro leading-none text-gray-500 transition-colors hover:text-wealth-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
     onClick={onClick}
   >
     <i className="fas fa-chart-line" aria-hidden="true" />

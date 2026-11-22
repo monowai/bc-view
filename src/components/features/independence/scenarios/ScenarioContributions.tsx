@@ -232,7 +232,7 @@ export default function ScenarioContributions({
               <span className="flex-1 text-sm text-gray-700">
                 {asset.assetName}
                 {asset.policyType && (
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span className="ml-2 text-xs text-gray-500">
                     {asset.policyType}
                   </span>
                 )}
@@ -279,7 +279,7 @@ export default function ScenarioContributions({
                       ? "Set year of birth on your plan to view projection"
                       : "Year-by-year balance projection until payout"
                 }
-                className="text-xs text-independence-600 hover:text-independence-800 disabled:text-gray-300 disabled:cursor-not-allowed underline"
+                className="text-xs text-independence-700 hover:text-independence-800 disabled:text-gray-300 disabled:cursor-not-allowed underline"
               >
                 Projection
               </button>
@@ -287,7 +287,7 @@ export default function ScenarioContributions({
           )
         })}
       </ul>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-500">
         Contributions are saved when you leave the field. Frequency comes from
         the asset itself (Edit Asset → Contribution). CPF is calculated from
         your salary and shown for reference.

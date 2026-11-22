@@ -31,7 +31,7 @@ const AssetNewsButton: React.FC<AssetNewsButtonProps> = ({
         e.stopPropagation()
         onShow()
       }}
-      className="text-gray-400 hover:text-blue-600 transition-colors"
+      className="-m-1.5 p-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:text-blue-700 transition-colors"
       title={`News for ${ticker}`}
       aria-label={`News ${ticker}`}
     >

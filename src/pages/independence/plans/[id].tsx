@@ -25,7 +25,6 @@ import {
   DetailsTabContent,
   AssetsTabContent,
   AssetsBreakdown,
-  TimelineTabContent,
   PlanFiOverviewTab,
   ScenarioBar,
 } from "@components/features/independence"
@@ -46,7 +45,6 @@ import { useIndependencePlanCurrency } from "@components/features/independence/u
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@components/features/independence/useIndependencePlanProjections"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
-import IndependenceReportContainer from "@components/features/independence/report/IndependenceReportContainer"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import type { PlansResponse } from "types/independence"
@@ -71,6 +69,18 @@ import {
   transferPlan,
   updatePlan,
 } from "@utils/api/client/independence"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const TimelineTabContent = dynamic(
+  () => import("@components/features/independence/TimelineTabContent"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
+const IndependenceReportContainer = dynamic(
+  () =>
+    import("@components/features/independence/report/IndependenceReportContainer"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -871,7 +881,7 @@ function PlanView(): React.ReactElement {
     const backLink = (
       <Link
         href={`/independence/plans/${plan.id}`}
-        className="mt-3 inline-block text-independence-600 hover:underline"
+        className="mt-3 inline-block text-independence-700 hover:underline"
       >
         Back to plan
       </Link>
@@ -987,7 +997,7 @@ function PlanView(): React.ReactElement {
             <div className="fixed inset-0 bg-white/80 z-40 flex items-center justify-center">
               <div className="text-center">
                 <Spinner label="Calculating projections..." size="lg" />
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-gray-500 text-sm mt-1">
                   Fetching assets and running calculations
                 </p>
               </div>

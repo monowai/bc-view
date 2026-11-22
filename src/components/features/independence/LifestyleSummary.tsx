@@ -173,8 +173,8 @@ function Headline({ model, isPayoff, money }: ValueProps): React.ReactElement {
         <span
           className={`ml-1.5 font-normal ${
             isPayoff
-              ? "text-base text-white/70"
-              : "text-sm text-gray-500 dark:text-gray-400"
+              ? "text-base text-white/90"
+              : "text-sm text-gray-600 dark:text-gray-400"
           }`}
         >
           / month
@@ -250,7 +250,7 @@ function Comfort({
         </span>
         <span
           className={`tabular-nums text-xs font-medium ${
-            isPayoff ? "text-white/80" : "text-gray-500 dark:text-gray-400"
+            isPayoff ? "text-white/80" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           {comfort.score}/{COMFORT_SCALE_MAX}
@@ -347,10 +347,10 @@ function Tile({
         className={`truncate text-xs font-medium ${
           isPayoff
             ? category.isRollup
-              ? "text-white/70"
+              ? "text-white/90"
               : "text-white/90"
             : category.isRollup
-              ? "text-gray-500 dark:text-gray-400"
+              ? "text-gray-600 dark:text-gray-400"
               : "text-gray-700 dark:text-gray-200"
         }`}
         title={category.categoryName}
@@ -363,8 +363,8 @@ function Tile({
           the tile still says something. */}
       {(category.benchmark ?? category.description) && (
         <span
-          className={`text-[0.6875rem] leading-snug ${
-            isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+          className={`text-micro leading-snug ${
+            isPayoff ? "text-white/90" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           {category.benchmark ?? category.description}
@@ -382,8 +382,8 @@ function Tile({
           "Housing S$2,278" against a S$2,500 budget just looks like a bug. */}
       {rescaled && (
         <span
-          className={`tabular-nums text-[0.6875rem] ${
-            isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+          className={`tabular-nums text-micro ${
+            isPayoff ? "text-white/90" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           of {money(category.described)} planned
@@ -394,14 +394,14 @@ function Tile({
 }
 
 function Footnotes({ model, isPayoff, money }: ValueProps): React.ReactElement {
-  const muted = isPayoff ? "text-white/75" : "text-gray-600 dark:text-gray-300"
+  const muted = isPayoff ? "text-white/90" : "text-gray-600 dark:text-gray-300"
   return (
     <div className={`mt-4 space-y-1.5 text-sm ${muted}`}>
       {readSentence(model) && <p>{readSentence(model)}</p>}
       {model.liquidation && (
         <p
           className={
-            isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+            isPayoff ? "text-white/90" : "text-gray-600 dark:text-gray-400"
           }
         >
           Selling illiquid assets lifts this to{" "}
@@ -422,7 +422,7 @@ function Footnotes({ model, isPayoff, money }: ValueProps): React.ReactElement {
       {model.fromTodayMonthly != null && (
         <p
           className={
-            isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+            isPayoff ? "text-white/90" : "text-gray-600 dark:text-gray-400"
           }
         >
           Spending one steady amount from today, rather than switching at

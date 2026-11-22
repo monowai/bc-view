@@ -5,7 +5,10 @@ import StaleVersionBanner from "@components/layout/StaleVersionBanner"
 import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 //import "@styles/bc.sass"
 import "@styles/globals.css"
-import "@fortawesome/fontawesome-free/css/all.min.css"
+// Only the solid (fas) and regular (far) styles are used; brands is left out.
+import "@fortawesome/fontawesome-free/css/fontawesome.min.css"
+import "@fortawesome/fontawesome-free/css/solid.min.css"
+import "@fortawesome/fontawesome-free/css/regular.min.css"
 import GitInfo from "@components/ui/GitInfo"
 import ChatDock from "@components/features/chat/ChatDock"
 import { ChatProvider } from "@components/features/chat/ChatProvider"
@@ -43,11 +46,21 @@ const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
       {/* One chat shared by the dock and the /chat page. */}
       <ChatProvider>
         <div className="bg-gray-100 min-h-screen">
+          <a
+            href="#content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          >
+            Skip to content
+          </a>
           <StaleVersionBanner />
           <Header />
-          <div className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4">
+          <main
+            id="content"
+            tabIndex={-1}
+            className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4 focus:outline-none"
+          >
             <Component {...pageProps} />
-          </div>
+          </main>
         </div>
         <ChatDock />
       </ChatProvider>

@@ -119,7 +119,7 @@ export default function CostAdjustDialog({
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">{"Adjustment"}</span>
             <span
-              className={`font-medium ${adjustmentAmount > 0 ? "text-green-600" : "text-orange-600"}`}
+              className={`font-medium ${adjustmentAmount > 0 ? "text-green-700" : "text-orange-700"}`}
             >
               {adjustmentAmount > 0 ? "+" : ""}
               {currency.symbol}
@@ -140,7 +140,7 @@ export default function CostAdjustDialog({
       {newCostBasis !== "" &&
         !isNaN(parseFloat(newCostBasis)) &&
         !hasValidTarget && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center text-gray-500 text-sm">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center text-gray-600 text-sm">
             {"No change from current cost basis"}
           </div>
         )}

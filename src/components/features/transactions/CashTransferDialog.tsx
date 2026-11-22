@@ -331,13 +331,13 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           <div>{"Transfer Cash"}</div>
           <div className="flex items-center gap-2 mt-1">
             <span
-              className={`text-xs px-2 py-0.5 rounded ${step === "amounts" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
+              className={`text-xs px-2 py-0.5 rounded ${step === "amounts" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"}`}
             >
               1
             </span>
-            <span className="text-xs text-gray-400">―</span>
+            <span className="text-xs text-gray-500">―</span>
             <span
-              className={`text-xs px-2 py-0.5 rounded ${step === "target" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
+              className={`text-xs px-2 py-0.5 rounded ${step === "target" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"}`}
             >
               2
             </span>
@@ -380,7 +380,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
               />
             </div>
             {parsedSentAmount > sourceData.currentBalance && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-600 text-sm mt-1">
                 {"Amount exceeds available balance"}
               </p>
             )}
@@ -401,7 +401,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
               />
             </div>
             {parsedReceivedAmount > parsedSentAmount && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-600 text-sm mt-1">
                 {"Received amount cannot exceed sent amount"}
               </p>
             )}
@@ -528,7 +528,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                   </span>
                 </div>
                 {fee > 0 && (
-                  <div className="flex justify-between text-amber-600">
+                  <div className="flex justify-between text-amber-700">
                     <span>{"Transfer Fee"}:</span>
                     <span>
                       {sourceData.currency}{" "}

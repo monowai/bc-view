@@ -254,7 +254,13 @@ export default function MathInput({
 
   const handleBlur = (): void => {
     isFocusedRef.current = false
-    evaluateAndUpdate()
+    if (isExpression) {
+      evaluateAndUpdate()
+    } else {
+      // The parent may have adjusted the value while we were focused (e.g.
+      // clamped -10 to 0); the sync effect skipped it, so resync now.
+      setDisplayValue(value === 0 || value === undefined ? "" : String(value))
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {

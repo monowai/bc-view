@@ -90,7 +90,7 @@ const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         ) : (
           <button
             type="button"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
             onClick={handleDone}
           >
             {"Done"}
@@ -137,7 +137,7 @@ const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         </>
       ) : (
         <Alert variant="success" className="p-4 text-center">
-          <i className="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
+          <i className="fas fa-check-circle text-green-700 text-3xl mb-2"></i>
           <p className="text-green-700 font-medium">
             {`Successfully imported ${importResult.count} ${noun}(s)`}
           </p>

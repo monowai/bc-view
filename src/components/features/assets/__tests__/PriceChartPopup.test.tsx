@@ -7,6 +7,7 @@ import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
 import { useWatchlist } from "@hooks/useWatchlist"
 import type { WatchlistItem } from "types/beancounter"
 import { localIsoDate } from "@lib/formatters"
+import { GRAY, WEALTH } from "@lib/chartPalette"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -416,7 +417,7 @@ describe("PriceChartPopup", () => {
     fireEvent.click(screen.getByRole("button", { name: "SMA 200" }))
 
     expect(screen.getByRole("button", { name: "SMA 200" })).toHaveStyle({
-      backgroundColor: "#D97706",
+      backgroundColor: GRAY[600],
     })
     expect(
       screen.getByRole("button", { name: "SMA 50" }).style.backgroundColor,
@@ -433,7 +434,7 @@ describe("PriceChartPopup", () => {
     )
     // A selected button wears its line's colour, so the buttons key the lines.
     expect(screen.getByRole("button", { name: "SMA 20" })).toHaveStyle({
-      backgroundColor: "#6366F1",
+      backgroundColor: WEALTH[700],
     })
     expect(screen.getByRole("button", { name: "SMA 20" })).toHaveAttribute(
       "aria-pressed",
@@ -1433,7 +1434,7 @@ describe("PriceChartPopup", () => {
 
       const distance = screen.getByTestId("target-distance")
       expect(distance).toHaveClass("text-gray-500")
-      expect(distance).not.toHaveClass("text-emerald-600")
+      expect(distance).not.toHaveClass("text-emerald-700")
       expect(distance).not.toHaveClass("text-red-600")
     })
 

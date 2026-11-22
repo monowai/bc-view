@@ -235,7 +235,7 @@ describe("EditAccountDialog", () => {
     it("closes from Cancel, the header and the backdrop", async () => {
       const { user, onClose } = renderDialog()
       await user.click(screen.getByRole("button", { name: "Cancel" }))
-      await user.click(screen.getByRole("button", { name: "×" }))
+      await user.click(screen.getByRole("button", { name: "Close dialog" }))
       expect(onClose).toHaveBeenCalledTimes(2)
     })
 

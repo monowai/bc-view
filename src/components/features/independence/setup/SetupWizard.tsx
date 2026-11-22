@@ -329,7 +329,7 @@ export default function SetupWizard(): React.ReactElement {
             <button
               type="button"
               onClick={() => setIsWorking(!isWorking)}
-              className="text-sm font-medium text-independence-600 hover:text-independence-700"
+              className="text-sm font-medium text-independence-700 hover:text-independence-800"
             >
               {isWorking ? "I'm not working" : "Actually, I am working"}
             </button>
@@ -386,7 +386,7 @@ export default function SetupWizard(): React.ReactElement {
               type="button"
               onClick={handleContinue}
               disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-60"
+              className="flex-1 px-6 py-3 bg-independence-700 text-white rounded-lg hover:bg-independence-800 font-medium disabled:opacity-60"
             >
               {step === TARGET_STEP
                 ? isSubmitting
@@ -423,7 +423,7 @@ function PayoffStep({
         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
           <i
             aria-hidden="true"
-            className="fas fa-check-circle text-green-500"
+            className="fas fa-check-circle text-green-700"
           />
           Your plan is ready
         </h2>
@@ -454,7 +454,7 @@ function PayoffStep({
 
       <Link
         href="/independence"
-        className="block w-full px-6 py-3 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium text-center"
+        className="block w-full px-6 py-3 bg-independence-700 text-white rounded-lg hover:bg-independence-800 font-medium text-center"
       >
         See your plan
       </Link>

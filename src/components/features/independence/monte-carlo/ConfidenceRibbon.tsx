@@ -1,6 +1,7 @@
 import React from "react"
 import type { MonteCarloResult } from "types/independence"
 import { deriveSurvivalCurve } from "@lib/independence/survivalCurve"
+import { INDEPENDENCE, INVEST, LOSS, WARNING } from "@lib/chartPalette"
 
 // ── FanChart alignment constants ─────────────────────────────────────────────
 // FanChart uses: margin={{ top: 30, right: 30, left: 20, bottom: 40 }}
@@ -19,12 +20,12 @@ interface ColorBucket {
 }
 
 const COLOR_BUCKETS: ColorBucket[] = [
-  { min: 0.95, color: "#15803d", label: "≥95% funded" },
-  { min: 0.8, color: "#22c55e", label: "80–95%" },
-  { min: 0.65, color: "#a3e635", label: "65–80%" },
-  { min: 0.5, color: "#f59e0b", label: "50–65%" },
-  { min: 0.35, color: "#f97316", label: "35–50%" },
-  { min: 0, color: "#ef4444", label: "<35%" },
+  { min: 0.95, color: INVEST[700], label: "≥95% funded" },
+  { min: 0.8, color: INVEST[600], label: "80–95%" },
+  { min: 0.65, color: INVEST[500], label: "65–80%" },
+  { min: 0.5, color: WARNING, label: "50–65%" },
+  { min: 0.35, color: INDEPENDENCE[500], label: "35–50%" },
+  { min: 0, color: LOSS, label: "<35%" },
 ]
 
 function survivalColor(survival: number): string {
@@ -125,7 +126,7 @@ export function ConfidenceRibbon({
         >
           {thresholds.p90 != null && (
             <span
-              className="absolute text-[9px] text-gray-500 whitespace-nowrap"
+              className="absolute text-micro text-gray-500 whitespace-nowrap"
               style={{
                 left: `${thresholdPositionPct(thresholds.p90)}%`,
                 transform: "translateX(-50%)",
@@ -137,7 +138,7 @@ export function ConfidenceRibbon({
           )}
           {thresholds.p75 != null && (
             <span
-              className="absolute text-[9px] text-gray-500 whitespace-nowrap"
+              className="absolute text-micro text-gray-500 whitespace-nowrap"
               style={{
                 left: `${thresholdPositionPct(thresholds.p75)}%`,
                 transform: "translateX(-50%)",
@@ -149,7 +150,7 @@ export function ConfidenceRibbon({
           )}
           {thresholds.p50 != null && (
             <span
-              className="absolute text-[9px] text-gray-500 whitespace-nowrap"
+              className="absolute text-micro text-gray-500 whitespace-nowrap"
               style={{
                 left: `${thresholdPositionPct(thresholds.p50)}%`,
                 transform: "translateX(-50%)",
@@ -171,7 +172,7 @@ export function ConfidenceRibbon({
                 className="w-3 h-3 rounded-sm flex-shrink-0"
                 style={{ backgroundColor: bucket.color }}
               />
-              <span className="text-[10px] text-gray-500">{bucket.label}</span>
+              <span className="text-micro text-gray-500">{bucket.label}</span>
             </div>
           ))}
         </div>

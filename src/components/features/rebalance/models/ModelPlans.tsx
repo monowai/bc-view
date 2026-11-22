@@ -71,7 +71,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spinner size="xl" className="text-gray-400" />
+        <Spinner size="xl" className="text-gray-500" />
       </div>
     )
   }
@@ -111,7 +111,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
         <div className="border border-gray-200 rounded-lg py-10 text-center">
           <i className="fas fa-clipboard-list text-gray-300 text-4xl mb-3"></i>
           <p className="text-gray-600">{"No rebalance plans yet"}</p>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {"Create a plan to define target allocations for rebalancing."}
           </p>
         </div>
@@ -169,7 +169,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                         setDeletePlanId(plan.id)
                       }}
                       disabled={deletingId === plan.id}
-                      className="text-gray-400 hover:text-red-600 p-1 mr-2 disabled:opacity-50"
+                      className="text-gray-500 hover:text-red-700 p-1 mr-2 disabled:opacity-50"
                       title={"Delete"}
                     >
                       {deletingId === plan.id ? (

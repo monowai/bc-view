@@ -272,7 +272,7 @@ export default function ExpensesStep({
               <p className="text-sm font-semibold text-independence-700">
                 {msg.totalLabel}
               </p>
-              <p className="mt-0.5 text-xs text-independence-500 max-w-xs leading-relaxed">
+              <p className="mt-0.5 text-xs text-independence-700 max-w-xs leading-relaxed">
                 {msg.totalHelper}
               </p>
             </div>
@@ -280,7 +280,7 @@ export default function ExpensesStep({
               <p className="text-3xl font-bold tabular-nums text-independence-800">
                 {`${planSymbol}${totalMonthlyExpenses.toLocaleString()}`}
               </p>
-              <p className="text-xs text-independence-500 mt-0.5">per month</p>
+              <p className="text-xs text-independence-700 mt-0.5">per month</p>
             </div>
           </div>
 
@@ -291,7 +291,7 @@ export default function ExpensesStep({
               <>
                 <span
                   data-testid="converted-total"
-                  className="text-lg font-semibold tabular-nums text-independence-600"
+                  className="text-lg font-semibold tabular-nums text-independence-700"
                 >
                   ≈ {inDisplayCurrency(totalMonthlyExpenses)}
                 </span>
@@ -305,7 +305,7 @@ export default function ExpensesStep({
             )}
             <label
               htmlFor="expensesDisplayCurrency"
-              className="text-xs text-independence-600"
+              className="text-xs text-independence-700"
             >
               View in
             </label>
@@ -330,7 +330,7 @@ export default function ExpensesStep({
           {/* Copy from working — surfaced when relevant */}
           {canCopyFromWorking && (
             <div className="mt-4 pt-4 border-t border-independence-200">
-              <p className="text-xs text-independence-600 mb-2.5 font-medium">
+              <p className="text-xs text-independence-700 mb-2.5 font-medium">
                 <i className="fas fa-copy mr-1.5"></i>
                 You have working expenses on file — pre-fill from those?
               </p>
@@ -348,13 +348,13 @@ export default function ExpensesStep({
                   />
                   <span className="text-sm text-independence-700">%</span>
                 </div>
-                <span className="text-sm text-independence-500">
+                <span className="text-sm text-independence-700">
                   of working expenses
                 </span>
                 <button
                   type="button"
                   onClick={() => applyCopyFromWorking(copyPercent)}
-                  className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium transition-colors"
+                  className="px-3 py-1.5 text-sm bg-independence-700 text-white rounded-lg hover:bg-independence-800 font-medium transition-colors"
                 >
                   Apply
                 </button>
@@ -376,7 +376,7 @@ export default function ExpensesStep({
               <button
                 type="button"
                 onClick={() => applyCopyFromWorking(copyPercent)}
-                className="text-xs text-independence-600 hover:text-independence-800 flex items-center gap-1.5"
+                className="text-xs text-independence-700 hover:text-independence-800 flex items-center gap-1.5"
               >
                 <i className="fas fa-copy"></i>
                 Re-apply working expenses at {copyPercent}%
@@ -426,7 +426,7 @@ export default function ExpensesStep({
         ) : (
           <div className="flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed border-gray-200">
             <Spinner size="lg" className="text-gray-300 mb-2" />
-            <p className="text-sm text-gray-400">Loading lifestyle catalog…</p>
+            <p className="text-sm text-gray-500">Loading lifestyle catalog…</p>
           </div>
         ))}
 
@@ -441,7 +441,7 @@ export default function ExpensesStep({
             {fields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed border-gray-200">
                 <Spinner size="lg" className="text-gray-300 mb-2" />
-                <p className="text-sm text-gray-400">Loading categories…</p>
+                <p className="text-sm text-gray-500">Loading categories…</p>
               </div>
             ) : (
               fields.map((field, index) => {
@@ -474,7 +474,7 @@ export default function ExpensesStep({
                             <button
                               type="button"
                               onClick={() => remove(index)}
-                              className="shrink-0 p-0.5 text-red-400 hover:text-red-600 rounded"
+                              className="shrink-0 p-0.5 text-red-400 hover:text-red-700 rounded"
                               title="Remove"
                               aria-label="Remove custom category"
                             >
@@ -484,7 +484,7 @@ export default function ExpensesStep({
                         )}
                       </div>
                       {description && (
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
                           {description}
                         </p>
                       )}
@@ -495,7 +495,7 @@ export default function ExpensesStep({
                     {isConverted && (
                       <span
                         data-testid="converted-row-amount"
-                        className="shrink-0 text-xs tabular-nums text-gray-400"
+                        className="shrink-0 text-xs tabular-nums text-gray-500"
                       >
                         ≈ {inDisplayCurrency(amount)}
                       </span>
@@ -504,7 +504,7 @@ export default function ExpensesStep({
                     {/* Amount input */}
                     <div className="shrink-0 w-32">
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-xs text-gray-400 pointer-events-none">
+                        <span className="absolute left-3 top-2.5 text-xs text-gray-500 pointer-events-none">
                           {planSymbol}
                         </span>
                         <Controller
@@ -560,7 +560,7 @@ export default function ExpensesStep({
                 <button
                   type="button"
                   onClick={handleAddCustomCategory}
-                  className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700"
+                  className="px-3 py-1.5 text-sm bg-independence-700 text-white rounded-lg hover:bg-independence-800"
                 >
                   Add
                 </button>
@@ -579,7 +579,7 @@ export default function ExpensesStep({
               <button
                 type="button"
                 onClick={() => setShowAddCustom(true)}
-                className="w-full py-2.5 text-sm border-2 border-dashed border-gray-200 text-gray-400 rounded-lg hover:border-independence-300 hover:text-independence-600 hover:bg-independence-50 transition-colors"
+                className="w-full py-2.5 text-sm border-2 border-dashed border-gray-200 text-gray-500 rounded-lg hover:border-independence-300 hover:text-independence-800 hover:bg-independence-50 transition-colors"
               >
                 <i className="fas fa-plus mr-1.5"></i>
                 Add custom category
@@ -597,7 +597,7 @@ export default function ExpensesStep({
 
       {/* Skip hint */}
       {(!isEditMode || totalMonthlyExpenses === 0) && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           <i className="fas fa-info-circle mr-1"></i>
           {msg.skipHint}
         </p>

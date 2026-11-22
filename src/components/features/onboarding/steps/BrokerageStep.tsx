@@ -177,7 +177,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
                   </span>
                 </p>
               ) : (
-                <p className="text-gray-400">
+                <p className="text-gray-500">
                   {
                     "Name your brokerage account first — the portfolio takes its name."
                   }

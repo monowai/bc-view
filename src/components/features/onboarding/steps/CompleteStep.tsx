@@ -38,12 +38,12 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
     independenceCurrency,
   )
   const chips: Array<{ icon: string; color: string; label: string }> = [
-    { icon: "fa-folder", color: "text-blue-500", label: portfolioName },
+    { icon: "fa-folder", color: "text-blue-600", label: portfolioName },
     ...(bankAccountCount > 0
       ? [
           {
             icon: "fa-university",
-            color: "text-blue-500",
+            color: "text-blue-600",
             label: `${bankAccountCount} bank account${bankAccountCount === 1 ? "" : "s"}`,
           },
         ]
@@ -52,7 +52,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
       ? [
           {
             icon: "fa-home",
-            color: "text-green-500",
+            color: "text-green-700",
             label: `${propertyCount} propert${propertyCount === 1 ? "y" : "ies"}`,
           },
         ]
@@ -89,7 +89,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   return (
     <div className="py-2">
       <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-        <i className="fas fa-check-circle text-green-500"></i>
+        <i className="fas fa-check-circle text-green-700"></i>
         {"You're all set!"}
       </h2>
       <p className="text-sm text-gray-600 mb-3">{"Created:"}</p>
@@ -110,7 +110,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
             href="/independence"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-independence-50 text-xs text-independence-700 hover:bg-independence-100"
           >
-            <i className="fas fa-chart-line text-independence-500"></i>
+            <i className="fas fa-chart-line text-independence-700"></i>
             {"Independence Plan"}
             <i className="fas fa-arrow-right text-[10px]"></i>
           </Link>
@@ -144,7 +144,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
           <div className="font-semibold text-gray-900 flex items-center gap-1.5 mb-1">
-            <i className="fas fa-coins text-blue-500"></i>
+            <i className="fas fa-coins text-blue-600"></i>
             {"Other assets"}
           </div>
           <p className="text-xs text-gray-600">

@@ -1,3 +1,4 @@
+import type { ConfirmOptions } from "@hooks/useConfirm"
 import React from "react"
 
 /** Structural subset shared by `Broker` and `BrokerWithAccounts` — the two
@@ -55,17 +56,23 @@ export default BrokerSelect
 /**
  * Shared "no broker tagged" confirm gate used before committing proposed
  * transactions when more than one broker exists and none was picked.
- * Returns true when it's fine to proceed — a broker is selected, there's
- * one broker or none at all, or the user confirmed anyway.
+ * Resolves true when it's fine to proceed — a broker is selected, there's
+ * one broker or none at all, or the user confirmed anyway. `confirm` is the
+ * function from `useConfirm()`.
  */
 export function confirmBrokerSelection(
   brokerCount: number,
   selectedBrokerId: string | undefined,
-): boolean {
+  confirm: (options: ConfirmOptions) => Promise<boolean>,
+): Promise<boolean> {
   if (brokerCount > 1 && !selectedBrokerId) {
-    return window.confirm(
-      "No brokerage account selected. Your proposed transactions won't be tagged with a brokerage account. Continue?",
-    )
+    return confirm({
+      title: "No brokerage account selected",
+      message:
+        "Your proposed transactions won't be tagged with a brokerage account. Continue anyway?",
+      confirmLabel: "Continue",
+      variant: "amber",
+    })
   }
-  return true
+  return Promise.resolve(true)
 }

@@ -51,7 +51,7 @@ const RebalancePlanList: React.FC = () => {
         <p className="text-gray-600 mb-4">{"No rebalance plans yet"}</p>
         <button
           onClick={() => router.push("/rebalance/wizard")}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           {"Create Plan"}
         </button>
@@ -115,7 +115,7 @@ const RebalancePlanList: React.FC = () => {
                     setDeleteTarget(plan)
                   }}
                   disabled={deletingId === plan.id}
-                  className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
+                  className="text-gray-500 hover:text-red-700 p-1 disabled:opacity-50"
                   title={"Delete"}
                 >
                   {deletingId === plan.id ? (

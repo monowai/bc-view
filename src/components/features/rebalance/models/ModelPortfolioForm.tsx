@@ -238,7 +238,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           disabled={!isValid || isSubmitting}
           className={`px-4 py-2 rounded text-white transition-colors ${
             isValid && !isSubmitting
-              ? "bg-blue-500 hover:bg-blue-600"
+              ? "bg-blue-600 hover:bg-blue-700"
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >

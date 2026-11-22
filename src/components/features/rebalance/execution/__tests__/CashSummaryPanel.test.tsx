@@ -63,7 +63,7 @@ describe("CashSummaryPanel", () => {
       <CashSummaryPanel {...baseProps} netImpact={300} />,
     )
     expect(screen.getByTestId("cash-summary-headline-net-impact")).toHaveClass(
-      "text-green-600",
+      "text-green-700",
     )
 
     rerender(<CashSummaryPanel {...baseProps} netImpact={-450.5} />)

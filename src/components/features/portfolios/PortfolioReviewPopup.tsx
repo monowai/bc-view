@@ -74,7 +74,7 @@ export default function PortfolioReviewPopup({
     <AnalysisDialog
       title={
         <span className="flex items-center">
-          <i className="fas fa-robot text-blue-500 mr-2"></i>
+          <i className="fas fa-robot text-blue-600 mr-2"></i>
           AI Summary — {targetTitle(target)}
         </span>
       }

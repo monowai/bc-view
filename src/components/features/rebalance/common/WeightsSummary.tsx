@@ -24,7 +24,7 @@ const WeightsSummary: React.FC<WeightsSummaryProps> = ({
     >
       <div className="flex items-center gap-2">
         <i
-          className={`fas ${isValid ? "fa-check-circle text-green-500" : "fa-exclamation-circle text-red-500"}`}
+          className={`fas ${isValid ? "fa-check-circle text-green-700" : "fa-exclamation-circle text-red-600"}`}
         ></i>
         <span className="text-sm">{`${assetCount} assets`}</span>
       </div>

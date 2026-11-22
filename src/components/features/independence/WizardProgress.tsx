@@ -47,7 +47,7 @@ export default function WizardProgress({
                 <div
                   className={`
                     w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all flex-shrink-0
-                    ${hasError ? "bg-red-500 text-white ring-2 ring-red-200" : ""}
+                    ${hasError ? "bg-red-600 text-white ring-2 ring-red-200" : ""}
                     ${!hasError && isCompleted ? "bg-orange-500 text-white" : ""}
                     ${!hasError && isCurrent ? "bg-gray-200 text-gray-700 ring-2 ring-orange-300" : ""}
                     ${!hasError && isUpcoming ? "bg-gray-200 text-gray-500" : ""}
@@ -75,11 +75,11 @@ export default function WizardProgress({
                 </div>
                 <span
                   className={`
-                    mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
+                    mt-0.5 sm:mt-1 text-micro sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${hasError ? "text-red-600" : ""}
-                    ${!hasError && isCurrent ? "text-orange-600" : ""}
+                    ${!hasError && isCurrent ? "text-orange-700" : ""}
                     ${!hasError && !isCurrent ? "text-gray-500" : ""}
-                    ${isClickable ? "hover:text-orange-600" : ""}
+                    ${isClickable ? "hover:text-orange-800" : ""}
                   `}
                 >
                   <span className="hidden sm:inline">{step.name}</span>

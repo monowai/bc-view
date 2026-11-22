@@ -14,7 +14,6 @@ import CopyFieldsDialog, {
   CopyFields,
   DEFAULT_COPY_FIELDS,
 } from "@components/features/rebalance/models/CopyFieldsDialog"
-import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import StatusBadge from "@components/features/rebalance/common/StatusBadge"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { Asset, Market } from "types/beancounter"
@@ -38,6 +37,13 @@ import {
   planPricesUrl,
   updateModelPlan,
 } from "@utils/api/client/rebalance"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const PriceChartPopup = dynamic(
+  () => import("@components/features/assets/PriceChartPopup"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 const COPY_FIELDS_STORAGE_KEY = "rebalance-plan-copy-fields"
 
@@ -526,7 +532,7 @@ function PlanDetailPage(): React.ReactElement {
             </span>
             <button
               onClick={() => setActionError(null)}
-              className="ml-4 text-red-500 hover:text-red-700"
+              className="ml-4 text-red-600 hover:text-red-700"
             >
               <i className="fas fa-times"></i>
             </button>
@@ -659,7 +665,7 @@ function PlanDetailPage(): React.ReactElement {
                         className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                       >
                         <i
-                          className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                          className={`fas ${copied ? "fa-check text-green-700" : "fa-clipboard"} mr-1.5`}
                         ></i>
                         {copied ? "Copied!" : "Copy"}
                       </button>
@@ -743,7 +749,7 @@ function PlanDetailPage(): React.ReactElement {
                       className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                     >
                       <i
-                        className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                        className={`fas ${copied ? "fa-check text-green-700" : "fa-clipboard"} mr-1.5`}
                       ></i>
                       {copied ? "Copied!" : "Copy"}
                     </button>
@@ -758,7 +764,7 @@ function PlanDetailPage(): React.ReactElement {
                 )}
               </div>
               {plan.assets.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
                   {"No assets in this plan"}
                 </div>
               ) : (
@@ -796,7 +802,7 @@ function PlanDetailPage(): React.ReactElement {
                                       weight: Number(asset.weight) * 100,
                                     })
                                   }
-                                  className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                  className="p-0.5 text-gray-500 hover:text-gray-600 transition-colors"
                                   title={"Price history chart"}
                                 >
                                   <i className="fas fa-chart-line text-xs"></i>
@@ -811,7 +817,7 @@ function PlanDetailPage(): React.ReactElement {
                                       weight: Number(asset.weight) * 100,
                                     })
                                   }
-                                  className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                  className="p-0.5 text-gray-500 hover:text-blue-700 transition-colors"
                                   title={"AI asset insight"}
                                 >
                                   <i className="fas fa-robot text-xs"></i>
@@ -824,7 +830,7 @@ function PlanDetailPage(): React.ReactElement {
                               )}
                               {/* Show price on mobile below asset name */}
                               {asset.capturedPrice && (
-                                <div className="text-xs text-gray-400 font-mono tabular-nums sm:hidden">
+                                <div className="text-xs text-gray-500 font-mono tabular-nums sm:hidden">
                                   {asset.capturedPrice.toFixed(2)}{" "}
                                   {asset.priceCurrency || ""}
                                 </div>

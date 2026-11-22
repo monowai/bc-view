@@ -323,7 +323,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
         <>
           <div className="flex items-center gap-2 flex-wrap flex-1">
             <button
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               onClick={handleLoadEvents}
               disabled={isLoadingEvents || isBackfilling}
             >
@@ -337,7 +337,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               )}
             </button>
             <button
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               onClick={handleBackfill}
               disabled={
                 isBackfilling || isLoadingEvents || missingEvents.length === 0
@@ -362,19 +362,19 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               )}
             </button>
             {loadSuccess && (
-              <span className="text-green-600 text-sm">
+              <span className="text-green-700 text-sm">
                 <i className="fas fa-check mr-1"></i>
                 {"Events loaded"}
               </span>
             )}
             {loadError && (
-              <span className="text-red-500 text-sm">
+              <span className="text-red-600 text-sm">
                 <i className="fas fa-exclamation-circle mr-1"></i>
                 {loadError}
               </span>
             )}
             {processError && (
-              <span className="text-red-500 text-sm">
+              <span className="text-red-600 text-sm">
                 <i className="fas fa-exclamation-circle mr-1"></i>
                 {processError}
               </span>
@@ -417,7 +417,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
         )}
 
         {error && (
-          <div className="text-red-500 py-4">
+          <div className="text-red-600 py-4">
             {"Error retrieving corporate actions"}
           </div>
         )}
@@ -482,7 +482,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                     <td className="px-2 py-2 text-center">
                       {reconciled ? (
                         <i
-                          className="fas fa-check-circle text-green-500"
+                          className="fas fa-check-circle text-green-700"
                           title={"Transaction exists in portfolio"}
                         ></i>
                       ) : (
@@ -495,7 +495,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                     <td className="px-4 py-2">
                       <span className="flex items-center">
                         <i
-                          className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-500`}
+                          className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-600`}
                         ></i>
                         {getEventTypeLabel(event.trnType)}
                       </span>
@@ -507,8 +507,8 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                       <span
                         className={
                           canProcessEvent(event, toDate)
-                            ? "text-green-600"
-                            : "text-orange-500"
+                            ? "text-green-700"
+                            : "text-orange-700"
                         }
                         title={"Calculated as record date + 18 days"}
                       >
@@ -535,7 +535,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               setEditingEventId(event.id)
                               setOverridePayDate(matchingTrn.tradeDate)
                             }}
-                            className="text-left text-green-600 hover:underline"
+                            className="text-left text-green-700 hover:underline"
                             title={"Click to edit transaction date"}
                           >
                             {matchingTrn.tradeDate}
@@ -544,14 +544,14 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                         ) : (
                           <button
                             onClick={() => handleEditPayDate(event)}
-                            className="text-left text-gray-500 hover:text-blue-600 hover:underline"
+                            className="text-left text-gray-500 hover:text-blue-700 hover:underline"
                             title={"Click to set transaction date"}
                           >
                             <i className="fas fa-pencil-alt text-xs"></i>
                           </button>
                         )
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
@@ -590,7 +590,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               overridePayDate < event.recordDate ||
                               overridePayDate > toDate
                             }
-                            className="text-green-500 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={"Create transaction with this date"}
                           >
                             {processingEventId === event.id ? (
@@ -618,7 +618,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                             }
                             className={`disabled:opacity-50 disabled:cursor-not-allowed ${
                               canProcessEvent(event, toDate)
-                                ? "text-blue-500 hover:text-blue-700"
+                                ? "text-blue-600 hover:text-blue-700"
                                 : "text-gray-300"
                             }`}
                             title={
@@ -631,7 +631,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               <i className="fas fa-spinner fa-spin"></i>
                             ) : processSuccess === event.id ? (
                               <span
-                                className="flex items-center text-green-500"
+                                className="flex items-center text-green-700"
                                 title={`Transaction sent to bc-data with pay date: ${processedPayDates[event.id]}`}
                               >
                                 <i className="fas fa-check mr-1"></i>
@@ -641,7 +641,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               </span>
                             ) : processedPayDates[event.id] ? (
                               <span
-                                className="flex items-center text-gray-400"
+                                className="flex items-center text-gray-500"
                                 title={`Transaction sent to bc-data with pay date: ${processedPayDates[event.id]}`}
                               >
                                 <i className="fas fa-check mr-1"></i>

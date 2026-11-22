@@ -16,7 +16,7 @@ function OffboardingPage(): React.ReactElement {
           <div className="mb-8">
             <Link
               href="/"
-              className="text-orange-600 hover:text-orange-700 font-medium"
+              className="text-orange-700 hover:text-orange-800 font-medium"
             >
               <i className="fas fa-arrow-left mr-2"></i>
               {"Back to Home"}

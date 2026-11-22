@@ -55,7 +55,7 @@ const AllocationLegend: React.FC<AllocationLegendProps> = ({
   return (
     <div className="flex flex-col h-full justify-center">
       {onToggleCategory && (
-        <p className="text-xs text-gray-400 mb-2">Click to exclude/include</p>
+        <p className="text-xs text-gray-500 mb-2">Click to exclude/include</p>
       )}
       <div className="space-y-1.5">
         {data.map((slice, index) => {
@@ -78,21 +78,19 @@ const AllocationLegend: React.FC<AllocationLegendProps> = ({
                   }}
                 />
                 <span
-                  className={`text-sm truncate ${isExcluded ? "text-gray-400 line-through" : "text-gray-700"}`}
+                  className={`text-sm truncate ${isExcluded ? "text-gray-500 line-through" : "text-gray-700"}`}
                 >
                   {slice.label}
                 </span>
               </div>
               <div className="flex items-center space-x-3 flex-shrink-0 ml-2">
                 <span
-                  className={`text-sm font-medium tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-900"}`}
+                  className={`text-sm font-medium tabular-nums ${isExcluded ? "text-gray-500" : "text-gray-900"}`}
                 >
                   {currencySymbol}
                   <FormatValue value={slice.value} />
                 </span>
-                <span
-                  className={`text-sm w-14 text-right tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-500"}`}
-                >
+                <span className="text-sm w-14 text-right tabular-nums text-gray-500">
                   {isExcluded ? "-" : `${slice.percentage.toFixed(1)}%`}
                 </span>
               </div>
@@ -113,8 +111,8 @@ const AllocationLegend: React.FC<AllocationLegendProps> = ({
         </div>
         {excludedCategories.size > 0 && (
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-gray-400">Full Total</span>
-            <span className="text-sm text-gray-400 tabular-nums">
+            <span className="text-xs text-gray-500">Full Total</span>
+            <span className="text-sm text-gray-500 tabular-nums">
               {currencySymbol}
               <FormatValue value={totalValue} />
             </span>

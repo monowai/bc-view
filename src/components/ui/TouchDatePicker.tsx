@@ -144,13 +144,13 @@ export default function TouchDatePicker({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>
+        <span className={value ? "text-gray-900" : "text-gray-500"}>
           {displayValue}
         </span>
         <i
-          className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-indigo-500" : ""}`}
+          className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-blue-600" : ""}`}
         ></i>
       </button>
 
@@ -160,7 +160,7 @@ export default function TouchDatePicker({
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
+          <div className="bg-primary px-4 py-3">
             <div className="text-white/70 text-xs uppercase tracking-wider">
               Locked Until
             </div>
@@ -182,7 +182,7 @@ export default function TouchDatePicker({
                   onClick={() => setSelectedYear(year)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     year === selectedYear
-                      ? "bg-indigo-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow-md"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                   }`}
                 >
@@ -193,7 +193,7 @@ export default function TouchDatePicker({
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="px-2 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 border-0 focus:ring-2 focus:ring-indigo-500"
+                  className="px-2 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 border-0 focus:ring-2 focus:ring-blue-500"
                 >
                   {years.map((year) => (
                     <option key={year} value={year}>
@@ -218,7 +218,7 @@ export default function TouchDatePicker({
                   onClick={() => setSelectedMonth(idx)}
                   className={`py-3 rounded-lg text-sm font-medium transition-all ${
                     idx === selectedMonth
-                      ? "bg-indigo-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow-md"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                   }`}
                 >
@@ -242,7 +242,7 @@ export default function TouchDatePicker({
                     onClick={() => setSelectedDay(day)}
                     className={`py-2.5 rounded-lg text-sm font-medium transition-all ${
                       day === selectedDay
-                        ? "bg-indigo-600 text-white shadow-md"
+                        ? "bg-blue-600 text-white shadow-md"
                         : "bg-gray-50 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                     }`}
                   >
@@ -273,7 +273,7 @@ export default function TouchDatePicker({
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-lg shadow-sm transition-colors"
+                className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-colors"
               >
                 Confirm
               </button>

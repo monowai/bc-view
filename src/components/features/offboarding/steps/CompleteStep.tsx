@@ -32,7 +32,7 @@ export default function CompleteStep({
           className={`w-16 h-16 ${hasFailures ? "bg-red-100" : "bg-green-100"} rounded-full flex items-center justify-center mx-auto mb-4`}
         >
           <i
-            className={`fas ${hasFailures ? "fa-exclamation-circle text-2xl text-red-600" : "fa-check text-2xl text-green-600"}`}
+            className={`fas ${hasFailures ? "fa-exclamation-circle text-2xl text-red-600" : "fa-check text-2xl text-green-700"}`}
           ></i>
         </div>
         <h2 className="text-xl font-semibold text-gray-900">
@@ -48,7 +48,7 @@ export default function CompleteStep({
       {hasFailures && (
         <Alert variant="error" className="mb-6">
           <div className="flex items-start">
-            <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
+            <i className="fas fa-exclamation-circle text-red-600 mr-3 mt-1"></i>
             <p className="text-red-700 text-sm">
               {
                 "One or more deletions failed. Your data may be partially deleted. Please retry or contact support if the issue persists."
@@ -68,7 +68,7 @@ export default function CompleteStep({
           >
             <div className="flex items-center">
               <i
-                className={`fas ${result.success ? "fa-check-circle text-green-500" : "fa-times-circle text-red-500"} mr-3`}
+                className={`fas ${result.success ? "fa-check-circle text-green-700" : "fa-times-circle text-red-600"} mr-3`}
               ></i>
               <span className="font-medium capitalize">{result.type}</span>
             </div>

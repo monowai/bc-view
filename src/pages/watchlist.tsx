@@ -71,7 +71,7 @@ export default withPageAuthRequired(
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{"Watchlist"}</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {"Assets you are tracking but don't necessarily hold"}
             </p>
           </div>
@@ -79,7 +79,7 @@ export default withPageAuthRequired(
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
+              className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               <i aria-hidden="true" className="fas fa-plus"></i>
               {"Add Asset"}

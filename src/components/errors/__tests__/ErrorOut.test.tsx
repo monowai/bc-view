@@ -75,7 +75,7 @@ describe("ErrorOut Component (TDD)", () => {
       const icon = screen.getByTestId("error-icon")
       expect(icon).toBeInTheDocument()
       // Backend icon should be orange (server icon)
-      expect(icon).toHaveClass("text-orange-500")
+      expect(icon).toHaveClass("text-orange-700")
     })
   })
 
@@ -90,7 +90,7 @@ describe("ErrorOut Component (TDD)", () => {
       expect(screen.getByText(message)).toBeInTheDocument()
 
       // Should NOT show raw JSON in main display
-      const container = screen.getByRole("main")
+      const container = screen.getByRole("region", { name: "Error" })
       expect(container).not.toHaveTextContent(JSON.stringify(error))
     })
 
@@ -255,7 +255,7 @@ describe("ErrorOut Component (TDD)", () => {
       const { container } = render(<ErrorOut message={message} error={error} />)
 
       // Should have responsive container
-      const mainContainer = container.querySelector("[role='main']")
+      const mainContainer = container.querySelector("section")
       expect(mainContainer).toHaveClass(/min-h-screen|h-screen/)
       expect(mainContainer).toHaveClass(/flex|grid/)
     })
@@ -268,8 +268,8 @@ describe("ErrorOut Component (TDD)", () => {
 
       render(<ErrorOut message={message} error={error} />)
 
-      // Should have main role
-      expect(screen.getByRole("main")).toBeInTheDocument()
+      // Should be a named region (the app shell owns <main>)
+      expect(screen.getByRole("region", { name: "Error" })).toBeInTheDocument()
 
       // Should have proper heading structure
       const heading = screen.getByRole("heading")

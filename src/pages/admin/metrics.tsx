@@ -109,7 +109,7 @@ export default withPageAuthRequired(function MetricsPage(): React.ReactElement {
         <p className="text-gray-600 mt-1 text-sm">
           Live entity counts from <code>bc-data</code> Micrometer gauges.
           {data?.fetchedAt && (
-            <span className="ml-2 text-gray-400">
+            <span className="ml-2 text-gray-500">
               Fetched {new Date(data.fetchedAt).toLocaleTimeString()}
             </span>
           )}

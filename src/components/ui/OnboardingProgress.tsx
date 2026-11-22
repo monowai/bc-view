@@ -24,9 +24,9 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   step.id < currentStep
-                    ? "bg-green-500 text-white"
+                    ? "bg-green-600 text-white"
                     : step.id === currentStep
-                      ? "bg-blue-500 text-white"
+                      ? "bg-blue-600 text-white"
                       : "bg-gray-200 text-gray-500"
                 }`}
               >
@@ -51,7 +51,7 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
             {index < steps.length - 1 && (
               <div
                 className={`flex-1 h-1 mx-2 ${
-                  step.id < currentStep ? "bg-green-500" : "bg-gray-200"
+                  step.id < currentStep ? "bg-green-600" : "bg-gray-200"
                 }`}
               />
             )}

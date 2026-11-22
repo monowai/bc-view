@@ -1032,8 +1032,10 @@ describe("ExecuteRebalancePage", () => {
         screen.getByRole("button", { name: /Execute Transactions/i }),
       )
 
+      // The broker gate is async (it may open a confirm dialog), so the
+      // target-total confirm appears one tick later.
+      expect(await screen.findByText(/90\.00%/)).toBeInTheDocument()
       expect(commit).not.toHaveBeenCalled()
-      expect(screen.getByText(/90\.00%/)).toBeInTheDocument()
 
       fireEvent.click(screen.getByRole("button", { name: /Execute Anyway/i }))
 

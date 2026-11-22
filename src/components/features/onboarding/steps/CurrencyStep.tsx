@@ -41,7 +41,7 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
         <h3 className="text-sm font-medium text-gray-900 mb-1">
           {"Base Currency"}
           {!baseCurrency && (
-            <span className="ml-2 text-xs text-orange-600 font-normal">
+            <span className="ml-2 text-xs text-orange-700 font-normal">
               {"(please select)"}
             </span>
           )}

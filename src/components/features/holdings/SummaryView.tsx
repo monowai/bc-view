@@ -55,7 +55,7 @@ interface SummaryViewProps {
 }
 
 const signClass = (value: number): string =>
-  value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-900"
+  value > 0 ? "text-green-700" : value < 0 ? "text-red-600" : "text-gray-900"
 
 /** Direction never rests on colour alone: a caret and a sign go with it. */
 const Direction: React.FC<{ value: number }> = ({ value }) =>
@@ -476,7 +476,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                     filteredTotal > 0 && !isExcluded
                       ? (convertedValue / filteredTotal) * 100
                       : 0
-                  const muted = "text-gray-400"
+                  const muted = "text-gray-500"
 
                   return (
                     // The row is the mouse target; the button in the first

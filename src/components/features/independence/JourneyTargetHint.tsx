@@ -28,7 +28,7 @@ export default function JourneyTargetHint({
   hideValues,
 }: JourneyTargetHintProps): React.ReactElement {
   return (
-    <p className="text-xs italic text-gray-400">
+    <p className="text-xs italic text-gray-500">
       Overridden by the journey target (
       {hideValues
         ? HIDDEN_VALUE

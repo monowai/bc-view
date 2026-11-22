@@ -41,7 +41,7 @@ export default function OffboardingProgress({
                 </div>
                 <span
                   className={`
-                    mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
+                    mt-1 sm:mt-2 text-micro sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${isCurrent ? "text-red-600" : ""}
                     ${!isCurrent ? "text-gray-500" : ""}
                   `}

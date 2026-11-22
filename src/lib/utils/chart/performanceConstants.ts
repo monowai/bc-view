@@ -1,3 +1,4 @@
+import { GRAY, INVEST, WEALTH } from "@lib/chartPalette"
 /**
  * Shared constants and formatters for performance charts.
  * Used by both per-portfolio PerformanceChart and aggregated WealthPerformanceChart.
@@ -15,11 +16,11 @@ export const TIME_RANGES = [
 
 // Recharts requires inline style values — centralise them here for maintainability
 export const CHART_COLORS = {
-  accent: "#10b981", // emerald-500 — primary portfolio series
-  benchmark: "#6366f1", // indigo-500 — benchmark/index overlay
-  axis: "#9ca3af", // gray-400
-  tooltipBg: "rgba(15, 23, 42, 0.95)", // slate-900 @ 95%
-  tooltipText: "#e2e8f0", // slate-200
+  accent: INVEST[500], // primary portfolio series
+  benchmark: WEALTH[600], // benchmark/index overlay
+  axis: GRAY[500], // axis ticks are text: never lighter than gray-500
+  tooltipBg: "rgba(17, 24, 39, 0.95)", // gray-900 @ 95%
+  tooltipText: GRAY[200],
 }
 
 const MONTH_NAMES = [

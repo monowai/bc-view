@@ -15,7 +15,7 @@ colors:
   wealth: "#3b82f6"
   independence: "#f97316"
   invest: "#10b981"
-  gain: "#059669"
+  gain: "#047857"
   gain-bg: "#ecfdf5"
   loss: "#dc2626"
   loss-bg: "#fef2f2"
@@ -52,6 +52,12 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
     letterSpacing: "0.04em"
+  micro:
+    fontFamily: "DM Sans, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.45
+    letterSpacing: "normal"
   data:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
     fontSize: "0.875rem"
@@ -178,7 +184,9 @@ belongs to. Used for headers, chart series, and domain accents — not buttons.
 
 ### Tertiary — Financial Status
 
-- **Gain Green** (#059669) on **Gain Wash** (#ecfdf5): positive returns, profit.
+- **Gain Green** (#047857) on **Gain Wash** (#ecfdf5): positive returns, profit.
+  Emerald-700, not 600: figures are body-size text and need 4.5:1 on white and
+  on the gray-100 page (600 measured 3.77:1).
 - **Loss Red** (#dc2626) on **Loss Wash** (#fef2f2): negative returns, drawdown.
 - **Caution Amber** (#a16207 text on #fefce8): warnings, stale data, pending state.
 
@@ -226,6 +234,9 @@ roughly a 1.2–1.25 step ratio.
   text; cap prose at 65–75ch.
 - **Label** (DM Sans 500, 0.75rem / 12px, 0.04em tracking): field labels, table
   headers, chip text. Title-case or sentence-case, not ALL-CAPS-everywhere.
+- **Micro** (DM Sans 500, 0.6875rem / 11px, `text-micro`): chart axis ticks,
+  dense table sub-labels, badge text. The floor: no functional text goes
+  smaller. Icon glyphs sized by font-size are not text and are exempt.
 - **Data** (JetBrains Mono 500, 0.875rem / 14px, `font-variant-numeric:
 tabular-nums`): all currency, percentages, quantities, prices.
 

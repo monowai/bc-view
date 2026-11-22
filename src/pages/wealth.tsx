@@ -273,7 +273,7 @@ function WealthDashboard(): React.ReactElement {
                     className="border border-gray-200 rounded-lg p-5 text-center hover:border-independence-200 transition-colors"
                   >
                     <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <i className="fas fa-compass text-xl text-independence-500"></i>
+                      <i className="fas fa-compass text-xl text-independence-700"></i>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">
                       {"Plan your independence"}
@@ -340,7 +340,7 @@ function WealthDashboard(): React.ReactElement {
           {!primaryPlan && primaryPlanResolved && (
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-center">
               <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i className="fas fa-compass text-xl text-independence-500"></i>
+                <i className="fas fa-compass text-xl text-independence-700"></i>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
                 {"No independence plan yet"}
@@ -352,7 +352,7 @@ function WealthDashboard(): React.ReactElement {
               </p>
               <Link
                 href="/independence"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-independence-600 text-white text-sm font-medium hover:bg-independence-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-independence-700 text-white text-sm font-medium hover:bg-independence-800 transition-colors"
               >
                 {"Plan your independence"}
               </Link>

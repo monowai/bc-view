@@ -86,7 +86,7 @@ export default function IncomeSourcesStep({
           socialSecurityMonthly === 0 &&
           otherIncomeMonthly === 0)) && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <i className="fas fa-check-circle text-green-700 mt-0.5 mr-2"></i>
           <p className="text-sm text-green-700">
             You can configure income sources later — click Next to continue.
           </p>
@@ -175,10 +175,10 @@ export default function IncomeSourcesStep({
 
         {/* Composite policy assets with payout info */}
         {compositeAssets.length > 0 && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
-              <i className="fas fa-layer-group text-indigo-600 mr-2"></i>
-              <h3 className="text-sm font-semibold text-indigo-800">
+              <i className="fas fa-layer-group text-gray-500 mr-2"></i>
+              <h3 className="text-sm font-semibold text-gray-900">
                 Policy Assets
               </h3>
             </div>
@@ -193,7 +193,7 @@ export default function IncomeSourcesStep({
                 return (
                   <div
                     key={c.assetId}
-                    className="flex justify-between text-sm text-indigo-700"
+                    className="flex justify-between text-sm text-gray-700"
                   >
                     <span>
                       {c.policyType || "Composite"} — payout at age{" "}
@@ -212,7 +212,7 @@ export default function IncomeSourcesStep({
                 )
               })}
             </div>
-            <p className="text-xs text-indigo-600 mt-2">
+            <p className="text-xs text-gray-500 mt-2">
               <i className="fas fa-info-circle mr-1"></i>
               Policy payouts are included in retirement projections.
             </p>

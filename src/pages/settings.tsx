@@ -291,7 +291,7 @@ function SettingsPage(): React.ReactElement {
               onClick={() => setActiveTab(tab.id)}
               className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                 activeTab === tab.id
-                  ? "border-orange-500 text-orange-600"
+                  ? "border-orange-500 text-orange-700"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -412,11 +412,11 @@ function SettingsPage(): React.ReactElement {
                 </label>
                 <p className="mt-1">
                   {user.email_verified ? (
-                    <span className="text-green-600 flex items-center gap-1">
+                    <span className="text-green-700 flex items-center gap-1">
                       <i className="fas fa-check-circle"></i> Verified
                     </span>
                   ) : (
-                    <span className="text-amber-600 flex items-center gap-1">
+                    <span className="text-amber-700 flex items-center gap-1">
                       <i className="fas fa-exclamation-circle"></i> Not verified
                     </span>
                   )}

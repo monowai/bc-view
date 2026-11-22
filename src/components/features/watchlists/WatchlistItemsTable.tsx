@@ -123,7 +123,7 @@ export default function WatchlistItemsTable({
                 <div className="flex items-center gap-1.5">
                   <Link
                     href={buildAssetLookupHref(item.asset)}
-                    className="font-semibold text-gray-900 hover:text-blue-600"
+                    className="font-semibold text-gray-900 hover:text-blue-700"
                   >
                     {code}
                   </Link>
@@ -141,7 +141,7 @@ export default function WatchlistItemsTable({
                       aria-label={`Show price chart for ${code}`}
                       title="Price Chart"
                       onClick={() => onChart(item)}
-                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                      className="-m-1.5 p-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:text-blue-700 transition-colors"
                     >
                       <i aria-hidden="true" className="fas fa-chart-line"></i>
                     </button>
@@ -253,7 +253,7 @@ export default function WatchlistItemsTable({
                   aria-label={`Remove ${code}`}
                   title="Remove"
                   onClick={() => onRemove(item)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-red-50 hover:text-red-600"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-red-50 hover:text-red-700"
                 >
                   <i aria-hidden="true" className="fas fa-trash"></i>
                 </button>

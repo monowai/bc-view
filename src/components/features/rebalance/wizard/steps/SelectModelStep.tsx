@@ -58,12 +58,12 @@ const SelectModelStep: React.FC<SelectModelStepProps> = ({
               <p className="text-gray-600">{selectedModel.objective}</p>
             )}
             {selectedModel.currentPlanVersion ? (
-              <p className="text-green-600 mt-1">
+              <p className="text-green-700 mt-1">
                 <i className="fas fa-check mr-1"></i>
                 {`Current Plan: v${selectedModel.currentPlanVersion}`}
               </p>
             ) : (
-              <p className="text-amber-600 mt-1">
+              <p className="text-amber-700 mt-1">
                 <i className="fas fa-exclamation-triangle mr-1"></i>
                 {"No approved plan"}
               </p>

@@ -217,7 +217,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
             aria-pressed={enabled}
             className={`px-6 py-3 rounded-lg font-medium transition-colors border-2 ${
               enabled
-                ? "bg-independence-600 text-white border-independence-600"
+                ? "bg-independence-700 text-white border-independence-600"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent"
             }`}
           >
@@ -457,7 +457,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
                 }
                 className="w-full accent-independence-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>{"0%"}</span>
                 <span>{"50%"}</span>
                 <span>{"100%"}</span>

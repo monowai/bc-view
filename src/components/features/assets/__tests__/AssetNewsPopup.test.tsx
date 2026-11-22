@@ -139,7 +139,7 @@ describe("AssetNewsPopup", () => {
     renderPopup({ onClose })
     await screen.findByText(/No recent news/)
 
-    fireEvent.click(screen.getByText("×"))
+    fireEvent.click(screen.getByRole("button", { name: "Close dialog" }))
 
     expect(onClose).toHaveBeenCalled()
   })

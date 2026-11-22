@@ -13,6 +13,8 @@ interface ConfirmDialogProps {
   isSubmitting?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /** Stacking layer; raise above z-50 when confirming from inside a modal. */
+  zClass?: string
 }
 
 export default function ConfirmDialog({
@@ -25,12 +27,14 @@ export default function ConfirmDialog({
   isSubmitting = false,
   onConfirm,
   onCancel,
+  zClass,
 }: ConfirmDialogProps): React.ReactElement {
   return (
     <Dialog
       title={title}
       onClose={onCancel}
       maxWidth="sm"
+      zClass={zClass}
       footer={
         <>
           <Dialog.CancelButton onClick={onCancel} label={cancelLabel} />

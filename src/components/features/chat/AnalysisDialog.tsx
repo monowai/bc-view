@@ -212,7 +212,7 @@ export default function AnalysisDialog({
         </div>
       )}
       {isLoading && !(awaitingFirstToken && followUps.length === 0) && (
-        <div className="mt-3 flex items-center gap-2 text-gray-400 text-xs">
+        <div className="mt-3 flex items-center gap-2 text-gray-500 text-xs">
           <Spinner />
           <span>{awaitingFirstToken ? "Thinking…" : "Streaming…"}</span>
           {cancelButton}

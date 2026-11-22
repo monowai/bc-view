@@ -27,7 +27,7 @@ const colorClasses = {
   green: {
     bg: "bg-green-50",
     border: "border-green-200",
-    icon: "text-green-600",
+    icon: "text-green-700",
     label: "text-green-800",
     value: "text-green-700",
     description: "text-green-700",
@@ -35,7 +35,7 @@ const colorClasses = {
   orange: {
     bg: "bg-independence-50",
     border: "border-independence-200",
-    icon: "text-independence-600",
+    icon: "text-independence-700",
     label: "text-independence-700",
     value: "text-independence-700",
     description: "text-independence-700",

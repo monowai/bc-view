@@ -372,7 +372,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onRecordIncome && (
         <MenuItem
-          iconClass="fas fa-arrow-down text-green-500"
+          iconClass="fas fa-arrow-down text-green-700"
           label="Record Income"
           onClick={handle(() =>
             onRecordIncome({
@@ -389,7 +389,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       )}
       {onRecordExpense && (
         <MenuItem
-          iconClass="fas fa-arrow-up text-red-500"
+          iconClass="fas fa-arrow-up text-red-600"
           label="Record Expense"
           onClick={handle(() =>
             onRecordExpense({
@@ -530,7 +530,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onRecordIncome && (
         <MenuItem
-          iconClass="fas fa-arrow-down text-green-500"
+          iconClass="fas fa-arrow-down text-green-700"
           label="Record Income"
           onClick={handle(() =>
             onRecordIncome({
@@ -548,7 +548,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       )}
       {onRecordExpense && (
         <MenuItem
-          iconClass="fas fa-arrow-up text-red-500"
+          iconClass="fas fa-arrow-up text-red-600"
           label="Record Expense"
           onClick={handle(() =>
             onRecordExpense({

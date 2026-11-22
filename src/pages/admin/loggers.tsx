@@ -165,7 +165,7 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
           <span>{saveError}</span>
           <button
             onClick={() => setSaveError(null)}
-            className="text-red-500 hover:text-red-700 ml-4"
+            className="text-red-600 hover:text-red-700 ml-4"
             aria-label="Dismiss"
           >
             ×

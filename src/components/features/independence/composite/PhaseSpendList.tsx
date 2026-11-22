@@ -7,13 +7,19 @@ import { useExpenseCategories } from "@components/features/independence/useExpen
 import { useLifestyleCatalog } from "@components/features/independence/useLifestyleCatalog"
 import { buildExpenseMix } from "@lib/independence/lifestyleSummary"
 import { expenseShares, typicalYear } from "@lib/independence/yearFlows"
-import YearFlowDialog from "@components/features/independence/YearFlowDialog"
 import { currencySymbolFor } from "@lib/formatters"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import Spinner from "@components/ui/Spinner"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
 import { editPhaseHref } from "@lib/independence/editPhase"
 import type { CompositePhaseInfo } from "types/independence"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const YearFlowDialog = dynamic(
+  () => import("@components/features/independence/YearFlowDialog"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 /**
  * What each stage of the plan actually costs.

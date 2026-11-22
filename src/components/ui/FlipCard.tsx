@@ -65,7 +65,7 @@ export default function FlipCard({
               type="button"
               onClick={() => setFlipped(true)}
               aria-label={`Show ${backLabel}`}
-              className="inline-flex items-center gap-1 text-xs text-independence-600 hover:text-independence-800 focus:outline-none focus:ring-2 focus:ring-independence-500 rounded px-2 py-1"
+              className="inline-flex items-center gap-1 text-xs text-independence-700 hover:text-independence-800 focus:outline-none focus:ring-2 focus:ring-independence-500 rounded px-2 py-1"
             >
               {backLabel}
               <i className="fas fa-rotate-right" aria-hidden="true" />
@@ -84,7 +84,7 @@ export default function FlipCard({
               type="button"
               onClick={() => setFlipped(false)}
               aria-label={`Show ${frontLabel}`}
-              className="inline-flex items-center gap-1 text-xs text-independence-600 hover:text-independence-800 focus:outline-none focus:ring-2 focus:ring-independence-500 rounded px-2 py-1"
+              className="inline-flex items-center gap-1 text-xs text-independence-700 hover:text-independence-800 focus:outline-none focus:ring-2 focus:ring-independence-500 rounded px-2 py-1"
             >
               <i className="fas fa-rotate-left" aria-hidden="true" />
               {frontLabel}

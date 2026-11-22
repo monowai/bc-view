@@ -6,6 +6,7 @@ import {
   ManualAssetCategory,
   RetirementPlan,
 } from "types/independence"
+import { GRAY, INDEPENDENCE, INVEST, WEALTH } from "@lib/chartPalette"
 
 /**
  * Echo a plan's full mutable state as a PlanRequest payload.
@@ -127,11 +128,11 @@ const MANUAL_ASSET_CONFIG: Record<
   ManualAssetCategory,
   { label: string; color: string; isSpendable: boolean }
 > = {
-  CASH: { label: "Cash", color: "#6B7280", isSpendable: true },
-  EQUITY: { label: "Equity", color: "#3B82F6", isSpendable: true },
-  ETF: { label: "ETF", color: "#10B981", isSpendable: true },
-  MUTUAL_FUND: { label: "Mutual Fund", color: "#8B5CF6", isSpendable: true },
-  RE: { label: "Property", color: "#F59E0B", isSpendable: false },
+  CASH: { label: "Cash", color: GRAY[500], isSpendable: true },
+  EQUITY: { label: "Equity", color: WEALTH[500], isSpendable: true },
+  ETF: { label: "ETF", color: INVEST[500], isSpendable: true },
+  MUTUAL_FUND: { label: "Mutual Fund", color: INVEST[700], isSpendable: true },
+  RE: { label: "Property", color: INDEPENDENCE[500], isSpendable: false },
 }
 
 /**

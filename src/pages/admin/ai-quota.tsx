@@ -196,7 +196,7 @@ function QuotaRow({
             aria-label={`Save allowance for ${user.email}`}
             className={`px-3 py-1 text-sm text-white rounded-lg transition-colors ${
               canSave
-                ? "bg-blue-500 hover:bg-blue-600"
+                ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >

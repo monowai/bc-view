@@ -19,8 +19,14 @@ import PhaseSpendList from "./composite/PhaseSpendList"
 import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
 import WorkingYearsSection from "./scenarios/WorkingYearsSection"
-import NetWorthTab from "./composite/tabs/NetWorthTab"
 import JourneyAssumptionsSection from "./composite/tabs/JourneyAssumptionsSection"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const NetWorthTab = dynamic(() => import("./composite/tabs/NetWorthTab"), {
+  ssr: false,
+  loading: () => <ChartPlaceholder heightClass="h-96" />,
+})
 
 /**
  * `plan` reads the projection; `stages`, `wealth` and `assumptions` change it.
@@ -141,7 +147,7 @@ function PlanNarrative(): React.ReactElement {
         </p>
         <Link
           href="/independence?view=phases"
-          className="mt-5 inline-flex items-center rounded-lg bg-independence-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
+          className="mt-5 inline-flex items-center rounded-lg bg-independence-700 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-800 motion-reduce:transition-none"
         >
           <i aria-hidden="true" className="fas fa-sliders-h mr-2" />
           Set up your stages

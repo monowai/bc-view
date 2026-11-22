@@ -192,7 +192,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
             <span
               className={`font-bold ${
                 calculation.type === "DEPOSIT"
-                  ? "text-green-600"
+                  ? "text-green-700"
                   : "text-red-600"
               }`}
             >
@@ -230,7 +230,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
       {targetBalance !== "" &&
         !isNaN(parseFloat(targetBalance)) &&
         calculation.amount === 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-600">
             {"No change needed"}
           </div>
         )}

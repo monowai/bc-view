@@ -40,7 +40,7 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="text-sm text-independence-600 hover:text-independence-700 font-medium"
+              className="text-sm text-independence-700 hover:text-independence-800 font-medium"
             >
               <i className="fas fa-edit mr-1"></i>
               Edit
@@ -91,7 +91,7 @@ export default function IndependenceSettingsSummary(): React.ReactElement {
 
         <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
           <div className="flex">
-            <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+            <i className="fas fa-info-circle text-independence-700 mt-0.5 mr-3"></i>
             <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">

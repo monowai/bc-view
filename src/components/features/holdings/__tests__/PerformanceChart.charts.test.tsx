@@ -235,7 +235,7 @@ describe("TWR action buttons", () => {
 
       const button = screen.getByLabelText(label)
       expect(button).toHaveAttribute("title", label)
-      expect(button).toHaveClass("p-1.5", "rounded", "text-gray-400")
+      expect(button).toHaveClass("p-1.5", "rounded", "text-gray-500")
       expect(button).toBeEnabled()
       expect(svgClass(label)).toBe("w-3.5 h-3.5")
       expect(button.querySelector("path")?.getAttribute("d")).toContain(

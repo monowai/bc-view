@@ -302,7 +302,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
               aria-label="AI summary of this portfolio"
               title="AI summary: headwinds, tailwinds, key news on winners and losers"
             >
-              <i className="fas fa-robot text-xs text-blue-500"></i>
+              <i className="fas fa-robot text-xs text-blue-600"></i>
             </button>
           )}
           {onShare && (
@@ -312,7 +312,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
               aria-label="Share"
               title="Share"
             >
-              <i className="fas fa-share-alt text-xs text-blue-500"></i>
+              <i className="fas fa-share-alt text-xs text-blue-600"></i>
             </button>
           )}
           {!emptyHoldings && (
@@ -322,7 +322,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
               aria-label="Copy Holdings"
               title="Copy Holdings"
             >
-              <i className="fas fa-copy text-xs text-blue-500"></i>
+              <i className="fas fa-copy text-xs text-blue-600"></i>
             </button>
           )}
           {/* Trade Dropdown */}
@@ -336,7 +336,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           <DropdownMenu
             label="Invest"
             icon="fa-balance-scale"
-            colorClass="bg-blue-500 hover:bg-blue-600 shadow-sm shadow-blue-500/20"
+            colorClass="bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20"
             items={rebalanceItems}
           />
         </div>

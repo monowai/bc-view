@@ -124,7 +124,7 @@ describe("IndependenceReport robustness", () => {
     projection.fiMetrics = { ...projection.fiMetrics!, fiProgress: 99.6 }
     render(<IndependenceReport {...baseProps} projection={projection} />)
     expect(screen.getByTestId("report-fi-label")).toHaveTextContent("100%")
-    expect(screen.getByTestId("report-fi-bar")).toHaveClass("bg-green-500")
+    expect(screen.getByTestId("report-fi-bar")).toHaveClass("bg-green-600")
   })
 
   it("should clamp the progress bar at zero for a negative fiProgress", () => {

@@ -182,7 +182,7 @@ export default function ScenarioList({
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            <i className="fas fa-briefcase text-independence-500 mr-2"></i>
+            <i className="fas fa-briefcase text-independence-700 mr-2"></i>
             Work Scenarios
           </h2>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -191,7 +191,7 @@ export default function ScenarioList({
         </div>
         <button
           onClick={handleCreate}
-          className="bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium flex items-center text-sm"
+          className="bg-independence-700 text-white px-4 py-2 rounded-lg hover:bg-independence-800 font-medium flex items-center text-sm"
         >
           <i className="fas fa-plus mr-2"></i>
           Add Scenario
@@ -208,7 +208,7 @@ export default function ScenarioList({
           action={
             <button
               onClick={handleCreate}
-              className="inline-flex items-center bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium text-sm"
+              className="inline-flex items-center bg-independence-700 text-white px-4 py-2 rounded-lg hover:bg-independence-800 font-medium text-sm"
             >
               <i className="fas fa-plus mr-2"></i>
               Create Your First Scenario
@@ -272,7 +272,7 @@ export default function ScenarioList({
                 </div>
                 <button
                   onClick={() => handleRestore(scenario.id)}
-                  className="text-sm font-medium text-independence-600 hover:text-independence-800"
+                  className="text-sm font-medium text-independence-700 hover:text-independence-800"
                 >
                   <i className="fas fa-rotate-left mr-1.5 text-xs"></i>
                   Restore

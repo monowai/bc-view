@@ -17,6 +17,7 @@ import {
 } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import { useConfirm } from "@hooks/useConfirm"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import AssetChart from "@components/features/assets/AssetChart"
 import SectorWeightingsPopup from "@components/features/portfolios/SectorWeightingsPopup"
@@ -91,7 +92,7 @@ function assetOptionFromQuery(
 
 function changeClass(change: number): string {
   if (change < 0) return "text-red-600"
-  if (change > 0) return "text-emerald-600"
+  if (change > 0) return "text-emerald-700"
   return "text-gray-600"
 }
 
@@ -151,6 +152,7 @@ function assetOptionToAsset(option: AssetOption): Asset {
 
 function AssetLookupPage(): React.ReactElement {
   const router = useRouter()
+  const [confirm, confirmDialog] = useConfirm()
   const { preferences } = useUserPreferences()
 
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
@@ -344,13 +346,13 @@ function AssetLookupPage(): React.ReactElement {
     // on it, so a late response can't clear a different asset's selection.
     const targetAssetId = selectedAsset.assetId
     const label = selectedAsset.symbol || selectedAsset.assetId
-    if (
-      !window.confirm(
-        `Delete asset "${label}"? This cannot be undone. The asset must not be held in any portfolio.`,
-      )
-    ) {
-      return
-    }
+    const confirmed = await confirm({
+      title: `Delete asset "${label}"?`,
+      message:
+        "This cannot be undone. The asset must not be held in any portfolio.",
+      confirmLabel: "Delete",
+    })
+    if (!confirmed) return
     setDeleting(true)
     setDeleteError(null)
     const fail = (message: string): void =>
@@ -440,6 +442,7 @@ function AssetLookupPage(): React.ReactElement {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {confirmDialog}
       {/* Title and search share a row on wide screens. */}
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="shrink-0">
@@ -843,7 +846,7 @@ function AssetLookupPage(): React.ReactElement {
                         {moneyValues ? (
                           <div
                             className={
-                              gain >= 0 ? "text-emerald-600" : "text-red-600"
+                              gain >= 0 ? "text-emerald-700" : "text-red-600"
                             }
                           >
                             <div>
@@ -884,7 +887,7 @@ function AssetLookupPage(): React.ReactElement {
           )}
 
           {visiblePositions.length > 0 && (
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
               <i className="fas fa-info-circle mr-1"></i>
               {"Double-click a row to view and edit transactions"}
             </div>
@@ -967,7 +970,7 @@ function AssetLookupPage(): React.ReactElement {
           )}
 
           {models.length > 0 && (
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
               <i className="fas fa-info-circle mr-1"></i>
               {"Double-click a row to view the model plan"}
             </div>

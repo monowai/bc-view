@@ -22,7 +22,7 @@ function wholeAmount(value: number): string {
 
 function cellText(value: number, strength: number): string {
   if (strength > WHITE_TEXT_FROM) return "text-white"
-  return value === 0 ? "text-gray-400" : "text-gray-900"
+  return value === 0 ? "text-gray-500" : "text-gray-900"
 }
 
 // Groups by months; each cell is tinted by its size within the whole grid

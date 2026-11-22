@@ -408,7 +408,7 @@ export default function CompositeAssetEditor({
                     Roth
                   </label>
                 </div>
-                <p className="text-xs text-emerald-600 mt-1">
+                <p className="text-xs text-emerald-700 mt-1">
                   Traditional projects withdrawals net of tax; Roth projects 1:1
                   (already taxed).
                 </p>
@@ -502,7 +502,7 @@ export default function CompositeAssetEditor({
                   />
                 </div>
               </div>
-              <p className="text-xs text-emerald-600">
+              <p className="text-xs text-emerald-700">
                 Match = min(deferral, cap % of salary) × match %.
               </p>
               {/* Withdrawal tax rate only applies when withdrawals are
@@ -536,7 +536,7 @@ export default function CompositeAssetEditor({
                     placeholder="22"
                     className="w-full border-emerald-300 rounded px-2 py-1.5 border text-sm focus:ring-emerald-500 focus:border-emerald-500"
                   />
-                  <p className="text-xs text-emerald-600 mt-1">
+                  <p className="text-xs text-emerald-700 mt-1">
                     Applied to projected withdrawals. Defaults to 22% if left
                     blank.
                   </p>
@@ -645,7 +645,7 @@ export default function CompositeAssetEditor({
                         <button
                           type="button"
                           onClick={() => handleRemoveSubAccount(index)}
-                          className="text-red-400 hover:text-red-600"
+                          className="text-red-400 hover:text-red-700"
                           title="Remove sub-account"
                         >
                           <i className="fas fa-times"></i>

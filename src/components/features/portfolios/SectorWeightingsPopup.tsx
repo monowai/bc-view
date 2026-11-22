@@ -228,7 +228,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
         )}
 
         {error && (
-          <div className="text-red-500 py-4">
+          <div className="text-red-600 py-4">
             {"Failed to load sector weightings"}
           </div>
         )}
@@ -248,7 +248,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isRefreshing ? (
                 <Spinner label={"Loading..."} />
@@ -260,7 +260,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
               )}
             </button>
             {refreshError && (
-              <p className="text-red-500 mt-2 text-sm">{refreshError}</p>
+              <p className="text-red-600 mt-2 text-sm">{refreshError}</p>
             )}
           </div>
         )}
@@ -326,12 +326,12 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
 
         {/* As-at caption for whichever tab has data */}
         {activeTab === "sectors" && !isLoading && !error && sectorsAsOf && (
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-gray-500 mt-3">
             {`As at ${formatDate(sectorsAsOf)}`}
           </p>
         )}
         {activeTab === "holdings" && !isLoading && !error && holdingsAsOf && (
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-gray-500 mt-3">
             {`As at ${formatDate(holdingsAsOf)}`}
           </p>
         )}

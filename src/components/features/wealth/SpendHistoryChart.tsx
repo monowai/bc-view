@@ -18,10 +18,11 @@ import {
   spendHistory,
 } from "@lib/independence/spendHistory"
 import { formatSpendMoney, monthStart } from "@lib/independence/spendSummary"
+import { CHART_PALETTE, CHART_TICK, GRAY } from "@lib/chartPalette"
 
-const TICK = { fontSize: 11, fill: "#94a3b8" }
-const BUDGET_COLOR = "#334155"
-const SURFACE = "#ffffff"
+const TICK = CHART_TICK
+const BUDGET_COLOR = GRAY[700]
+const SURFACE = CHART_PALETTE.surface
 /** Estimated months: same hue, lighter, so identity holds and the state reads. */
 const ESTIMATED_OPACITY = 0.4
 
@@ -159,7 +160,7 @@ export default function SpendHistoryChart({
           >
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#f1f5f9"
+              stroke={CHART_PALETTE.gridFaint}
               vertical={false}
             />
             <XAxis
@@ -177,7 +178,7 @@ export default function SpendHistoryChart({
               width={48}
             />
             <Tooltip
-              cursor={{ fill: "#f8fafc" }}
+              cursor={{ fill: GRAY[50] }}
               content={<HistoryTooltip series={series} money={money} />}
             />
             {series.map((s, i) => (

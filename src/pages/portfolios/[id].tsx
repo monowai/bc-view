@@ -204,12 +204,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         <input
           {...register("code")}
           type="text"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           autoFocus={true}
           placeholder={"Unique short identifier"}
           defaultValue={portfolio.code}
         />
-        <div className="text-red-500 text-xs italic">
+        <div className="text-red-600 text-xs italic">
           {errors?.code?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -217,12 +217,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         </label>
         <input
           {...register("name", { required: true, maxLength: 100 })}
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           type="text"
           placeholder={"Descriptive name"}
           defaultValue={portfolio.name}
         />
-        <div className="text-red-500 text-xs italic">
+        <div className="text-red-600 text-xs italic">
           {errors?.name?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -326,13 +326,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           <button
             type="submit"
             disabled={saveState.kind === "saving"}
-            className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           >
             {saveState.kind === "saving" ? "Saving…" : "Submit"}
           </button>
           <button
             type="button"
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
             onClick={() => {
               router.push("/portfolios").then()
             }}
@@ -341,7 +341,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           </button>
           <Link
             href={`/holdings/${portfolio.code}`}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           >
             {"Holdings"}
           </Link>

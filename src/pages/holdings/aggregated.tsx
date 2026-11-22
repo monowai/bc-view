@@ -44,15 +44,27 @@ import {
 import PerformanceHeatmap from "@components/features/holdings/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
-import AllocationChart from "@components/features/allocation/AllocationChart"
 import CopyPopup from "@components/features/holdings/CopyPopup"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
-import IncomeView from "@components/features/holdings/IncomeView"
 import Alert from "@components/ui/Alert"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const AllocationChart = dynamic(
+  () => import("@components/features/allocation/AllocationChart"),
+  {
+    ssr: false,
+    loading: () => <ChartPlaceholder heightClass="h-64 lg:h-80" />,
+  },
+)
+const IncomeView = dynamic(
+  () => import("@components/features/holdings/IncomeView"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 interface AggregatedIncomeProps {
   portfolio: Portfolio
@@ -444,7 +456,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                 aria-label="AI summary of aggregated holdings"
                 title="AI summary: headwinds, tailwinds, key news on winners and losers"
               >
-                <i className="fas fa-robot text-xs text-blue-500"></i>
+                <i className="fas fa-robot text-xs text-blue-600"></i>
               </button>
             )}
             <button
@@ -453,7 +465,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               aria-label="Copy Data"
               title="Copy Data"
             >
-              <i className="fas fa-copy text-xs text-blue-500"></i>
+              <i className="fas fa-copy text-xs text-blue-600"></i>
             </button>
             {defaultTradePortfolio && (
               <button
@@ -467,7 +479,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               </button>
             )}
             <button
-              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-blue-500 hover:bg-blue-600 text-white"
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => {
                 const portfolioParams = codes
                   ? `?portfolios=${encodeURIComponent(codes)}`

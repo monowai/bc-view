@@ -28,10 +28,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   }
 
   const colorClasses = {
-    blue: "bg-blue-500",
-    green: "bg-green-500",
-    red: "bg-red-500",
-    purple: "bg-purple-500",
+    blue: "bg-blue-600",
+    green: "bg-green-600",
+    red: "bg-red-600",
+    purple: "bg-purple-600",
     gray: "bg-gray-500",
   }
 

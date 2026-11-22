@@ -59,7 +59,7 @@ export default function WizardNavigation({
             type="button"
             onClick={onSave}
             disabled={isSubmitting}
-            className="px-6 py-2 border border-independence-600 text-independence-600 rounded-lg hover:bg-independence-50 font-medium disabled:opacity-50 flex items-center"
+            className="px-6 py-2 border border-independence-600 text-independence-700 rounded-lg hover:bg-independence-50 font-medium disabled:opacity-50 flex items-center"
           >
             {isSubmitting && <Spinner className="mr-2" />}
             Save
@@ -69,7 +69,7 @@ export default function WizardNavigation({
           type="button"
           onClick={isLastStep ? onSave || onNext : onNext}
           disabled={isSubmitting || (isLastStep && finishDisabled)}
-          className="px-6 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-50 flex items-center"
+          className="px-6 py-2 bg-independence-700 text-white rounded-lg hover:bg-independence-800 font-medium disabled:opacity-50 flex items-center"
         >
           {isSubmitting && isLastStep && <Spinner className="mr-2" />}
           {isLastStep ? "Save Plan" : "Next"}

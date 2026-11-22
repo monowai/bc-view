@@ -124,35 +124,29 @@ describe("BrokerSelect", () => {
 })
 
 describe("confirmBrokerSelection", () => {
-  const originalConfirm = window.confirm
+  it("resolves true without prompting when 1 or fewer brokers exist", async () => {
+    const confirm = jest.fn()
 
-  afterEach(() => {
-    window.confirm = originalConfirm
+    expect(await confirmBrokerSelection(0, undefined, confirm)).toBe(true)
+    expect(await confirmBrokerSelection(1, undefined, confirm)).toBe(true)
+    expect(confirm).not.toHaveBeenCalled()
   })
 
-  it("returns true without prompting when 1 or fewer brokers exist", () => {
-    window.confirm = jest.fn()
+  it("resolves true without prompting when a broker is already selected", async () => {
+    const confirm = jest.fn()
 
-    expect(confirmBrokerSelection(0, undefined)).toBe(true)
-    expect(confirmBrokerSelection(1, undefined)).toBe(true)
-    expect(window.confirm).not.toHaveBeenCalled()
+    expect(await confirmBrokerSelection(3, "broker-1", confirm)).toBe(true)
+    expect(confirm).not.toHaveBeenCalled()
   })
 
-  it("returns true without prompting when a broker is already selected", () => {
-    window.confirm = jest.fn()
-
-    expect(confirmBrokerSelection(3, "broker-1")).toBe(true)
-    expect(window.confirm).not.toHaveBeenCalled()
-  })
-
-  it("prompts and returns the user's answer when >1 brokers exist and none is selected", () => {
-    window.confirm = jest.fn().mockReturnValue(true)
-    expect(confirmBrokerSelection(2, undefined)).toBe(true)
-    expect(window.confirm).toHaveBeenCalledWith(
-      "No brokerage account selected. Your proposed transactions won't be tagged with a brokerage account. Continue?",
+  it("prompts and resolves the user's answer when >1 brokers exist and none is selected", async () => {
+    const yes = jest.fn().mockResolvedValue(true)
+    expect(await confirmBrokerSelection(2, undefined, yes)).toBe(true)
+    expect(yes).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "No brokerage account selected" }),
     )
 
-    window.confirm = jest.fn().mockReturnValue(false)
-    expect(confirmBrokerSelection(2, undefined)).toBe(false)
+    const no = jest.fn().mockResolvedValue(false)
+    expect(await confirmBrokerSelection(2, undefined, no)).toBe(false)
   })
 })

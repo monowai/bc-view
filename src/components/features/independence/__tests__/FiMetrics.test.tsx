@@ -387,7 +387,7 @@ describe("FiMetrics", () => {
       .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
-    expect(progressSpan).toHaveClass("text-orange-600")
+    expect(progressSpan).toHaveClass("text-orange-700")
 
     // 50-75% - yellow
     rerender(<FiMetrics {...defaultProps} liquidAssets={900000} />)
@@ -411,7 +411,7 @@ describe("FiMetrics", () => {
       .getByText("Progress")
       .closest(".flex")
       ?.querySelector(".font-semibold")
-    expect(progressSpan).toHaveClass("text-green-600")
+    expect(progressSpan).toHaveClass("text-green-700")
   })
 
   describe("Retirement Strategies", () => {
@@ -506,7 +506,7 @@ describe("FiMetrics", () => {
         .getByText("Income Coverage")
         .closest("div")
         ?.parentElement?.querySelector(".font-semibold")
-      expect(span).toHaveClass("text-green-600")
+      expect(span).toHaveClass("text-green-700")
     })
 
     it("orders Pension gauges by value descending so best news leads", () => {

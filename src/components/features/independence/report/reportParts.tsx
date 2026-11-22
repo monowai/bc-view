@@ -23,12 +23,12 @@ const SEVERITY: Record<
   },
   WARNING: {
     icon: "fa-triangle-exclamation",
-    color: "text-amber-600",
+    color: "text-amber-700",
     label: "Warning",
   },
   POSITIVE: {
     icon: "fa-circle-check",
-    color: "text-green-600",
+    color: "text-green-700",
     label: "Positive",
   },
   INFO: { icon: "fa-circle-info", color: "text-gray-500", label: "Note" },
@@ -90,7 +90,7 @@ export function Kpis({
           key={k.label}
           className="rounded-lg border border-gray-200 bg-gray-50 p-3"
         >
-          <dt className="text-[11px] uppercase tracking-wide text-gray-500">
+          <dt className="text-micro uppercase tracking-wide text-gray-500">
             {k.label}
           </dt>
           <dd className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
@@ -148,7 +148,7 @@ export function FiProgressBar({
       <div className="flex h-3 overflow-hidden rounded bg-gray-100">
         <div
           data-testid="report-fi-bar"
-          className={`h-full ${clamped >= 100 ? "bg-green-500" : "bg-independence-500"}`}
+          className={`h-full ${clamped >= 100 ? "bg-green-600" : "bg-independence-500"}`}
           style={{ width: `${clamped}%` }}
         />
       </div>
@@ -181,7 +181,7 @@ export function FindingsList({
             <span>
               <span className="font-medium">{f.title}</span>
               {f.tag && (
-                <span className="ml-2 rounded border border-gray-300 px-1 text-[10px] text-gray-500 align-middle">
+                <span className="ml-2 rounded border border-gray-300 px-1 text-micro text-gray-500 align-middle">
                   {f.tag}
                 </span>
               )}
@@ -364,7 +364,7 @@ export function YearByYearTable({
       </h3>
       <table className="w-full text-xs tabular-nums">
         <thead>
-          <tr className="border-b border-gray-300 text-left text-[10px] uppercase text-gray-500">
+          <tr className="border-b border-gray-300 text-left text-micro uppercase text-gray-500">
             <th className="py-1">Age</th>
             {showStage && <th className="py-1">Stage</th>}
             <th className="py-1 text-right">Starting</th>
@@ -405,7 +405,7 @@ export function ReportFooter({
   return (
     <footer
       data-testid="report-footer"
-      className="mt-4 flex justify-between border-t border-gray-200 pt-2 text-[10px] text-gray-500"
+      className="mt-4 flex justify-between border-t border-gray-200 pt-2 text-micro text-gray-500"
     >
       <span>{footer.line}</span>
       <span>{footer.disclaimer}</span>

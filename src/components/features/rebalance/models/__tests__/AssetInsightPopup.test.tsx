@@ -127,7 +127,7 @@ describe("AssetInsightPopup", () => {
       />,
     )
     await screen.findByText("Strong thesis")
-    await userEvent.click(screen.getByText("×"))
+    await userEvent.click(screen.getByRole("button", { name: "Close dialog" }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

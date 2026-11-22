@@ -256,5 +256,5 @@ export function toErrorMessage(
  * @param value - Numeric gain/loss value
  */
 export function gainLossClass(value: number): string {
-  return value >= 0 ? "text-green-600" : "text-red-600"
+  return value >= 0 ? "text-green-700" : "text-red-600"
 }

@@ -66,7 +66,7 @@ function RowStatusCell({
     // It still records, but the figures read from the image do not add up.
     const checkText = `${text}, but check: ${describeWarnings(preview.warnings)}`
     return (
-      <span className="text-amber-600" title={checkText}>
+      <span className="text-amber-700" title={checkText}>
         <i
           className="fas fa-triangle-exclamation text-lg"
           aria-hidden="true"
@@ -77,7 +77,7 @@ function RowStatusCell({
   }
   if (isRecorded(preview)) {
     return (
-      <span className="text-green-600" title={text}>
+      <span className="text-green-700" title={text}>
         <i className="fas fa-circle-check text-lg" aria-hidden="true"></i>
         <span className="sr-only">{text}</span>
       </span>
@@ -281,7 +281,7 @@ export default function HoldingsTable({
                       )}
                     </>
                   ) : (
-                    <span className="text-gray-400" aria-hidden="true">
+                    <span className="text-gray-500" aria-hidden="true">
                       —
                     </span>
                   )}
@@ -332,7 +332,7 @@ export default function HoldingsTable({
                     title="Check this row again"
                     disabled={disabled || checking || !row.code.trim()}
                     onClick={() => onRecheck(row.key)}
-                    className="p-1 text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                    className="p-1 text-gray-500 hover:text-blue-700 disabled:opacity-40"
                   >
                     <i className="fas fa-rotate-right" aria-hidden="true"></i>
                   </button>
@@ -342,7 +342,7 @@ export default function HoldingsTable({
                     title={`Remove ${name}`}
                     disabled={disabled}
                     onClick={() => onRemove(row.key)}
-                    className="text-gray-400 hover:text-red-600 p-1"
+                    className="text-gray-500 hover:text-red-700 p-1"
                   >
                     <i className="far fa-trash-alt" aria-hidden="true"></i>
                   </button>

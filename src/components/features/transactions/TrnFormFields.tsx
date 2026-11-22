@@ -79,7 +79,7 @@ export function TrnMathField<T extends FieldValues>({
         />
       )}
     >
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-red-600 text-xs">{error}</p>}
     </TrnField>
   )
 }

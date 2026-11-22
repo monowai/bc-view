@@ -99,13 +99,13 @@ export const TIER_COLORS: Record<
 > = {
   1: {
     bg: "bg-amber-500",
-    text: "text-amber-600",
+    text: "text-amber-700",
     bgLight: "bg-amber-50",
     border: "border-amber-200",
   },
   2: {
     bg: "bg-emerald-500",
-    text: "text-emerald-600",
+    text: "text-emerald-700",
     bgLight: "bg-emerald-50",
     border: "border-emerald-200",
   },

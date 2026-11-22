@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Alert from "@components/ui/Alert"
+import { useConfirm } from "@hooks/useConfirm"
 import Head from "next/head"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -40,6 +41,13 @@ function statusBadge(status: ShareStatus): React.ReactElement {
 
 function SharesPage(): React.ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [confirm, confirmDialog] = useConfirm()
+  const confirmRevoke = (): Promise<boolean> =>
+    confirm({
+      title: "Revoke this share?",
+      message: "The recipient loses access immediately.",
+      confirmLabel: "Revoke",
+    })
   const [error, setError] = useState<string | null>(null)
 
   const portfolios = useSwr<{ data: PortfolioShare[] }>(
@@ -56,12 +64,7 @@ function SharesPage(): React.ReactElement {
   )
 
   const revokePortfolioShare = async (id: string): Promise<void> => {
-    if (
-      !window.confirm(
-        "Revoke this share? The recipient loses access immediately.",
-      )
-    )
-      return
+    if (!(await confirmRevoke())) return
     setBusyId(id)
     setError(null)
     try {
@@ -82,12 +85,7 @@ function SharesPage(): React.ReactElement {
     id: string,
     refetch: () => Promise<unknown>,
   ): Promise<void> => {
-    if (
-      !window.confirm(
-        "Revoke this share? The recipient loses access immediately.",
-      )
-    )
-      return
+    if (!(await confirmRevoke())) return
     setBusyId(id)
     setError(null)
     try {
@@ -110,6 +108,7 @@ function SharesPage(): React.ReactElement {
 
   return (
     <>
+      {confirmDialog}
       <Head>
         <title>Shares | Holdsworth</title>
       </Head>
@@ -228,7 +227,7 @@ function Section({
       )}
       {shares.length > 0 && (
         <table className="w-full text-sm">
-          <thead className="text-xs text-gray-500 uppercase tracking-wider bg-gray-50">
+          <thead className="text-xs text-gray-600 uppercase tracking-wider bg-gray-50">
             <tr>
               <th className="text-left px-4 py-2">Resource</th>
               <th className="text-left px-4 py-2">Recipient</th>

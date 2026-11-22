@@ -249,7 +249,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <Spinner size="2xl" className="text-blue-500" label="Loading..." />
+          <Spinner size="2xl" className="text-blue-600" label="Loading..." />
         </div>
       )}
 
@@ -272,7 +272,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
             <div className="flex items-center justify-center py-4">
               <Spinner
                 size="2xl"
-                className="text-blue-500"
+                className="text-blue-600"
                 label="Loading..."
               />
             </div>
@@ -348,7 +348,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                   <span
                     className={`font-medium text-sm ${
                       entry.adjustment.type === "DEPOSIT"
-                        ? "text-green-600"
+                        ? "text-green-700"
                         : "text-red-600"
                     }`}
                   >
@@ -399,7 +399,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       {/* Success Message */}
       {submitSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-          <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+          <i className="fas fa-check-circle text-green-700 text-2xl mb-2"></i>
           <p className="text-green-700 font-medium">
             {`Successfully updated ${successCount} balance(s)`}
           </p>

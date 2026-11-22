@@ -30,7 +30,7 @@ export default function PlanTabNavigation({
 
   return (
     <div className="mb-5">
-      <div className="flex w-fit gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+      <div className="flex w-full gap-1 rounded-lg bg-gray-100 p-1 sm:w-fit dark:bg-gray-800">
         {TABS.map((tab) => {
           const isDisabled =
             TABS_REQUIRING_ASSETS.includes(tab.id) && !hasAssets
@@ -47,18 +47,20 @@ export default function PlanTabNavigation({
                   ? "Add some holdings and this will have something to chart"
                   : undefined
               }
-              className={`flex items-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
+              className={`flex flex-1 items-center justify-center whitespace-nowrap rounded-md px-2 py-2 text-sm sm:flex-none sm:px-4 font-medium transition-colors duration-150 motion-reduce:transition-none ${
                 isDisabled
-                  ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
+                  ? "cursor-not-allowed text-gray-500 dark:text-gray-600"
                   : isActive
                     ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
               }`}
             >
-              <i
-                aria-hidden="true"
-                className={`fas ${tab.icon} mr-2 text-xs`}
-              />
+              {/* Icons drop below sm so three tabs fit a 390px screen. The
+                  wrapper carries the display rule; FontAwesome's own .fas
+                  display would beat a utility on the <i>. */}
+              <span className="hidden sm:inline" aria-hidden="true">
+                <i className={`fas ${tab.icon} mr-2 text-xs`} />
+              </span>
               {tab.label}
             </button>
           )

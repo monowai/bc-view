@@ -2,9 +2,9 @@ import React from "react"
 
 const TONE_CLASSES = {
   default: "text-gray-900",
-  positive: "text-green-600",
+  positive: "text-green-700",
   negative: "text-red-600",
-  warning: "text-amber-600",
+  warning: "text-amber-700",
 } as const
 
 export type KpiTone = keyof typeof TONE_CLASSES

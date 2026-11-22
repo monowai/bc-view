@@ -34,14 +34,14 @@ export default function WealthStep({
       <div className="space-y-3 mb-6">
         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <i className="fas fa-folder text-blue-500 mr-3"></i>
+            <i className="fas fa-folder text-blue-600 mr-3"></i>
             <span>{"Portfolios"}</span>
           </div>
           <span className="font-semibold">{portfolioCount}</span>
         </div>
         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <i className="fas fa-home text-green-500 mr-3"></i>
+            <i className="fas fa-home text-green-700 mr-3"></i>
             <span>{"Custom Assets"}</span>
           </div>
           <span className="font-semibold">{assetCount}</span>
@@ -83,7 +83,7 @@ export default function WealthStep({
       {deleteWealth && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
-            <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
+            <i className="fas fa-exclamation-circle text-red-600 mr-3 mt-1"></i>
             <div>
               <p className="text-red-700 font-medium">
                 {"This action is irreversible"}

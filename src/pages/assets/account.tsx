@@ -351,7 +351,7 @@ export default withPageAuthRequired(
               />
             )}
           />
-          <div className="text-red-500 text-xs italic">
+          <div className="text-red-600 text-xs italic">
             {errors?.category?.message}
           </div>
 
@@ -361,11 +361,11 @@ export default withPageAuthRequired(
           <input
             {...register("code")}
             type="text"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
             autoFocus={true}
             placeholder={"Unique identifier (e.g., SAVINGS, MY-HOUSE)"}
           />
-          <div className="text-red-500 text-xs italic">
+          <div className="text-red-600 text-xs italic">
             {errors?.code?.message}
           </div>
 
@@ -374,13 +374,13 @@ export default withPageAuthRequired(
           </label>
           <input
             {...register("name")}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
             type="text"
             placeholder={
               "Descriptive name (e.g., My USD Savings, Main Residence)"
             }
           />
-          <div className="text-red-500 text-xs italic">
+          <div className="text-red-600 text-xs italic">
             {errors?.name?.message}
           </div>
 
@@ -425,7 +425,7 @@ export default withPageAuthRequired(
           {watch("category")?.value === "POLICY" && (
             <div className="mt-6 p-4 rounded-lg border bg-blue-50 border-blue-200">
               <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                <i className="fas fa-piggy-bank text-blue-500 mr-2"></i>
+                <i className="fas fa-piggy-bank text-blue-600 mr-2"></i>
                 {"Policy Settings"}
               </h3>
 
@@ -463,7 +463,7 @@ export default withPageAuthRequired(
           <div className="flex items-center justify-between mt-6">
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
               onClick={(e) => {
                 e.preventDefault()
                 handleSubmit(getValues() as AccountFormInput)
@@ -472,7 +472,7 @@ export default withPageAuthRequired(
               {"Submit"}
             </button>
             <button
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
               onClick={(e) => {
                 e.preventDefault()
                 router.push("/accounts").then()

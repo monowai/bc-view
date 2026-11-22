@@ -5,7 +5,16 @@ import type { ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
-import { MonteCarloResultView } from "./monte-carlo/MonteCarloResultView"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const MonteCarloResultView = dynamic(
+  () =>
+    import("./monte-carlo/MonteCarloResultView").then(
+      (m) => m.MonteCarloResultView,
+    ),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 interface MonteCarloTabProps {
   plan: RetirementPlan
@@ -102,7 +111,7 @@ export default function MonteCarloTab({
               onChange={(e) => setNeverSellIlliquid(e.target.checked)}
               disabled={isRunning}
               aria-label="Never force-sell illiquid"
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-500 focus:ring-independence-500"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-700 focus:ring-independence-500"
             />
             <span>
               <span className="text-sm font-medium text-gray-800">

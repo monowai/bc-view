@@ -23,14 +23,14 @@ const BANNER_STYLE: Record<FindingSeverity, BannerStyle> = {
     text: "text-amber-800",
     border: "border border-amber-200",
     icon: "fa-triangle-exclamation",
-    iconColor: "text-amber-600",
+    iconColor: "text-amber-700",
   },
   POSITIVE: {
     bg: "bg-green-50",
     text: "text-green-800",
     border: "border border-green-200",
     icon: "fa-circle-check",
-    iconColor: "text-green-600",
+    iconColor: "text-green-700",
   },
   INFO: {
     bg: "bg-slate-50",
@@ -76,7 +76,7 @@ export default function VerdictBanner({
       ></i>
       <div className="flex-1">
         <p className={`text-sm font-bold ${style.text}`}>{finding.title}</p>
-        <p className={`text-sm ${style.text} opacity-80`}>{finding.detail}</p>
+        <p className={`text-sm ${style.text}`}>{finding.detail}</p>
         {cta && (
           <Link
             href={cta.href}

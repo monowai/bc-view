@@ -126,7 +126,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
         <div className="border border-gray-200 rounded-lg py-10 text-center">
           <i className="fas fa-balance-scale text-4xl text-gray-300 mb-3"></i>
           <p className="text-gray-600">{"No assets in this plan yet"}</p>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {"Add assets or import holdings to define target allocations."}
           </p>
           {!readOnly && (

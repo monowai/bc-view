@@ -27,10 +27,10 @@ export default function ChatBubble({
   if (isUser) {
     return (
       <div className="group flex justify-end">
-        <div className="max-w-[80%] px-4 py-2 rounded-lg bg-blue-500 text-white text-sm">
+        <div className="max-w-[80%] px-4 py-2 rounded-lg bg-blue-600 text-white text-sm">
           {message.deepThink && (
             <span
-              className="inline-block mr-2 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-purple-200 text-purple-800"
+              className="inline-block mr-2 px-1.5 py-0.5 rounded text-micro font-semibold uppercase tracking-wide bg-purple-200 text-purple-800"
               title="Sent with deep think enabled"
             >
               <i className="fas fa-brain mr-1"></i>deep

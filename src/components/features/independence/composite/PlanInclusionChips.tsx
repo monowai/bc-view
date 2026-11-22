@@ -38,7 +38,7 @@ export default function PlanInclusionChips({
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-independence-500 motion-reduce:transition-none ${
               included
                 ? "border-independence-200 bg-independence-50 text-independence-700"
-                : "border-gray-200 bg-white text-gray-400 line-through hover:text-gray-600"
+                : "border-gray-200 bg-white text-gray-500 line-through hover:text-gray-600"
             }`}
           >
             {plan.name}

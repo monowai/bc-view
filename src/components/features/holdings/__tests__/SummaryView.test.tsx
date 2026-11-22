@@ -97,7 +97,7 @@ describe("SummaryView", () => {
     renderSummary()
     const gainOnDay = figure("Gain on Day")
     expect(gainOnDay).toHaveTextContent(/^\+\$70\.00/)
-    expect(gainOnDay).toHaveClass("text-green-600")
+    expect(gainOnDay).toHaveClass("text-green-700")
     expect(gainOnDay.querySelector(".fa-caret-up")).not.toBeNull()
   })
 

@@ -75,7 +75,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <div className="px-4 py-3 flex justify-between">
               <span className="text-gray-600">{"Cash Delta"}</span>
               <span
-                className={`font-medium ${cashDelta > 0 ? "text-green-600" : "text-red-600"}`}
+                className={`font-medium ${cashDelta > 0 ? "text-green-700" : "text-red-600"}`}
               >
                 {cashDelta > 0 ? "+" : ""}
                 {planCurrency} {cashDelta.toLocaleString()}
@@ -92,7 +92,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       {/* Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
+          <i className="fas fa-info-circle text-blue-600 mt-0.5"></i>
           <div className="text-sm text-blue-700">
             <p>
               {hasApprovedPlan

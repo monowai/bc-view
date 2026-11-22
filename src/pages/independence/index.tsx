@@ -43,7 +43,6 @@ import CompositeTab from "@components/features/independence/CompositeTab"
 import IndependencePlanSwitcher from "@components/features/independence/IndependencePlanSwitcher"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
-import JourneyReportContainer from "@components/features/independence/report/JourneyReportContainer"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
@@ -62,6 +61,14 @@ import {
   workScenariosKey,
 } from "@utils/api/client/independence"
 import { revokeResourceShare } from "@utils/api/client/shares"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const JourneyReportContainer = dynamic(
+  () =>
+    import("@components/features/independence/report/JourneyReportContainer"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 const HIDDEN_VALUE = "****"
 
@@ -216,8 +223,8 @@ function PlanCard({
   const fallbackGauge = pickHeadlineGauge(plan.headlineMetric, undefined)
 
   const getProgressBgColor = (progress: number): string => {
-    if (progress >= 100) return "bg-green-500"
-    if (progress >= 75) return "bg-blue-500"
+    if (progress >= 100) return "bg-green-600"
+    if (progress >= 75) return "bg-blue-600"
     if (progress >= 50) return "bg-yellow-500"
     return "bg-independence-500"
   }
@@ -230,7 +237,7 @@ function PlanCard({
             <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
             {plan.isPrimary && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-independence-100 text-independence-700">
-                <i className="fas fa-star text-independence-500 mr-1 text-[10px]"></i>
+                <i className="fas fa-star text-independence-700 mr-1 text-[10px]"></i>
                 Primary
               </span>
             )}
@@ -260,14 +267,14 @@ function PlanCard({
               </button>
               <button
                 onClick={() => onCopy(plan)}
-                className="text-gray-400 hover:text-gray-600 p-1.5"
+                className="text-gray-500 hover:text-gray-600 p-1.5"
                 title="Copy plan"
               >
                 <i className="fas fa-copy text-xs"></i>
               </button>
               <button
                 onClick={() => onExport(plan)}
-                className="text-gray-400 hover:text-gray-600 p-1.5"
+                className="text-gray-500 hover:text-gray-600 p-1.5"
                 title="Export plan as JSON"
               >
                 <i className="fas fa-download text-xs"></i>
@@ -275,7 +282,7 @@ function PlanCard({
               {!plan.isPrimary && (
                 <button
                   onClick={() => onSetPrimary(plan.id)}
-                  className="text-gray-400 hover:text-independence-600 p-1.5"
+                  className="text-gray-500 hover:text-independence-800 p-1.5"
                   title="Set as primary plan"
                 >
                   <i className="fas fa-star text-xs"></i>
@@ -283,7 +290,7 @@ function PlanCard({
               )}
               <Link
                 href={editPhaseHref(plan.id, router.asPath)}
-                className="!text-green-600 hover:!text-green-900 p-1.5"
+                className="!text-green-700 hover:!text-green-900 p-1.5"
                 title="Edit plan"
               >
                 <i className="fas fa-edit"></i>
@@ -296,18 +303,18 @@ function PlanCard({
       {/* Headline metric — mirrors what the plan drill-down shows */}
       <div className="bg-independence-50 rounded-lg p-3 mb-4 border border-independence-100">
         {fiLoading ? (
-          <div className="flex items-center text-xs text-gray-400">
+          <div className="flex items-center text-xs text-gray-500">
             <Spinner label="Calculating..." />
           </div>
         ) : projection?.fiMetrics ? (
           <>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">
-                <i className="fas fa-bullseye text-independence-500 mr-1"></i>
+                <i className="fas fa-bullseye text-independence-700 mr-1"></i>
                 {gauge.label}
               </span>
               <span
-                className={`font-bold tabular-nums ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+                className={`font-bold tabular-nums ${hideValues ? "text-gray-500" : "text-independence-700"}`}
               >
                 {hideValues ? HIDDEN_VALUE : gauge.display}
               </span>
@@ -327,7 +334,7 @@ function PlanCard({
         ) : (
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">
-              <i className="fas fa-bullseye text-independence-500 mr-1"></i>
+              <i className="fas fa-bullseye text-independence-700 mr-1"></i>
               {fallbackGauge.label}
             </span>
             <span className="text-xs text-gray-500">Not yet projected</span>
@@ -338,7 +345,7 @@ function PlanCard({
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Monthly Expenses</span>
-          <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+          <span className={`font-medium ${hideValues ? "text-gray-500" : ""}`}>
             {hideValues
               ? HIDDEN_VALUE
               : `${currency}${plan.monthlyExpenses.toLocaleString()}`}
@@ -349,13 +356,13 @@ function PlanCard({
             <span className="text-gray-500">
               Monthly Income
               {rentalIncomeMonthly > 0 && (
-                <span className="text-xs text-gray-400 ml-1">
+                <span className="text-xs text-gray-500 ml-1">
                   (incl. rental)
                 </span>
               )}
             </span>
             <span
-              className={`font-medium text-green-600 ${hideValues ? "text-gray-400" : ""}`}
+              className={`font-medium text-green-700 ${hideValues ? "text-gray-500" : ""}`}
             >
               {hideValues
                 ? HIDDEN_VALUE
@@ -367,7 +374,7 @@ function PlanCard({
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Target Balance</span>
             <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
             >
               {hideValues
                 ? HIDDEN_VALUE
@@ -385,7 +392,7 @@ function PlanCard({
 
       <Link
         href={`/independence/plans/${plan.id}`}
-        className="w-full block text-center bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium transition-colors"
+        className="w-full block text-center bg-independence-700 text-white px-4 py-2 rounded-lg hover:bg-independence-800 font-medium transition-colors"
       >
         Projections
       </Link>
@@ -823,7 +830,7 @@ function RetirementPlanning(): React.ReactElement {
             <p>This plan has no stages yet, so there is nothing to report.</p>
             <Link
               href="/independence"
-              className="mt-3 inline-block text-independence-600 hover:underline"
+              className="mt-3 inline-block text-independence-700 hover:underline"
             >
               Back to your plan
             </Link>
@@ -926,7 +933,7 @@ function RetirementPlanning(): React.ReactElement {
                   <span>{importError}</span>
                   <button
                     onClick={() => setImportError(null)}
-                    className="text-red-500 hover:text-red-700 ml-2"
+                    className="text-red-600 hover:text-red-700 ml-2"
                   >
                     <i className="fas fa-times"></i>
                   </button>
@@ -969,7 +976,7 @@ function RetirementPlanning(): React.ReactElement {
               {(profileIncomplete || hasNoWorkScenarios) && (
                 <span
                   className={`ml-1.5 inline-block h-2 w-2 rounded-full ${
-                    profileIncomplete ? "bg-red-500" : "bg-amber-400"
+                    profileIncomplete ? "bg-red-600" : "bg-amber-400"
                   }`}
                   aria-label={
                     profileIncomplete
@@ -1052,7 +1059,7 @@ function RetirementPlanning(): React.ReactElement {
                             <span
                               className={`inline-block h-2 w-2 shrink-0 rounded-full ${
                                 s.id === "profile"
-                                  ? "bg-red-500"
+                                  ? "bg-red-600"
                                   : "bg-amber-400"
                               }`}
                               aria-label="Needs your attention"
@@ -1125,7 +1132,7 @@ function RetirementPlanning(): React.ReactElement {
                           <span>{generatePhasesError}</span>
                           <button
                             onClick={() => setGeneratePhasesError(null)}
-                            className="ml-2 text-red-500 hover:text-red-700"
+                            className="ml-2 text-red-600 hover:text-red-700"
                             aria-label="Dismiss"
                           >
                             <i aria-hidden="true" className="fas fa-times" />
@@ -1164,7 +1171,7 @@ function RetirementPlanning(): React.ReactElement {
                         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-independence-100">
                           <i
                             aria-hidden="true"
-                            className="fas fa-umbrella-beach text-3xl text-independence-600"
+                            className="fas fa-umbrella-beach text-3xl text-independence-700"
                           />
                         </div>
                         <h3 className="mb-2 text-xl font-semibold text-gray-900">
@@ -1177,7 +1184,7 @@ function RetirementPlanning(): React.ReactElement {
                         <div className="flex flex-col justify-center gap-3 sm:flex-row">
                           <Link
                             href="/independence/setup"
-                            className="inline-flex items-center rounded-lg bg-independence-600 px-6 py-3 font-medium text-white hover:bg-independence-700"
+                            className="inline-flex items-center rounded-lg bg-independence-700 px-6 py-3 font-medium text-white hover:bg-independence-800"
                           >
                             <i
                               aria-hidden="true"
@@ -1207,7 +1214,7 @@ function RetirementPlanning(): React.ReactElement {
                           </h3>
                           <Link
                             href={addStageHref(activePlanId)}
-                            className="inline-flex items-center rounded-lg bg-independence-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
+                            className="inline-flex items-center rounded-lg bg-independence-700 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-800 motion-reduce:transition-none"
                           >
                             <i
                               aria-hidden="true"

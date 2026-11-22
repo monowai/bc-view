@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useId, useRef } from "react"
 import { useFxHistory } from "@hooks/useFxHistory"
 import FxConverter from "@components/features/fx/FxConverter"
 import {
@@ -10,6 +10,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts"
+import { useModalFocus } from "@hooks/useModalFocus"
+import { CHART_PALETTE, GRAY } from "@lib/chartPalette"
 
 // Time range options for chart
 const TIME_RANGES = [
@@ -42,14 +44,10 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
     setIsInverted,
   } = useFxHistory(initialFrom, initialTo)
 
+  const titleId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes, as it does on every other modal.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [onClose])
+  useModalFocus(panelRef, onClose)
 
   const from = isInverted ? initialTo : initialFrom
   const to = isInverted ? initialFrom : initialTo
@@ -57,18 +55,29 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden focus:outline-none"
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white">
+        <div className="bg-gray-800 px-6 py-4 text-white">
           <div className="flex items-center justify-between gap-4">
             {/* Currency pair */}
-            <h2 className="text-xl font-bold flex items-center gap-2 shrink-0">
+            <h2
+              id={titleId}
+              className="text-xl font-bold flex items-center gap-2 shrink-0"
+            >
               <span>{from}</span>
               <button
                 type="button"
                 onClick={() => setIsInverted(!isInverted)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 title="Swap currencies"
+                aria-label="Swap currencies"
               >
                 <svg
                   className="w-5 h-5"
@@ -97,7 +106,8 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0"
+              aria-label="Close dialog"
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <svg
                 className="w-6 h-6"
@@ -138,7 +148,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           {stats && (
             <div className="flex items-center gap-4 text-sm">
               <span
-                className={`font-medium ${stats.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                className={`font-medium ${stats.change >= 0 ? "text-green-700" : "text-red-600"}`}
               >
                 {stats.change >= 0 ? "+" : ""}
                 {stats.changePercent.toFixed(2)}%
@@ -156,7 +166,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           )}
 
           {error && (
-            <div className="h-64 flex items-center justify-center text-red-500">
+            <div className="h-64 flex items-center justify-center text-red-600">
               Failed to load rate history
             </div>
           )}
@@ -172,10 +182,13 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={CHART_PALETTE.grid}
+                    />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 11, fill: CHART_PALETTE.text }}
                       tickFormatter={(date: string) => {
                         const d = new Date(date)
                         return `${d.getDate()}/${d.getMonth() + 1}`
@@ -184,13 +197,13 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     />
                     <YAxis
                       domain={["auto", "auto"]}
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 11, fill: CHART_PALETTE.text }}
                       tickFormatter={(value: number) => value.toFixed(3)}
                       width={60}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#1e293b",
+                        backgroundColor: GRAY[800],
                         border: "none",
                         borderRadius: "8px",
                         color: "#fff",
@@ -207,10 +220,10 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     <Line
                       type="monotone"
                       dataKey="rate"
-                      stroke="#3b82f6"
+                      stroke={CHART_PALETTE.wealth}
                       strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 6, fill: "#3b82f6" }}
+                      activeDot={{ r: 6, fill: CHART_PALETTE.wealth }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -231,7 +244,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     <div className="text-xs text-slate-500 uppercase tracking-wide">
                       High
                     </div>
-                    <div className="text-lg font-bold text-green-600 font-mono">
+                    <div className="text-lg font-bold text-green-700 font-mono">
                       {stats.max.toFixed(4)}
                     </div>
                   </div>
@@ -248,7 +261,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                       Change
                     </div>
                     <div
-                      className={`text-lg font-bold font-mono ${stats.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                      className={`text-lg font-bold font-mono ${stats.change >= 0 ? "text-green-700" : "text-red-600"}`}
                     >
                       {stats.change >= 0 ? "+" : ""}
                       {stats.change.toFixed(4)}

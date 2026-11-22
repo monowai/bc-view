@@ -15,7 +15,7 @@ export function FormatValue({
   const { hideValues } = usePrivacyMode()
 
   if (hideValues && !isPublic) {
-    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+    return <span className="text-gray-500">{HIDDEN_VALUE}</span>
   }
 
   if (typeof value === "number") {
@@ -47,7 +47,7 @@ export function ResponsiveFormatValue({
   const { hideValues } = usePrivacyMode()
 
   if (hideValues && !isPublic) {
-    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+    return <span className="text-gray-500">{HIDDEN_VALUE}</span>
   }
 
   if (typeof value !== "number") {
@@ -99,7 +99,7 @@ export function PrivateQuantity({
   const { hideValues } = usePrivacyMode()
 
   if (hideValues) {
-    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+    return <span className="text-gray-500">{HIDDEN_VALUE}</span>
   }
 
   return (

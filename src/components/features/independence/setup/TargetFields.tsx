@@ -108,7 +108,7 @@ export default function TargetFields({
           age —{" "}
           <Link
             href="/independence?view=profile"
-            className="font-medium text-independence-600 underline"
+            className="font-medium text-independence-700 underline"
           >
             add it under About you
           </Link>{" "}

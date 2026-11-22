@@ -189,7 +189,7 @@ describe("MoneyUtils", () => {
       it("applies gray text color to hidden placeholder", () => {
         render(<PrivateQuantity value={1234} />)
         const hiddenElement = screen.getByText("****")
-        expect(hiddenElement).toHaveClass("text-gray-400")
+        expect(hiddenElement).toHaveClass("text-gray-500")
       })
     })
   })

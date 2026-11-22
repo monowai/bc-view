@@ -25,8 +25,8 @@ interface MonteCarloResultViewProps {
 const HIDDEN_VALUE = "****"
 
 function successRateColor(rate: number): string {
-  if (rate >= 80) return "text-green-600"
-  if (rate >= 50) return "text-amber-600"
+  if (rate >= 80) return "text-green-700"
+  if (rate >= 50) return "text-amber-700"
   return "text-red-600"
 }
 
@@ -117,7 +117,7 @@ export function MonteCarloResultView({
                 Start value
               </span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-900"}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : "text-gray-900"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -186,7 +186,7 @@ export function MonteCarloResultView({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Survived</span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-green-700">
                 {result.depletionAgeDistribution.survivedCount.toLocaleString()}
               </span>
             </div>

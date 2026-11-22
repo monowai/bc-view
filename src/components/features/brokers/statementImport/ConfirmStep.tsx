@@ -63,7 +63,7 @@ function RowOrderToggle({
                 order === option.value
                   ? "bg-gray-900 text-white"
                   : off
-                    ? "cursor-not-allowed text-gray-400"
+                    ? "cursor-not-allowed text-gray-500"
                     : "cursor-pointer text-gray-700 hover:bg-gray-100"
               }`}
             >

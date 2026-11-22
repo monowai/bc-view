@@ -137,7 +137,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
           className="w-full text-left p-4 border border-dashed border-gray-300 rounded-lg hover:border-blue-300 hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center">
-            <i className="fas fa-plus text-blue-500 mr-3"></i>
+            <i className="fas fa-plus text-blue-600 mr-3"></i>
             <div>
               <div className="font-medium text-gray-900">
                 {"Create New Model"}

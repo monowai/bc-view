@@ -280,7 +280,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       value={trn.signedCashAmount}
                       scale={2}
                       prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                      valueClassName={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
+                      valueClassName={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-700"}`}
                     />
                     <TrnCardValue
                       label={"Balance"}
@@ -335,7 +335,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                         value={trn.signedCashAmount}
                         scale={2}
                         prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                        className={`px-4 py-3 text-right whitespace-nowrap font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
+                        className={`px-4 py-3 text-right whitespace-nowrap font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-700"}`}
                       />
                       <TrnNumberCell
                         value={trn.runningBalance}
