@@ -11,7 +11,7 @@ const PHASE_TONES = [
   "bg-independence-700",
   "bg-independence-500",
   "bg-independence-200",
-  "bg-independence-700",
+  "bg-independence-600",
   "bg-independence-100",
 ]
 
