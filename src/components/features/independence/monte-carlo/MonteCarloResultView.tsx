@@ -117,7 +117,7 @@ export function MonteCarloResultView({
                 Start value
               </span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-900"}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : "text-gray-900"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE

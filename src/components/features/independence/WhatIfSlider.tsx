@@ -52,7 +52,7 @@ export default function WhatIfSlider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
       />
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-gray-500">
         <span>{formatValue ? formatValue(min) : `${min}${unit}`}</span>
         <span>
           {formatValue

@@ -20,7 +20,7 @@ export default function SummaryStep({
   if (loading) {
     return (
       <div className="text-center py-8">
-        <Spinner size="2xl" className="text-gray-400" />
+        <Spinner size="2xl" className="text-gray-500" />
         <p className="mt-2 text-gray-500">{"Loading your data..."}</p>
       </div>
     )

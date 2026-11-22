@@ -418,7 +418,7 @@ export function SummaryRowMobile({
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-6">
             {/* Market Value - Primary metric */}
             <div className="text-center">
-              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+              <div className="text-micro md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {"Value"}
               </div>
               <div className="font-semibold text-lg md:text-2xl text-slate-800 tabular-nums">
@@ -429,7 +429,7 @@ export function SummaryRowMobile({
                 )}
               </div>
               {displayCurrencyCode && (
-                <div className="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                <div className="text-micro md:text-xs text-slate-400 mt-0.5">
                   {displayCurrencyCode}
                 </div>
               )}
@@ -437,7 +437,7 @@ export function SummaryRowMobile({
 
             {/* Dividends - Hidden on mobile */}
             <div className="hidden md:block text-center">
-              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+              <div className="text-micro md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {"Income"}
               </div>
               <div className="font-semibold text-lg md:text-2xl text-slate-700 tabular-nums">
@@ -451,7 +451,7 @@ export function SummaryRowMobile({
 
             {/* Gain - Color coded */}
             <div className="text-center">
-              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+              <div className="text-micro md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {"Net Gain"}
               </div>
               <div
@@ -467,7 +467,7 @@ export function SummaryRowMobile({
 
             {/* IRR - Color coded with background pill */}
             <div className="text-center">
-              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+              <div className="text-micro md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {"IRR"}
               </div>
               <div

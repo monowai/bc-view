@@ -31,6 +31,7 @@ import {
   formatCompact,
   formatCurrencySymbol,
 } from "@lib/formatters"
+import { CHART_PALETTE } from "@lib/chartPalette"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
@@ -316,7 +317,7 @@ export default function PlanFiOverviewTab({
             {fiMetrics.totalMonthlyIncome > 0 && (
               <div className="flex items-baseline justify-between gap-2 pl-4">
                 <span className="text-xs text-gray-500">
-                  <span className="text-gray-400 mr-1.5">−</span>
+                  <span className="text-gray-500 mr-1.5">−</span>
                   Guaranteed income (pension + benefits + other)
                 </span>
                 <span className="tabular-nums font-medium text-sm text-green-600">
@@ -484,7 +485,7 @@ export default function PlanFiOverviewTab({
               labelFormatter={(age) => `Age ${age}`}
               contentStyle={{
                 fontSize: 12,
-                border: "1px solid #e2e8f0",
+                border: `1px solid ${CHART_PALETTE.grid}`,
                 borderRadius: 8,
                 boxShadow: "0 4px 6px -1px rgba(0,0,0,.08)",
                 padding: "6px 10px",
@@ -528,14 +529,14 @@ export default function PlanFiOverviewTab({
             {fiCrossingAge && (
               <ReferenceLine
                 x={fiCrossingAge}
-                stroke="#94a3b8"
+                stroke={CHART_PALETTE.strokeMuted}
                 strokeDasharray="4 3"
                 strokeWidth={1}
                 label={{
                   value: `Age ${fiCrossingAge}`,
                   position: "insideTopLeft",
                   fontSize: 11,
-                  fill: "#64748b",
+                  fill: CHART_PALETTE.text,
                   fontWeight: 500,
                 }}
               />
@@ -544,14 +545,14 @@ export default function PlanFiOverviewTab({
             <Line
               type="monotone"
               dataKey="endingBalance"
-              stroke="#1e293b"
+              stroke={CHART_PALETTE.ink}
               strokeWidth={2.5}
               dot={false}
               isAnimationActive={false}
               name="Portfolio"
               activeDot={{
                 r: 4,
-                fill: "#1e293b",
+                fill: CHART_PALETTE.ink,
                 stroke: "white",
                 strokeWidth: 2,
               }}

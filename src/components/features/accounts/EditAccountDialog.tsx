@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useId, useMemo, useRef } from "react"
 import useSWR from "swr"
 import { Asset, CurrencyOption } from "types/beancounter"
 import { PolicyType, SubAccountRequest, TaxTreatment } from "types/beancounter"
@@ -8,6 +8,7 @@ import CompositeAssetEditor from "@components/features/assets/CompositeAssetEdit
 import { CategoryOption, SectorOption } from "./accountTypes"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
+import { useModalFocus } from "@hooks/useModalFocus"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { currentAgeFromSettings } from "@lib/independence/age"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -129,6 +130,9 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   onClose,
   onSave,
 }) => {
+  const titleId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  useModalFocus(panelRef)
   const [activeTab, setActiveTab] = useState<EditTab>("details")
   const [code, setCode] = useState(asset.displayCode)
   const [name, setName] = useState(asset.name || "")
@@ -591,16 +595,25 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md sm:max-w-2xl lg:max-w-4xl mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white rounded-lg shadow-lg w-full max-w-md sm:max-w-2xl lg:max-w-4xl mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b pb-2 mb-4">
-          <h2 className="text-xl font-semibold">{"Edit Asset"}</h2>
+          <h2 id={titleId} className="text-xl font-semibold">
+            Edit Asset
+          </h2>
           <button
-            className="text-gray-500 hover:text-gray-700"
+            type="button"
+            aria-label="Close dialog"
+            className="-mr-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             onClick={onClose}
           >
-            &times;
+            <i className="fas fa-xmark text-lg" aria-hidden="true"></i>
           </button>
         </header>
 
@@ -612,7 +625,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 onClick={() => setActiveTab("details")}
                 className={`py-2 px-1 border-b-2 text-sm font-medium ${
                   activeTab === "details"
-                    ? "border-indigo-500 text-indigo-600"
+                    ? "border-blue-600 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -622,7 +635,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 onClick={() => setActiveTab("income")}
                 className={`py-2 px-1 border-b-2 text-sm font-medium ${
                   activeTab === "income"
-                    ? "border-indigo-500 text-indigo-600"
+                    ? "border-blue-600 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -633,7 +646,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   onClick={() => setActiveTab("projections")}
                   className={`py-2 px-1 border-b-2 text-sm font-medium ${
                     activeTab === "projections"
-                      ? "border-indigo-500 text-indigo-600"
+                      ? "border-blue-600 text-blue-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
@@ -655,7 +668,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
               />
             </div>
 
@@ -667,7 +680,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
               />
             </div>
 
@@ -678,7 +691,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
               >
                 {currencies.map((ccy) => (
                   <option key={ccy.value} value={ccy.value}>
@@ -695,7 +708,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -714,7 +727,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 <select
                   value={sector}
                   onChange={(e) => setSector(e.target.value)}
-                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                 >
                   <option value="">{"Select sector (optional)"}</option>
                   {sectors.map((s) => (
@@ -740,7 +753,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   value={expectedReturnRate}
                   onChange={(e) => setExpectedReturnRate(e.target.value)}
                   placeholder="3.0"
-                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500 pr-8"
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600 pr-8"
                 />
                 <span className="absolute right-3 top-2.5 text-gray-500">
                   %
@@ -786,7 +799,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                               : config.monthlyPayoutAmount,
                           })
                         }
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
                       />
                       <label
                         htmlFor="lumpSum"
@@ -815,7 +828,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                             })
                           }
                           placeholder="65"
-                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {"Age when payouts begin"}
@@ -837,7 +850,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                               })
                             }
                             placeholder="e.g. 2k, 500*12"
-                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                           />
                           <p className="text-xs text-gray-500 mt-1">
                             {"Monthly income after payout age"}
@@ -870,7 +883,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   })
                                 }
                                 placeholder="e.g. 500, 1k"
-                                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               />
                               <select
                                 aria-label="Contribution frequency"
@@ -884,7 +897,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                         : "MONTHLY",
                                   })
                                 }
-                                className="border-gray-300 rounded-md shadow-sm px-2 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="border-gray-300 rounded-md shadow-sm px-2 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               >
                                 <option value="MONTHLY">Monthly</option>
                                 <option value="ANNUAL">Annual</option>
@@ -918,7 +931,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                               })
                             }
                             placeholder="3.0"
-                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500 pr-8"
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600 pr-8"
                           />
                           <span className="absolute right-3 top-2.5 text-gray-500">
                             %
@@ -1022,7 +1035,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                               : config.monthlyRentalIncome,
                           })
                         }
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
                       />
                       <label
                         htmlFor="isPrimaryResidence"
@@ -1049,7 +1062,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                 })
                               }
                               placeholder="e.g. 2k, 500*4"
-                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                             />
                           </div>
                           <div>
@@ -1064,7 +1077,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   rentalCurrency: e.target.value,
                                 })
                               }
-                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                             >
                               {currencies.map((ccy) => (
                                 <option key={ccy.value} value={ccy.value}>
@@ -1085,7 +1098,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   countryCode: e.target.value,
                                 })
                               }
-                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                             >
                               {COUNTRY_OPTIONS.map((country) => (
                                 <option key={country.code} value={country.code}>
@@ -1111,7 +1124,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                 })
                               }
                               placeholder="e.g. 200, 2.5k/12"
-                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                             />
                           </div>
                           <div>
@@ -1130,7 +1143,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   managementFeePercent: e.target.value,
                                 })
                               }
-                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                             />
                           </div>
                         </div>
@@ -1154,7 +1167,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   })
                                 }
                                 placeholder="e.g. 300, 3.6k/12"
-                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               />
                             </div>
                             <div>
@@ -1170,7 +1183,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   })
                                 }
                                 placeholder="e.g. 5k, 400*12"
-                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               />
                             </div>
                             <div>
@@ -1186,7 +1199,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   })
                                 }
                                 placeholder="e.g. 2k, 180*12"
-                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               />
                             </div>
                             <div>
@@ -1202,7 +1215,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                   })
                                 }
                                 placeholder="e.g. 100, 50+75"
-                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                               />
                             </div>
                           </div>
@@ -1220,7 +1233,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                 deductIncomeTax: e.target.checked,
                               })
                             }
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
                           />
                           <label
                             htmlFor="deductIncomeTax"
@@ -1345,7 +1358,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         liquidationPriority: e.target.value,
                       })
                     }
-                    className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-600 focus:border-blue-600"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {"Lower number = sold first during retirement"}

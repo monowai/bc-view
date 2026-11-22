@@ -34,7 +34,7 @@ function KindBadge({
   return (
     <span
       title={badge.title}
-      className="ml-1 px-1.5 rounded bg-purple-50 text-purple-700 text-[10px] font-medium"
+      className="ml-1 px-1.5 rounded bg-purple-50 text-purple-700 text-micro font-medium"
     >
       {badge.label}
     </span>
@@ -211,10 +211,10 @@ export default function ConversationList({
       </div>
       <ul className="flex-1 overflow-y-auto p-2 space-y-1">
         {isLoading && conversations.length === 0 && (
-          <li className="px-2 py-3 text-xs text-gray-400">Loading…</li>
+          <li className="px-2 py-3 text-xs text-gray-500">Loading…</li>
         )}
         {!isLoading && conversations.length === 0 && (
-          <li className="px-2 py-3 text-xs text-gray-400">
+          <li className="px-2 py-3 text-xs text-gray-500">
             No conversations yet
           </li>
         )}
@@ -292,7 +292,7 @@ export default function ConversationList({
                   >
                     {title}
                   </span>
-                  <span className="block text-xs text-gray-400">
+                  <span className="block text-xs text-gray-500">
                     {formatRelativeTime(c.updatedAt)}
                     <KindBadge kind={c.kind} />
                   </span>

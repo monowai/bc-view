@@ -51,7 +51,7 @@ function AmountLabel({
   return (
     <>
       <span className={colorClass}>{label}</span>
-      <span className="text-gray-400 ml-1">({currency})</span>
+      <span className="text-gray-500 ml-1">({currency})</span>
     </>
   )
 }
@@ -329,7 +329,7 @@ export default function FxEditModal({
           </div>
 
           {/* Arrow and Rate */}
-          <div className="text-center text-gray-400 px-2">
+          <div className="text-center text-gray-500 px-2">
             <i className="fas fa-arrow-right"></i>
             {fxRateLoading ? (
               <div className="text-xs mt-1">

@@ -62,7 +62,7 @@ const HoldingWeightsEditor: React.FC<HoldingWeightsEditorProps> = ({
                   {weight.assetName}
                 </div>
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-gray-500">
                 {weight.currentWeight?.toFixed(1)}%
               </div>
               <div className="flex items-center gap-1">

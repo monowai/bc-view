@@ -24,7 +24,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`${textSize} font-medium ${!isSettled ? "text-amber-600" : "text-gray-400"}`}
+        className={`${textSize} font-medium ${!isSettled ? "text-amber-600" : "text-gray-500"}`}
       >
         {"Proposed"}
       </span>
@@ -49,7 +49,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
         />
       </button>
       <span
-        className={`${textSize} font-medium ${isSettled ? "text-green-600" : "text-gray-400"}`}
+        className={`${textSize} font-medium ${isSettled ? "text-green-600" : "text-gray-500"}`}
       >
         {"Settled"}
       </span>

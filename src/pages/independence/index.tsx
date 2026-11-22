@@ -43,7 +43,6 @@ import CompositeTab from "@components/features/independence/CompositeTab"
 import IndependencePlanSwitcher from "@components/features/independence/IndependencePlanSwitcher"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
-import JourneyReportContainer from "@components/features/independence/report/JourneyReportContainer"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
@@ -62,6 +61,14 @@ import {
   workScenariosKey,
 } from "@utils/api/client/independence"
 import { revokeResourceShare } from "@utils/api/client/shares"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const JourneyReportContainer = dynamic(
+  () =>
+    import("@components/features/independence/report/JourneyReportContainer"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 const HIDDEN_VALUE = "****"
 
@@ -260,14 +267,14 @@ function PlanCard({
               </button>
               <button
                 onClick={() => onCopy(plan)}
-                className="text-gray-400 hover:text-gray-600 p-1.5"
+                className="text-gray-500 hover:text-gray-600 p-1.5"
                 title="Copy plan"
               >
                 <i className="fas fa-copy text-xs"></i>
               </button>
               <button
                 onClick={() => onExport(plan)}
-                className="text-gray-400 hover:text-gray-600 p-1.5"
+                className="text-gray-500 hover:text-gray-600 p-1.5"
                 title="Export plan as JSON"
               >
                 <i className="fas fa-download text-xs"></i>
@@ -275,7 +282,7 @@ function PlanCard({
               {!plan.isPrimary && (
                 <button
                   onClick={() => onSetPrimary(plan.id)}
-                  className="text-gray-400 hover:text-independence-600 p-1.5"
+                  className="text-gray-500 hover:text-independence-600 p-1.5"
                   title="Set as primary plan"
                 >
                   <i className="fas fa-star text-xs"></i>
@@ -296,7 +303,7 @@ function PlanCard({
       {/* Headline metric — mirrors what the plan drill-down shows */}
       <div className="bg-independence-50 rounded-lg p-3 mb-4 border border-independence-100">
         {fiLoading ? (
-          <div className="flex items-center text-xs text-gray-400">
+          <div className="flex items-center text-xs text-gray-500">
             <Spinner label="Calculating..." />
           </div>
         ) : projection?.fiMetrics ? (
@@ -307,7 +314,7 @@ function PlanCard({
                 {gauge.label}
               </span>
               <span
-                className={`font-bold tabular-nums ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+                className={`font-bold tabular-nums ${hideValues ? "text-gray-500" : "text-independence-600"}`}
               >
                 {hideValues ? HIDDEN_VALUE : gauge.display}
               </span>
@@ -338,7 +345,7 @@ function PlanCard({
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Monthly Expenses</span>
-          <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+          <span className={`font-medium ${hideValues ? "text-gray-500" : ""}`}>
             {hideValues
               ? HIDDEN_VALUE
               : `${currency}${plan.monthlyExpenses.toLocaleString()}`}
@@ -349,13 +356,13 @@ function PlanCard({
             <span className="text-gray-500">
               Monthly Income
               {rentalIncomeMonthly > 0 && (
-                <span className="text-xs text-gray-400 ml-1">
+                <span className="text-xs text-gray-500 ml-1">
                   (incl. rental)
                 </span>
               )}
             </span>
             <span
-              className={`font-medium text-green-600 ${hideValues ? "text-gray-400" : ""}`}
+              className={`font-medium text-green-600 ${hideValues ? "text-gray-500" : ""}`}
             >
               {hideValues
                 ? HIDDEN_VALUE
@@ -367,7 +374,7 @@ function PlanCard({
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Target Balance</span>
             <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
             >
               {hideValues
                 ? HIDDEN_VALUE

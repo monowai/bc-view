@@ -32,7 +32,7 @@ const AssetReviewButton: React.FC<AssetReviewButtonProps> = ({
         e.stopPropagation()
         onShow()
       }}
-      className="text-gray-400 hover:text-purple-600 transition-colors"
+      className="text-gray-500 hover:text-purple-600 transition-colors"
       title={`AI review of ${ticker}`}
       aria-label={`AI review ${ticker}`}
     >

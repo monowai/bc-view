@@ -262,7 +262,7 @@ export default function LifestyleMoodBoard({
                 </span>
                 <div className="flex items-center gap-1.5">
                   {anchorAmount > 0 && (
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-micro text-gray-500">
                       now {symbol}
                       {anchorAmount.toLocaleString()}
                     </span>

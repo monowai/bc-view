@@ -134,7 +134,7 @@ function PrivacyMoneyInput({
     <div className="relative">
       <span className="absolute left-3 top-2.5 text-gray-500">$</span>
       {hideValues && !isFocused && (
-        <div className="absolute inset-0 flex items-center pl-8 text-gray-400 pointer-events-none">
+        <div className="absolute inset-0 flex items-center pl-8 text-gray-500 pointer-events-none">
           {HIDDEN_VALUE}
         </div>
       )}
@@ -597,7 +597,7 @@ export default function EditPlanDetailsModal({
                   key={config.assetId}
                   className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
                     isExcluded
-                      ? "bg-gray-50 text-gray-400"
+                      ? "bg-gray-50 text-gray-500"
                       : "hover:bg-green-50"
                   }`}
                 >
@@ -644,7 +644,7 @@ export default function EditPlanDetailsModal({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Net Monthly Need</span>
           <span
-            className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+            className={`font-medium ${hideValues ? "text-gray-500" : "text-independence-600"}`}
           >
             {hideValues ? HIDDEN_VALUE : `$${netMonthlyNeed.toLocaleString()}`}
           </span>

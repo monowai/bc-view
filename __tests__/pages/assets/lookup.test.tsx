@@ -732,8 +732,6 @@ describe("Asset Lookup Page — quiet by default", () => {
         : { data: undefined, isLoading: false },
     )
     const originalFetch = global.fetch
-    const originalConfirm = window.confirm
-    window.confirm = jest.fn(() => true)
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 409,
@@ -744,6 +742,12 @@ describe("Asset Lookup Page — quiet by default", () => {
       render(<AssetLookupPage />)
       fireEvent.click(screen.getByRole("button", { name: /more actions/i }))
       fireEvent.click(screen.getByRole("menuitem", { name: /delete/i }))
+      const confirmDialog = await screen.findByRole("dialog", {
+        name: /delete asset/i,
+      })
+      fireEvent.click(
+        within(confirmDialog).getByRole("button", { name: "Delete" }),
+      )
 
       expect(await screen.findByText("Asset in use")).toBeInTheDocument()
       expect(global.fetch).toHaveBeenCalledWith("/api/assets/admin/asset-1", {
@@ -751,7 +755,6 @@ describe("Asset Lookup Page — quiet by default", () => {
       })
     } finally {
       global.fetch = originalFetch
-      window.confirm = originalConfirm
     }
   })
 })

@@ -476,7 +476,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                     filteredTotal > 0 && !isExcluded
                       ? (convertedValue / filteredTotal) * 100
                       : 0
-                  const muted = "text-gray-400"
+                  const muted = "text-gray-500"
 
                   return (
                     // The row is the mouse target; the button in the first

@@ -551,7 +551,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                           </button>
                         )
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
@@ -641,7 +641,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               </span>
                             ) : processedPayDates[event.id] ? (
                               <span
-                                className="flex items-center text-gray-400"
+                                className="flex items-center text-gray-500"
                                 title={`Transaction sent to bc-data with pay date: ${processedPayDates[event.id]}`}
                               >
                                 <i className="fas fa-check mr-1"></i>

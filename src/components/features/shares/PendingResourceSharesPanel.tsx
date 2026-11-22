@@ -147,7 +147,7 @@ function PendingResourceShareRow({
           </div>
           <div className="text-xs text-gray-500">
             {"From"}: {label}
-            <span className="ml-2 text-gray-400">
+            <span className="ml-2 text-gray-500">
               {share.accessLevel === "VIEW" ? "View Only" : "Full Access"}
             </span>
           </div>

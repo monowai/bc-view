@@ -150,7 +150,7 @@ function PillarSection({
             <span className="block text-gray-500">{pillar.question}</span>
             {pillar.title}
           </h2>
-          <p className="mt-4 max-w-prose text-[0.95rem] leading-relaxed text-gray-600">
+          <p className="mt-4 max-w-prose text-pretty text-[0.95rem] leading-relaxed text-gray-600">
             {pillar.body}
           </p>
           <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
@@ -187,7 +187,7 @@ function PillarSection({
 export default function MarketingLanding(): React.ReactElement {
   const heroRef = useReveal<HTMLDivElement>()
   return (
-    <main className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
       {/* Hero — drenched slate, the brand's frame color extended */}
       <header className="relative overflow-hidden bg-gray-900 text-white">
         <div
@@ -263,6 +263,6 @@ export default function MarketingLanding(): React.ReactElement {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   )
 }

@@ -2,9 +2,15 @@ import React, { useMemo, useState } from "react"
 import type { CompositeYearlyProjection } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
-import YearFlowDialog from "../YearFlowDialog"
 import { usePlanExpenses } from "../usePlanExpenses"
 import { expenseShares } from "@lib/independence/yearFlows"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const YearFlowDialog = dynamic(() => import("../YearFlowDialog"), {
+  ssr: false,
+  loading: () => <ChartModalPlaceholder />,
+})
 
 const HIDDEN_VALUE = "****"
 
@@ -137,7 +143,7 @@ export default function YearByYearTable(): React.ReactElement | null {
                         {isPhaseStart ? (
                           <span className="font-medium">{row.planName}</span>
                         ) : (
-                          <span className="text-gray-400">&mdash;</span>
+                          <span className="text-gray-500">&mdash;</span>
                         )}
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">

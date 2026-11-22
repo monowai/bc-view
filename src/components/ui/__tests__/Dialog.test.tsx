@@ -40,8 +40,55 @@ describe("Dialog", () => {
         <p>Content</p>
       </Dialog>,
     )
-    fireEvent.click(screen.getByText("×"))
+    fireEvent.click(screen.getByRole("button", { name: "Close dialog" }))
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("is an accessible modal dialog named by its title", () => {
+    render(
+      <Dialog {...defaultProps}>
+        <p>Content</p>
+      </Dialog>,
+    )
+    const dialog = screen.getByRole("dialog", { name: "Test Dialog" })
+    expect(dialog).toHaveAttribute("aria-modal", "true")
+  })
+
+  it("moves focus into the dialog when it opens", () => {
+    render(
+      <Dialog {...defaultProps}>
+        <input aria-label="Amount" />
+      </Dialog>,
+    )
+    expect(screen.getByLabelText("Amount")).toHaveFocus()
+  })
+
+  it("keeps Tab focus inside the dialog", () => {
+    render(
+      <Dialog {...defaultProps} footer={<button>Save</button>}>
+        <input aria-label="Amount" />
+      </Dialog>,
+    )
+    const save = screen.getByRole("button", { name: "Save" })
+    save.focus()
+    fireEvent.keyDown(document, { key: "Tab" })
+    expect(screen.getByRole("button", { name: "Close dialog" })).toHaveFocus()
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true })
+    expect(save).toHaveFocus()
+  })
+
+  it("returns focus to the opener when it closes", () => {
+    const opener = document.createElement("button")
+    document.body.appendChild(opener)
+    opener.focus()
+    const { unmount } = render(
+      <Dialog {...defaultProps}>
+        <input aria-label="Amount" />
+      </Dialog>,
+    )
+    unmount()
+    expect(opener).toHaveFocus()
+    opener.remove()
   })
 
   it("does not call onClose when dialog body is clicked", () => {

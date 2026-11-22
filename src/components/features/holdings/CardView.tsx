@@ -876,7 +876,7 @@ const CardView: React.FC<CardViewProps> = ({
               className="flex items-center gap-2 px-2 w-full text-left hover:bg-gray-50 rounded-lg py-2 -my-1 transition-colors"
             >
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${
+                className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${
                   isCollapsed ? "" : "rotate-90"
                 }`}
                 fill="none"

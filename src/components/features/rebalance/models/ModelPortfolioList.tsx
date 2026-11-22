@@ -199,7 +199,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           e.stopPropagation()
                           handleTogglePublic(model)
                         }}
-                        className={`transition-colors ${model.shared ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}`}
+                        className={`transition-colors ${model.shared ? "text-blue-500 hover:text-blue-700" : "text-gray-500 hover:text-blue-600"}`}
                         title={model.shared ? "Make private" : "Make public"}
                       >
                         <i
@@ -231,7 +231,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">
+                      <span className="text-gray-500 text-sm">
                         <i className="fas fa-eye"></i>
                       </span>
                     </div>

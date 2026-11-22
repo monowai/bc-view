@@ -34,20 +34,20 @@ import {
 import { formatCompact } from "@lib/formatters"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
 import WealthPointTooltip from "./WealthPointTooltip"
+import {
+  CHART_PALETTE,
+  CHART_SERIES,
+  GRAY,
+  INDEPENDENCE,
+  INVEST,
+} from "@lib/chartPalette"
 
 const HIDDEN_VALUE = "****"
 
 const ITERATION_OPTIONS = [500, 1000, 2000, 5000]
 
 /** Phase band tints. Backgrounds only — never the meaning-bearing colour. */
-const PHASE_TINTS = [
-  "#3b82f6",
-  "#f97316",
-  "#22c55e",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
-]
+const PHASE_TINTS = CHART_SERIES
 
 type Lens = "lasts" | "madeOf"
 
@@ -363,14 +363,14 @@ export default function WealthOverTime(): React.ReactElement | null {
                 {crossingAge != null && (
                   <ReferenceLine
                     x={crossingAge}
-                    stroke="#94a3b8"
+                    stroke={CHART_PALETTE.strokeMuted}
                     strokeDasharray="4 3"
                     strokeWidth={1}
                     label={{
                       value: `Age ${crossingAge}`,
                       position: "insideTopLeft",
                       fontSize: 11,
-                      fill: "#64748b",
+                      fill: GRAY[500],
                       fontWeight: 500,
                     }}
                   />
@@ -379,14 +379,14 @@ export default function WealthOverTime(): React.ReactElement | null {
                 <Line
                   type="monotone"
                   dataKey="endingBalance"
-                  stroke="#1e293b"
+                  stroke={CHART_PALETTE.ink}
                   strokeWidth={2.5}
                   dot={false}
                   isAnimationActive={false}
                   name="Balance"
                   activeDot={{
                     r: 4,
-                    fill: "#1e293b",
+                    fill: CHART_PALETTE.ink,
                     stroke: "white",
                     strokeWidth: 2,
                   }}
@@ -396,17 +396,21 @@ export default function WealthOverTime(): React.ReactElement | null {
 
             {lens === "madeOf" && (
               <>
-                <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
+                <ReferenceLine
+                  y={0}
+                  stroke={CHART_PALETTE.loss}
+                  strokeWidth={2}
+                />
                 {madeOf.hasHousingLayer && propertyLiquidationAge != null && (
                   <ReferenceLine
                     x={propertyLiquidationAge}
-                    stroke="#d97706"
+                    stroke={INDEPENDENCE[700]}
                     strokeDasharray="4 4"
                     strokeWidth={2}
                     label={{
                       value: `Property sold (${propertyLiquidationAge})`,
                       position: "insideTopRight",
-                      fill: "#b45309",
+                      fill: INDEPENDENCE[700],
                       fontSize: 11,
                       fontWeight: 600,
                     }}
@@ -441,8 +445,8 @@ export default function WealthOverTime(): React.ReactElement | null {
                     type="monotone"
                     dataKey="annuitizedValue"
                     stackId="wealth"
-                    stroke="#64748b"
-                    fill="#94a3b8"
+                    stroke={GRAY[500]}
+                    fill={GRAY[400]}
                     fillOpacity={0.3}
                     strokeWidth={1}
                     isAnimationActive={false}
@@ -460,14 +464,14 @@ export default function WealthOverTime(): React.ReactElement | null {
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-600 dark:text-gray-400">
         {lens === "lasts" ? (
           <>
-            <LegendSwatch color="#1e293b" label="Balance" line />
+            <LegendSwatch color={CHART_PALETTE.ink} label="Balance" line />
             {/* Not "Target to retire on" — that exact phrase already labels
                 the figure in the verdict above, and repeating it here made
                 the same words mean a number in one place and a line in
                 another. */}
             <LegendSwatch color="#f97316" label="Your target" dashed />
             {hasBands && (
-              <LegendSwatch color="#bbf7d0" label="Range of outcomes" />
+              <LegendSwatch color={INVEST[200]} label="Range of outcomes" />
             )}
           </>
         ) : (
@@ -477,7 +481,7 @@ export default function WealthOverTime(): React.ReactElement | null {
               <LegendSwatch color="#f97316" label="Tied up in property" />
             )}
             {madeOf.hasAnnuitizedLayer && (
-              <LegendSwatch color="#94a3b8" label="Locked in CPF LIFE" />
+              <LegendSwatch color={GRAY[400]} label="Locked in CPF LIFE" />
             )}
           </>
         )}

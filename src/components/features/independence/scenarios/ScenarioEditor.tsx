@@ -241,7 +241,7 @@ export default function ScenarioEditor({
               }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               % of surplus allocated to investments
             </p>
           </div>
@@ -301,7 +301,7 @@ export default function ScenarioEditor({
               )}
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             (Income + Bonus - Expenses - Taxes) x{" "}
             {form.investmentAllocationPercent ?? 80}%
           </p>

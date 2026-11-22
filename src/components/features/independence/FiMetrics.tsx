@@ -394,7 +394,7 @@ export default function FiMetrics({
                       <i className="fas fa-calendar-alt text-blue-500"></i>
                       Years to FI
                       {currentAge && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           (age {currentAge} →{" "}
                           {currentAge +
                             Math.round(backendRealYearsToFi ?? yearsToFi)}
@@ -452,7 +452,7 @@ export default function FiMetrics({
                       age {retirementAge})
                     </span>
                     <span
-                      className={`font-medium ${hideValues ? "text-gray-400" : isCoastFire ? "text-purple-600" : "text-gray-600"}`}
+                      className={`font-medium ${hideValues ? "text-gray-500" : isCoastFire ? "text-purple-600" : "text-gray-600"}`}
                     >
                       {hideValues
                         ? HIDDEN_VALUE
@@ -527,7 +527,7 @@ export default function FiMetrics({
                   <PrivatePercentage
                     value={savingsRate}
                     hideValues={hideValues}
-                    className={`font-semibold ${hideValues ? "text-gray-400" : getSavingsRateTextColor(savingsRate)}`}
+                    className={`font-semibold ${hideValues ? "text-gray-500" : getSavingsRateTextColor(savingsRate)}`}
                   />
                   {monthlyInvestment !== undefined && (
                     <div className="text-xs text-gray-500">

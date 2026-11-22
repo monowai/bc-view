@@ -25,13 +25,13 @@ export default function QuickScenarios({
   const [openPreset, setOpenPreset] = useState<"downsize" | null>(null)
 
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-3">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-indigo-900">
+        <h3 className="text-sm font-medium text-gray-900">
           <i className="fas fa-magic mr-2"></i>
           Quick Scenarios
         </h3>
-        <span className="text-xs text-indigo-700">
+        <span className="text-xs text-gray-600">
           Guided wizards for common life events
         </span>
       </div>
@@ -43,8 +43,8 @@ export default function QuickScenarios({
           }
           className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
             openPreset === "downsize"
-              ? "bg-indigo-600 text-white border-indigo-600"
-              : "bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-100"
+              ? "bg-blue-600 text-white border-blue-600"
+              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100"
           }`}
         >
           <i className="fas fa-home mr-1"></i>
@@ -123,7 +123,7 @@ function SellAndDownsizeForm({
   }
 
   return (
-    <div className="bg-white border border-indigo-300 rounded-lg p-4 space-y-3">
+    <div className="bg-white border border-blue-300 rounded-lg p-4 space-y-3">
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">
           Description
@@ -132,7 +132,7 @@ function SellAndDownsizeForm({
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
       </div>
       <AssetPicker
@@ -159,7 +159,7 @@ function SellAndDownsizeForm({
             onChange={(e) => setAge(parseInt(e.target.value) || 0)}
             min={18}
             max={120}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
@@ -178,10 +178,10 @@ function SellAndDownsizeForm({
               }}
               min={0}
               placeholder="e.g. 1m or 1000000"
-              className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <p className="mt-1 text-[10px] text-gray-400">
+          <p className="mt-1 text-micro text-gray-500">
             Shorthand: 1m = 1,000,000, 1k = 1,000
           </p>
         </div>
@@ -200,7 +200,7 @@ function SellAndDownsizeForm({
             min={0}
             max={100}
             step={1}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
@@ -214,7 +214,7 @@ function SellAndDownsizeForm({
             min={0}
             max={100}
             step={0.5}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -282,7 +282,7 @@ function SellAndDownsizeForm({
           type="button"
           onClick={handleGenerate}
           disabled={!totalsValid}
-          className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Add events
         </button>
@@ -339,7 +339,7 @@ function AssetPicker({
           onChange={(e) =>
             onChange(e.target.value, assetValues[e.target.value])
           }
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">— Pick an asset —</option>
           {candidates.map((c) => {
@@ -368,7 +368,7 @@ function AssetPicker({
         value={assetId}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Or type an asset id"
-        className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400"
+        className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
       />
     </div>
   )

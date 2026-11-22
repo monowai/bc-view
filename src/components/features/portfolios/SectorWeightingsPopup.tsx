@@ -326,12 +326,12 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
 
         {/* As-at caption for whichever tab has data */}
         {activeTab === "sectors" && !isLoading && !error && sectorsAsOf && (
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-gray-500 mt-3">
             {`As at ${formatDate(sectorsAsOf)}`}
           </p>
         )}
         {activeTab === "holdings" && !isLoading && !error && holdingsAsOf && (
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-gray-500 mt-3">
             {`As at ${formatDate(holdingsAsOf)}`}
           </p>
         )}

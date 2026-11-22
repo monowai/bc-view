@@ -17,9 +17,9 @@ export const METRIC_CLS = "px-4 first:pl-0 lg:last:pr-0"
 const LABEL_CLS = "text-xs font-medium text-gray-500 mb-1"
 const VALUE_CLS = "text-2xl font-bold tabular-nums text-gray-900"
 const NOTE_CLS = "text-xs text-gray-500 mt-2"
-const MUTED_VALUE = <span className="text-2xl font-bold text-gray-400">—</span>
+const MUTED_VALUE = <span className="text-2xl font-bold text-gray-500">—</span>
 const HIDDEN_VALUE = (
-  <span className="text-2xl font-bold text-gray-400">****</span>
+  <span className="text-2xl font-bold text-gray-500">****</span>
 )
 const SIMULATING = <p className={NOTE_CLS}>Simulating…</p>
 const SIMULATION_FAILED = (
@@ -133,7 +133,7 @@ export default function RetiredMetrics({
             >
               {BAND_TEXT[guardrail.band]}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {spend
                 ? "From recorded spend, share of liquid assets"
                 : "Last 12 months, share of liquid assets"}

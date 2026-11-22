@@ -3,7 +3,13 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { errorOut } from "@components/errors/ErrorOut"
 import { usePermissions } from "@hooks/usePermissions"
 import { useFxMatrix } from "@hooks/useFxMatrix"
-import RateChartModal from "@components/features/fx/RateChartModal"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const RateChartModal = dynamic(
+  () => import("@components/features/fx/RateChartModal"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 // Provider display names and colors
 const PROVIDER_CONFIG: Record<
@@ -24,7 +30,7 @@ const PROVIDER_CONFIG: Record<
 
 // Rate color based on value (rates close to 1 are neutral, higher/lower have gradient)
 const getRateColor = (rate: number): string => {
-  if (rate === 1) return "text-gray-400"
+  if (rate === 1) return "text-gray-500"
   if (rate > 1.5) return "text-rose-600"
   if (rate > 1.2) return "text-orange-500"
   if (rate > 1) return "text-amber-500"
@@ -468,7 +474,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                         <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                           {ccy.code}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-normal">
+                        <div className="text-micro text-slate-400 font-normal">
                           {ccy.symbol}
                         </div>
                       </th>
@@ -542,7 +548,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                                 {diffData &&
                                   Math.abs(diffData.percent) > 0.001 && (
                                     <div
-                                      className={`text-[10px] font-medium ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-600"}`}
+                                      className={`text-micro font-medium ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-600"}`}
                                     >
                                       {diffData.diff > 0 ? "+" : ""}
                                       {diffData.percent.toFixed(3)}%

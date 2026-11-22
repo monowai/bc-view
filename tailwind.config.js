@@ -25,6 +25,10 @@ module.exports = {
           DEFAULT: "#dc2626", // red-600
           bg: "#fef2f2", // red-50
         },
+        warning: {
+          DEFAULT: "#a16207", // yellow-700
+          bg: "#fefce8", // yellow-50
+        },
         wealth: {
           50: "#eff6ff", // blue-50
           100: "#dbeafe", // blue-100

@@ -35,7 +35,7 @@ const SEVERITY_STYLE: Record<FindingSeverity, SeverityStyle> = {
   },
   INFO: {
     icon: "fa-circle-info",
-    iconColor: "text-gray-400",
+    iconColor: "text-gray-500",
     border: "border-l-gray-300",
   },
 }

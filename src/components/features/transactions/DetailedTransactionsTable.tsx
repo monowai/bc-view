@@ -159,7 +159,7 @@ export default function DetailedTransactionsTable({
                     <button
                       type="button"
                       onClick={() => onShowChart(trn)}
-                      className="text-gray-400 hover:text-blue-600"
+                      className="text-gray-500 hover:text-blue-600"
                       title="Price chart vs limit"
                       aria-label={`Price chart for ${trn.asset.displayCode}`}
                     >

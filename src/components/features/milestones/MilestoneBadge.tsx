@@ -40,7 +40,7 @@ export default function MilestoneBadge({
       >
         <i
           className={`fas ${definition.icon} ${iconSize} ${
-            isEarned ? "text-white" : "text-gray-400"
+            isEarned ? "text-white" : "text-gray-500"
           }`}
         ></i>
       </div>

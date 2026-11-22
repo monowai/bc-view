@@ -503,7 +503,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                       </span>
                     </p>
                   ) : (
-                    <p className="text-gray-400">
+                    <p className="text-gray-500">
                       Name your brokerage account first — the portfolio takes
                       its name.
                     </p>
@@ -561,7 +561,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => removeRow(idx)}
-                    className="text-xs text-gray-400 hover:text-red-600"
+                    className="text-xs text-gray-500 hover:text-red-600"
                   >
                     {"Remove"}
                   </button>

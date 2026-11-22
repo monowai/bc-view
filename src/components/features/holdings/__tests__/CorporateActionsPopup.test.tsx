@@ -241,8 +241,7 @@ describe("CorporateActionsPopup", () => {
         />,
       )
 
-      // Dialog uses × character for close button
-      const closeButton = screen.getByText("×")
+      const closeButton = screen.getByRole("button", { name: "Close dialog" })
       expect(closeButton).toBeInTheDocument()
       fireEvent.click(closeButton)
 

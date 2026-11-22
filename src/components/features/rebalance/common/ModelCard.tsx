@@ -51,14 +51,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
               {model.name}
             </span>
           </div>
-          <span className="flex-none inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">
+          <span className="flex-none inline-flex items-center px-1.5 py-0.5 rounded text-micro font-medium bg-green-100 text-green-700">
             <i className="fas fa-check-circle mr-1"></i>v
             {model.currentPlanVersion}
           </span>
         </div>
 
         {model.objective && (
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 truncate">
+          <div className="text-micro font-semibold uppercase tracking-wide text-blue-600 truncate">
             {model.objective}
           </div>
         )}
@@ -69,7 +69,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
           </p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-micro text-gray-500">
           <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
             {model.baseCurrency}
           </span>
@@ -78,7 +78,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             title={`Risk ${model.risk ?? 5} of 5`}
             aria-label={`Risk ${model.risk ?? 5} of 5`}
           >
-            <span className="text-gray-400">Risk</span>
+            <span className="text-gray-500">Risk</span>
             <span className="inline-flex items-center gap-0.5">
               {[1, 2, 3, 4, 5].map((n) => (
                 <i

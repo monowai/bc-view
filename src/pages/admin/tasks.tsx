@@ -277,7 +277,7 @@ export default withPageAuthRequired(
                         disabled={isRunning}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           isRunning
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                             : "bg-blue-500 text-white hover:bg-blue-600"
                         }`}
                       >

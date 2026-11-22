@@ -81,7 +81,7 @@ export default function ScenarioCard({
         <div className="flex items-center space-x-1">
           <button
             onClick={() => onEdit(scenario)}
-            className="text-gray-400 hover:text-gray-600 p-1.5"
+            className="text-gray-500 hover:text-gray-600 p-1.5"
             title="Edit scenario"
           >
             <i className="fas fa-edit text-xs"></i>
@@ -99,7 +99,7 @@ export default function ScenarioCard({
           {!scenario.isCurrent && (
             <button
               onClick={() => onSetCurrent(scenario.id)}
-              className="text-gray-400 hover:text-independence-600 p-1.5"
+              className="text-gray-500 hover:text-independence-600 p-1.5"
               title="Set as current scenario"
             >
               <i className="fas fa-check-circle text-xs"></i>
@@ -112,20 +112,20 @@ export default function ScenarioCard({
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Income</span>
           <span
-            className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+            className={`font-medium ${hideValues ? "text-gray-500" : "text-green-600"}`}
           >
             {formatMoney(scenario.workingIncomeMonthly)}
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Expenses</span>
-          <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+          <span className={`font-medium ${hideValues ? "text-gray-500" : ""}`}>
             {formatMoney(scenario.workingExpensesMonthly)}
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Taxes</span>
-          <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+          <span className={`font-medium ${hideValues ? "text-gray-500" : ""}`}>
             {formatMoney(scenario.taxesMonthly)}
           </span>
         </div>
@@ -133,7 +133,7 @@ export default function ScenarioCard({
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Bonus (monthly avg)</span>
             <span
-              className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+              className={`font-medium ${hideValues ? "text-gray-500" : "text-green-600"}`}
             >
               {formatMoney(scenario.bonusMonthly)}
             </span>
@@ -156,7 +156,7 @@ export default function ScenarioCard({
           <span
             className={`font-bold ${
               hideValues
-                ? "text-gray-400"
+                ? "text-gray-500"
                 : netContribution >= 0
                   ? "text-independence-600"
                   : "text-red-600"

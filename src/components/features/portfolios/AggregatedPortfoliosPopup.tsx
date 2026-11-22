@@ -29,7 +29,7 @@ const AggregatedPortfoliosPopup: React.FC<AggregatedPortfoliosPopupProps> = ({
           <Link
             href={`/holdings/${row.portfolioCode}`}
             onClick={onClose}
-            className="flex items-center justify-between gap-3 px-2 py-3 rounded-md hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
+            className="flex items-center justify-between gap-3 px-2 py-3 rounded-md hover:bg-slate-50 focus:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
           >
             <span className="min-w-0">
               <span className="block font-semibold text-gray-900">

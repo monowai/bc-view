@@ -2,6 +2,7 @@ import React from "react"
 import { render } from "@testing-library/react"
 import TimelineTabContent from "@components/features/independence/TimelineTabContent"
 import { RetirementProjection } from "types/independence"
+import { CHART_PALETTE } from "@lib/chartPalette"
 
 type ChartProps = Record<string, any>
 const mockCaptured: Record<string, ChartProps[]> = {}
@@ -67,7 +68,7 @@ describe("TimelineTabContent — wealth and cash-flow chart frames", () => {
       expect(p.margin).toEqual({ top: 10, right: 30, left: 20, bottom: 20 }),
     )
     CartesianGrid.forEach((p) =>
-      expect(p).toEqual({ strokeDasharray: "3 3", stroke: "#e5e7eb" }),
+      expect(p).toEqual({ strokeDasharray: "3 3", stroke: CHART_PALETTE.grid }),
     )
     XAxis.forEach((p) => {
       const { domain, ticks, ...rest } = p

@@ -161,7 +161,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
 
       {loadingWeights && (
         <div className="flex items-center justify-center py-8">
-          <Spinner size="xl" className="text-gray-400" label="Loading..." />
+          <Spinner size="xl" className="text-gray-500" label="Loading..." />
         </div>
       )}
 

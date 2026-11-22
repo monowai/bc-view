@@ -1364,7 +1364,7 @@ const TradeInputForm: React.FC<{
                           placeholder="0.00"
                           className={`${inputClass} pr-11`}
                         />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500">
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro font-medium text-gray-500">
                           {currentTradeCurrency}
                         </span>
                       </div>
@@ -1408,16 +1408,16 @@ const TradeInputForm: React.FC<{
                   <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
                     <div className="grid grid-cols-[1fr_minmax(5.5rem,auto)_minmax(5.5rem,auto)] items-baseline gap-x-4 gap-y-1.5">
                       <span />
-                      <span className="text-right text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
                         {"Current"}
                       </span>
-                      <span className="text-right text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
                         {"After"}
                       </span>
 
                       <span className="text-sm text-gray-500">
                         {"Value"}
-                        <span className="text-gray-400">
+                        <span className="text-gray-500">
                           {" "}
                           {portfolio.currency.code}
                         </span>
@@ -1759,7 +1759,7 @@ const TradeInputForm: React.FC<{
                 >
                   <span
                     data-testid="trade-summary-type"
-                    className={`text-[10px] font-semibold uppercase tracking-wider ${colors.text}`}
+                    className={`text-micro font-semibold uppercase tracking-wider ${colors.text}`}
                   >
                     {type?.value || "BUY"}
                   </span>
@@ -1798,7 +1798,7 @@ const TradeInputForm: React.FC<{
                     </span>
                   )}
                   {!cashImpact && (
-                    <span className="text-xs text-gray-400 italic">
+                    <span className="text-xs text-gray-500 italic">
                       {"No cash impact"}
                     </span>
                   )}

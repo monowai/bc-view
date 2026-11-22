@@ -1,5 +1,6 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useId, useRef } from "react"
 import Spinner from "@components/ui/Spinner"
+import { useModalFocus } from "@hooks/useModalFocus"
 
 interface DialogProps {
   title: string | React.ReactNode
@@ -33,6 +34,10 @@ export default function Dialog({
   footer,
   zClass = "z-50",
 }: DialogProps): React.ReactElement {
+  const titleId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  useModalFocus(panelRef)
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === "Escape") {
@@ -50,20 +55,30 @@ export default function Dialog({
         onClick={onClose}
       ></div>
       <div
-        className={`bg-white text-gray-900 rounded-lg shadow-lg w-full min-w-0 ${maxWidthClasses[maxWidth]} mx-4 z-50 ${scrollable ? "max-h-[90vh] overflow-hidden flex flex-col" : ""}`}
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className={`bg-white text-gray-900 rounded-lg shadow-lg w-full min-w-0 ${maxWidthClasses[maxWidth]} mx-4 z-50 focus:outline-none ${scrollable ? "max-h-[90vh] overflow-hidden flex flex-col" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b border-gray-200 p-4">
-          <h2 className="text-xl font-semibold min-w-0 flex-1">{title}</h2>
+          <h2 id={titleId} className="text-xl font-semibold min-w-0 flex-1">
+            {title}
+          </h2>
           <button
-            className="ml-4 text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            type="button"
+            aria-label="Close dialog"
+            className="ml-4 -mr-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             onClick={onClose}
           >
-            &times;
+            <i className="fas fa-xmark text-lg" aria-hidden="true"></i>
           </button>
         </header>
 
         <div
+          data-modal-body
           className={`p-4 space-y-4 ${scrollable ? "overflow-y-auto flex-1" : ""}`}
         >
           {children}

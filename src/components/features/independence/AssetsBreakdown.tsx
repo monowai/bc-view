@@ -202,10 +202,10 @@ export default function AssetsBreakdown({
                         <span
                           className={`font-medium ${
                             hideValues
-                              ? "text-gray-400"
+                              ? "text-gray-500"
                               : isSpendable
                                 ? "text-gray-900"
-                                : "text-gray-400"
+                                : "text-gray-500"
                           }`}
                         >
                           {hideValues
@@ -231,7 +231,7 @@ export default function AssetsBreakdown({
                                 </span>
                               </div>
                               <span
-                                className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-800"}`}
+                                className={`font-medium ${hideValues ? "text-gray-500" : "text-gray-800"}`}
                               >
                                 {hideValues
                                   ? HIDDEN_VALUE
@@ -324,7 +324,7 @@ export default function AssetsBreakdown({
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Current</div>
                         <div
-                          className={`text-sm ${hideValues ? "text-gray-400" : "text-gray-600"}`}
+                          className={`text-sm ${hideValues ? "text-gray-500" : "text-gray-600"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -334,7 +334,7 @@ export default function AssetsBreakdown({
                           Projected
                         </div>
                         <div
-                          className={`font-medium ${hideValues ? "text-gray-400" : "text-purple-700"}`}
+                          className={`font-medium ${hideValues ? "text-gray-500" : "text-purple-700"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -349,13 +349,13 @@ export default function AssetsBreakdown({
           )}
 
           <div className="border-t pt-4 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               {"Today"}
             </p>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{"Total Assets"}</span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -367,7 +367,7 @@ export default function AssetsBreakdown({
                 {"Spendable (Liquid) Assets"}
               </span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : "text-independence-600"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -395,7 +395,7 @@ export default function AssetsBreakdown({
                       ></i>
                     )}
                   </button>
-                  <span className="font-medium text-gray-400">
+                  <span className="font-medium text-gray-500">
                     {hideValues
                       ? HIDDEN_VALUE
                       : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
@@ -413,7 +413,7 @@ export default function AssetsBreakdown({
                           Healthcare Reserve (CPF MA)
                         </span>
                         <span
-                          className={`font-medium ${hideValues ? "text-gray-400" : "text-rose-500"}`}
+                          className={`font-medium ${hideValues ? "text-gray-500" : "text-rose-500"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -422,7 +422,7 @@ export default function AssetsBreakdown({
                       </div>
                     </div>
                   )}
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   FI uses spendable assets; illiquid assets add long-term
                   security.
                 </p>

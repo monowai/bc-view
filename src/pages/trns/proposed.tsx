@@ -22,7 +22,6 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import DetailedTransactionsTable from "@components/features/transactions/DetailedTransactionsTable"
 import AggregatedTransactionsTable from "@components/features/transactions/AggregatedTransactionsTable"
-import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import { getSessionValue, setSessionValue } from "@lib/storage/sessionState"
 import { getDateOffset } from "@lib/dateUtils"
 import { todayIso } from "@lib/formatters"
@@ -37,6 +36,13 @@ import {
   unsettlePortfolioTrns,
 } from "@utils/api/client/trns"
 import { brokersKey } from "@utils/api/client/brokers"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const PriceChartPopup = dynamic(
+  () => import("@components/features/assets/PriceChartPopup"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 // Session storage keys for filter preferences
 const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
@@ -927,7 +933,7 @@ function ProposedTransactions(): React.JSX.Element {
                     max={toDate}
                     className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <span className="text-gray-400">→</span>
+                  <span className="text-gray-500">→</span>
                   <DateInput
                     value={toDate}
                     onChange={(v) => {
@@ -950,7 +956,7 @@ function ProposedTransactions(): React.JSX.Element {
                     Reset
                   </button>
                 </div>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   Proposed due on/before end · settled within range
                 </span>
               </div>

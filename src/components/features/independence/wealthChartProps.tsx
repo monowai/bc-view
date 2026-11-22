@@ -2,13 +2,14 @@ import React from "react"
 import type { XAxisProps, YAxisProps } from "recharts"
 import { Area, Line } from "recharts"
 import { formatCompactBare } from "@lib/formatters"
+import { CHART_PALETTE, CHART_TICK, OUTCOME_BANDS } from "@lib/chartPalette"
 
 /** Shared look of the age-by-wealth charts on the plan and journey pages. */
-const TICK = { fontSize: 11, fill: "#94a3b8" }
+const TICK = CHART_TICK
 
 export const WEALTH_GRID_PROPS = {
   strokeDasharray: "3 3",
-  stroke: "#f1f5f9",
+  stroke: CHART_PALETTE.gridFaint,
   vertical: false,
 }
 
@@ -70,7 +71,7 @@ export function monteCarloBands({
       <Area
         type="monotone"
         dataKey="outerWidth"
-        fill="rgba(34,197,94,0.09)"
+        fill={OUTCOME_BANDS.outer}
         stroke="none"
         stackId="outer"
         {...legend}
@@ -89,7 +90,7 @@ export function monteCarloBands({
       <Area
         type="monotone"
         dataKey="innerWidth"
-        fill="rgba(34,197,94,0.15)"
+        fill={OUTCOME_BANDS.inner}
         stroke="none"
         stackId="inner"
         {...legend}
@@ -99,7 +100,7 @@ export function monteCarloBands({
       <Line
         type="monotone"
         dataKey="p50"
-        stroke="rgba(34,197,94,0.55)"
+        stroke={OUTCOME_BANDS.median}
         strokeWidth={1.5}
         strokeDasharray="5 4"
         dot={false}

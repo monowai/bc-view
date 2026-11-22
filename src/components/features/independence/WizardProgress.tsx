@@ -75,7 +75,7 @@ export default function WizardProgress({
                 </div>
                 <span
                   className={`
-                    mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
+                    mt-0.5 sm:mt-1 text-micro sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${hasError ? "text-red-600" : ""}
                     ${!hasError && isCurrent ? "text-orange-600" : ""}
                     ${!hasError && !isCurrent ? "text-gray-500" : ""}

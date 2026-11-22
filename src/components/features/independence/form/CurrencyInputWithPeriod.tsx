@@ -68,12 +68,11 @@ export default function CurrencyInputWithPeriod({
           <button
             type="button"
             onClick={togglePeriod}
-            className="px-2 py-0.5 text-xs font-medium rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-independence-500"
-            style={{
-              backgroundColor: period === "annual" ? "#fef3c7" : "#e0f2fe",
-              borderColor: period === "annual" ? "#f59e0b" : "#0ea5e9",
-              color: period === "annual" ? "#92400e" : "#0369a1",
-            }}
+            className={`px-2 py-0.5 text-xs font-medium rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-independence-500 ${
+              period === "annual"
+                ? "bg-independence-50 border-independence-200 text-independence-700"
+                : "bg-wealth-50 border-wealth-200 text-wealth-700"
+            }`}
             title={`Currently showing ${period === "annual" ? "annual" : "monthly"} values. Click to toggle.`}
           >
             {period === "annual" ? "Yearly" : "Monthly"}
@@ -119,14 +118,14 @@ export default function CurrencyInputWithPeriod({
       )}
       {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
       {!helperText && !hidePeriodToggle && (
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-500">
           {period === "annual"
             ? "Stored as monthly (÷12)"
             : "Supports math: 1000+500, 5000*12"}
         </p>
       )}
       {!helperText && hidePeriodToggle && (
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-500">
           Supports math: 1000+500, 5000*12
         </p>
       )}

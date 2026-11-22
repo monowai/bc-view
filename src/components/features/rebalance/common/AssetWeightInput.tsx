@@ -57,7 +57,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               <button
                 type="button"
                 onClick={onShowPriceChart}
-                className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-0.5 text-gray-500 hover:text-gray-600 transition-colors"
                 title={"Price history chart"}
               >
                 <i className="fas fa-chart-line text-xs"></i>
@@ -67,7 +67,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               <button
                 type="button"
                 onClick={onShowAssetInsight}
-                className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                className="p-0.5 text-gray-500 hover:text-blue-500 transition-colors"
                 title={"AI asset insight"}
               >
                 <i className="fas fa-robot text-xs"></i>
@@ -91,7 +91,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
                 disabled={readOnly}
                 className="w-20 sm:w-24 px-2 py-1 text-right font-mono tabular-nums border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               />
-              <span className="text-gray-400 text-xs w-8">
+              <span className="text-gray-500 text-xs w-8">
                 {priceCurrency || ""}
               </span>
             </>
@@ -114,7 +114,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               className={`p-1 transition-colors ${
                 rationale
                   ? "text-blue-600 hover:text-blue-800"
-                  : "text-gray-400 hover:text-gray-600"
+                  : "text-gray-500 hover:text-gray-600"
               }`}
               title={"Investment rationale"}
             >

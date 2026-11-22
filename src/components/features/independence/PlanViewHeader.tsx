@@ -43,7 +43,7 @@ export default function PlanViewHeader({
       <div className="flex items-center gap-4">
         <Link
           href="/independence"
-          className="text-gray-400 hover:text-independence-600 transition-colors"
+          className="text-gray-500 hover:text-independence-600 transition-colors"
           title="Back to Plans"
         >
           <i className="fas fa-arrow-left"></i>
@@ -59,7 +59,7 @@ export default function PlanViewHeader({
       <div className="flex items-center gap-3">
         <button
           onClick={onExport}
-          className="text-gray-400 hover:text-gray-600 p-2"
+          className="text-gray-500 hover:text-gray-600 p-2"
           title="Export plan as JSON"
         >
           <i className="fas fa-download"></i>

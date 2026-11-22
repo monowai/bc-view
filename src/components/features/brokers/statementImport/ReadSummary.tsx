@@ -12,7 +12,7 @@ function Fact({
   return (
     <div>
       <dt className="text-xs text-gray-500">{label}</dt>
-      <dd className={value ? "text-gray-900" : "text-gray-400"}>
+      <dd className={value ? "text-gray-900" : "text-gray-500"}>
         {value || "Not shown"}
       </dd>
     </div>

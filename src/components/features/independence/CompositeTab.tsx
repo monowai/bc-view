@@ -19,8 +19,14 @@ import PhaseSpendList from "./composite/PhaseSpendList"
 import YearByYearTable from "./composite/YearByYearTable"
 import PhasesTab from "./composite/tabs/PhasesTab"
 import WorkingYearsSection from "./scenarios/WorkingYearsSection"
-import NetWorthTab from "./composite/tabs/NetWorthTab"
 import JourneyAssumptionsSection from "./composite/tabs/JourneyAssumptionsSection"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const NetWorthTab = dynamic(() => import("./composite/tabs/NetWorthTab"), {
+  ssr: false,
+  loading: () => <ChartPlaceholder heightClass="h-96" />,
+})
 
 /**
  * `plan` reads the projection; `stages`, `wealth` and `assumptions` change it.

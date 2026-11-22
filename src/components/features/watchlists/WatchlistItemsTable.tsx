@@ -141,7 +141,7 @@ export default function WatchlistItemsTable({
                       aria-label={`Show price chart for ${code}`}
                       title="Price Chart"
                       onClick={() => onChart(item)}
-                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                      className="text-gray-500 hover:text-blue-600 transition-colors"
                     >
                       <i aria-hidden="true" className="fas fa-chart-line"></i>
                     </button>

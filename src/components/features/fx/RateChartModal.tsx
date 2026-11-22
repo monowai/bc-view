@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useId, useRef } from "react"
 import { useFxHistory } from "@hooks/useFxHistory"
 import FxConverter from "@components/features/fx/FxConverter"
 import {
@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts"
+import { useModalFocus } from "@hooks/useModalFocus"
 
 // Time range options for chart
 const TIME_RANGES = [
@@ -42,6 +43,10 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
     setIsInverted,
   } = useFxHistory(initialFrom, initialTo)
 
+  const titleId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  useModalFocus(panelRef)
+
   // Escape closes, as it does on every other modal.
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
@@ -57,18 +62,29 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden focus:outline-none"
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white">
+        <div className="bg-gray-800 px-6 py-4 text-white">
           <div className="flex items-center justify-between gap-4">
             {/* Currency pair */}
-            <h2 className="text-xl font-bold flex items-center gap-2 shrink-0">
+            <h2
+              id={titleId}
+              className="text-xl font-bold flex items-center gap-2 shrink-0"
+            >
               <span>{from}</span>
               <button
                 type="button"
                 onClick={() => setIsInverted(!isInverted)}
-                className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 title="Swap currencies"
+                aria-label="Swap currencies"
               >
                 <svg
                   className="w-5 h-5"
@@ -97,7 +113,8 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0"
+              aria-label="Close dialog"
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <svg
                 className="w-6 h-6"

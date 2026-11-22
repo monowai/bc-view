@@ -135,7 +135,7 @@ export default function JourneyReport({
       <Section id="stages" title="4. Stages">
         <table className="w-full text-sm tabular-nums">
           <thead>
-            <tr className="border-b border-gray-300 text-left text-[10px] uppercase text-gray-500">
+            <tr className="border-b border-gray-300 text-left text-micro uppercase text-gray-500">
               <th className="py-1">Stage</th>
               <th className="py-1">Ages</th>
               <th className="py-1 text-right">First-year spending</th>

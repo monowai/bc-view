@@ -392,7 +392,7 @@ export default function LifeEventsStep({
                         <button
                           type="button"
                           onClick={() => setEditingIndex(index)}
-                          className="text-gray-400 hover:text-independence-500 p-1"
+                          className="text-gray-500 hover:text-independence-500 p-1"
                           title="Edit"
                         >
                           <i className="fas fa-edit text-xs"></i>
@@ -400,7 +400,7 @@ export default function LifeEventsStep({
                         <button
                           type="button"
                           onClick={() => remove(index)}
-                          className="text-gray-400 hover:text-red-500 p-1"
+                          className="text-gray-500 hover:text-red-500 p-1"
                           title="Delete"
                         >
                           <i className="fas fa-times"></i>

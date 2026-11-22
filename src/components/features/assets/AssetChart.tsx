@@ -1,8 +1,17 @@
 import React from "react"
-import PriceChartPopup, {
-  PriceChartPopupProps,
-} from "@components/features/assets/PriceChartPopup"
-import RateChartModal from "@components/features/fx/RateChartModal"
+import dynamic from "next/dynamic"
+import type { PriceChartPopupProps } from "@components/features/assets/PriceChartPopup"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+// Both charts open on demand, so their code (and recharts) loads on first open.
+const PriceChartPopup = dynamic(
+  () => import("@components/features/assets/PriceChartPopup"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
+const RateChartModal = dynamic(
+  () => import("@components/features/fx/RateChartModal"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 import { fxPairLegs } from "@lib/assets/assetUtils"
 
 /**

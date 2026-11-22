@@ -86,7 +86,7 @@ describe("LifestyleMoodBoard", () => {
 
     const nowChip = screen.getByText(/now.*2,100/i)
     expect(nowChip).toBeInTheDocument()
-    expect(nowChip).toHaveClass("text-[11px]", "text-gray-400")
+    expect(nowChip).toHaveClass("text-micro", "text-gray-500")
     // 2100 is nearest to Comfortable (2200)
     const nearest = screen.getByTestId("lifestyle-tier-nearest-housing-1")
     expect(nearest).toBeInTheDocument()

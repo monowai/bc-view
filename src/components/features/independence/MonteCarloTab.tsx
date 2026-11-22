@@ -5,7 +5,16 @@ import type { ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
-import { MonteCarloResultView } from "./monte-carlo/MonteCarloResultView"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const MonteCarloResultView = dynamic(
+  () =>
+    import("./monte-carlo/MonteCarloResultView").then(
+      (m) => m.MonteCarloResultView,
+    ),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 interface MonteCarloTabProps {
   plan: RetirementPlan

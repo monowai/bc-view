@@ -7,7 +7,6 @@ import type {
   SpendEntry,
 } from "types/independence"
 import { saveSpend } from "@utils/api/client/independence"
-import SpendHistoryChart from "@components/features/wealth/SpendHistoryChart"
 import {
   formatSpendMoney,
   monthOf,
@@ -18,6 +17,13 @@ import type {
   SpendCategory,
 } from "@components/features/wealth/useSpendLog"
 import { useAccountPortfolios } from "@components/features/wealth/useAccountPortfolios"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const SpendHistoryChart = dynamic(
+  () => import("@components/features/wealth/SpendHistoryChart"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-64" /> },
+)
 
 interface SpendDialogProps {
   /** The user's expense categories: one row each. */

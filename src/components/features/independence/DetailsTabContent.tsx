@@ -277,7 +277,7 @@ export default function DetailsTabContent({
                 <span className="text-gray-500">{"Monthly Expenses"}</span>
               </InfoTooltip>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -288,7 +288,7 @@ export default function DetailsTabContent({
               <div className="flex justify-between">
                 <span className="text-gray-500">{"Pension"}</span>
                 <span
-                  className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                  className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
                 >
                   {hideValues
                     ? HIDDEN_VALUE
@@ -305,7 +305,7 @@ export default function DetailsTabContent({
             <div className="flex justify-between">
               <span className="text-gray-500">{"Government Benefits"}</span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -315,7 +315,7 @@ export default function DetailsTabContent({
             <div className="flex justify-between">
               <span className="text-gray-500">{"Other Income"}</span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -331,7 +331,7 @@ export default function DetailsTabContent({
                   </span>
                 </InfoTooltip>
                 <span
-                  className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+                  className={`font-medium ${hideValues ? "text-gray-500" : "text-green-600"}`}
                 >
                   {hideValues
                     ? HIDDEN_VALUE
@@ -382,7 +382,7 @@ export default function DetailsTabContent({
                   <span className="text-gray-500">{"Target Balance"}</span>
                 </InfoTooltip>
                 <span
-                  className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                  className={`font-medium ${hideValues ? "text-gray-500" : ""}`}
                 >
                   {hideValues
                     ? HIDDEN_VALUE

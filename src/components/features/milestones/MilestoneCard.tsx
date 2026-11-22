@@ -36,7 +36,7 @@ export default function MilestoneCard({
         >
           <i
             className={`fas ${definition.icon} ${
-              isEarned ? "text-white" : "text-gray-400"
+              isEarned ? "text-white" : "text-gray-500"
             }`}
           ></i>
         </div>
@@ -68,7 +68,7 @@ export default function MilestoneCard({
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
                 earned
                   ? `${tierColor!.bgLight} ${tierColor!.text}`
-                  : "bg-gray-100 text-gray-400"
+                  : "bg-gray-100 text-gray-500"
               }`}
               title={t.description}
             >
@@ -88,7 +88,7 @@ export default function MilestoneCard({
       )}
 
       {!isEarned && definition.tiers[0] && (
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-500 mt-2">
           {definition.tiers[0].description}
         </p>
       )}

@@ -126,7 +126,7 @@ export default function ManagedPortfolios({
                 <span className="text-sm font-semibold text-gray-700">
                   {group.label}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {"("}
                   {group.shares.length}
                   {")"}
@@ -195,7 +195,7 @@ export default function ManagedPortfolios({
                         </button>
                       )}
                       {share.acceptedAt && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {"Since"}{" "}
                           {new Date(share.acceptedAt).toLocaleDateString(
                             undefined,
@@ -295,7 +295,7 @@ function RevokeButton({
           setShowConfirm(true)
         }}
         disabled={isLoading}
-        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+        className="text-gray-500 hover:text-red-500 transition-colors p-1"
         title={"Revoke"}
       >
         <i

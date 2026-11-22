@@ -115,7 +115,7 @@ const RebalancePlanList: React.FC = () => {
                     setDeleteTarget(plan)
                   }}
                   disabled={deletingId === plan.id}
-                  className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
+                  className="text-gray-500 hover:text-red-600 p-1 disabled:opacity-50"
                   title={"Delete"}
                 >
                   {deletingId === plan.id ? (

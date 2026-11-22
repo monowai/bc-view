@@ -196,7 +196,7 @@ export default function AggregatedTransactionsTable({
                         <button
                           type="button"
                           onClick={() => onShowChart(agg)}
-                          className="text-gray-400 hover:text-blue-600"
+                          className="text-gray-500 hover:text-blue-600"
                           title="Price chart vs avg price"
                           aria-label={`Price chart for ${agg.assetCode}`}
                         >

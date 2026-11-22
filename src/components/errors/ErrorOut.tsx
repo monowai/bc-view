@@ -157,8 +157,8 @@ export default function ErrorOut({
   }
 
   return (
-    <main
-      role="main"
+    <section
+      aria-label="Error"
       className="flex items-center justify-center min-h-screen bg-gray-50 px-4 py-12"
     >
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -251,10 +251,10 @@ export default function ErrorOut({
         <div className="text-xs text-gray-500 mt-4">
           <p>If this problem persists, please contact support</p>
           {eventId && (
-            <p className="mt-2 font-mono text-gray-400">Reference: {eventId}</p>
+            <p className="mt-2 font-mono text-gray-500">Reference: {eventId}</p>
           )}
         </div>
       </div>
-    </main>
+    </section>
   )
 }

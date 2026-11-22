@@ -51,7 +51,7 @@ const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
           <li key={row.portfolioId}>
             <button
               type="button"
-              className="w-full flex items-center justify-between gap-3 px-2 py-3 text-left rounded-md hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
+              className="w-full flex items-center justify-between gap-3 px-2 py-3 text-left rounded-md hover:bg-slate-50 focus:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
               onClick={() => handleSelect(row)}
               aria-label={`Open ${row.portfolioCode} holdings`}
             >

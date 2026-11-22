@@ -43,6 +43,7 @@ import { assetResolveKey } from "@utils/api/client/assets"
 import { tradeKey, trnsKey } from "@utils/api/client/trns"
 import { priceHistoryKey, repairSplits } from "@utils/api/client/prices"
 import { TRN_STATUS } from "types/constants"
+import { CHART_PALETTE, GRAY, INDEPENDENCE, WEALTH } from "@lib/chartPalette"
 
 export interface PriceChartPopupProps {
   asset: Asset
@@ -133,9 +134,9 @@ const SMA_OPTIONS: {
   color: string
   dash: string
 }[] = [
-  { label: "SMA 20", window: 20, color: "#6366F1", dash: "4 3" },
-  { label: "SMA 50", window: 50, color: "#7C3AED", dash: "6 3" },
-  { label: "SMA 200", window: 200, color: "#D97706", dash: "10 4" },
+  { label: "SMA 20", window: 20, color: WEALTH[700], dash: "4 3" },
+  { label: "SMA 50", window: 50, color: INDEPENDENCE[700], dash: "6 3" },
+  { label: "SMA 200", window: 200, color: GRAY[600], dash: "10 4" },
 ]
 
 const FALLBACK_SMAS = [20]
@@ -372,19 +373,17 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         {currencySymbol}
         <FormatValue value={point.close} />
         {adjusted && (
-          <span className="ml-1 text-[10px] font-normal text-gray-400">
-            adj
-          </span>
+          <span className="ml-1 text-micro font-normal text-gray-500">adj</span>
         )}
       </div>
       {adjusted && (
-        <div className="text-[11px] text-gray-400 tabular-nums">
+        <div className="text-micro text-gray-500 tabular-nums">
           Raw: {currencySymbol}
           <FormatValue value={point.closeRaw} />
         </div>
       )}
       {point.split && (
-        <div className="text-[11px] text-amber-600">Split {point.split}:1</div>
+        <div className="text-micro text-amber-600">Split {point.split}:1</div>
       )}
       {SMA_OPTIONS.map((opt) => {
         const value = point[smaKey(opt.window)]
@@ -396,7 +395,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
           >
             {opt.label}: {currencySymbol}
             <FormatValue value={value} />
-            <span className="ml-1 text-gray-400">
+            <span className="ml-1 text-gray-500">
               ({smaDrift(point.close, value)}%)
             </span>
           </div>
@@ -410,7 +409,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
       {ratioLabel && typeof point.ratio === "number" && (
         <div className="text-xs text-sky-600 tabular-nums">
           {ratioLabel}: {point.ratio.toFixed(3)}
-          <span className="ml-1 text-gray-400">
+          <span className="ml-1 text-gray-500">
             ({point.ratio >= 1 ? "+" : ""}
             {indexAsPercent(point.ratio)}% vs range start)
           </span>
@@ -421,7 +420,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
           Buy {point.buyQty} @ {currencySymbol}
           <FormatValue value={point.buyPrice} />
           {point.buyPriceRaw !== point.buyPrice && (
-            <span className="ml-1 text-gray-400">
+            <span className="ml-1 text-gray-500">
               (raw {currencySymbol}
               <FormatValue value={point.buyPriceRaw ?? 0} />)
             </span>
@@ -433,7 +432,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
           Sell {point.sellQty} @ {currencySymbol}
           <FormatValue value={point.sellPrice} />
           {point.sellPriceRaw !== point.sellPrice && (
-            <span className="ml-1 text-gray-400">
+            <span className="ml-1 text-gray-500">
               (raw {currencySymbol}
               <FormatValue value={point.sellPriceRaw ?? 0} />)
             </span>
@@ -1138,7 +1137,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   </span>
                 )}
                 {overlay.hint && (
-                  <span className="text-gray-400">— {overlay.hint}</span>
+                  <span className="text-gray-500">— {overlay.hint}</span>
                 )}
               </span>
             )}
@@ -1277,14 +1276,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   // The limit was entered in money; on an indexed scale it has
                   // to be indexed too or the line sits at the wrong height.
                   y={indexed ? limitPrice / (priceBase as number) : limitPrice}
-                  stroke="#7C3AED"
+                  stroke={CHART_PALETTE.primary}
                   strokeDasharray="5 4"
                   strokeWidth={1.5}
                   label={{
                     value: `${limitLabel} ${currencySymbol}${limitPrice.toFixed(2)}`,
                     position: "insideTopLeft",
                     fontSize: 10,
-                    fill: "#6D28D9",
+                    fill: WEALTH[700],
                   }}
                 />
               )}
@@ -1304,14 +1303,14 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                   key={`split-${p.priceDate}`}
                   yAxisId="price"
                   x={p.priceDate}
-                  stroke="#F59E0B"
+                  stroke={CHART_PALETTE.warning}
                   strokeDasharray="3 3"
                   strokeWidth={1}
                   label={{
                     value: `${p.split}:1`,
                     position: "top",
                     fontSize: 10,
-                    fill: "#B45309",
+                    fill: CHART_PALETTE.warning,
                   }}
                 />
               ))}

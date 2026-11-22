@@ -129,6 +129,15 @@ let mockProjectionState: Record<string, unknown>
 const mockResetProjection = jest.fn()
 const mockUseUnifiedProjection = jest.fn()
 
+// The page lazy-loads the timeline straight from its own file.
+jest.mock("@components/features/independence/TimelineTabContent", () => {
+  const R = jest.requireActual("react")
+  return {
+    __esModule: true,
+    default: () => R.createElement("div", null, "timeline"),
+  }
+})
+
 jest.mock("@components/features/independence", () => {
   const R = jest.requireActual("react")
   return {

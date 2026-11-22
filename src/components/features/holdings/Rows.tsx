@@ -245,12 +245,12 @@ export default function Rows({
                     <AssetReviewButton
                       asset={asset}
                       onShow={() => openReview(asset)}
-                      iconClassName="text-[10px]"
+                      iconClassName="text-micro"
                     />
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
-                      className="text-[10px] xl:text-xs text-slate-500 truncate max-w-[100px] sm:max-w-[180px] xl:max-w-none"
+                      className="text-micro xl:text-xs text-slate-500 truncate max-w-[100px] sm:max-w-[180px] xl:max-w-none"
                       title={asset.name}
                     >
                       {truncateText(asset.name, 18)}

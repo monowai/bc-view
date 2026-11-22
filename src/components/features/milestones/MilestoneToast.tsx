@@ -63,7 +63,7 @@ export default function MilestoneToast(): React.ReactElement | null {
             e.stopPropagation()
             dismissToast()
           }}
-          className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+          className="text-gray-500 hover:text-gray-600 flex-shrink-0"
           aria-label="Dismiss"
         >
           <i className="fas fa-times text-xs"></i>

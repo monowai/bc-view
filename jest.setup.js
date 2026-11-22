@@ -60,6 +60,43 @@ jest.mock("next/link", () => {
   }
 })
 
+// next/dynamic: start the import when dynamic() is called (module load), so by
+// the time a test renders, the component is usually there and renders at once,
+// as the eager import it replaced did. Until it resolves, `loading` is shown and
+// the wrapper re-renders when it arrives. jest.mock of the target still applies.
+jest.mock("next/dynamic", () => {
+  const ReactLib = React
+  return {
+    __esModule: true,
+    default: function dynamic(loader, options = {}) {
+      let Loaded = null
+      const listeners = new Set()
+      Promise.resolve()
+        .then(() => loader())
+        .then((mod) => {
+          Loaded = mod && mod.default ? mod.default : mod
+          listeners.forEach((notify) => notify())
+        })
+        .catch(() => {})
+      return function DynamicComponent(props) {
+        const [, rerender] = ReactLib.useReducer((n) => n + 1, 0)
+        const renderedLoaded = Loaded !== null
+        ReactLib.useEffect(() => {
+          if (renderedLoaded) return undefined
+          listeners.add(rerender)
+          // It may have resolved between render and this effect.
+          if (Loaded) rerender()
+          return () => listeners.delete(rerender)
+        }, [renderedLoaded])
+        if (Loaded) return ReactLib.createElement(Loaded, props)
+        return options.loading
+          ? options.loading({ isLoading: true, pastDelay: true, error: null })
+          : null
+      }
+    },
+  }
+})
+
 // react-markdown / remark-gfm are ESM-only packages that fail to parse in Jest.
 // Components like NewsSentimentPopup pull them in transitively.
 jest.mock("react-markdown", () => {

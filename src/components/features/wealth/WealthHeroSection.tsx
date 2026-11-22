@@ -70,7 +70,7 @@ const Term: React.FC<{
     title={title}
   >
     {operator && (
-      <span aria-hidden="true" className="font-mono text-gray-400">
+      <span aria-hidden="true" className="font-mono text-gray-500">
         {operator}
       </span>
     )}

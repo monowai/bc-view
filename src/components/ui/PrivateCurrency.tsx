@@ -31,7 +31,7 @@ export default function PrivateCurrency({
 }: PrivateCurrencyProps): React.ReactElement {
   if (hideValues) {
     return (
-      <span className={`text-gray-400 ${className ?? ""}`}>{HIDDEN_VALUE}</span>
+      <span className={`text-gray-500 ${className ?? ""}`}>{HIDDEN_VALUE}</span>
     )
   }
 
@@ -63,7 +63,7 @@ export function PrivatePercentage({
 }): React.ReactElement {
   if (hideValues) {
     return (
-      <span className={`text-gray-400 ${className ?? ""}`}>{HIDDEN_VALUE}</span>
+      <span className={`text-gray-500 ${className ?? ""}`}>{HIDDEN_VALUE}</span>
     )
   }
 

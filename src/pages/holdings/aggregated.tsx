@@ -44,15 +44,27 @@ import {
 import PerformanceHeatmap from "@components/features/holdings/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
-import AllocationChart from "@components/features/allocation/AllocationChart"
 import CopyPopup from "@components/features/holdings/CopyPopup"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
-import IncomeView from "@components/features/holdings/IncomeView"
 import Alert from "@components/ui/Alert"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/portfolios/usePortfolioReview"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { aggregatedHoldingsCodesKey } from "@utils/api/client/holdings"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const AllocationChart = dynamic(
+  () => import("@components/features/allocation/AllocationChart"),
+  {
+    ssr: false,
+    loading: () => <ChartPlaceholder heightClass="h-64 lg:h-80" />,
+  },
+)
+const IncomeView = dynamic(
+  () => import("@components/features/holdings/IncomeView"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-96" /> },
+)
 
 interface AggregatedIncomeProps {
   portfolio: Portfolio

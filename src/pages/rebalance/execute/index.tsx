@@ -7,6 +7,7 @@ import {
 } from "@lib/formatters"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Alert from "@components/ui/Alert"
+import { useConfirm } from "@hooks/useConfirm"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
@@ -14,7 +15,6 @@ import CashSummaryPanel from "@components/features/rebalance/execution/CashSumma
 import BrokerSelect, {
   confirmBrokerSelection,
 } from "@components/features/rebalance/common/BrokerSelect"
-import PriceChartPopup from "@components/features/assets/PriceChartPopup"
 import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
 import { setPageContext } from "@components/features/chat/pageContextBus"
 import {
@@ -26,6 +26,13 @@ import { clampWeightPercent, weightsSumValid } from "@lib/rebalance/weights"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { Asset } from "types/beancounter"
 import { ExecutionDto } from "types/rebalance"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const PriceChartPopup = dynamic(
+  () => import("@components/features/assets/PriceChartPopup"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 type SliderStep = 5 | 1 | 0.01
 
@@ -277,6 +284,7 @@ export function buildDraftContext(
 }
 
 function ExecuteRebalancePage(): React.ReactElement {
+  const [confirm, confirmDialog] = useConfirm()
   const router = useRouter()
   const {
     planId,
@@ -573,7 +581,10 @@ function ExecuteRebalancePage(): React.ReactElement {
     // Warn (but don't block) when the user has >1 brokers and didn't tag
     // the orders — saves a "where's the broker on these trns?" follow-up
     // later.
-    if (!confirmBrokerSelection(brokers.length, selectedBrokerId)) return
+    if (
+      !(await confirmBrokerSelection(brokers.length, selectedBrokerId, confirm))
+    )
+      return
     // Client-side seatbelt only — backend-side validation is svc-rebalance
     // #43. Off-100% targets aren't blocked, just confirmed: this is a
     // what-if surface, and the user may be deliberately parking spare cash
@@ -587,6 +598,7 @@ function ExecuteRebalancePage(): React.ReactElement {
 
   return (
     <div className="w-full py-4">
+      {confirmDialog}
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
         <Link href={sourceUrl} className="hover:text-invest-600">
@@ -846,7 +858,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     const quantityClass = isCash
                       ? "text-blue-700 font-medium"
                       : item.isExcluded
-                        ? "text-gray-400"
+                        ? "text-gray-500"
                         : isBuy
                           ? "text-green-700 font-medium"
                           : isSell
@@ -963,7 +975,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                                 <button
                                   type="button"
                                   onClick={() => setChartTarget(item)}
-                                  className="text-gray-400 hover:text-invest-600 p-0.5"
+                                  className="text-gray-500 hover:text-invest-600 p-0.5"
                                   title="Price history chart"
                                 >
                                   <i className="fas fa-chart-line text-xs"></i>
@@ -971,7 +983,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                                 <button
                                   type="button"
                                   onClick={() => setInsightTarget(item)}
-                                  className="text-gray-400 hover:text-invest-600 p-0.5"
+                                  className="text-gray-500 hover:text-invest-600 p-0.5"
                                   title="Ask AI about this asset"
                                 >
                                   <i className="fas fa-wand-magic-sparkles text-xs"></i>
@@ -1138,7 +1150,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               disabled={!targetChangedFromOriginal}
                               title="Reset to original weight"
                               aria-label={`Reset ${item.assetCode || item.assetId} weight`}
-                              className="text-gray-400 hover:text-invest-600 disabled:opacity-0 disabled:pointer-events-none p-0.5"
+                              className="text-gray-500 hover:text-invest-600 disabled:opacity-0 disabled:pointer-events-none p-0.5"
                             >
                               <i className="fas fa-rotate-left text-xs"></i>
                             </button>
@@ -1150,7 +1162,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               clearAnchor(item.assetId)
                             }}
                             title="Reset target to plan weight"
-                            className="block w-full text-right text-[11px] text-gray-400 hover:text-invest-600 hover:underline mt-0.5"
+                            className="block w-full text-right text-micro text-gray-500 hover:text-invest-600 hover:underline mt-0.5"
                           >
                             {"Plan"}: {formatPercent(item.planTargetWeight)}
                           </button>
@@ -1162,7 +1174,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                             ? "—"
                             : formatPercent(item.projectedWeight)}
                           {isCash && cashSummary.projectedCash < 0 && (
-                            <div className="text-[11px] text-red-600 font-medium">
+                            <div className="text-micro text-red-600 font-medium">
                               {"Deposit"}{" "}
                               {formatCurrency(
                                 Math.abs(cashSummary.projectedCash),
@@ -1176,7 +1188,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               <span className={cashDeltaClass}>
                                 {formatSignedNumber(cashSummary.netImpact)}
                               </span>
-                              <div className={`text-[11px] ${deltaLabelClass}`}>
+                              <div className={`text-micro ${deltaLabelClass}`}>
                                 {formatSignedPp(
                                   deltaVsOriginalPct,
                                   sliderStep === 0.01 ? 2 : 1,
@@ -1184,7 +1196,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               </div>
                             </>
                           ) : item.isExcluded ? (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-gray-500">-</span>
                           ) : (
                             <>
                               <div className={quantityClass}>
@@ -1194,7 +1206,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               <div className="text-xs text-gray-500">
                                 {formatSignedNumber(item.deltaValue)}
                               </div>
-                              <div className={`text-[11px] ${deltaLabelClass}`}>
+                              <div className={`text-micro ${deltaLabelClass}`}>
                                 {formatSignedPp(
                                   deltaVsOriginalPct,
                                   sliderStep === 0.01 ? 2 : 1,
@@ -1230,7 +1242,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     <td className="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">
                       {formatPercentValue(projectedIncludedPercent, 1)}
                       {excludedValue > 0 && (
-                        <div className="text-[11px] font-normal text-gray-500">
+                        <div className="text-micro font-normal text-gray-500">
                           {`+${formatPercentValue(projectedExcludedPercent, 1)} excluded`}
                         </div>
                       )}

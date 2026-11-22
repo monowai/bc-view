@@ -363,7 +363,7 @@ function Tile({
           the tile still says something. */}
       {(category.benchmark ?? category.description) && (
         <span
-          className={`text-[0.6875rem] leading-snug ${
+          className={`text-micro leading-snug ${
             isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
           }`}
         >
@@ -382,7 +382,7 @@ function Tile({
           "Housing S$2,278" against a S$2,500 budget just looks like a bug. */}
       {rescaled && (
         <span
-          className={`tabular-nums text-[0.6875rem] ${
+          className={`tabular-nums text-micro ${
             isPayoff ? "text-white/60" : "text-gray-500 dark:text-gray-400"
           }`}
         >

@@ -27,12 +27,19 @@ import {
 import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibbon"
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
-import YearFlowDialog from "@components/features/independence/YearFlowDialog"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { expenseShares } from "@lib/independence/yearFlows"
+import { CHART_PALETTE, GRAY, INDEPENDENCE } from "@lib/chartPalette"
+import dynamic from "next/dynamic"
+import { ChartModalPlaceholder } from "@components/ui/ChartPlaceholder"
+
+const YearFlowDialog = dynamic(
+  () => import("@components/features/independence/YearFlowDialog"),
+  { ssr: false, loading: () => <ChartModalPlaceholder /> },
+)
 
 const CHART_MARGIN = { top: 10, right: 30, left: 20, bottom: 20 }
-const CHART_GRID_PROPS = { strokeDasharray: "3 3", stroke: "#e5e7eb" }
+const CHART_GRID_PROPS = { strokeDasharray: "3 3", stroke: CHART_PALETTE.grid }
 
 /** Add the age range as `domain` and `ticks`. */
 const AGE_AXIS_PROPS: XAxisProps = {
@@ -373,7 +380,7 @@ export default function TimelineTabContent({
                           : value
               }
             />
-            <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
+            <ReferenceLine y={0} stroke={CHART_PALETTE.loss} strokeWidth={2} />
             {/* Independence years shaded area - show in traditional view */}
             {timelineViewMode === "traditional" && retirementAge && (
               <ReferenceArea
@@ -404,13 +411,13 @@ export default function TimelineTabContent({
             {timelineViewMode === "fire" && fiAchievementAge && (
               <ReferenceLine
                 x={fiAchievementAge}
-                stroke="#22c55e"
+                stroke={CHART_PALETTE.gain}
                 strokeDasharray="3 3"
                 strokeWidth={2}
                 label={{
                   value: "FI",
                   position: "top",
-                  fill: "#22c55e",
+                  fill: CHART_PALETTE.gain,
                   fontSize: 11,
                 }}
               />
@@ -420,13 +427,20 @@ export default function TimelineTabContent({
               <ReferenceLine
                 key={`life-event-${event.age}`}
                 x={event.age}
-                stroke={event.type === "expense" ? "#ef4444" : "#22c55e"}
+                stroke={
+                  event.type === "expense"
+                    ? CHART_PALETTE.loss
+                    : CHART_PALETTE.gain
+                }
                 strokeDasharray="3 3"
                 strokeWidth={1.5}
                 label={{
                   value: `${event.type === "expense" ? "-" : "+"}$${Math.abs(Math.round(event.amount / 1000))}k`,
                   position: "insideTopRight",
-                  fill: event.type === "expense" ? "#ef4444" : "#22c55e",
+                  fill:
+                    event.type === "expense"
+                      ? CHART_PALETTE.loss
+                      : CHART_PALETTE.gain,
                   fontSize: 10,
                 }}
               />
@@ -435,13 +449,13 @@ export default function TimelineTabContent({
             {liquidationAge && (
               <ReferenceLine
                 x={liquidationAge}
-                stroke="#7c3aed"
+                stroke={INDEPENDENCE[700]}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
                 label={{
                   value: `Property sold (${liquidationAge})`,
                   position: "top",
-                  fill: "#7c3aed",
+                  fill: INDEPENDENCE[700],
                   fontSize: 11,
                   fontWeight: 500,
                 }}
@@ -457,13 +471,13 @@ export default function TimelineTabContent({
               cpfLockAge != null && (
                 <ReferenceLine
                   x={cpfLockAge}
-                  stroke="#64748b"
+                  stroke={GRAY[500]}
                   strokeDasharray="4 4"
                   strokeWidth={1.5}
                   label={{
                     value: `🔒 CPF LIFE (${cpfLockAge})`,
                     position: "insideTopLeft",
-                    fill: "#64748b",
+                    fill: GRAY[500],
                     fontSize: 11,
                     fontWeight: 500,
                   }}
@@ -480,9 +494,9 @@ export default function TimelineTabContent({
                 <ReferenceArea
                   x1={retirementAge}
                   x2={bridgeToAge}
-                  fill="#f59e0b"
+                  fill={CHART_PALETTE.warning}
                   fillOpacity={0.12}
-                  stroke="#f59e0b"
+                  stroke={CHART_PALETTE.warning}
                   strokeOpacity={0.25}
                 />
               )}
@@ -491,13 +505,13 @@ export default function TimelineTabContent({
               bridgeToAge != null && (
                 <ReferenceLine
                   x={bridgeToAge}
-                  stroke="#f59e0b"
+                  stroke={CHART_PALETTE.warning}
                   strokeDasharray="4 4"
                   strokeWidth={2}
                   label={{
                     value: `💰 Income starts (${bridgeToAge})`,
                     position: "insideTopRight",
-                    fill: "#b45309",
+                    fill: CHART_PALETTE.warning,
                     fontSize: 11,
                     fontWeight: 500,
                   }}
@@ -544,8 +558,8 @@ export default function TimelineTabContent({
                     type="monotone"
                     dataKey="annuitizedValue"
                     stackId="wealth"
-                    stroke="#64748b"
-                    fill="#94a3b8"
+                    stroke={GRAY[500]}
+                    fill={GRAY[400]}
                     fillOpacity={0.3}
                     strokeWidth={1}
                     name="annuitizedValue"
@@ -560,9 +574,9 @@ export default function TimelineTabContent({
                 <Line
                   type="monotone"
                   dataKey="fireBalance"
-                  stroke="#22c55e"
+                  stroke={CHART_PALETTE.gain}
                   strokeWidth={3}
-                  dot={{ r: 3, fill: "#22c55e" }}
+                  dot={{ r: 3, fill: CHART_PALETTE.gain }}
                   name="fireBalance"
                 />
               )}
@@ -679,12 +693,12 @@ export default function TimelineTabContent({
             <ReferenceLine y={0} stroke="#9ca3af" />
             <Bar
               dataKey="investmentAndIncome"
-              fill="#22c55e"
+              fill={CHART_PALETTE.gain}
               name="investmentAndIncome"
             />
             <Bar
               dataKey="negWithdrawals"
-              fill="#ef4444"
+              fill={CHART_PALETTE.loss}
               name="negWithdrawals"
             />
           </ComposedChart>

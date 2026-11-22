@@ -13,6 +13,7 @@ import {
 import ChartFrame from "@components/features/independence/ChartFrame"
 import { MonteCarloResult, RetirementProjection } from "types/independence"
 import { formatCurrencySymbol } from "@lib/formatters"
+import { INDEPENDENCE } from "@lib/chartPalette"
 
 const HIDDEN_VALUE = "****"
 
@@ -230,7 +231,7 @@ export function FanChart({
           {liquidationAge && (
             <ReferenceLine
               x={liquidationAge}
-              stroke="#7c3aed"
+              stroke={INDEPENDENCE[700]}
               strokeDasharray="4 4"
               strokeWidth={1.5}
               label={{
@@ -238,7 +239,7 @@ export function FanChart({
                   ? `Property sold (median ${liquidationAge})`
                   : `Property sold (${liquidationAge})`,
                 position: "top",
-                fill: "#7c3aed",
+                fill: INDEPENDENCE[700],
                 fontSize: 11,
                 fontWeight: 500,
               }}

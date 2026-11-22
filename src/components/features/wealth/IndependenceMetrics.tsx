@@ -149,7 +149,7 @@ export default function IndependenceMetrics({
                       disabled={hideValues}
                     >
                       {hideValues ? (
-                        <span className="text-2xl font-bold text-gray-400">
+                        <span className="text-2xl font-bold text-gray-500">
                           ****
                         </span>
                       ) : (
@@ -215,7 +215,7 @@ export default function IndependenceMetrics({
                       <>
                         <div className="flex items-baseline gap-2">
                           {hideValues ? (
-                            <span className="text-2xl font-bold text-gray-400">
+                            <span className="text-2xl font-bold text-gray-500">
                               ****
                             </span>
                           ) : (
@@ -263,7 +263,7 @@ export default function IndependenceMetrics({
                   <>
                     <div className="flex items-baseline gap-2">
                       {hideValues ? (
-                        <span className="text-2xl font-bold text-gray-400">
+                        <span className="text-2xl font-bold text-gray-500">
                           ****
                         </span>
                       ) : projectionData?.fiMetrics
@@ -279,7 +279,7 @@ export default function IndependenceMetrics({
                           <span className="text-sm text-gray-500">years</span>
                         </>
                       ) : (
-                        <span className="text-2xl font-bold text-gray-400">
+                        <span className="text-2xl font-bold text-gray-500">
                           —
                         </span>
                       )}
@@ -321,7 +321,7 @@ export default function IndependenceMetrics({
                       <>
                         <div className="flex items-baseline gap-2">
                           {hideValues ? (
-                            <span className="text-2xl font-bold text-gray-400">
+                            <span className="text-2xl font-bold text-gray-500">
                               ****
                             </span>
                           ) : liquidationYear?.age ? (
@@ -338,7 +338,7 @@ export default function IndependenceMetrics({
                               Not needed
                             </span>
                           ) : (
-                            <span className="text-2xl font-bold text-gray-400">
+                            <span className="text-2xl font-bold text-gray-500">
                               N/A
                             </span>
                           )}

@@ -19,14 +19,14 @@ function IndexationTag({
   if (indexed === undefined) return null
   return indexed ? (
     <span
-      className="ml-1 align-middle text-[10px] font-medium text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 cursor-help"
+      className="ml-1 align-middle text-micro font-medium text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 cursor-help"
       title="Goes up each year to keep up with rising prices (inflation)."
     >
       rises
     </span>
   ) : (
     <span
-      className="ml-1 align-middle text-[10px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5 cursor-help"
+      className="ml-1 align-middle text-micro font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5 cursor-help"
       title="Stays the same every year, so it buys less over time as prices rise."
     >
       stays same
@@ -271,7 +271,7 @@ export default function IncomeBreakdownTable({
                   <tr key={`gap-${index}`} className="border-b border-gray-100">
                     <td
                       colSpan={visibleIncomeColumns}
-                      className="text-center py-2 text-gray-400 italic"
+                      className="text-center py-2 text-gray-500 italic"
                     >
                       ...
                     </td>
@@ -384,7 +384,7 @@ export default function IncomeBreakdownTable({
                       const net = income - expense
                       if (net === 0)
                         return (
-                          <td className="text-right py-2 px-2 text-gray-400">
+                          <td className="text-right py-2 px-2 text-gray-500">
                             -
                           </td>
                         )

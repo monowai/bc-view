@@ -20,7 +20,7 @@ export default function EmptyState({
       <i className={`${icon} block text-4xl text-gray-300 mb-4`}></i>
       <p className="text-gray-500 text-lg">{title}</p>
       {description && (
-        <p className="text-gray-400 text-sm mt-1">{description}</p>
+        <p className="text-gray-500 text-sm mt-1">{description}</p>
       )}
       {action && <div className="mt-4">{action}</div>}
     </div>

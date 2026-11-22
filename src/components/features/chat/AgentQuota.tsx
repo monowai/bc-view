@@ -18,7 +18,7 @@ export function AgentQuotaLine({
   return (
     <p
       data-testid="agent-quota"
-      className={`text-[11px] text-gray-400 ${className}`}
+      className={`text-micro text-gray-500 ${className}`}
     >
       {text}
     </p>

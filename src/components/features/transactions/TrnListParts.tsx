@@ -111,7 +111,7 @@ export function TrnTableHead({
           >
             {srOnly ? <span className="sr-only">{label}</span> : label}
             {hint && (
-              <span className="ml-1 font-mono font-normal text-gray-400">
+              <span className="ml-1 font-mono font-normal text-gray-500">
                 {hint}
               </span>
             )}
@@ -208,7 +208,7 @@ export function TrnRowActions({
           e.stopPropagation()
           onEdit()
         }}
-        className="text-gray-400 hover:text-blue-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
+        className="text-gray-500 hover:text-blue-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
         title={"Edit"}
         aria-label={"Edit"}
       >
@@ -217,7 +217,7 @@ export function TrnRowActions({
       <button
         type="button"
         onClick={onCopy}
-        className="text-gray-400 hover:text-gray-700 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
+        className="text-gray-500 hover:text-gray-700 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
         title={"Copy row"}
         aria-label={"Copy row"}
       >
@@ -230,7 +230,7 @@ export function TrnRowActions({
             e.stopPropagation()
             onDelete()
           }}
-          className="text-gray-400 hover:text-red-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
+          className="text-gray-500 hover:text-red-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
           title={"Delete"}
           aria-label={"Delete"}
         >
@@ -339,7 +339,7 @@ function TabCount({
 }): React.ReactElement | null {
   if (!signal) return null
   if (signal.count === 0) {
-    return <span className="text-xs font-normal text-gray-400">{"none"}</span>
+    return <span className="text-xs font-normal text-gray-500">{"none"}</span>
   }
   return (
     <span className="inline-flex items-center gap-1">

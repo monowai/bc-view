@@ -17,7 +17,7 @@ interface SortIconTheme {
 
 const themes: Record<string, SortIconTheme> = {
   default: {
-    inactive: "text-gray-400",
+    inactive: "text-gray-500",
     active: "text-blue-500",
     ascChar: "↑",
     descChar: "↓",

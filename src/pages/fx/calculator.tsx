@@ -1,10 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import useSwr from "swr"
 import { Currency, FxRequest, FxResponse } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
+import { useModalFocus } from "@hooks/useModalFocus"
 import CurrencySelect from "@components/features/fx/CurrencySelect"
 import { fxKey as fxRatesUrl, postFxRates } from "@utils/api/client/fx"
 import { getLocalValue, setLocalValue } from "@lib/storage/localState"
@@ -86,6 +94,9 @@ export default withPageAuthRequired(
     const rate = rateKey ? fxData?.data?.rates?.[rateKey]?.rate : undefined
 
     const [amount, setAmount] = useState<number>(0)
+    const titleId = useId()
+    const panelRef = useRef<HTMLDivElement>(null)
+    useModalFocus(panelRef)
 
     const selectPair = (pair: FxPair): void => {
       setFrom(pair.from)
@@ -112,13 +123,22 @@ export default withPageAuthRequired(
           if (e.target === e.currentTarget && mountedRef.current) handleClose()
         }}
       >
-        <div className="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          tabIndex={-1}
+          className="relative w-full max-w-md mx-4 bg-white rounded-xl shadow-2xl overflow-hidden focus:outline-none"
+        >
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-5 text-white">
+          <div className="bg-gray-800 px-6 py-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold">FX Calculator</h1>
-                <p className="text-blue-100 text-sm mt-1">
+                <h1 id={titleId} className="text-xl font-bold">
+                  FX Calculator
+                </h1>
+                <p className="text-gray-300 text-sm mt-1">
                   Convert between currencies
                 </p>
               </div>
@@ -126,7 +146,7 @@ export default withPageAuthRequired(
                 type="button"
                 onClick={handleClose}
                 aria-label="Close calculator"
-                className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <svg
                   className="w-5 h-5"
@@ -246,10 +266,10 @@ export default withPageAuthRequired(
 
           {/* Footer hint */}
           <div className="bg-slate-50 px-6 py-2 border-t border-slate-100">
-            <p className="text-[10px] text-slate-400">
+            <p className="text-micro text-slate-400">
               Press{" "}
-              <kbd className="px-1 bg-slate-200 rounded text-[10px]">Esc</kbd>{" "}
-              to close
+              <kbd className="px-1 bg-slate-200 rounded text-micro">Esc</kbd> to
+              close
             </p>
           </div>
         </div>

@@ -6,7 +6,13 @@ import { TIME_RANGES, formatFull } from "@lib/chart/performanceConstants"
 import { formatCompactSymbol } from "@lib/formatters"
 import { useAggregatedPerformance } from "@hooks/useAggregatedPerformance"
 import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
-import GainAreaChart from "@components/features/holdings/GainAreaChart"
+import dynamic from "next/dynamic"
+import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+
+const GainAreaChart = dynamic(
+  () => import("@components/features/holdings/GainAreaChart"),
+  { ssr: false, loading: () => <ChartPlaceholder heightClass="h-72" /> },
+)
 
 interface WealthPerformanceChartProps {
   portfolios: Portfolio[]

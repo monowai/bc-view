@@ -1,6 +1,7 @@
 import React from "react"
 import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
+import { CHART_PALETTE, OUTCOME_BANDS } from "@lib/chartPalette"
 import PlanFiOverviewTab from "@components/features/independence/PlanFiOverviewTab"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -105,7 +106,7 @@ describe("PlanFiOverviewTab trajectory chart frame", () => {
     })
     expect(CartesianGrid[0]).toEqual({
       strokeDasharray: "3 3",
-      stroke: "#f1f5f9",
+      stroke: CHART_PALETTE.gridFaint,
       vertical: false,
     })
     const { domain, ticks, ...x } = XAxis[0]
@@ -116,7 +117,7 @@ describe("PlanFiOverviewTab trajectory chart frame", () => {
       type: "number",
       scale: "linear",
       allowDataOverflow: true,
-      tick: { fontSize: 11, fill: "#94a3b8" },
+      tick: { fontSize: 11, fill: CHART_PALETTE.text },
       tickLine: false,
       axisLine: false,
       label: {
@@ -124,11 +125,11 @@ describe("PlanFiOverviewTab trajectory chart frame", () => {
         position: "insideBottom",
         offset: -10,
         fontSize: 11,
-        fill: "#94a3b8",
+        fill: CHART_PALETTE.text,
       },
     })
     expect(YAxis[0]).toMatchObject({
-      tick: { fontSize: 11, fill: "#94a3b8" },
+      tick: { fontSize: 11, fill: CHART_PALETTE.text },
       tickLine: false,
       axisLine: false,
       width: 54,
@@ -159,7 +160,7 @@ describe("PlanFiOverviewTab trajectory chart frame", () => {
     expect(bandArea("outerWidth")).toEqual({
       type: "monotone",
       dataKey: "outerWidth",
-      fill: "rgba(34,197,94,0.09)",
+      fill: OUTCOME_BANDS.outer,
       stroke: "none",
       stackId: "outer",
       legendType: "none",
@@ -171,14 +172,14 @@ describe("PlanFiOverviewTab trajectory chart frame", () => {
       legendType: "none",
     })
     expect(bandArea("innerWidth")).toMatchObject({
-      fill: "rgba(34,197,94,0.15)",
+      fill: OUTCOME_BANDS.inner,
       legendType: "none",
       name: "p25–p75",
     })
     expect(mockCaptured.Line.find((p) => p.dataKey === "p50")).toEqual({
       type: "monotone",
       dataKey: "p50",
-      stroke: "rgba(34,197,94,0.55)",
+      stroke: OUTCOME_BANDS.median,
       strokeWidth: 1.5,
       strokeDasharray: "5 4",
       dot: false,

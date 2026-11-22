@@ -77,9 +77,16 @@ beforeEach(() => {
       mutate: mutators[which],
     }
   })
-  jest.spyOn(window, "confirm").mockReturnValue(true)
 })
 afterEach(() => jest.restoreAllMocks())
+
+type User = ReturnType<typeof userEvent.setup>
+const answerConfirm = async (user: User, button: string): Promise<void> => {
+  const dialog = await screen.findByRole("dialog", {
+    name: "Revoke this share?",
+  })
+  await user.click(within(dialog).getByRole("button", { name: button }))
+}
 
 const section = (title: string): HTMLElement =>
   screen.getByRole("heading", { name: title }).closest("section") as HTMLElement
@@ -133,13 +140,12 @@ describe("Shares page", () => {
         name: "Revoke",
       })[0],
     )
-    expect(window.confirm).toHaveBeenCalled()
+    await answerConfirm(user, "Revoke")
     await waitFor(() => expect(mockRevokeShare).toHaveBeenCalledWith("s1"))
     await waitFor(() => expect(mutators.portfolios).toHaveBeenCalled())
   })
 
   it("does nothing when the revoke confirmation is declined", async () => {
-    ;(window.confirm as jest.Mock).mockReturnValue(false)
     const user = userEvent.setup()
     render(<Page />)
     await user.click(
@@ -147,12 +153,14 @@ describe("Shares page", () => {
         name: "Revoke",
       })[0],
     )
+    await answerConfirm(user, "Cancel")
     expect(mockRevokeShare).not.toHaveBeenCalled()
     await user.click(
       within(section("Independence Plans")).getAllByRole("button", {
         name: "Revoke",
       })[0],
     )
+    await answerConfirm(user, "Cancel")
     expect(mockRevokeResource).not.toHaveBeenCalled()
   })
 
@@ -169,6 +177,7 @@ describe("Shares page", () => {
         name: "Revoke",
       })[0],
     )
+    await answerConfirm(user, "Revoke")
     expect(await screen.findByText("Not allowed")).toBeInTheDocument()
     expect(mutators.portfolios).not.toHaveBeenCalled()
   })
@@ -182,6 +191,7 @@ describe("Shares page", () => {
         name: "Revoke",
       })[0],
     )
+    await answerConfirm(user, "Revoke")
     await waitFor(() => expect(mockRevokeResource).toHaveBeenCalledWith("r1"))
     await waitFor(() => expect(mutators.plans).toHaveBeenCalled())
     expect(mutators.models).not.toHaveBeenCalled()
@@ -200,6 +210,7 @@ describe("Shares page", () => {
         name: "Revoke",
       })[0],
     )
+    await answerConfirm(user, "Revoke")
     expect(await screen.findByText("Revoke failed (500)")).toBeInTheDocument()
   })
 
@@ -222,6 +233,7 @@ describe("Shares page", () => {
         name: "Revoke",
       }),
     )
+    await answerConfirm(user, "Revoke")
     expect(await screen.findByText("network down")).toBeInTheDocument()
     expect(mockRevokeResource).toHaveBeenCalledWith("m1")
   })

@@ -50,7 +50,7 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
           <span className="block font-medium text-gray-900">
             Zen Mode — keep one portfolio{" "}
             {existingDisabled && (
-              <span className="font-normal text-gray-400">(none yet)</span>
+              <span className="font-normal text-gray-500">(none yet)</span>
             )}
           </span>
           <span className="block text-sm text-gray-500 mt-1 leading-relaxed">

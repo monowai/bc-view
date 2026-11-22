@@ -210,27 +210,27 @@ export function HeatTile({
       }}
     >
       {showBadge && (
-        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded bg-black/25 flex items-center justify-center text-[10px] font-bold">
+        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded bg-black/25 flex items-center justify-center text-micro font-bold">
           {(cell.name || cell.code).charAt(0).toUpperCase()}
         </div>
       )}
       {showTicker && (
         <div
           className={`font-bold truncate ${
-            compact ? "text-[10px]" : "text-xs sm:text-sm pr-6"
+            compact ? "text-micro" : "text-xs sm:text-sm pr-6"
           }`}
         >
           {cell.code}
         </div>
       )}
       {showName && (
-        <div className="text-[10px] opacity-80 truncate">{cell.name}</div>
+        <div className="text-micro opacity-80 truncate">{cell.name}</div>
       )}
       {showChip && (
         <div
           data-testid={`heatmap-chip-${mode}-${cell.code}`}
           className={`mt-1 inline-flex items-center gap-1 font-semibold ${
-            compact ? "text-[9px]" : "text-[11px]"
+            compact ? "text-micro" : "text-micro"
           }`}
         >
           <span>{formatMetricValue(value)}</span>

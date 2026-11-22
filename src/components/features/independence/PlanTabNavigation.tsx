@@ -49,7 +49,7 @@ export default function PlanTabNavigation({
               }
               className={`flex items-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none ${
                 isDisabled
-                  ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
+                  ? "cursor-not-allowed text-gray-500 dark:text-gray-600"
                   : isActive
                     ? "bg-white text-independence-700 shadow-sm dark:bg-gray-900 dark:text-independence-300"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"

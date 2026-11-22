@@ -435,7 +435,7 @@ export default function ContributionsStep({
           description="Enter your current income details and pension contributions."
         />
         <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <Spinner size="4xl" className="text-gray-400 mb-2" />
+          <Spinner size="4xl" className="text-gray-500 mb-2" />
           <p className="text-gray-500">Loading pension assets...</p>
         </div>
       </div>
@@ -525,20 +525,20 @@ export default function ContributionsStep({
                         className="w-4 h-4 text-green-500 rounded border-gray-300"
                       />
                       <span
-                        className={`text-sm ${isExcluded ? "line-through text-gray-400" : "text-green-700"}`}
+                        className={`text-sm ${isExcluded ? "line-through text-gray-500" : "text-green-700"}`}
                       >
                         {name}
                       </span>
                     </div>
                     <span
-                      className={`text-sm font-medium ${isExcluded ? "text-gray-400 line-through" : "text-green-600"}`}
+                      className={`text-sm font-medium ${isExcluded ? "text-gray-500 line-through" : "text-green-600"}`}
                     >
                       {planCurrency}{" "}
                       {convertedIncome === undefined
                         ? "–"
                         : Math.round(convertedIncome).toLocaleString()}
                       {needsConversion && (
-                        <span className="text-xs text-gray-400 ml-1">
+                        <span className="text-xs text-gray-500 ml-1">
                           ({config.rentalCurrency}{" "}
                           {netIncome.toLocaleString(undefined, {
                             maximumFractionDigits: 0,

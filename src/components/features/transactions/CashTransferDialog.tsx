@@ -335,7 +335,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
             >
               1
             </span>
-            <span className="text-xs text-gray-400">―</span>
+            <span className="text-xs text-gray-500">―</span>
             <span
               className={`text-xs px-2 py-0.5 rounded ${step === "target" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
             >

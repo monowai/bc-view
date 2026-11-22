@@ -168,7 +168,7 @@ function colorFor(pct: number | null | undefined): string {
 }
 
 function textColorFor(pct: number | null | undefined): string {
-  if (pct == null) return "text-gray-400"
+  if (pct == null) return "text-gray-500"
   if (pct < 50) return "text-red-600"
   if (pct < 80) return "text-amber-600"
   return "text-green-600"
@@ -631,7 +631,7 @@ function IndependenceDebug(): React.ReactElement {
               </aside>
 
               {/* Preview */}
-              <main>
+              <div>
                 {projError && (
                   <div className="mb-3">
                     <Alert>{projError}</Alert>
@@ -752,7 +752,7 @@ function IndependenceDebug(): React.ReactElement {
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
                       Resolved Inputs
                       {projection.debug.ownerScopedFetch && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-medium">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-micro font-medium">
                           Owner-scoped (M2M)
                         </span>
                       )}
@@ -841,7 +841,7 @@ function IndependenceDebug(): React.ReactElement {
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
                       Last Request Body
                       {isSharedPlan && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-medium">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-micro font-medium">
                           Shared plan — viewer-scoped fields are leaks
                         </span>
                       )}
@@ -965,7 +965,7 @@ function IndependenceDebug(): React.ReactElement {
                     backend blends equity/cash/housing weighted by allocation.
                   </p>
                 </div>
-              </main>
+              </div>
             </div>
           )}
         </div>

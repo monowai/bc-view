@@ -109,7 +109,7 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
                 </h2>
                 <p className="text-gray-600 text-sm mt-1">{card.description}</p>
               </div>
-              <div className="flex-shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors">
+              <div className="flex-shrink-0 text-gray-500 group-hover:text-blue-500 transition-colors">
                 <i className="fas fa-chevron-right"></i>
               </div>
             </div>

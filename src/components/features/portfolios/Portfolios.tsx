@@ -42,7 +42,7 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
       <div>
         <button
           type="button"
-          className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+          className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           onClick={() => setIsOpen(!isOpen)}
           style={{ zIndex: 10 }} // Set a lower z-index for the button
         >
@@ -87,7 +87,7 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
                     <button
                       onClick={() => handleSelect(portfolio)}
                       className={`block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left ${
-                        isInactive ? "text-gray-400" : "text-gray-700"
+                        isInactive ? "text-gray-500" : "text-gray-700"
                       }`}
                       role="menuitem"
                     >

@@ -262,7 +262,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
               >
                 {"Price"}
                 {isFetchingPrice && (
-                  <span className="ml-1 text-xs text-gray-400">
+                  <span className="ml-1 text-xs text-gray-500">
                     {"(fetching...)"}
                   </span>
                 )}
@@ -330,7 +330,7 @@ const WeightedSellDialog: React.FC<WeightedSellDialogProps> = ({
                       </td>
                     ) : (
                       <td
-                        className="px-3 py-2 text-sm text-right font-mono text-gray-400"
+                        className="px-3 py-2 text-sm text-right font-mono text-gray-500"
                         title="Below board lot"
                       >
                         {"0"}

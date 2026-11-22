@@ -128,7 +128,7 @@ export default function ChatPanel({
             <>
               <button
                 onClick={() => setShowPicker((v) => !v)}
-                className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+                className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
                 aria-label="Move chat panel"
                 title="Move to a different corner"
               >
@@ -172,7 +172,7 @@ export default function ChatPanel({
           {onExpand && (
             <button
               onClick={onExpand}
-              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
               aria-label="Expand chat"
               title="Open full chat"
             >
@@ -182,7 +182,7 @@ export default function ChatPanel({
           {historyHref && (
             <Link
               href={historyHref}
-              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
               title="Past conversations"
             >
               History
@@ -191,7 +191,7 @@ export default function ChatPanel({
           <button
             onClick={onNewChat}
             disabled={messages.length === 0}
-            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
+            className="text-xs text-gray-500 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
           >
             New chat
           </button>
@@ -218,7 +218,7 @@ export default function ChatPanel({
         className="flex-1 overflow-y-auto p-4 space-y-3"
       >
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm">
             <i className="fas fa-comments text-3xl mb-2"></i>
             <p className="mb-3">
               Ask me about your portfolios, holdings, or plans
@@ -246,7 +246,7 @@ export default function ChatPanel({
           />
         ))}
         {isLoading && (
-          <div className="flex items-center gap-2 text-gray-400 text-sm">
+          <div className="flex items-center gap-2 text-gray-500 text-sm">
             <Spinner />
             <span>Thinking...</span>
           </div>

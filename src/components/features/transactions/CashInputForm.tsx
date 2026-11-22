@@ -329,7 +329,7 @@ const CashInputForm: React.FC<{
             <header className="flex-shrink-0 pb-3 border-b border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <button
-                  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  className="text-gray-500 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                   onClick={handleClose}
                   title={"Cancel"}
                 >
@@ -339,7 +339,7 @@ const CashInputForm: React.FC<{
                   <div className="font-semibold text-gray-900">
                     {type.value === "FX" ? "FX Trade" : "Cash Transaction"}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="text-xs text-gray-500 mt-0.5">
                     {portfolio.code} - {portfolio.name}
                   </div>
                 </div>
@@ -350,7 +350,7 @@ const CashInputForm: React.FC<{
                       ? "text-green-600 bg-green-50"
                       : copyStatus === "error"
                         ? "text-red-500 bg-red-50"
-                        : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                        : "text-gray-500 hover:text-green-600 hover:bg-green-50"
                   }`}
                   onClick={handleCopy}
                   title={"Copy"}
@@ -372,7 +372,7 @@ const CashInputForm: React.FC<{
                 >
                   <div className="text-center">
                     <div
-                      className={`text-[10px] font-semibold uppercase tracking-wider ${
+                      className={`text-micro font-semibold uppercase tracking-wider ${
                         type.value === "WITHDRAWAL" ||
                         type.value === "DEDUCTION"
                           ? "text-red-500"
@@ -396,7 +396,7 @@ const CashInputForm: React.FC<{
                 <div className="rounded-lg p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200">
                   <div className="flex items-center justify-center gap-4">
                     <div className="text-center">
-                      <div className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">
+                      <div className="text-micro font-semibold text-red-500 uppercase tracking-wider">
                         Sell
                       </div>
                       <div className="font-bold text-lg text-gray-900">
@@ -409,7 +409,7 @@ const CashInputForm: React.FC<{
                     <div className="text-center text-gray-300">
                       <i className="fas fa-arrow-right text-xs"></i>
                       {fxRateLoading ? (
-                        <div className="text-xs mt-1 text-gray-400">
+                        <div className="text-xs mt-1 text-gray-500">
                           <Spinner />
                         </div>
                       ) : fxRate ? (
@@ -419,7 +419,7 @@ const CashInputForm: React.FC<{
                       ) : null}
                     </div>
                     <div className="text-center">
-                      <div className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">
+                      <div className="text-micro font-semibold text-emerald-600 uppercase tracking-wider">
                         Buy
                       </div>
                       <div className="font-bold text-lg text-gray-900">
@@ -438,7 +438,7 @@ const CashInputForm: React.FC<{
                     </div>
                   </div>
                   {fxRate && !manualBuyAmount && (
-                    <div className="text-center text-xs text-gray-400 mt-2">
+                    <div className="text-center text-xs text-gray-500 mt-2">
                       Rate auto-applied from FX service
                     </div>
                   )}

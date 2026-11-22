@@ -281,7 +281,7 @@ export default function HoldingsTable({
                       )}
                     </>
                   ) : (
-                    <span className="text-gray-400" aria-hidden="true">
+                    <span className="text-gray-500" aria-hidden="true">
                       —
                     </span>
                   )}
@@ -342,7 +342,7 @@ export default function HoldingsTable({
                     title={`Remove ${name}`}
                     disabled={disabled}
                     onClick={() => onRemove(row.key)}
-                    className="text-gray-400 hover:text-red-600 p-1"
+                    className="text-gray-500 hover:text-red-600 p-1"
                   >
                     <i className="far fa-trash-alt" aria-hidden="true"></i>
                   </button>
