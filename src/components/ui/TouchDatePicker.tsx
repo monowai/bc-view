@@ -150,7 +150,7 @@ export default function TouchDatePicker({
           {displayValue}
         </span>
         <i
-          className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-blue-500" : ""}`}
+          className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-blue-600" : ""}`}
         ></i>
       </button>
 

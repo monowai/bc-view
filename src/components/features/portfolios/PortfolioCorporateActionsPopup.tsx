@@ -256,7 +256,7 @@ const PortfolioCorporateActionsPopup: React.FC<
           <div className="flex items-center gap-2 flex-wrap flex-1">
             {scanComplete && missingEvents.length > 0 && (
               <button
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 onClick={handleBackfillAll}
                 disabled={isBackfilling || unprocessedCount === 0}
                 title={
@@ -282,7 +282,7 @@ const PortfolioCorporateActionsPopup: React.FC<
             {onBackgroundLoad && (
               <button
                 type="button"
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 onClick={handleLoadInBackground}
                 disabled={
                   !earliestOpened ||
@@ -301,7 +301,7 @@ const PortfolioCorporateActionsPopup: React.FC<
               </button>
             )}
             {processError && (
-              <span className="text-red-500 text-sm">
+              <span className="text-red-600 text-sm">
                 <i className="fas fa-exclamation-circle mr-1"></i>
                 {processError}
               </span>
@@ -326,7 +326,7 @@ const PortfolioCorporateActionsPopup: React.FC<
             }
           </p>
           <button
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
             onClick={scanForMissingEvents}
             disabled={!holdingsData}
           >
@@ -338,7 +338,7 @@ const PortfolioCorporateActionsPopup: React.FC<
 
       {isScanning && (
         <div className="flex flex-col items-center justify-center py-8">
-          <Spinner size="lg" className="text-blue-500 mb-4" />
+          <Spinner size="lg" className="text-blue-600 mb-4" />
           <p className="text-gray-600">
             {"Scanning positions for missing events..."}
             {scanProgress && (
@@ -360,7 +360,7 @@ const PortfolioCorporateActionsPopup: React.FC<
       {scanComplete && (
         <div className="overflow-y-auto flex-1">
           {missingEvents.length === 0 ? (
-            <div className="text-center py-8 text-green-600">
+            <div className="text-center py-8 text-green-700">
               <i className="fas fa-check-circle text-4xl mb-4 block"></i>
               <p>
                 {
@@ -403,7 +403,7 @@ const PortfolioCorporateActionsPopup: React.FC<
                         <td className="px-4 py-2">
                           <span className="flex items-center">
                             <i
-                              className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-500`}
+                              className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-600`}
                             ></i>
                             {getEventTypeLabel(event.trnType)}
                           </span>
@@ -432,14 +432,14 @@ const PortfolioCorporateActionsPopup: React.FC<
                         </td>
                         <td className="px-4 py-2 text-center">
                           {isProcessed ? (
-                            <span className="text-green-500">
+                            <span className="text-green-700">
                               <i className="fas fa-check mr-1"></i>
                               {"Transaction dispatched"}
                             </span>
                           ) : (
                             <button
                               onClick={() => handleProcessEvent(event.id)}
-                              className="text-blue-500 hover:text-blue-700"
+                              className="text-blue-600 hover:text-blue-700"
                               title={"Process event to create transaction"}
                             >
                               <i className="fas fa-play"></i>

@@ -269,7 +269,7 @@ export default function FxEditModal({
           <div className="flex gap-1 flex-shrink-0">
             <button
               type="button"
-              className="text-green-600 hover:text-green-700 p-1"
+              className="text-green-700 hover:text-green-800 p-1"
               onClick={handleCopy}
               title={"Copy"}
             >
@@ -277,7 +277,7 @@ export default function FxEditModal({
             </button>
             <button
               type="button"
-              className="text-red-500 hover:text-red-600 p-1"
+              className="text-red-600 hover:text-red-700 p-1"
               onClick={onDelete}
               title={"Delete"}
             >
@@ -344,7 +344,7 @@ export default function FxEditModal({
 
           {/* Buy Side */}
           <div className="text-center flex-1">
-            <div className="text-xs text-green-600 font-medium uppercase mb-1">
+            <div className="text-xs text-green-700 font-medium uppercase mb-1">
               {"Buy"}
             </div>
             <div className="font-bold text-green-700">
@@ -357,7 +357,7 @@ export default function FxEditModal({
               />
             </div>
             <div
-              className="text-xs text-green-600 mt-1 truncate"
+              className="text-xs text-green-700 mt-1 truncate"
               title={buyDisplayName}
             >
               {buyDisplayName}
@@ -370,7 +370,7 @@ export default function FxEditModal({
           </div>
         )}
         {manualBuyAmount && (
-          <div className="text-center text-xs text-amber-600 mt-2">
+          <div className="text-center text-xs text-amber-700 mt-2">
             Manual amount entered
           </div>
         )}
@@ -412,7 +412,7 @@ export default function FxEditModal({
             <AmountLabel
               label={"Buy Amount"}
               currency={buyCurrency}
-              colorClass="text-green-600"
+              colorClass="text-green-700"
             />
           }
           onChange={handleBuyAmountChange}

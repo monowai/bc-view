@@ -32,7 +32,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
 }) => {
   if (accounts.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-600">
         <p>{emptyMessage || "You have no custom assets."}</p>
         <p className="text-sm mt-2">{"Click Add Asset to create one."}</p>
       </div>
@@ -52,7 +52,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
       ) : account.assetCategory?.id === "POLICY" ? (
         <button
           onClick={() => onSetBalance(account)}
-          className="text-amber-600 hover:text-amber-900"
+          className="text-amber-700 hover:text-amber-900"
         >
           <i className="fas fa-piggy-bank mr-1"></i>
           {"Set Balance"}
@@ -60,7 +60,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
       ) : (
         <button
           onClick={() => onSetPrice(account)}
-          className="text-green-600 hover:text-green-900"
+          className="text-green-700 hover:text-green-900"
         >
           <i className="fas fa-dollar-sign mr-1"></i>
           {"Set Price"}

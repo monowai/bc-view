@@ -33,13 +33,13 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
 
       <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
         <span>
-          <i className="fas fa-dollar-sign text-blue-500 mr-1"></i>Currency
+          <i className="fas fa-dollar-sign text-blue-600 mr-1"></i>Currency
         </span>
         <span>
-          <i className="fas fa-folder text-blue-500 mr-1"></i>Portfolio
+          <i className="fas fa-folder text-blue-600 mr-1"></i>Portfolio
         </span>
         <span>
-          <i className="fas fa-university text-blue-500 mr-1"></i>Bank accounts
+          <i className="fas fa-university text-blue-600 mr-1"></i>Bank accounts
           &amp; property
         </span>
         <span>

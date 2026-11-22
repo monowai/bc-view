@@ -227,7 +227,7 @@ const HoldingsViewControls: React.FC<HoldingsViewControlsProps> = ({
           >
             <ViewModeIcon
               mode={mode.value}
-              className={`w-3.5 h-3.5 ${viewMode === mode.value ? "text-blue-500" : ""}`}
+              className={`w-3.5 h-3.5 ${viewMode === mode.value ? "text-blue-600" : ""}`}
             />
           </button>
         ))}
@@ -250,7 +250,7 @@ const HoldingsViewControls: React.FC<HoldingsViewControlsProps> = ({
             >
               <GroupByIcon
                 groupBy={option.value}
-                className={`w-3.5 h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-500" : ""}`}
+                className={`w-3.5 h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-700" : ""}`}
               />
             </button>
           ))}

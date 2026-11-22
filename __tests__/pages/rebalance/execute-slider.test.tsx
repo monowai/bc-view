@@ -379,7 +379,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     const { rerender } = render(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("+4.0")).toHaveClass("text-green-600")
+    expect(screen.getByText("+4.0")).toHaveClass("text-green-700")
     // Excluded row (EXCL) never shows a delta label — the Trade column
     // falls back to a plain dash for excluded rows.
     const exclRow = screen.getByText("EXCL").closest("tr")!
@@ -429,7 +429,7 @@ describe("ExecuteRebalancePage — slider weight editing", () => {
 
     render(<ExecuteRebalancePage />)
 
-    expect(screen.getByText("+24.2")).toHaveClass("text-green-600")
+    expect(screen.getByText("+24.2")).toHaveClass("text-green-700")
   })
 
   it("disables the slider on an excluded row, sitting at its own (unchanged) target", () => {

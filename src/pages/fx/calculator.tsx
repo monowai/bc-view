@@ -166,7 +166,7 @@ export default withPageAuthRequired(
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div data-modal-body className="p-5 space-y-4">
             {ccyLoading ? (
               <div className="flex justify-center py-6">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

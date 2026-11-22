@@ -65,7 +65,7 @@ export default function WorkScenarioBanner(): React.ReactElement {
     return (
       <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <i className="fas fa-exclamation-triangle text-amber-500"></i>
+          <i className="fas fa-exclamation-triangle text-amber-700"></i>
           <span className="text-sm text-amber-800">
             No work scenario selected. Create one to model your working-phase
             income and expenses.
@@ -73,7 +73,7 @@ export default function WorkScenarioBanner(): React.ReactElement {
         </div>
         <Link
           href="/independence?view=work"
-          className="text-sm font-medium text-independence-600 hover:text-independence-700 whitespace-nowrap ml-3"
+          className="text-sm font-medium text-independence-700 hover:text-independence-800 whitespace-nowrap ml-3"
         >
           Go to Work <i className="fas fa-arrow-right ml-1"></i>
         </Link>
@@ -102,7 +102,7 @@ export default function WorkScenarioBanner(): React.ReactElement {
             <span className="text-gray-500">
               Net contribution{" "}
               <span
-                className={`font-medium ${contribution >= 0 ? "text-independence-600" : "text-red-600"}`}
+                className={`font-medium ${contribution >= 0 ? "text-independence-700" : "text-red-600"}`}
               >
                 {current.currency} {Math.abs(contribution).toLocaleString()}
                 {contribution < 0 ? " (deficit)" : ""}
@@ -111,7 +111,7 @@ export default function WorkScenarioBanner(): React.ReactElement {
           </div>
           <button
             onClick={() => setEditorOpen(true)}
-            className="text-sm font-medium text-independence-600 hover:text-independence-700"
+            className="text-sm font-medium text-independence-700 hover:text-independence-800"
           >
             <i className="fas fa-edit mr-1"></i>
             Edit

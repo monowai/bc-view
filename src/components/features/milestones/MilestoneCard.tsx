@@ -68,7 +68,7 @@ export default function MilestoneCard({
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
                 earned
                   ? `${tierColor!.bgLight} ${tierColor!.text}`
-                  : "bg-gray-100 text-gray-500"
+                  : "bg-gray-100 text-gray-600"
               }`}
               title={t.description}
             >

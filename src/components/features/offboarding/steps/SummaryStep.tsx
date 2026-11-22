@@ -40,7 +40,7 @@ export default function SummaryStep({
       <div className="space-y-4 mb-8 max-h-64 overflow-y-auto pr-1">
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <i className="fas fa-folder text-blue-500 mr-3"></i>
+            <i className="fas fa-folder text-blue-600 mr-3"></i>
             <span className="font-medium">{"Portfolios"}</span>
           </div>
           <span className="text-lg font-semibold">
@@ -50,7 +50,7 @@ export default function SummaryStep({
 
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <i className="fas fa-home text-green-500 mr-3"></i>
+            <i className="fas fa-home text-green-700 mr-3"></i>
             <span className="font-medium">{"Custom Assets"}</span>
           </div>
           <span className="text-lg font-semibold">
@@ -86,7 +86,7 @@ export default function SummaryStep({
 
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <i className="fas fa-percent text-orange-500 mr-3"></i>
+            <i className="fas fa-percent text-orange-700 mr-3"></i>
             <span className="font-medium">{"Tax Rates"}</span>
           </div>
           <span className="text-lg font-semibold">

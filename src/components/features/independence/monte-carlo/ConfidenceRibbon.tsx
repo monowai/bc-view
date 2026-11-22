@@ -1,7 +1,7 @@
 import React from "react"
 import type { MonteCarloResult } from "types/independence"
 import { deriveSurvivalCurve } from "@lib/independence/survivalCurve"
-import { GAIN, INDEPENDENCE, INVEST, LOSS, WARNING } from "@lib/chartPalette"
+import { INDEPENDENCE, INVEST, LOSS, WARNING } from "@lib/chartPalette"
 
 // ── FanChart alignment constants ─────────────────────────────────────────────
 // FanChart uses: margin={{ top: 30, right: 30, left: 20, bottom: 40 }}
@@ -21,7 +21,7 @@ interface ColorBucket {
 
 const COLOR_BUCKETS: ColorBucket[] = [
   { min: 0.95, color: INVEST[700], label: "≥95% funded" },
-  { min: 0.8, color: GAIN, label: "80–95%" },
+  { min: 0.8, color: INVEST[600], label: "80–95%" },
   { min: 0.65, color: INVEST[500], label: "65–80%" },
   { min: 0.5, color: WARNING, label: "50–65%" },
   { min: 0.35, color: INDEPENDENCE[500], label: "35–50%" },

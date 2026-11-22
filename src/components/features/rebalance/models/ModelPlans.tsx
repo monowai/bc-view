@@ -169,7 +169,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                         setDeletePlanId(plan.id)
                       }}
                       disabled={deletingId === plan.id}
-                      className="text-gray-500 hover:text-red-600 p-1 mr-2 disabled:opacity-50"
+                      className="text-gray-500 hover:text-red-700 p-1 mr-2 disabled:opacity-50"
                       title={"Delete"}
                     >
                       {deletingId === plan.id ? (

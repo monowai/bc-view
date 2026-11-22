@@ -797,7 +797,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                 </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase">
                       <input
                         ref={selectAllRef}
                         type="checkbox"
@@ -809,20 +809,20 @@ function ExecuteRebalancePage(): React.ReactElement {
                         className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500 disabled:opacity-40"
                       />
                     </th>
-                    <th className="sticky top-0 left-0 z-30 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 left-0 z-30 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase">
                       {"Asset"}
                     </th>
-                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase">
                       {"Price"}
                     </th>
-                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase">
                       {"Current"}
                     </th>
-                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase">
                       {"Target"}
                     </th>
                     <th
-                      className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase"
+                      className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase"
                       title={
                         cashSummary.projectedCash < 0
                           ? "Assumes required cash is funded"
@@ -831,7 +831,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     >
                       {"After %"}
                     </th>
-                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="sticky top-0 z-20 bg-gray-50 px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase">
                       {"Trade"}
                     </th>
                   </tr>
@@ -915,7 +915,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                       deltaVsOriginalPct === 0
                         ? "text-gray-500"
                         : deltaVsOriginalPct > 0
-                          ? "text-green-600"
+                          ? "text-green-700"
                           : "text-red-600"
 
                     // Per-row reset (Change 3) is only actionable once the
@@ -961,7 +961,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                             title={item.rationale || undefined}
                           >
                             {isCash && (
-                              <i className="fas fa-coins mr-2 text-blue-500"></i>
+                              <i className="fas fa-coins mr-2 text-blue-600"></i>
                             )}
                             <span>{item.assetCode || item.assetId}</span>
                             {item.rationale && !isCash && (

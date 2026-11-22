@@ -162,16 +162,16 @@ const fmtMoney = (currency: string, n: number | null | undefined): string =>
 
 function colorFor(pct: number | null | undefined): string {
   if (pct == null) return "bg-gray-300"
-  if (pct < 50) return "bg-red-500"
+  if (pct < 50) return "bg-red-600"
   if (pct < 80) return "bg-amber-500"
-  return "bg-green-500"
+  return "bg-green-600"
 }
 
 function textColorFor(pct: number | null | undefined): string {
   if (pct == null) return "text-gray-500"
   if (pct < 50) return "text-red-600"
-  if (pct < 80) return "text-amber-600"
-  return "text-green-600"
+  if (pct < 80) return "text-amber-700"
+  return "text-green-700"
 }
 
 function diffBadge(
@@ -182,14 +182,14 @@ function diffBadge(
   const diff = backend - local
   if (Math.abs(diff) < 0.5) {
     return (
-      <span className="text-xs text-green-600 font-mono">
+      <span className="text-xs text-green-700 font-mono">
         Δ {diff >= 0 ? "+" : ""}
         {diff.toFixed(2)}pp ✓
       </span>
     )
   }
   return (
-    <span className="text-xs text-amber-600 font-mono">
+    <span className="text-xs text-amber-700 font-mono">
       Δ {diff >= 0 ? "+" : ""}
       {diff.toFixed(2)}pp
     </span>
@@ -498,7 +498,7 @@ function IndependenceDebug(): React.ReactElement {
             </div>
             <Link
               href="/independence"
-              className="text-sm text-independence-600 hover:text-independence-800"
+              className="text-sm text-independence-700 hover:text-independence-800"
             >
               ← Plans
             </Link>

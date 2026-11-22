@@ -147,7 +147,7 @@ function PlanNarrative(): React.ReactElement {
         </p>
         <Link
           href="/independence?view=phases"
-          className="mt-5 inline-flex items-center rounded-lg bg-independence-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 motion-reduce:transition-none"
+          className="mt-5 inline-flex items-center rounded-lg bg-independence-700 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-800 motion-reduce:transition-none"
         >
           <i aria-hidden="true" className="fas fa-sliders-h mr-2" />
           Set up your stages

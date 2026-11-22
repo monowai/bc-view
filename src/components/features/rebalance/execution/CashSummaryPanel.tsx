@@ -50,7 +50,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
       key: "fromSales",
       label: "From Sales",
       display: `+${formatCurrency(cashFromSales)} ${currency}`,
-      valueClass: "text-green-600",
+      valueClass: "text-green-700",
     },
     {
       key: "forPurchases",

@@ -456,7 +456,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                 aria-label="AI summary of aggregated holdings"
                 title="AI summary: headwinds, tailwinds, key news on winners and losers"
               >
-                <i className="fas fa-robot text-xs text-blue-500"></i>
+                <i className="fas fa-robot text-xs text-blue-600"></i>
               </button>
             )}
             <button
@@ -465,7 +465,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               aria-label="Copy Data"
               title="Copy Data"
             >
-              <i className="fas fa-copy text-xs text-blue-500"></i>
+              <i className="fas fa-copy text-xs text-blue-600"></i>
             </button>
             {defaultTradePortfolio && (
               <button
@@ -479,7 +479,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               </button>
             )}
             <button
-              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-blue-500 hover:bg-blue-600 text-white"
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 shadow-sm bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => {
                 const portfolioParams = codes
                   ? `?portfolios=${encodeURIComponent(codes)}`

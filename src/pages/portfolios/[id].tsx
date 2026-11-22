@@ -209,7 +209,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           placeholder={"Unique short identifier"}
           defaultValue={portfolio.code}
         />
-        <div className="text-red-500 text-xs italic">
+        <div className="text-red-600 text-xs italic">
           {errors?.code?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -222,7 +222,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           placeholder={"Descriptive name"}
           defaultValue={portfolio.name}
         />
-        <div className="text-red-500 text-xs italic">
+        <div className="text-red-600 text-xs italic">
           {errors?.name?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -326,7 +326,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           <button
             type="submit"
             disabled={saveState.kind === "saving"}
-            className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1"
           >
             {saveState.kind === "saving" ? "Saving…" : "Submit"}
           </button>

@@ -75,10 +75,10 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
           type="button"
           className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
             copyStatus === "success"
-              ? "text-green-600 bg-green-50"
+              ? "text-green-700 bg-green-50"
               : copyStatus === "error"
-                ? "text-red-500 bg-red-50"
-                : "text-gray-500 hover:text-green-600 hover:bg-green-50"
+                ? "text-red-600 bg-red-50"
+                : "text-gray-500 hover:text-green-800 hover:bg-green-50"
           }`}
           onClick={handleCopy}
           title={"Copy"}
@@ -90,7 +90,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
         {isEditMode && onUnsettle && isSettled && (
           <button
             type="button"
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-amber-800 hover:bg-amber-50 transition-colors"
             onClick={onUnsettle}
             title={"Unsettle (move back to PROPOSED)"}
           >
@@ -100,7 +100,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
         {isEditMode && (
           <button
             type="button"
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-red-700 hover:bg-red-50 transition-colors"
             onClick={onDelete}
             title={"Delete"}
           >

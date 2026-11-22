@@ -255,7 +255,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             disabled={!canProceed}
             className={`px-4 py-2 rounded text-white transition-colors ${
               canProceed
-                ? "bg-blue-500 hover:bg-blue-600"
+                ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >
@@ -268,7 +268,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             disabled={!canProceed || isSubmitting}
             className={`px-4 py-2 rounded text-white transition-colors ${
               canProceed && !isSubmitting
-                ? "bg-green-500 hover:bg-green-600"
+                ? "bg-green-600 hover:bg-green-700"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >

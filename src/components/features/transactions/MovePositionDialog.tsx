@@ -123,7 +123,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
             {"Target Portfolio"}
           </label>
           {targetPortfolios.length === 0 ? (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-red-600">
               {"No other portfolios available"}
             </p>
           ) : (

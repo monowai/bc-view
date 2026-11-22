@@ -187,7 +187,7 @@ export default function ManagedPortfolios({
                       {onCorporateActions && share.portfolio && (
                         <button
                           onClick={() => onCorporateActions(share.portfolio!)}
-                          className="text-blue-500 hover:text-blue-700 p-1"
+                          className="text-blue-600 hover:text-blue-700 p-1"
                           title={"Scan Corporate Actions"}
                           aria-label={"Scan Corporate Actions"}
                         >
@@ -295,7 +295,7 @@ function RevokeButton({
           setShowConfirm(true)
         }}
         disabled={isLoading}
-        className="text-gray-500 hover:text-red-500 transition-colors p-1"
+        className="text-gray-500 hover:text-red-700 transition-colors p-1"
         title={"Revoke"}
       >
         <i

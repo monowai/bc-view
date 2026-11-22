@@ -227,7 +227,7 @@ function Section({
       )}
       {shares.length > 0 && (
         <table className="w-full text-sm">
-          <thead className="text-xs text-gray-500 uppercase tracking-wider bg-gray-50">
+          <thead className="text-xs text-gray-600 uppercase tracking-wider bg-gray-50">
             <tr>
               <th className="text-left px-4 py-2">Resource</th>
               <th className="text-left px-4 py-2">Recipient</th>

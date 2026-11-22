@@ -89,7 +89,7 @@ describe("accounting types admin", () => {
       target: { value: "USD" },
     })
     expect(save).toBeEnabled()
-    expect(save).toHaveClass("bg-blue-500")
+    expect(save).toHaveClass("bg-blue-600")
 
     fireEvent.click(save)
     await waitFor(() =>

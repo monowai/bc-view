@@ -72,7 +72,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
         >
           <input
             aria-label="Never force-sell illiquid"
-            class="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-500 focus:ring-independence-500"
+            class="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-700 focus:ring-independence-500"
             type="checkbox"
           />
           <span>
@@ -103,7 +103,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             Success Rate
           </div>
           <div
-            class="text-4xl font-bold text-amber-600"
+            class="text-4xl font-bold text-amber-700"
           >
             72.5
             %
@@ -552,7 +552,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
               Survived
             </span>
             <span
-              class="font-medium text-green-600"
+              class="font-medium text-green-700"
             >
               725
             </span>

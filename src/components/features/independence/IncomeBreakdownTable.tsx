@@ -171,7 +171,7 @@ export default function IncomeBreakdownTable({
               {columnVisibility.investment && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span
-                    className="text-green-600 cursor-help"
+                    className="text-green-700 cursor-help"
                     title="Net-of-fee return your investment portfolio (cash + equities) earns each year. Compounds every year, including in independence — while you also draw down capital (see Withdrawals). CPF, pensions and property grow separately in their own columns."
                   >
                     Investment Growth
@@ -225,7 +225,7 @@ export default function IncomeBreakdownTable({
               )}
               {columnVisibility.otherIncome && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  <span className="text-independence-600">Other</span>
+                  <span className="text-independence-700">Other</span>
                   <IndexationTag
                     indexed={isStreamInflationIndexed(
                       valueBasis,
@@ -247,7 +247,7 @@ export default function IncomeBreakdownTable({
               )}
               {columnVisibility.lifeEvents && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  <span className="text-amber-600">Life Events</span>
+                  <span className="text-amber-700">Life Events</span>
                 </th>
               )}
               <th className="text-right py-2 px-2 font-medium text-gray-700 border-l border-gray-200">
@@ -322,13 +322,13 @@ export default function IncomeBreakdownTable({
                     )}
                     {hasLifeEvent && (
                       <i
-                        className="fas fa-calendar-day text-amber-500 ml-1"
+                        className="fas fa-calendar-day text-amber-700 ml-1"
                         title="Life event"
                       ></i>
                     )}
                   </td>
                   {columnVisibility.investment && (
-                    <td className="text-right py-2 px-2 text-green-600">
+                    <td className="text-right py-2 px-2 text-green-700">
                       {breakdown
                         ? formatCurrency(breakdown.investmentReturns)
                         : "-"}
@@ -368,7 +368,7 @@ export default function IncomeBreakdownTable({
                     </td>
                   )}
                   {columnVisibility.otherIncome && (
-                    <td className="text-right py-2 px-2 text-independence-600">
+                    <td className="text-right py-2 px-2 text-independence-700">
                       {breakdown ? formatCurrency(breakdown.otherIncome) : "-"}
                     </td>
                   )}
@@ -390,7 +390,7 @@ export default function IncomeBreakdownTable({
                         )
                       return (
                         <td
-                          className={`text-right py-2 px-2 font-medium ${net > 0 ? "text-green-600" : "text-red-600"}`}
+                          className={`text-right py-2 px-2 font-medium ${net > 0 ? "text-green-700" : "text-red-600"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -427,7 +427,7 @@ export default function IncomeBreakdownTable({
         <p className="flex flex-wrap gap-x-3">
           {columnVisibility.investment && (
             <span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-green-700">
                 Investment Growth:
               </span>{" "}
               Net-of-fee return on your investment portfolio (cash + equities) —
@@ -465,7 +465,7 @@ export default function IncomeBreakdownTable({
           )}
           {columnVisibility.otherIncome && (
             <span>
-              <span className="font-medium text-independence-600">Other:</span>{" "}
+              <span className="font-medium text-independence-700">Other:</span>{" "}
               Stays the same
             </span>
           )}
@@ -477,7 +477,7 @@ export default function IncomeBreakdownTable({
           )}
           {columnVisibility.lifeEvents && (
             <span>
-              <span className="font-medium text-amber-600">Life Events:</span>{" "}
+              <span className="font-medium text-amber-700">Life Events:</span>{" "}
               One-off income/expenses
             </span>
           )}
@@ -503,7 +503,7 @@ export default function IncomeBreakdownTable({
     <div className="bg-white rounded-xl shadow-md p-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          <i className="fas fa-table text-blue-500 mr-2"></i>
+          <i className="fas fa-table text-blue-600 mr-2"></i>
           Income Breakdown
         </h3>
         {expandButton}

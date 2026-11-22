@@ -72,7 +72,7 @@ function TaxRatesPage(): React.ReactElement {
             {/* Info Box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex">
-                <i className="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+                <i className="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-1">{"How tax rates work"}</p>
                   <p>

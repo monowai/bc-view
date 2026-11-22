@@ -1105,7 +1105,7 @@ const OnboardingWizard: React.FC = () => {
               disabled={!canProceed}
               className={`px-4 py-2 rounded text-white transition-colors ${
                 canProceed
-                  ? "bg-blue-500 hover:bg-blue-600"
+                  ? "bg-blue-600 hover:bg-blue-700"
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
@@ -1120,7 +1120,7 @@ const OnboardingWizard: React.FC = () => {
               disabled={isSubmitting}
               className={`px-4 py-2 rounded text-white transition-colors ${
                 !isSubmitting
-                  ? "bg-green-500 hover:bg-green-600"
+                  ? "bg-green-600 hover:bg-green-700"
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
@@ -1139,7 +1139,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               type="button"
               onClick={handleFinish}
-              className="px-4 py-2 rounded text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700 transition-colors"
             >
               {"Done"}
             </button>

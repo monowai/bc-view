@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from "react"
+import React, { useId, useRef } from "react"
 import Spinner from "@components/ui/Spinner"
 import { useModalFocus } from "@hooks/useModalFocus"
 
@@ -36,17 +36,7 @@ export default function Dialog({
 }: DialogProps): React.ReactElement {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
-  useModalFocus(panelRef)
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [onClose])
+  useModalFocus(panelRef, onClose)
 
   return (
     <div className={`fixed inset-0 ${zClass} flex items-center justify-center`}>
@@ -125,11 +115,11 @@ interface SubmitButtonProps {
 
 const variantClasses: Record<string, { active: string; disabled: string }> = {
   green: {
-    active: "bg-green-500 hover:bg-green-600",
+    active: "bg-green-600 hover:bg-green-700",
     disabled: "bg-gray-400 cursor-not-allowed",
   },
   red: {
-    active: "bg-red-500 hover:bg-red-600",
+    active: "bg-red-600 hover:bg-red-700",
     disabled: "bg-gray-400 cursor-not-allowed",
   },
   amber: {
@@ -137,11 +127,11 @@ const variantClasses: Record<string, { active: string; disabled: string }> = {
     disabled: "bg-gray-400 cursor-not-allowed",
   },
   blue: {
-    active: "bg-blue-500 hover:bg-blue-600",
+    active: "bg-blue-600 hover:bg-blue-700",
     disabled: "bg-gray-400 cursor-not-allowed",
   },
   purple: {
-    active: "bg-purple-500 hover:bg-purple-600",
+    active: "bg-purple-600 hover:bg-purple-700",
     disabled: "bg-gray-400 cursor-not-allowed",
   },
 }

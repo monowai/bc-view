@@ -41,8 +41,8 @@ const ModelCard: React.FC<ModelCardProps> = ({
             <span
               className={`flex-none flex h-8 w-8 items-center justify-center rounded-lg ${
                 selected
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
               }`}
             >
               <i className="fas fa-layer-group"></i>
@@ -131,7 +131,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
           </div>
         </div>
         {loading ? (
-          <Spinner className="text-blue-500 ml-2" />
+          <Spinner className="text-blue-600 ml-2" />
         ) : (
           <i className="fas fa-chevron-right text-gray-400 ml-2"></i>
         )}

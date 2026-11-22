@@ -881,7 +881,7 @@ function PlanView(): React.ReactElement {
     const backLink = (
       <Link
         href={`/independence/plans/${plan.id}`}
-        className="mt-3 inline-block text-independence-600 hover:underline"
+        className="mt-3 inline-block text-independence-700 hover:underline"
       >
         Back to plan
       </Link>

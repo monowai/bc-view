@@ -55,7 +55,7 @@ export const INVEST = {
 export const PRIMARY = "#2563eb"
 
 /** Financial status hues (--color-gain, --color-loss, --color-warning). */
-export const GAIN = "#059669"
+export const GAIN = "#047857"
 export const LOSS = "#dc2626"
 export const WARNING = "#a16207"
 

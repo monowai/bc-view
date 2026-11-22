@@ -34,7 +34,7 @@ export default function WhatIfSlider({
         <span
           className={`text-sm font-semibold ${
             isPositive
-              ? "text-green-600"
+              ? "text-green-700"
               : isNegative
                 ? "text-red-600"
                 : "text-gray-600"

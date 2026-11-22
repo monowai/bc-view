@@ -77,6 +77,21 @@ describe("Dialog", () => {
     expect(save).toHaveFocus()
   })
 
+  it("closes only the top dialog on Escape when dialogs are stacked", () => {
+    const outerClose = jest.fn()
+    const innerClose = jest.fn()
+    render(
+      <Dialog title="Outer" onClose={outerClose}>
+        <Dialog title="Inner" onClose={innerClose} zClass="z-[60]">
+          <p>Inner content</p>
+        </Dialog>
+      </Dialog>,
+    )
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(innerClose).toHaveBeenCalledTimes(1)
+    expect(outerClose).not.toHaveBeenCalled()
+  })
+
   it("returns focus to the opener when it closes", () => {
     const opener = document.createElement("button")
     document.body.appendChild(opener)

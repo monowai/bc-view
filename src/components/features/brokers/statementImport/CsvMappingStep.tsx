@@ -181,7 +181,7 @@ export default function CsvMappingStep({
             </p>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                   <tr>
                     <th scope="col" className="px-3 py-2">
                       Your column
@@ -311,7 +311,7 @@ export default function CsvMappingStep({
             </p>
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                   <tr>
                     {[
                       "Date",

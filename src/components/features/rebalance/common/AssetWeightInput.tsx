@@ -67,7 +67,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               <button
                 type="button"
                 onClick={onShowAssetInsight}
-                className="p-0.5 text-gray-500 hover:text-blue-500 transition-colors"
+                className="p-0.5 text-gray-500 hover:text-blue-700 transition-colors"
                 title={"AI asset insight"}
               >
                 <i className="fas fa-robot text-xs"></i>
@@ -135,7 +135,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
             <button
               type="button"
               onClick={onRemove}
-              className="p-1 text-red-500 hover:text-red-700 transition-colors"
+              className="p-1 text-red-600 hover:text-red-700 transition-colors"
               title={"Remove"}
             >
               <i className="fas fa-times"></i>

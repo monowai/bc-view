@@ -300,7 +300,7 @@ export default function TimelineTabContent({
       <CollapsibleSection
         title="Wealth Journey"
         icon="fa-chart-line"
-        iconColor="text-blue-500"
+        iconColor="text-blue-600"
         isOpen={openSections["wealthJourney"]}
         onToggle={() => toggleSection("wealthJourney")}
         headerRight={
@@ -320,7 +320,7 @@ export default function TimelineTabContent({
                 onClick={() => setTimelineViewMode("fire")}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   timelineViewMode === "fire"
-                    ? "bg-white text-green-600 shadow-sm"
+                    ? "bg-white text-green-700 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -632,7 +632,7 @@ export default function TimelineTabContent({
       <CollapsibleSection
         title="Cash Flows"
         icon="fa-exchange-alt"
-        iconColor="text-green-500"
+        iconColor="text-green-700"
         isOpen={openSections["cashFlows"]}
         onToggle={() => toggleSection("cashFlows")}
       >

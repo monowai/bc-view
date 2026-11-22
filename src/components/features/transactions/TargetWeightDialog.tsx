@@ -157,7 +157,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
           <span className="text-sm font-medium">{"Action"}</span>
           <span
             className={`font-bold ${
-              calculation.type === "BUY" ? "text-green-600" : "text-red-600"
+              calculation.type === "BUY" ? "text-green-700" : "text-red-600"
             }`}
           >
             {calculation.type === "BUY" ? "Buy" : "Sell"}

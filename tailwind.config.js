@@ -18,7 +18,7 @@ module.exports = {
       },
       colors: {
         gain: {
-          DEFAULT: "#059669", // emerald-600
+          DEFAULT: "#047857", // emerald-700
           bg: "#ecfdf5", // emerald-50
         },
         loss: {
@@ -44,6 +44,7 @@ module.exports = {
           500: "#f97316", // orange-500
           600: "#ea580c", // orange-600
           700: "#c2410c", // orange-700
+          800: "#9a3412", // orange-800
         },
         invest: {
           50: "#ecfdf5", // emerald-50

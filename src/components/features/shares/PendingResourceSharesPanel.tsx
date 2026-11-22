@@ -156,7 +156,7 @@ function PendingResourceShareRow({
           <button
             onClick={handleAccept}
             disabled={isLoading}
-            className="bg-green-500 text-white text-xs px-3 py-1.5 rounded hover:bg-green-600 transition-colors disabled:opacity-50"
+            className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             {"Accept"}
           </button>

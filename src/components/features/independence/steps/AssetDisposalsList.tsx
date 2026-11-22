@@ -90,7 +90,7 @@ export default function AssetDisposalsList({
                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <i className="fas fa-home text-amber-600 text-xs"></i>
+                    <i className="fas fa-home text-amber-700 text-xs"></i>
                     <span className="text-sm font-medium text-gray-900">
                       {name}
                     </span>
@@ -126,7 +126,7 @@ export default function AssetDisposalsList({
                           e.target.checked,
                         )
                       }
-                      className="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500"
+                      className="w-3.5 h-3.5 rounded text-amber-700 focus:ring-amber-500"
                     />
                     Enabled
                   </label>
@@ -195,7 +195,7 @@ function DisposalEditRow({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <i className="fas fa-home text-amber-600 text-xs"></i>
+        <i className="fas fa-home text-amber-700 text-xs"></i>
         <span className="text-sm font-medium text-gray-900">{name}</span>
         <span className="text-micro text-gray-500">
           (asset locked — remove + re-add to change)

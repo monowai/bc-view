@@ -197,7 +197,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
       )}
 
       {!selectedPortfolioId && !loadingWeights && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
           {"Select a portfolio to view its holdings"}
         </div>
       )}

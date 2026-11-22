@@ -44,7 +44,7 @@ const HoldingWeightsEditor: React.FC<HoldingWeightsEditorProps> = ({
       </div>
 
       {weights.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
           {"No eligible assets found in holdings"}
         </div>
       ) : (

@@ -14,7 +14,7 @@ interface CollapsibleSectionProps {
 export default function CollapsibleSection({
   title,
   icon,
-  iconColor = "text-blue-500",
+  iconColor = "text-blue-600",
   defaultOpen = true,
   isOpen: controlledOpen,
   onToggle,

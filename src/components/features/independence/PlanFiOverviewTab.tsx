@@ -320,7 +320,7 @@ export default function PlanFiOverviewTab({
                   <span className="text-gray-500 mr-1.5">−</span>
                   Guaranteed income (pension + benefits + other)
                 </span>
-                <span className="tabular-nums font-medium text-sm text-green-600">
+                <span className="tabular-nums font-medium text-sm text-green-700">
                   {hideValues
                     ? HIDDEN_VALUE
                     : `−${fmtFull(fiMetrics.totalMonthlyIncome, effectiveCurrency)}`}
@@ -362,7 +362,7 @@ export default function PlanFiOverviewTab({
           <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
             <div
               className={`h-full transition-all duration-700 ${
-                isAchieved ? "bg-green-500" : "bg-independence-500"
+                isAchieved ? "bg-green-600" : "bg-independence-500"
               }`}
               style={{
                 width: hideValues
@@ -384,7 +384,7 @@ export default function PlanFiOverviewTab({
                 <span className="flex items-center gap-1">
                   <span
                     className={`inline-block w-2 h-2 rounded-sm ${
-                      isAchieved ? "bg-green-500" : "bg-independence-500"
+                      isAchieved ? "bg-green-600" : "bg-independence-500"
                     }`}
                   />
                   Portfolio
@@ -396,7 +396,7 @@ export default function PlanFiOverviewTab({
               </span>
               <span
                 className={`font-semibold ${
-                  fiStack.achieved ? "text-green-600" : "text-gray-700"
+                  fiStack.achieved ? "text-green-700" : "text-gray-700"
                 }`}
               >
                 {fiStack.achieved ? "✓ " : ""}
@@ -408,13 +408,13 @@ export default function PlanFiOverviewTab({
             </div>
           )}
           {isAchieved && (
-            <p className="text-xs text-green-600 mt-1.5 font-medium">
+            <p className="text-xs text-green-700 mt-1.5 font-medium">
               <i className="fas fa-check-circle mr-1" />
               Portfolio covers your FI target — financial independence achieved.
             </p>
           )}
           {dipsBelow && (
-            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
               <i className="fas fa-info-circle mr-1.5" />
               Returns are below the 4% withdrawal rate, so the trajectory can
               drift back under the FI line — run the simulation for a
@@ -590,7 +590,7 @@ export default function PlanFiOverviewTab({
               type="button"
               onClick={handleRunMc}
               disabled={isRunning || !assets.hasAssets}
-              className="px-4 py-1.5 text-sm font-medium bg-independence-600 text-white rounded-lg hover:bg-independence-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-1.5 text-sm font-medium bg-independence-700 text-white rounded-lg hover:bg-independence-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isRunning ? (
                 <span className="flex items-center gap-1.5">
@@ -620,7 +620,7 @@ export default function PlanFiOverviewTab({
               <button
                 type="button"
                 onClick={onOpenStressTest}
-                className="mt-2 text-sm font-medium text-independence-600 hover:underline"
+                className="mt-2 text-sm font-medium text-independence-700 hover:underline"
               >
                 Full stress test →
               </button>

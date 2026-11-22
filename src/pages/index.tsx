@@ -36,7 +36,7 @@ function RecentMilestones(): React.ReactElement | null {
         </h3>
         <Link
           href="/milestones"
-          className="text-xs text-blue-500 hover:text-blue-700"
+          className="text-xs text-blue-600 hover:text-blue-700"
         >
           View all
         </Link>
@@ -172,7 +172,7 @@ export default function Home(): React.ReactElement {
                 className="border border-gray-200 rounded-xl p-5 text-center hover:border-blue-300 hover:shadow-md transition-all"
               >
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <i className="fas fa-rocket text-xl text-blue-500"></i>
+                  <i className="fas fa-rocket text-xl text-blue-600"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">
                   {"Start Setup"}
@@ -204,7 +204,7 @@ export default function Home(): React.ReactElement {
                 className="border border-gray-200 rounded-xl p-5 text-center hover:border-green-300 hover:shadow-md transition-all"
               >
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <i className="fas fa-plus text-xl text-green-500"></i>
+                  <i className="fas fa-plus text-xl text-green-700"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">{"Add"}</h3>
                 <p className="text-gray-500 text-sm">
@@ -219,7 +219,7 @@ export default function Home(): React.ReactElement {
                 className="border border-gray-200 rounded-xl p-5 text-center hover:border-independence-200 hover:shadow-md transition-all"
               >
                 <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <i className="fas fa-compass text-xl text-independence-500"></i>
+                  <i className="fas fa-compass text-xl text-independence-700"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">
                   {"Plan your independence"}

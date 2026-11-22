@@ -64,7 +64,7 @@ const ReviewRow: React.FC<{
       <button
         type="button"
         onClick={onRemove}
-        className="text-red-500 hover:text-red-700"
+        className="text-red-600 hover:text-red-700"
         title={"Remove"}
       >
         <i className="fas fa-trash-alt"></i>
@@ -130,7 +130,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           {/* Bank Accounts */}
           {bankAccounts.length > 0 && (
             <ReviewSection
-              icon="fa-university text-blue-500 mr-2"
+              icon="fa-university text-blue-600 mr-2"
               title={"Bank Accounts"}
               columns={[
                 { label: "Name" },
@@ -156,7 +156,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           {/* Properties */}
           {properties.length > 0 && (
             <ReviewSection
-              icon="fa-home text-green-500 mr-2"
+              icon="fa-home text-green-700 mr-2"
               title={"Properties"}
               columns={[
                 { label: "Name" },

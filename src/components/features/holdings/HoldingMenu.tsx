@@ -56,7 +56,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
         aria-label="Open menu"
         aria-expanded={menuOpen}
         aria-haspopup="dialog"
-        className="fixed left-0 top-24 z-40 flex h-24 w-3 cursor-pointer items-center justify-center rounded-r-lg bg-gray-800 text-white shadow-md transition-colors hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="fixed left-0 top-24 z-40 flex h-24 w-3 cursor-pointer before:absolute before:inset-y-0 before:left-0 before:w-6 before:content-[''] items-center justify-center rounded-r-lg bg-gray-800 text-white shadow-md transition-colors hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         onClick={toggleMenu}
         title="View settings"
       >

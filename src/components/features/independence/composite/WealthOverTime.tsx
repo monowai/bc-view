@@ -548,7 +548,7 @@ export default function WealthOverTime(): React.ReactElement | null {
               type="button"
               onClick={runStress}
               disabled={mc.isRunning || phases.length === 0}
-              className="rounded-lg bg-independence-600 px-4 py-1.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-700 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+              className="rounded-lg bg-independence-700 px-4 py-1.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-independence-800 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
             >
               {mc.isRunning
                 ? "Running…"
@@ -565,7 +565,7 @@ export default function WealthOverTime(): React.ReactElement | null {
             checked={neverSellIlliquid}
             onChange={(e) => setNeverSellIlliquid(e.target.checked)}
             disabled={mc.isRunning}
-            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-600 focus:ring-independence-500"
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-700 focus:ring-independence-500"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">
             Never sell my property to cover spending
@@ -694,7 +694,7 @@ function StressStat({
       <dd
         className={`mt-0.5 text-2xl font-bold leading-none tabular-nums ${
           tone === "good"
-            ? "text-green-600 dark:text-green-400"
+            ? "text-green-700 dark:text-green-400"
             : tone === "warn"
               ? "text-amber-700 dark:text-amber-400"
               : "text-gray-900 dark:text-gray-100"

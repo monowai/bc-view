@@ -434,7 +434,7 @@ export default function IndependenceMetrics({
                     <td
                       className={`px-3 py-2 text-sm text-right font-medium ${
                         trn.trnType === "BUY"
-                          ? "text-green-600"
+                          ? "text-green-700"
                           : "text-red-600"
                       }`}
                     >
@@ -459,7 +459,7 @@ export default function IndependenceMetrics({
                   <td
                     className={`px-3 py-2 text-sm text-right font-bold ${
                       (monthlyInvestmentData?.totalInvested ?? 0) >= 0
-                        ? "text-green-600"
+                        ? "text-green-700"
                         : "text-red-600"
                     }`}
                   >

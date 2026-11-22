@@ -290,10 +290,10 @@ describe("Summary as-at date and gain colours", () => {
   })
 
   it.each([
-    [0.1, 5, "text-emerald-600", "text-emerald-600"],
+    [0.1, 5, "text-emerald-700", "text-emerald-700"],
     [-0.1, -5, "text-red-600", "text-red-600"],
     [0, 0, "text-slate-700", "text-slate-700"],
-    [0.1, -5, "text-emerald-600", "text-red-600"],
+    [0.1, -5, "text-emerald-700", "text-red-600"],
   ])("colours irr %s and gain %s", (irr, gain, irrClass, gainClass) => {
     const summary = {
       ...mockSummary,

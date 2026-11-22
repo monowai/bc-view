@@ -164,7 +164,7 @@ describe("GrandTotal Component", () => {
       const gainOnDayCell = dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION] // gainOnDay cell
 
       // Standard gain color on light background
-      expect(gainOnDayCell).toHaveClass("text-emerald-600")
+      expect(gainOnDayCell).toHaveClass("text-emerald-700")
     })
   })
 

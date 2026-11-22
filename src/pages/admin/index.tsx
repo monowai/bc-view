@@ -95,7 +95,7 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
           const cardBody = (
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <i className={`fas ${card.icon} text-blue-500 text-xl`}></i>
+                <i className={`fas ${card.icon} text-blue-600 text-xl`}></i>
               </div>
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">

@@ -1068,7 +1068,7 @@ function ProposedTransactions(): React.JSX.Element {
               <button
                 onClick={handleSettleSelected}
                 disabled={selectedProposed.length === 0 || isSettling}
-                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 {isSettling
                   ? "Settling..."
@@ -1088,7 +1088,7 @@ function ProposedTransactions(): React.JSX.Element {
               <button
                 onClick={handleSave}
                 disabled={!anyChanges || isSaving}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>

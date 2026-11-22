@@ -27,7 +27,7 @@ export function buildSubTotalCells({
   ) : (
     <span
       key="gainOnDay"
-      className={`tabular-nums ${gainOnDay < 0 ? "text-red-600" : gainOnDay > 0 ? "text-emerald-600" : "text-slate-600"}`}
+      className={`tabular-nums ${gainOnDay < 0 ? "text-red-600" : gainOnDay > 0 ? "text-emerald-700" : "text-slate-600"}`}
     >
       <ResponsiveFormatValue value={gainOnDay} />
     </span>
@@ -72,7 +72,7 @@ export function buildSubTotalCells({
         subTotals[valueIn].weight < 0
           ? "text-red-600"
           : subTotals[valueIn].weight > 0
-            ? "text-emerald-600"
+            ? "text-emerald-700"
             : "text-slate-600"
       }`}
     >

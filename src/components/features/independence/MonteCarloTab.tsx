@@ -111,7 +111,7 @@ export default function MonteCarloTab({
               onChange={(e) => setNeverSellIlliquid(e.target.checked)}
               disabled={isRunning}
               aria-label="Never force-sell illiquid"
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-500 focus:ring-independence-500"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-independence-700 focus:ring-independence-500"
             />
             <span>
               <span className="text-sm font-medium text-gray-800">

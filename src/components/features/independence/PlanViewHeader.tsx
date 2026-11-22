@@ -43,7 +43,7 @@ export default function PlanViewHeader({
       <div className="flex items-center gap-4">
         <Link
           href="/independence"
-          className="text-gray-500 hover:text-independence-600 transition-colors"
+          className="text-gray-500 hover:text-independence-800 transition-colors"
           title="Back to Plans"
         >
           <i className="fas fa-arrow-left"></i>
@@ -66,7 +66,7 @@ export default function PlanViewHeader({
         </button>
         <Link
           href={editPhaseHref(planId, router.asPath)}
-          className="text-independence-600 hover:text-independence-700 text-sm font-medium"
+          className="text-independence-700 hover:text-independence-800 text-sm font-medium"
         >
           <i className="fas fa-edit mr-1"></i>
           Edit

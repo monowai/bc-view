@@ -152,7 +152,7 @@ export default function LifestyleMoodBoard({
               <span className="font-bold">{headline}</span> retirement
             </p>
             {hasExisting && (
-              <p className="mt-1 text-xs text-independence-600">
+              <p className="mt-1 text-xs text-independence-700">
                 Board is {symbol}
                 {Math.abs(delta).toLocaleString()}/mo{" "}
                 {delta >= 0 ? "above" : "below"} your current spend{" "}
@@ -166,12 +166,12 @@ export default function LifestyleMoodBoard({
             <p className="text-2xl font-bold tabular-nums text-independence-800">
               {symbol}
               {boardTotal.toLocaleString()}
-              <span className="text-sm font-normal text-independence-500">
+              <span className="text-sm font-normal text-independence-700">
                 {" "}
                 /mo
               </span>
             </p>
-            <p className="text-xs text-independence-500">
+            <p className="text-xs text-independence-700">
               {symbol}
               {(boardTotal * 12).toLocaleString()} /yr
             </p>
@@ -185,8 +185,8 @@ export default function LifestyleMoodBoard({
               onClick={() => setMode("budget")}
               className={`px-3 py-1.5 text-xs rounded-md font-medium ${
                 mode === "budget"
-                  ? "bg-independence-600 text-white"
-                  : "text-independence-600"
+                  ? "bg-independence-700 text-white"
+                  : "text-independence-700"
               }`}
             >
               Budget → Board
@@ -196,8 +196,8 @@ export default function LifestyleMoodBoard({
               onClick={() => setMode("board")}
               className={`px-3 py-1.5 text-xs rounded-md font-medium ${
                 mode === "board"
-                  ? "bg-independence-600 text-white"
-                  : "text-independence-600"
+                  ? "bg-independence-700 text-white"
+                  : "text-independence-700"
               }`}
             >
               Board → Budget
@@ -216,7 +216,7 @@ export default function LifestyleMoodBoard({
               onChange={(e) => handleBudgetChange(Number(e.target.value))}
               className="w-full"
             />
-            <span className="text-xs tabular-nums text-independence-600 w-20 text-right">
+            <span className="text-xs tabular-nums text-independence-700 w-20 text-right">
               {symbol}
               {budget.toLocaleString()}
             </span>
@@ -308,7 +308,7 @@ export default function LifestyleMoodBoard({
                         {tier.monthlyAmount.toLocaleString()}
                       </span>
                       {tier.reserve && (
-                        <span className="text-amber-500">✦</span>
+                        <span className="text-amber-700">✦</span>
                       )}
                       {nearest && (
                         <span

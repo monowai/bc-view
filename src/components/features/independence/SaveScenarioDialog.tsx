@@ -77,7 +77,7 @@ export default function SaveScenarioDialog({
             name="saveMode"
             checked={saveMode === "update"}
             onChange={() => setSaveMode("update")}
-            className="mt-1 text-independence-500 focus:ring-independence-500"
+            className="mt-1 text-independence-700 focus:ring-independence-500"
           />
           <div>
             <p className="font-medium text-gray-900">
@@ -101,7 +101,7 @@ export default function SaveScenarioDialog({
             name="saveMode"
             checked={saveMode === "new"}
             onChange={() => setSaveMode("new")}
-            className="mt-1 text-independence-500 focus:ring-independence-500"
+            className="mt-1 text-independence-700 focus:ring-independence-500"
           />
           <div>
             <p className="font-medium text-gray-900">Save as New Plan</p>

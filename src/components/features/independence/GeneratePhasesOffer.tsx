@@ -16,7 +16,7 @@ export default function GeneratePhasesOffer({
     <div className="bg-white rounded-lg shadow-md p-6 border border-independence-100">
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 bg-independence-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <i className="fas fa-layer-group text-xl text-independence-600"></i>
+          <i className="fas fa-layer-group text-xl text-independence-700"></i>
         </div>
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
@@ -31,7 +31,7 @@ export default function GeneratePhasesOffer({
           <button
             onClick={onGenerate}
             disabled={isLoading}
-            className="inline-flex items-center bg-independence-600 text-white px-5 py-2 rounded-lg hover:bg-independence-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center bg-independence-700 text-white px-5 py-2 rounded-lg hover:bg-independence-800 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <Spinner label="Generating..." />

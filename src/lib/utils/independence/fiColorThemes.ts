@@ -39,13 +39,13 @@ const FI_PROGRESS_COLORS: Record<
   ProgressColorScheme
 > = {
   FI_ACHIEVED: {
-    bg: "bg-green-500",
-    text: "text-green-600",
+    bg: "bg-green-600",
+    text: "text-green-700",
     bgLight: "bg-green-50",
     border: "border-green-200",
   },
   HIGH: {
-    bg: "bg-blue-500",
+    bg: "bg-blue-600",
     text: "text-blue-600",
     bgLight: "bg-blue-50",
     border: "border-blue-200",
@@ -58,7 +58,7 @@ const FI_PROGRESS_COLORS: Record<
   },
   LOW: {
     bg: "bg-orange-500",
-    text: "text-orange-600",
+    text: "text-orange-700",
     bgLight: "bg-orange-50",
     border: "border-orange-200",
   },
@@ -106,13 +106,13 @@ export function getProgressTextColor(progress: number): string {
 export const GAP_TO_FI_COLORS = {
   /** FI achieved (surplus) - gap is negative */
   SURPLUS: {
-    text: "text-green-600",
+    text: "text-green-700",
     bg: "bg-green-50",
-    icon: "fa-check-circle text-green-500",
+    icon: "fa-check-circle text-green-700",
   },
   /** Gap remaining - gap is positive */
   GAP: {
-    text: "text-orange-600",
+    text: "text-orange-700",
     bg: "bg-gray-50",
     icon: "fa-arrow-up text-orange-400",
   },
@@ -134,7 +134,7 @@ export function getGapColorScheme(
  */
 const SAVINGS_RATE_COLORS = {
   /** Excellent savings rate - 50% or more */
-  EXCELLENT: { threshold: 50, text: "text-green-600" },
+  EXCELLENT: { threshold: 50, text: "text-green-700" },
   /** Good savings rate - 20% or more */
   GOOD: { threshold: 20, text: "text-blue-600" },
   /** Low savings rate - below 20% */

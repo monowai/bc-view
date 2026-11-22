@@ -27,6 +27,7 @@
   --color-independence-500: #f97316;
   --color-independence-600: #ea580c;
   --color-independence-700: #c2410c;
+  --color-independence-800: #9a3412;
 
   --color-invest-50: #ecfdf5;
   --color-invest-100: #d1fae5;
@@ -36,7 +37,7 @@
   --color-invest-700: #047857;
 
   /* Semantic gain/loss colors */
-  --color-gain: #059669;
+  --color-gain: #047857; /* emerald-700: 5.5:1 on white, 5.0:1 on gray-100 */
   --color-gain-bg: #ecfdf5;
   --color-loss: #dc2626;
   --color-loss-bg: #fef2f2;

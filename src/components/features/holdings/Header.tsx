@@ -242,7 +242,7 @@ const ColumnHeader = forwardRef<HTMLTableSectionElement, ColumnHeaderProps>(
                     header.costRelated &&
                     isCostApproximate && (
                       <span
-                        className="ml-1 text-amber-500 text-xs"
+                        className="ml-1 text-amber-700 text-xs"
                         title={
                           "Values shown in display currency - Cost/Gains are approximate"
                         }

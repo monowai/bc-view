@@ -532,7 +532,7 @@ function PlanDetailPage(): React.ReactElement {
             </span>
             <button
               onClick={() => setActionError(null)}
-              className="ml-4 text-red-500 hover:text-red-700"
+              className="ml-4 text-red-600 hover:text-red-700"
             >
               <i className="fas fa-times"></i>
             </button>
@@ -665,7 +665,7 @@ function PlanDetailPage(): React.ReactElement {
                         className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                       >
                         <i
-                          className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                          className={`fas ${copied ? "fa-check text-green-700" : "fa-clipboard"} mr-1.5`}
                         ></i>
                         {copied ? "Copied!" : "Copy"}
                       </button>
@@ -749,7 +749,7 @@ function PlanDetailPage(): React.ReactElement {
                       className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                     >
                       <i
-                        className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                        className={`fas ${copied ? "fa-check text-green-700" : "fa-clipboard"} mr-1.5`}
                       ></i>
                       {copied ? "Copied!" : "Copy"}
                     </button>
@@ -764,7 +764,7 @@ function PlanDetailPage(): React.ReactElement {
                 )}
               </div>
               {plan.assets.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-600">
                   {"No assets in this plan"}
                 </div>
               ) : (
@@ -817,7 +817,7 @@ function PlanDetailPage(): React.ReactElement {
                                       weight: Number(asset.weight) * 100,
                                     })
                                   }
-                                  className="p-0.5 text-gray-500 hover:text-blue-500 transition-colors"
+                                  className="p-0.5 text-gray-500 hover:text-blue-700 transition-colors"
                                   title={"AI asset insight"}
                                 >
                                   <i className="fas fa-robot text-xs"></i>

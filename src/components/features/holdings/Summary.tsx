@@ -133,7 +133,7 @@ function AsAtDateForm({
 
 /** Gain-or-loss colour for a signed value. */
 function signColorClass(value: number): string {
-  if (value > 0) return "text-emerald-600"
+  if (value > 0) return "text-emerald-700"
   if (value < 0) return "text-red-600"
   return "text-slate-700"
 }
@@ -179,7 +179,7 @@ export function SummaryHeaderMobile({
               {!isAggregated && (
                 <Link
                   href={`/portfolios/${portfolio.id}`}
-                  className="far fa-edit text-slate-400 hover:text-blue-500 ml-1.5 transition-colors"
+                  className="far fa-edit text-slate-400 hover:text-blue-700 ml-1.5 transition-colors"
                 />
               )}
             </h3>
@@ -195,7 +195,7 @@ export function SummaryHeaderMobile({
                       query: { ...router.query, action: "trade" },
                     })
                   }
-                  className="inline-flex items-center justify-center w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors duration-200"
+                  className="inline-flex items-center justify-center w-8 h-8 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors duration-200"
                   title={"Trade"}
                 >
                   <i className="fas fa-exchange-alt text-sm"></i>
@@ -216,7 +216,7 @@ export function SummaryHeaderMobile({
               {!isAggregated && (
                 <Link
                   href={`/portfolios/${portfolio.id}`}
-                  className="far fa-edit text-slate-400 hover:text-blue-500 ml-2 transition-colors"
+                  className="far fa-edit text-slate-400 hover:text-blue-700 ml-2 transition-colors"
                 />
               )}
             </h3>
@@ -346,7 +346,7 @@ export default function SummaryHeader({
           {!isAggregated && (
             <Link
               href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-slate-400 hover:text-blue-500 ml-2 transition-colors"
+              className="far fa-edit text-slate-400 hover:text-blue-700 ml-2 transition-colors"
             />
           )}
         </th>

@@ -32,8 +32,8 @@ const PROVIDER_CONFIG: Record<
 const getRateColor = (rate: number): string => {
   if (rate === 1) return "text-gray-500"
   if (rate > 1.5) return "text-rose-600"
-  if (rate > 1.2) return "text-orange-500"
-  if (rate > 1) return "text-amber-500"
+  if (rate > 1.2) return "text-orange-700"
+  if (rate > 1) return "text-amber-700"
   if (rate > 0.8) return "text-sky-500"
   if (rate > 0.5) return "text-blue-600"
   return "text-indigo-600"
@@ -193,7 +193,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
           {compareMode && (
             <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span className="w-3 h-3 rounded-full bg-blue-600"></span>
                 <span className="text-slate-600">
                   {PROVIDER_CONFIG[provider1]?.name || provider1}
                   {rateDate1 && (
@@ -331,7 +331,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                             </div>
                             <div className="space-y-1">
                               <div className="flex justify-between items-center">
-                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                                 <ClickableRate
                                   from={selectedFrom}
                                   to={toCcy.code}
@@ -364,7 +364,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                               </div>
                               <div className="space-y-1">
                                 <div className="flex justify-between items-center">
-                                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                                   <button
                                     onClick={() =>
                                       setChartPair({
@@ -401,7 +401,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                             </div>
                             {diffData && Math.abs(diffData.percent) > 0.001 && (
                               <div
-                                className={`text-xs text-right ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-600"}`}
+                                className={`text-xs text-right ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-700"}`}
                               >
                                 {diffData.diff > 0 ? "+" : ""}
                                 {diffData.percent.toFixed(3)}%
@@ -548,7 +548,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                                 {diffData &&
                                   Math.abs(diffData.percent) > 0.001 && (
                                     <div
-                                      className={`text-micro font-medium ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-600"}`}
+                                      className={`text-micro font-medium ${diffData.diff > 0 ? "text-blue-600" : "text-emerald-700"}`}
                                     >
                                       {diffData.diff > 0 ? "+" : ""}
                                       {diffData.percent.toFixed(3)}%

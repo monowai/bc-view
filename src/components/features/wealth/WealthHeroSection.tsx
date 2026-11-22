@@ -161,7 +161,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
             className={SHORTCUT_CLS}
             title="Independence"
           >
-            <i className="fas fa-umbrella-beach text-sm text-independence-500"></i>
+            <i className="fas fa-umbrella-beach text-sm text-independence-700"></i>
             <span className="hidden sm:inline">Independence</span>
           </Link>
           {portfolios.length > 0 && (

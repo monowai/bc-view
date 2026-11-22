@@ -195,7 +195,7 @@ export default function ConversationList({
             aria-label="Hide conversations"
             aria-expanded={true}
             title="Hide conversations"
-            className="shrink-0 w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+            className="shrink-0 w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-700 hover:bg-gray-100 transition-colors"
           >
             <i className="fas fa-angle-double-left"></i>
           </button>
@@ -302,7 +302,7 @@ export default function ConversationList({
                   onClick={() => startRename(c.id)}
                   aria-label={`Rename "${title}"`}
                   title="Rename conversation"
-                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-blue-600 transition-colors"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-blue-700 transition-colors"
                 >
                   <i className="fas fa-pen"></i>
                 </button>
@@ -311,7 +311,7 @@ export default function ConversationList({
                   onClick={() => startDelete(c.id)}
                   aria-label={`Delete "${title}"`}
                   title="Delete conversation"
-                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-600 transition-colors"
+                  className="shrink-0 px-2 py-2 text-xs text-gray-300 hover:text-red-700 transition-colors"
                 >
                   <i className="fas fa-trash-alt"></i>
                 </button>
@@ -350,7 +350,7 @@ export function ConversationRail({
         aria-label="Show conversations"
         aria-expanded={false}
         title="Show conversations"
-        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-700 hover:bg-gray-100 transition-colors"
       >
         <i className="fas fa-angle-double-right"></i>
       </button>
@@ -359,7 +359,7 @@ export function ConversationRail({
         onClick={onNewChat}
         aria-label="New chat"
         title="New chat"
-        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+        className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:text-blue-700 hover:bg-gray-100 transition-colors"
       >
         <i className="fas fa-plus"></i>
       </button>

@@ -637,7 +637,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
                       </td>
                       <td
                         className={`py-3 text-right font-medium ${
-                          cell.irr >= 0 ? "text-green-600" : "text-red-600"
+                          cell.irr >= 0 ? "text-green-700" : "text-red-600"
                         }`}
                       >
                         {cell.irr >= 0 ? "+" : ""}

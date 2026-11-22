@@ -1434,7 +1434,7 @@ describe("PriceChartPopup", () => {
 
       const distance = screen.getByTestId("target-distance")
       expect(distance).toHaveClass("text-gray-500")
-      expect(distance).not.toHaveClass("text-emerald-600")
+      expect(distance).not.toHaveClass("text-emerald-700")
       expect(distance).not.toHaveClass("text-red-600")
     })
 

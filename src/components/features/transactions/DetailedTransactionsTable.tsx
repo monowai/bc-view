@@ -53,7 +53,7 @@ export default function DetailedTransactionsTable({
                   if (el) el.indeterminate = someProposedSelected
                 }}
                 onChange={onSelectAll}
-                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                className="rounded border-gray-300 text-green-700 focus:ring-green-500"
                 title="Select all PROPOSED transactions"
               />
             </th>
@@ -106,7 +106,7 @@ export default function DetailedTransactionsTable({
                   disabled={
                     trn.status !== "PROPOSED" && trn.status !== "SETTLED"
                   }
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                  className="rounded border-gray-300 text-green-700 focus:ring-green-500 disabled:opacity-50"
                   title={
                     trn.status === "PROPOSED"
                       ? "Select for bulk settle"
@@ -159,7 +159,7 @@ export default function DetailedTransactionsTable({
                     <button
                       type="button"
                       onClick={() => onShowChart(trn)}
-                      className="text-gray-500 hover:text-blue-600"
+                      className="text-gray-500 hover:text-blue-700"
                       title="Price chart vs limit"
                       aria-label={`Price chart for ${trn.asset.displayCode}`}
                     >
@@ -224,14 +224,14 @@ export default function DetailedTransactionsTable({
               <td className="px-2 py-1.5 whitespace-nowrap text-center">
                 <button
                   onClick={() => onEdit(trn.portfolio.id, trn.id)}
-                  className="text-blue-500 hover:text-blue-700 p-1 mr-1"
+                  className="text-blue-600 hover:text-blue-700 p-1 mr-1"
                   title="Edit transaction"
                 >
                   <i className="fas fa-edit"></i>
                 </button>
                 <button
                   onClick={() => onDelete(trn.id)}
-                  className="text-red-500 hover:text-red-700 p-1"
+                  className="text-red-600 hover:text-red-700 p-1"
                   title="Delete transaction"
                 >
                   <i className="fas fa-trash-alt"></i>

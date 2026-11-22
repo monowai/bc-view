@@ -23,7 +23,7 @@ const NAME_DIALOG_COPY: Record<
 
 /** Understated link-style action, used while there is only one plan. */
 const QUIET_LINK_CLASS =
-  "text-sm font-medium text-independence-600 hover:text-independence-700 focus:outline-none focus:ring-1 focus:ring-independence-500 rounded"
+  "text-sm font-medium text-independence-700 hover:text-independence-800 focus:outline-none focus:ring-1 focus:ring-independence-500 rounded"
 
 const ACTION_BUTTON_CLASS =
   "inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-1 focus:ring-independence-500 disabled:opacity-50 motion-reduce:transition-none dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"

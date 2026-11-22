@@ -420,7 +420,7 @@ export default function Rows({
                     moneyValues[valueIn].priceData.changePercent < 0
                       ? "text-red-600"
                       : moneyValues[valueIn].priceData.changePercent > 0
-                        ? "text-emerald-600"
+                        ? "text-emerald-700"
                         : "text-slate-600"
                   }`}
                 >
@@ -553,7 +553,7 @@ export default function Rows({
                     moneyValues[valueIn].irr < 0
                       ? "text-red-600"
                       : moneyValues[valueIn].irr > 0
-                        ? "text-emerald-600"
+                        ? "text-emerald-700"
                         : "text-slate-600"
                   }`}
                 >
@@ -605,7 +605,7 @@ export default function Rows({
                   moneyValues[valueIn].weight < 0
                     ? "text-red-600"
                     : moneyValues[valueIn].weight > 0
-                      ? "text-emerald-600"
+                      ? "text-emerald-700"
                       : "text-slate-600"
                 } ${onWeightClick && !asset.cashLike ? "cursor-pointer hover:underline decoration-dotted underline-offset-2" : ""}`}
                 onClick={

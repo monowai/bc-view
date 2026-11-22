@@ -62,7 +62,7 @@ export default function ScenarioCard({
               <span className="inline-flex items-center whitespace-nowrap rounded-full bg-independence-100 px-2 py-0.5 text-xs font-medium text-independence-700">
                 <i
                   aria-hidden="true"
-                  className="fas fa-link mr-1 text-[10px] text-independence-500"
+                  className="fas fa-link mr-1 text-[10px] text-independence-700"
                 ></i>
                 {usedByPlan === "named"
                   ? "Used by this plan"
@@ -99,7 +99,7 @@ export default function ScenarioCard({
           {!scenario.isCurrent && (
             <button
               onClick={() => onSetCurrent(scenario.id)}
-              className="text-gray-500 hover:text-independence-600 p-1.5"
+              className="text-gray-500 hover:text-independence-800 p-1.5"
               title="Set as current scenario"
             >
               <i className="fas fa-check-circle text-xs"></i>
@@ -112,7 +112,7 @@ export default function ScenarioCard({
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Income</span>
           <span
-            className={`font-medium ${hideValues ? "text-gray-500" : "text-green-600"}`}
+            className={`font-medium ${hideValues ? "text-gray-500" : "text-green-700"}`}
           >
             {formatMoney(scenario.workingIncomeMonthly)}
           </span>
@@ -133,7 +133,7 @@ export default function ScenarioCard({
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Bonus (monthly avg)</span>
             <span
-              className={`font-medium ${hideValues ? "text-gray-500" : "text-green-600"}`}
+              className={`font-medium ${hideValues ? "text-gray-500" : "text-green-700"}`}
             >
               {formatMoney(scenario.bonusMonthly)}
             </span>
@@ -150,7 +150,7 @@ export default function ScenarioCard({
       <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 border border-independence-100">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">
-            <i className="fas fa-piggy-bank text-independence-500 mr-1"></i>
+            <i className="fas fa-piggy-bank text-independence-700 mr-1"></i>
             Net Contribution
           </span>
           <span
@@ -158,7 +158,7 @@ export default function ScenarioCard({
               hideValues
                 ? "text-gray-500"
                 : netContribution >= 0
-                  ? "text-independence-600"
+                  ? "text-independence-700"
                   : "text-red-600"
             }`}
           >

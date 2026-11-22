@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from "react"
+import React, { useId, useRef } from "react"
 import { useFxHistory } from "@hooks/useFxHistory"
 import FxConverter from "@components/features/fx/FxConverter"
 import {
@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import { useModalFocus } from "@hooks/useModalFocus"
+import { CHART_PALETTE, GRAY } from "@lib/chartPalette"
 
 // Time range options for chart
 const TIME_RANGES = [
@@ -45,16 +46,8 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
 
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
-  useModalFocus(panelRef)
-
   // Escape closes, as it does on every other modal.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [onClose])
+  useModalFocus(panelRef, onClose)
 
   const from = isInverted ? initialTo : initialFrom
   const to = isInverted ? initialFrom : initialTo
@@ -155,7 +148,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           {stats && (
             <div className="flex items-center gap-4 text-sm">
               <span
-                className={`font-medium ${stats.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                className={`font-medium ${stats.change >= 0 ? "text-green-700" : "text-red-600"}`}
               >
                 {stats.change >= 0 ? "+" : ""}
                 {stats.changePercent.toFixed(2)}%
@@ -173,7 +166,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
           )}
 
           {error && (
-            <div className="h-64 flex items-center justify-center text-red-500">
+            <div className="h-64 flex items-center justify-center text-red-600">
               Failed to load rate history
             </div>
           )}
@@ -189,10 +182,13 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={CHART_PALETTE.grid}
+                    />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 11, fill: CHART_PALETTE.text }}
                       tickFormatter={(date: string) => {
                         const d = new Date(date)
                         return `${d.getDate()}/${d.getMonth() + 1}`
@@ -201,13 +197,13 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     />
                     <YAxis
                       domain={["auto", "auto"]}
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 11, fill: CHART_PALETTE.text }}
                       tickFormatter={(value: number) => value.toFixed(3)}
                       width={60}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#1e293b",
+                        backgroundColor: GRAY[800],
                         border: "none",
                         borderRadius: "8px",
                         color: "#fff",
@@ -224,10 +220,10 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     <Line
                       type="monotone"
                       dataKey="rate"
-                      stroke="#3b82f6"
+                      stroke={CHART_PALETTE.wealth}
                       strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 6, fill: "#3b82f6" }}
+                      activeDot={{ r: 6, fill: CHART_PALETTE.wealth }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -248,7 +244,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                     <div className="text-xs text-slate-500 uppercase tracking-wide">
                       High
                     </div>
-                    <div className="text-lg font-bold text-green-600 font-mono">
+                    <div className="text-lg font-bold text-green-700 font-mono">
                       {stats.max.toFixed(4)}
                     </div>
                   </div>
@@ -265,7 +261,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                       Change
                     </div>
                     <div
-                      className={`text-lg font-bold font-mono ${stats.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                      className={`text-lg font-bold font-mono ${stats.change >= 0 ? "text-green-700" : "text-red-600"}`}
                     >
                       {stats.change >= 0 ? "+" : ""}
                       {stats.change.toFixed(4)}

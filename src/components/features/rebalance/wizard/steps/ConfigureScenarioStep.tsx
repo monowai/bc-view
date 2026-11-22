@@ -57,7 +57,7 @@ const ConfigureScenarioStep: React.FC<ConfigureScenarioStepProps> = ({
         </div>
         {cashDelta !== 0 && (
           <p
-            className={`text-sm ${cashDelta > 0 ? "text-green-600" : "text-red-600"}`}
+            className={`text-sm ${cashDelta > 0 ? "text-green-700" : "text-red-600"}`}
           >
             {cashDelta > 0
               ? `Adding ${cashDelta} to deploy`

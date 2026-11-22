@@ -103,7 +103,7 @@ export default function PlanningStep({
       {(deletePlans || deleteModels) && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
-            <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
+            <i className="fas fa-exclamation-circle text-red-600 mr-3 mt-1"></i>
             <div>
               <p className="text-red-700 font-medium">
                 {"This action is irreversible"}

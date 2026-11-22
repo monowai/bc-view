@@ -68,7 +68,7 @@ export default function AssetInsightPopup({
     <AnalysisDialog
       title={
         <span className="flex items-center">
-          <i className="fas fa-robot text-blue-500 mr-2"></i>
+          <i className="fas fa-robot text-blue-600 mr-2"></i>
           {displayCode}
           {asset.assetName && (
             <span className="text-sm font-normal text-gray-500 ml-2">

@@ -169,7 +169,7 @@ export default function AssetsBreakdown({
                           type="checkbox"
                           checked={isSpendable}
                           onChange={() => onToggleCategory(slice.key)}
-                          className="w-4 h-4 text-independence-600 rounded focus:ring-independence-500"
+                          className="w-4 h-4 text-independence-700 rounded focus:ring-independence-500"
                         />
                         <div
                           className="w-3 h-3 rounded-full"
@@ -269,7 +269,7 @@ export default function AssetsBreakdown({
                         />
                         <span className="text-gray-700">{slice.label}</span>
                         <span
-                          className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded"
+                          className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded"
                           title={
                             isIncomeStream
                               ? "Balance pays out as a scheduled income stream (CPF LIFE annuity, policy maturity) — already counted in the Income column."
@@ -314,7 +314,7 @@ export default function AssetsBreakdown({
                         </div>
                         {proj.monthlyPayout != null &&
                           proj.monthlyPayout > 0 && (
-                            <div className="text-xs text-green-600 mt-0.5">
+                            <div className="text-xs text-green-700 mt-0.5">
                               {hideValues
                                 ? HIDDEN_VALUE
                                 : `${effectiveCurrency}${Math.round(proj.monthlyPayout * effectiveFxRate).toLocaleString()}/month`}
@@ -367,7 +367,7 @@ export default function AssetsBreakdown({
                 {"Spendable (Liquid) Assets"}
               </span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-500" : "text-independence-600"}`}
+                className={`font-medium ${hideValues ? "text-gray-500" : "text-independence-700"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE

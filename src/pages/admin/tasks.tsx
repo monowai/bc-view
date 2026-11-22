@@ -260,7 +260,7 @@ export default withPageAuthRequired(
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0 w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                           <i
-                            className={`fas ${task.icon} text-blue-500 text-lg`}
+                            className={`fas ${task.icon} text-blue-600 text-lg`}
                           ></i>
                         </div>
                         <div className="flex-1">
@@ -277,8 +277,8 @@ export default withPageAuthRequired(
                         disabled={isRunning}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           isRunning
-                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                            : "bg-blue-500 text-white hover:bg-blue-600"
+                            ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
                         }`}
                       >
                         {isRunning ? (
@@ -358,8 +358,8 @@ export default withPageAuthRequired(
                           <i
                             className={`fas ${
                               result.success
-                                ? "fa-check-circle text-green-500"
-                                : "fa-exclamation-circle text-red-500"
+                                ? "fa-check-circle text-green-700"
+                                : "fa-exclamation-circle text-red-600"
                             } mr-2`}
                           ></i>
                           <span

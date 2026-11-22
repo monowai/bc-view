@@ -52,7 +52,7 @@ function EditPlanWizard(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="text-center py-12">
-            <Spinner size="3xl" className="text-independence-600" />
+            <Spinner size="3xl" className="text-independence-700" />
             <p className="mt-4 text-gray-500">Loading plan...</p>
           </div>
         </div>
@@ -179,7 +179,7 @@ function EditPlanWizard(): React.ReactElement {
           <div className="mb-8">
             <Link
               href={returnTo}
-              className="inline-flex items-center text-sm font-medium text-independence-600 transition-colors duration-150 hover:text-independence-700 motion-reduce:transition-none"
+              className="inline-flex items-center text-sm font-medium text-independence-700 transition-colors duration-150 hover:text-independence-800 motion-reduce:transition-none"
             >
               <i aria-hidden="true" className="fas fa-arrow-left mr-2" />
               {returnToLabel(returnTo)}

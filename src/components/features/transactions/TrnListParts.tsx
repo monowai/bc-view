@@ -138,7 +138,7 @@ export function TrnStatusBadge({
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-500">
         <span aria-hidden="true">
-          <i className="fas fa-check text-xs text-green-600"></i>
+          <i className="fas fa-check text-xs text-green-700"></i>
         </span>
         {"Settled"}
       </span>
@@ -208,7 +208,7 @@ export function TrnRowActions({
           e.stopPropagation()
           onEdit()
         }}
-        className="text-gray-500 hover:text-blue-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
+        className="text-gray-500 hover:text-blue-700 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
         title={"Edit"}
         aria-label={"Edit"}
       >
@@ -230,7 +230,7 @@ export function TrnRowActions({
             e.stopPropagation()
             onDelete()
           }}
-          className="text-gray-500 hover:text-red-600 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
+          className="text-gray-500 hover:text-red-700 p-1 rounded focus-visible:outline-2 focus-visible:outline-blue-500"
           title={"Delete"}
           aria-label={"Delete"}
         >

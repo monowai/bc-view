@@ -561,7 +561,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => removeRow(idx)}
-                    className="text-xs text-gray-500 hover:text-red-600"
+                    className="text-xs text-gray-500 hover:text-red-700"
                   >
                     {"Remove"}
                   </button>

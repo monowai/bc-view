@@ -128,7 +128,7 @@ export default function GrandTotal({
             if (item.value < 0) {
               colorClass = "text-red-600"
             } else if (item.value > 0) {
-              colorClass = "text-emerald-600"
+              colorClass = "text-emerald-700"
             }
           }
 

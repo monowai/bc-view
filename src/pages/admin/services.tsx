@@ -29,9 +29,9 @@ function getStatusColor(status: string): string {
 function getStatusIcon(status: string): string {
   switch (status?.toUpperCase()) {
     case "UP":
-      return "fa-check-circle text-green-500"
+      return "fa-check-circle text-green-700"
     case "DOWN":
-      return "fa-times-circle text-red-500"
+      return "fa-times-circle text-red-600"
     case "UNREACHABLE":
       return "fa-question-circle text-gray-500"
     default:
@@ -186,7 +186,7 @@ export function ServiceCard({
                         ></i>
                         <span className="text-gray-600">{name}:</span>
                         <span
-                          className={`ml-2 ${comp.status === "UP" ? "text-green-600" : "text-red-600"}`}
+                          className={`ml-2 ${comp.status === "UP" ? "text-green-700" : "text-red-600"}`}
                         >
                           {comp.status}
                         </span>
@@ -262,7 +262,7 @@ export default withPageAuthRequired(
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${allUp ? "bg-green-100" : "bg-yellow-100"}`}
               >
                 <i
-                  className={`fas ${allUp ? "fa-check-circle text-green-500" : "fa-exclamation-circle text-yellow-500"}`}
+                  className={`fas ${allUp ? "fa-check-circle text-green-700" : "fa-exclamation-circle text-yellow-500"}`}
                 ></i>
                 <span className={allUp ? "text-green-700" : "text-yellow-700"}>
                   {allUp
@@ -274,7 +274,7 @@ export default withPageAuthRequired(
             <button
               onClick={() => mutate()}
               disabled={loadingServices}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors flex items-center space-x-2"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center space-x-2"
             >
               <i
                 className={`fas fa-sync-alt ${loadingServices ? "fa-spin" : ""}`}
@@ -287,7 +287,7 @@ export default withPageAuthRequired(
         {/* Error state */}
         {error && (
           <Alert variant="error" className="mb-6">
-            <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+            <i className="fas fa-exclamation-triangle text-red-600 mr-2"></i>
             <span className="text-red-700">
               {"Failed to fetch service status"}
             </span>

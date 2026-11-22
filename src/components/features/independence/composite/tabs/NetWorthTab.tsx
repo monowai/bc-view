@@ -398,7 +398,7 @@ export default function NetWorthTab(): React.ReactElement {
     <div>
       {/* Per-plan scope notice */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-        <i className="fas fa-wallet text-blue-500 mt-0.5 shrink-0"></i>
+        <i className="fas fa-wallet text-blue-600 mt-0.5 shrink-0"></i>
         <div>
           <p className="text-sm font-medium text-blue-800">
             Wealth for {activePlan?.name ?? "this plan"}

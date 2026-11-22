@@ -250,7 +250,7 @@ export default function FiMetrics({
             <StrategyHeader
               title="FIRE Strategy"
               tooltip="Financial Independence, Retire Early. Measures how far your liquid (spendable) investments carry you using the 4% safe withdrawal rate (25× expenses)."
-              iconClass="fas fa-fire text-orange-500"
+              iconClass="fas fa-fire text-orange-700"
               active={fireActive}
             />
 
@@ -258,7 +258,7 @@ export default function FiMetrics({
             <div className="px-3 py-2 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100 flex items-center justify-between gap-3 flex-wrap">
               <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
                 <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <i className="fas fa-bullseye text-independence-500"></i>
+                  <i className="fas fa-bullseye text-independence-700"></i>
                   FI Number (25×)
                 </span>
               </InfoTooltip>
@@ -275,7 +275,7 @@ export default function FiMetrics({
                   </>
                 )}
               </span>
-              <span className="text-xl font-bold text-independence-600">
+              <span className="text-xl font-bold text-independence-700">
                 <PrivateCurrency
                   value={fiNumber}
                   currency={currency}
@@ -340,7 +340,7 @@ export default function FiMetrics({
                   </span>
                   <InfoTooltip text="Financial Independence including the present value of your guaranteed income (Social Security / CPF LIFE). Above 100% is surplus.">
                     <span
-                      className={`font-semibold ${fiStack.achieved ? "text-green-600" : "text-gray-700"}`}
+                      className={`font-semibold ${fiStack.achieved ? "text-green-700" : "text-gray-700"}`}
                     >
                       {fiStack.achieved ? "✓ " : ""}
                       <PrivatePercentage
@@ -391,7 +391,7 @@ export default function FiMetrics({
                 <div className="flex justify-between items-center">
                   <InfoTooltip text="Estimated years until you reach your FI Number using nominal returns. The 'real' value uses inflation-adjusted returns (matches online FIRE calculators).">
                     <span className="text-gray-600 flex items-center gap-2">
-                      <i className="fas fa-calendar-alt text-blue-500"></i>
+                      <i className="fas fa-calendar-alt text-blue-600"></i>
                       Years to FI
                       {currentAge && (
                         <span className="text-xs text-gray-500">
@@ -491,7 +491,7 @@ export default function FiMetrics({
                   <i className="fas fa-exclamation-triangle"></i>
                   <span className="font-medium">Low Real Return Warning</span>
                 </div>
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-amber-700 mt-1">
                   Your real return (after inflation) is below the 4% safe
                   withdrawal rate. This means traditional FIRE calculations may
                   be optimistic. Consider increasing returns, reducing expenses,
@@ -507,7 +507,7 @@ export default function FiMetrics({
                   <i className="fas fa-check-circle"></i>
                   <span className="font-medium">Financially Independent!</span>
                 </div>
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-green-700 mt-1">
                   Your liquid assets exceed your FI Number. You could sustain
                   your lifestyle indefinitely using the 4% rule.
                 </p>
@@ -519,7 +519,7 @@ export default function FiMetrics({
               <div className="flex justify-between items-center py-2 border-t border-gray-100">
                 <InfoTooltip text="The percentage of your working income that goes towards savings/investments. Higher savings rates lead to faster FI.">
                   <span className="text-gray-600 flex items-center gap-2">
-                    <i className="fas fa-piggy-bank text-green-500"></i>
+                    <i className="fas fa-piggy-bank text-green-700"></i>
                     Savings Rate
                   </span>
                 </InfoTooltip>
@@ -757,7 +757,7 @@ function deriveFundedBanner(bridgeProgress?: number): FundedBanner {
         "and your pension income covers the rest.",
       containerClass: "bg-green-50 border-green-200",
       titleClass: "text-green-700",
-      bodyClass: "text-green-600",
+      bodyClass: "text-green-700",
     }
   }
   if (bridgeProgress != null && bridgeProgress >= 60) {
@@ -769,7 +769,7 @@ function deriveFundedBanner(bridgeProgress?: number): FundedBanner {
         "Reduce monthly spending OR retire later to close the gap.",
       containerClass: "bg-amber-50 border-amber-200",
       titleClass: "text-amber-700",
-      bodyClass: "text-amber-600",
+      bodyClass: "text-amber-700",
     }
   }
   return {
@@ -780,7 +780,7 @@ function deriveFundedBanner(bridgeProgress?: number): FundedBanner {
       "or grow liquid assets.",
     containerClass: "bg-orange-50 border-orange-200",
     titleClass: "text-orange-700",
-    bodyClass: "text-orange-600",
+    bodyClass: "text-orange-700",
   }
 }
 
@@ -810,7 +810,7 @@ function BridgeStrategySection({
       <StrategyHeader
         title="Self-funded Years"
         tooltip="When your guaranteed income (Social Security / CPF LIFE) starts after you stop working, your liquid pot must bridge the gap. Measures how many years of expenses it can self-fund until that income kicks in."
-        iconClass="fas fa-bridge text-blue-500"
+        iconClass="fas fa-bridge text-blue-600"
         active={active}
       />
 

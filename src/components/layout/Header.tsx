@@ -21,7 +21,7 @@ export default function Header(): React.ReactElement {
           <span className="hidden xl:inline">Desktop</span>
         </div>
       )}
-      <nav className="flex items-center justify-between px-2 py-2 sm:px-3 bg-gray-800 text-white">
+      <nav className="flex items-center justify-between gap-3 px-2 py-2 sm:px-3 bg-gray-800 text-white">
         <HeaderBrand />
         <HeaderAssetSearch />
         <div className="flex items-center gap-2">

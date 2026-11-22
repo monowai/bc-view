@@ -21,7 +21,7 @@ export default function SetDateOfBirthNotice({
       role="status"
     >
       <div className="flex items-start gap-3">
-        <i className="fas fa-cake-candles text-amber-500 mt-0.5"></i>
+        <i className="fas fa-cake-candles text-amber-700 mt-0.5"></i>
         <div className="flex-1">
           <p className="font-medium text-amber-800">
             Add your date of birth to project

@@ -24,7 +24,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`${textSize} font-medium ${!isSettled ? "text-amber-600" : "text-gray-500"}`}
+        className={`${textSize} font-medium ${!isSettled ? "text-amber-700" : "text-gray-500"}`}
       >
         {"Proposed"}
       </span>
@@ -38,7 +38,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
           relative inline-flex ${toggleSize} items-center rounded-full transition-colors
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
           ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-          ${isSettled ? "bg-green-500" : "bg-amber-400"}
+          ${isSettled ? "bg-green-600" : "bg-amber-400"}
         `}
       >
         <span
@@ -49,7 +49,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
         />
       </button>
       <span
-        className={`${textSize} font-medium ${isSettled ? "text-green-600" : "text-gray-500"}`}
+        className={`${textSize} font-medium ${isSettled ? "text-green-700" : "text-gray-500"}`}
       >
         {"Settled"}
       </span>

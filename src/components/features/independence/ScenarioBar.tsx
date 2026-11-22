@@ -174,7 +174,7 @@ export default function ScenarioBar({
             <i
               className={`fas fa-chevron-${collapsed ? "right" : "down"} text-gray-400 w-3`}
             ></i>
-            <i className="fas fa-sliders-h text-orange-500"></i>
+            <i className="fas fa-sliders-h text-orange-700"></i>
             Assumptions
           </button>
           <InfoTooltip text="Drag the sliders to model what-if questions. Every change flows into the Path projection and Stress Test simulation in real time.">
@@ -200,7 +200,7 @@ export default function ScenarioBar({
               <button
                 type="button"
                 onClick={onSave}
-                className="text-sm bg-independence-600 hover:bg-independence-700 text-white px-3 py-1.5 rounded-md font-medium shrink-0"
+                className="text-sm bg-independence-700 hover:bg-independence-800 text-white px-3 py-1.5 rounded-md font-medium shrink-0"
               >
                 Save Scenario
               </button>
@@ -337,8 +337,8 @@ export default function ScenarioBar({
                 <span
                   className={
                     shiftedReal >= 0
-                      ? "text-green-600 ml-1"
-                      : "text-red-500 ml-1"
+                      ? "text-green-700 ml-1"
+                      : "text-red-600 ml-1"
                   }
                 >
                   {shiftedReal >= 0

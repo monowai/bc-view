@@ -279,7 +279,7 @@ export default function ScenarioContributions({
                       ? "Set year of birth on your plan to view projection"
                       : "Year-by-year balance projection until payout"
                 }
-                className="text-xs text-independence-600 hover:text-independence-800 disabled:text-gray-300 disabled:cursor-not-allowed underline"
+                className="text-xs text-independence-700 hover:text-independence-800 disabled:text-gray-300 disabled:cursor-not-allowed underline"
               >
                 Projection
               </button>

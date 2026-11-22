@@ -200,13 +200,13 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       blue: {
         bg: isSelected ? "bg-blue-50" : "bg-white",
         border: isSelected ? "border-blue-500" : "border-gray-200",
-        text: "text-blue-500",
+        text: "text-blue-600",
         hover: "hover:border-blue-300",
       },
       green: {
         bg: isSelected ? "bg-green-50" : "bg-white",
         border: isSelected ? "border-green-500" : "border-gray-200",
-        text: "text-green-500",
+        text: "text-green-700",
         hover: "hover:border-green-300",
       },
       purple: {
@@ -227,8 +227,8 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
 
   const getIconColor = (color: string): string => {
     const colors: Record<string, string> = {
-      blue: "text-blue-500",
-      green: "text-green-500",
+      blue: "text-blue-600",
+      green: "text-green-700",
       purple: "text-purple-500",
       teal: "text-teal-500",
     }
@@ -252,7 +252,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 className="flex items-center justify-between bg-white rounded p-2 border border-gray-200"
               >
                 <div className="flex items-center">
-                  <i className="fas fa-university text-blue-500 w-6"></i>
+                  <i className="fas fa-university text-blue-600 w-6"></i>
                   <span className="font-medium">{account.name}</span>
                   <span className="text-gray-500 ml-2">
                     ({account.currency})
@@ -266,7 +266,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <button
                   type="button"
                   onClick={() => removeBankAccount(index)}
-                  className="text-red-500 hover:text-red-700 px-2"
+                  className="text-red-600 hover:text-red-700 px-2"
                 >
                   <i className="fas fa-times"></i>
                 </button>
@@ -278,7 +278,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 className="flex items-center justify-between bg-white rounded p-2 border border-gray-200"
               >
                 <div className="flex items-center">
-                  <i className="fas fa-home text-green-500 w-6"></i>
+                  <i className="fas fa-home text-green-700 w-6"></i>
                   <span className="font-medium">{property.name}</span>
                   <span className="text-gray-600 ml-2">
                     {baseCurrency}{" "}
@@ -288,7 +288,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <button
                   type="button"
                   onClick={() => removeProperty(index)}
-                  className="text-red-500 hover:text-red-700 px-2"
+                  className="text-red-600 hover:text-red-700 px-2"
                 >
                   <i className="fas fa-times"></i>
                 </button>
@@ -325,7 +325,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <button
                   type="button"
                   onClick={() => removePension(index)}
-                  className="text-red-500 hover:text-red-700 px-2"
+                  className="text-red-600 hover:text-red-700 px-2"
                 >
                   <i className="fas fa-times"></i>
                 </button>
@@ -357,7 +357,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <button
                   type="button"
                   onClick={() => removeInsurance(index)}
-                  className="text-red-500 hover:text-red-700 px-2"
+                  className="text-red-600 hover:text-red-700 px-2"
                 >
                   <i className="fas fa-times"></i>
                 </button>
@@ -403,7 +403,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       {selectedType === "bank" && (
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center mb-4">
-            <i className="fas fa-university text-blue-500 text-xl mr-3"></i>
+            <i className="fas fa-university text-blue-600 text-xl mr-3"></i>
             <h3 className="font-medium text-gray-900">{"Add Bank Account"}</h3>
           </div>
           <div className="space-y-4">
@@ -475,7 +475,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 disabled={!newAccount.name.trim()}
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
                   newAccount.name.trim()
-                    ? "bg-blue-500 hover:bg-blue-600"
+                    ? "bg-blue-600 hover:bg-blue-700"
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
@@ -490,7 +490,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       {selectedType === "property" && (
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="flex items-center mb-4">
-            <i className="fas fa-home text-green-500 text-xl mr-3"></i>
+            <i className="fas fa-home text-green-700 text-xl mr-3"></i>
             <h3 className="font-medium text-gray-900">{"Add Property"}</h3>
           </div>
           <div className="space-y-4">
@@ -579,7 +579,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 disabled={!newProperty.name.trim() || newProperty.price <= 0}
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
                   newProperty.name.trim() && newProperty.price > 0
-                    ? "bg-green-500 hover:bg-green-600"
+                    ? "bg-green-600 hover:bg-green-700"
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
@@ -882,7 +882,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 disabled={!newPension.name.trim()}
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
                   newPension.name.trim()
-                    ? "bg-purple-500 hover:bg-purple-600"
+                    ? "bg-purple-600 hover:bg-purple-700"
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >

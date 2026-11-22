@@ -85,7 +85,7 @@ export default function AggregatedTransactionsTable({
                     }
                   })
                 }}
-                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                className="rounded border-gray-300 text-green-700 focus:ring-green-500"
                 title="Select all PROPOSED transactions"
               />
             </th>
@@ -161,7 +161,7 @@ export default function AggregatedTransactionsTable({
                         onSelectAggregated(agg.aggregateKey, e.target.checked)
                       }
                       disabled={!hasAggregatedProposed(agg)}
-                      className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                      className="rounded border-gray-300 text-green-700 focus:ring-green-500 disabled:opacity-50"
                       title={
                         hasAggregatedProposed(agg)
                           ? `Select ${agg.transactions.filter((t) => t.status === "PROPOSED").length} transactions for bulk settle`
@@ -196,7 +196,7 @@ export default function AggregatedTransactionsTable({
                         <button
                           type="button"
                           onClick={() => onShowChart(agg)}
-                          className="text-gray-500 hover:text-blue-600"
+                          className="text-gray-500 hover:text-blue-700"
                           title="Price chart vs avg price"
                           aria-label={`Price chart for ${agg.assetCode}`}
                         >

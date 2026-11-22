@@ -182,7 +182,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                     v{model.currentPlanVersion}
                   </span>
                 ) : (
-                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-sm">
+                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm">
                     {"None"}
                   </span>
                 )}
@@ -199,7 +199,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           e.stopPropagation()
                           handleTogglePublic(model)
                         }}
-                        className={`transition-colors ${model.shared ? "text-blue-500 hover:text-blue-700" : "text-gray-500 hover:text-blue-600"}`}
+                        className={`transition-colors ${model.shared ? "text-blue-600 hover:text-blue-700" : "text-gray-500 hover:text-blue-700"}`}
                         title={model.shared ? "Make private" : "Make public"}
                       >
                         <i
@@ -223,7 +223,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           e.stopPropagation()
                           setDeleteModelId(model.id)
                         }}
-                        className="text-red-500 hover:text-red-700 transition-colors"
+                        className="text-red-600 hover:text-red-700 transition-colors"
                         title={"Delete"}
                       >
                         <i className="far fa-trash-alt"></i>

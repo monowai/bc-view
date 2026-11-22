@@ -129,7 +129,7 @@ const ExecutionList: React.FC = () => {
                       e.stopPropagation()
                       setDeleteExecutionId(execution.id)
                     }}
-                    className="text-gray-500 hover:text-red-600 p-1"
+                    className="text-gray-500 hover:text-red-700 p-1"
                     title={"Delete"}
                   >
                     <i className="fas fa-trash-alt"></i>

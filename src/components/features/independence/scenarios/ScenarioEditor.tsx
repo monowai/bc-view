@@ -284,18 +284,18 @@ export default function ScenarioEditor({
         <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 border border-independence-100">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">
-              <i className="fas fa-piggy-bank text-independence-500 mr-1"></i>
+              <i className="fas fa-piggy-bank text-independence-700 mr-1"></i>
               Computed Monthly Contribution
             </span>
             <span
               className={`font-bold ${
-                contribution >= 0 ? "text-independence-600" : "text-red-600"
+                contribution >= 0 ? "text-independence-700" : "text-red-600"
               }`}
             >
               {form.currency || "$"}
               {Math.abs(contribution).toLocaleString()}
               {contribution < 0 && (
-                <span className="text-xs font-normal text-red-500 ml-1">
+                <span className="text-xs font-normal text-red-600 ml-1">
                   (deficit)
                 </span>
               )}

@@ -15,7 +15,7 @@ colors:
   wealth: "#3b82f6"
   independence: "#f97316"
   invest: "#10b981"
-  gain: "#059669"
+  gain: "#047857"
   gain-bg: "#ecfdf5"
   loss: "#dc2626"
   loss-bg: "#fef2f2"
@@ -184,7 +184,9 @@ belongs to. Used for headers, chart series, and domain accents — not buttons.
 
 ### Tertiary — Financial Status
 
-- **Gain Green** (#059669) on **Gain Wash** (#ecfdf5): positive returns, profit.
+- **Gain Green** (#047857) on **Gain Wash** (#ecfdf5): positive returns, profit.
+  Emerald-700, not 600: figures are body-size text and need 4.5:1 on white and
+  on the gray-100 page (600 measured 3.77:1).
 - **Loss Red** (#dc2626) on **Loss Wash** (#fef2f2): negative returns, drawdown.
 - **Caution Amber** (#a16207 text on #fefce8): warnings, stale data, pending state.
 

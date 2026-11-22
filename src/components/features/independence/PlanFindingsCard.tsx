@@ -20,17 +20,17 @@ interface SeverityStyle {
 const SEVERITY_STYLE: Record<FindingSeverity, SeverityStyle> = {
   CRITICAL: {
     icon: "fa-circle-exclamation",
-    iconColor: "text-red-500",
+    iconColor: "text-red-600",
     border: "border-l-red-400",
   },
   WARNING: {
     icon: "fa-triangle-exclamation",
-    iconColor: "text-amber-500",
+    iconColor: "text-amber-700",
     border: "border-l-amber-400",
   },
   POSITIVE: {
     icon: "fa-circle-check",
-    iconColor: "text-green-500",
+    iconColor: "text-green-700",
     border: "border-l-green-400",
   },
   INFO: {
@@ -76,7 +76,7 @@ export default function PlanFindingsCard({
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        <i className="fas fa-clipboard-check text-independence-500 mr-2"></i>
+        <i className="fas fa-clipboard-check text-independence-700 mr-2"></i>
         Plan Insights
       </h2>
       <ul className="space-y-3">
@@ -109,7 +109,7 @@ export default function PlanFindingsCard({
                   {cta && (
                     <Link
                       href={cta.href}
-                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-independence-600 hover:text-independence-700"
+                      className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-independence-700 hover:text-independence-800"
                     >
                       {cta.label}
                       <i className="fas fa-arrow-right text-xs"></i>

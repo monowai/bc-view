@@ -1139,7 +1139,7 @@ const TradeInputForm: React.FC<{
                         ))}
                       </select>
                       {portfolioChanged && (
-                        <p className="text-xs text-amber-600 mt-0.5">
+                        <p className="text-xs text-amber-700 mt-0.5">
                           {isEditMode
                             ? "Will move to this portfolio"
                             : "Different from current portfolio"}
@@ -1285,7 +1285,7 @@ const TradeInputForm: React.FC<{
                         <a
                           href="/brokers"
                           target="_blank"
-                          className="text-xs text-blue-500 hover:text-blue-700"
+                          className="text-xs text-blue-600 hover:text-blue-700"
                         >
                           {"Manage"}
                         </a>
@@ -1502,7 +1502,7 @@ const TradeInputForm: React.FC<{
                           <a
                             href="/brokers"
                             target="_blank"
-                            className="text-xs text-blue-500 hover:text-blue-700"
+                            className="text-xs text-blue-600 hover:text-blue-700"
                           >
                             {"Manage"}
                           </a>
@@ -1660,7 +1660,7 @@ const TradeInputForm: React.FC<{
                               onClick={() =>
                                 setSelectedModelId(suggestedModelId)
                               }
-                              className="text-xs text-blue-500 hover:text-blue-700"
+                              className="text-xs text-blue-600 hover:text-blue-700"
                             >
                               {"Use suggested"}
                             </button>
@@ -1710,7 +1710,7 @@ const TradeInputForm: React.FC<{
 
               {/* Error Display (visible on all tabs) */}
               {formErrors.length > 0 && (
-                <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
+                <div className="text-red-600 text-xs bg-red-50 p-2 rounded">
                   {formErrors.join(" ")}
                 </div>
               )}
@@ -1718,7 +1718,7 @@ const TradeInputForm: React.FC<{
 
             {/* Submit Error Display */}
             {submitError && (
-              <div className="text-red-500 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
+              <div className="text-red-600 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
                 {submitError}
               </div>
             )}

@@ -92,7 +92,7 @@ function assetOptionFromQuery(
 
 function changeClass(change: number): string {
   if (change < 0) return "text-red-600"
-  if (change > 0) return "text-emerald-600"
+  if (change > 0) return "text-emerald-700"
   return "text-gray-600"
 }
 
@@ -846,7 +846,7 @@ function AssetLookupPage(): React.ReactElement {
                         {moneyValues ? (
                           <div
                             className={
-                              gain >= 0 ? "text-emerald-600" : "text-red-600"
+                              gain >= 0 ? "text-emerald-700" : "text-red-600"
                             }
                           >
                             <div>
@@ -887,7 +887,7 @@ function AssetLookupPage(): React.ReactElement {
           )}
 
           {visiblePositions.length > 0 && (
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
               <i className="fas fa-info-circle mr-1"></i>
               {"Double-click a row to view and edit transactions"}
             </div>
@@ -970,7 +970,7 @@ function AssetLookupPage(): React.ReactElement {
           )}
 
           {models.length > 0 && (
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
               <i className="fas fa-info-circle mr-1"></i>
               {"Double-click a row to view the model plan"}
             </div>

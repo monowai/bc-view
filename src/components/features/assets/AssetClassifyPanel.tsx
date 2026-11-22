@@ -291,7 +291,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
                                 e.stopPropagation()
                                 setSectorToDelete(sector)
                               }}
-                              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
                               title={"Delete sector"}
                             >
                               <i className="fas fa-times text-xs"></i>
@@ -368,7 +368,7 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
               !selectedSector ||
               (selectedSector === "custom" && !customSector.trim())
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-500 hover:bg-blue-600"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {isSaving ? <Spinner label={"Saving..."} /> : "Save"}

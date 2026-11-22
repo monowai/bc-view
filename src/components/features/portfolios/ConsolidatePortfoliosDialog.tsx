@@ -177,7 +177,7 @@ const ConsolidatePortfoliosDialog: React.FC<
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
           <div className="flex items-center gap-2 font-semibold text-gray-800">
-            <i className="fas fa-triangle-exclamation text-amber-500"></i>
+            <i className="fas fa-triangle-exclamation text-amber-700"></i>
             {"Confirm consolidation"}
           </div>
           <p className="text-sm text-gray-700">

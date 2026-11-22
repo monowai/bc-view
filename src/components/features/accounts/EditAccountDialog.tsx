@@ -1249,7 +1249,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                                 % for {config.countryCode})
                               </span>
                             ) : (
-                              <span className="text-orange-500 ml-1">
+                              <span className="text-orange-700 ml-1">
                                 (no rate configured for {config.countryCode})
                               </span>
                             )}
@@ -1383,20 +1383,20 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     {"Projected Payout at Independence"}
                   </label>
                   {planData && (
-                    <span className="text-green-600 text-xs">
+                    <span className="text-green-700 text-xs">
                       Based on your profile (age {planData.currentAge})
                     </span>
                   )}
                 </div>
                 {!planData ? (
-                  <p className="text-green-600 text-xs">
+                  <p className="text-green-700 text-xs">
                     <i className="fas fa-info-circle mr-1"></i>
                     {"Set yearOfBirth in your Profile to see projected payout."}
                   </p>
                 ) : projectionLoading ? (
                   <div className="flex items-center justify-center py-2">
-                    <Spinner className="mr-2 text-green-600" />
-                    <span className="text-green-600 text-sm">
+                    <Spinner className="mr-2 text-green-700" />
+                    <span className="text-green-700 text-sm">
                       {"Loading..."}
                     </span>
                   </div>
@@ -1417,7 +1417,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         )}
                       </span>
                     </div>
-                    <div className="text-xs text-green-600 space-y-1">
+                    <div className="text-xs text-green-700 space-y-1">
                       <div className="flex justify-between">
                         <span>{"Years to maturity:"}</span>
                         <span>{lumpSumProjection.yearsToMaturity}</span>
@@ -1458,7 +1458,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     {`Projection failed: ${projectionError}. Adjust the contribution or return rate and the projection will retry.`}
                   </p>
                 ) : (
-                  <p className="text-green-600 text-xs">
+                  <p className="text-green-700 text-xs">
                     {parseFloat(config.monthlyContribution || "0") <= 0
                       ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution on the Planning tab to see projected payout.`
                       : "Adjusting projection inputs on the Planning tab will refresh this view automatically."}
@@ -1503,7 +1503,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
         {submitSuccess && (
           <Alert variant="success" className="p-4 mt-4 text-center">
-            <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+            <i className="fas fa-check-circle text-green-700 text-2xl mb-2"></i>
             <p className="text-green-700 font-medium">{"Saved"}</p>
           </Alert>
         )}

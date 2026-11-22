@@ -11,7 +11,7 @@ const PHASE_TONES = [
   "bg-independence-700",
   "bg-independence-500",
   "bg-independence-200",
-  "bg-independence-600",
+  "bg-independence-700",
   "bg-independence-100",
 ]
 
@@ -138,7 +138,7 @@ export default function PhaseTimeline({
                     <i
                       aria-hidden="true"
                       className={`fas fa-chevron-down ml-auto shrink-0 text-xs text-gray-400 transition-transform duration-150 motion-reduce:transition-none ${
-                        isSelected ? "rotate-180 text-independence-600" : ""
+                        isSelected ? "rotate-180 text-independence-700" : ""
                       }`}
                     />
                   </span>

@@ -66,11 +66,11 @@ describe("toErrorMessage", () => {
 })
 
 describe("gainLossClass", () => {
-  it("returns text-green-600 for positive values", () => {
-    expect(gainLossClass(1)).toBe("text-green-600")
+  it("returns text-green-700 for positive values", () => {
+    expect(gainLossClass(1)).toBe("text-green-700")
   })
-  it("returns text-green-600 for zero", () => {
-    expect(gainLossClass(0)).toBe("text-green-600")
+  it("returns text-green-700 for zero", () => {
+    expect(gainLossClass(0)).toBe("text-green-700")
   })
   it("returns text-red-600 for negative values", () => {
     expect(gainLossClass(-1)).toBe("text-red-600")

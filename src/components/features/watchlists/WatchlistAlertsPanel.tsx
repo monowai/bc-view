@@ -77,7 +77,7 @@ function AlertRow({
           <div className="text-sm text-gray-900">
             <Link
               href={buildAssetLookupHref(alert.asset)}
-              className="font-semibold hover:text-blue-600"
+              className="font-semibold hover:text-blue-700"
             >
               {code}
             </Link>

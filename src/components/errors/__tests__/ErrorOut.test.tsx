@@ -75,7 +75,7 @@ describe("ErrorOut Component (TDD)", () => {
       const icon = screen.getByTestId("error-icon")
       expect(icon).toBeInTheDocument()
       // Backend icon should be orange (server icon)
-      expect(icon).toHaveClass("text-orange-500")
+      expect(icon).toHaveClass("text-orange-700")
     })
   })
 

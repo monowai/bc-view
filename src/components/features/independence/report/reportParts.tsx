@@ -23,12 +23,12 @@ const SEVERITY: Record<
   },
   WARNING: {
     icon: "fa-triangle-exclamation",
-    color: "text-amber-600",
+    color: "text-amber-700",
     label: "Warning",
   },
   POSITIVE: {
     icon: "fa-circle-check",
-    color: "text-green-600",
+    color: "text-green-700",
     label: "Positive",
   },
   INFO: { icon: "fa-circle-info", color: "text-gray-500", label: "Note" },
@@ -148,7 +148,7 @@ export function FiProgressBar({
       <div className="flex h-3 overflow-hidden rounded bg-gray-100">
         <div
           data-testid="report-fi-bar"
-          className={`h-full ${clamped >= 100 ? "bg-green-500" : "bg-independence-500"}`}
+          className={`h-full ${clamped >= 100 ? "bg-green-600" : "bg-independence-500"}`}
           style={{ width: `${clamped}%` }}
         />
       </div>

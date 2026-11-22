@@ -35,7 +35,7 @@ const SECONDARY_BUTTON = `inline-flex items-center gap-2 rounded-md border borde
 const ICON_BUTTON_BASE = `inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 transition-colors ${FOCUS_RING}`
 const ICON_BUTTON = `${ICON_BUTTON_BASE} hover:bg-gray-100 hover:text-gray-900`
 // Red only on the action that removes something.
-const ICON_BUTTON_DANGER = `${ICON_BUTTON_BASE} hover:bg-red-50 hover:text-red-600`
+const ICON_BUTTON_DANGER = `${ICON_BUTTON_BASE} hover:bg-red-50 hover:text-red-700`
 const FIELD =
   "w-full border border-gray-300 rounded-md px-3 text-base sm:text-sm text-gray-900 bg-white placeholder:text-gray-400 transition-colors focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
 const FIELD_LABEL = "block text-sm font-medium text-gray-700 mb-1"

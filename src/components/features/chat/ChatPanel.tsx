@@ -123,12 +123,12 @@ export default function ChatPanel({
             Holdsworth Assistant
           </span>
         </div>
-        <div className="flex items-center gap-2 relative">
+        <div className="flex items-center gap-1 relative">
           {onMove && corner && (
             <>
               <button
                 onClick={() => setShowPicker((v) => !v)}
-                className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                className="inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:bg-gray-100 hover:text-blue-700"
                 aria-label="Move chat panel"
                 title="Move to a different corner"
               >
@@ -136,7 +136,7 @@ export default function ChatPanel({
               </button>
               {showPicker && (
                 <div
-                  className="absolute right-0 top-7 z-10 bg-white border border-gray-200 rounded-md shadow-md p-1 grid grid-cols-2 gap-1"
+                  className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-md shadow-md p-1 grid grid-cols-2 gap-1"
                   role="menu"
                   aria-label="Choose chat panel corner"
                 >
@@ -172,7 +172,7 @@ export default function ChatPanel({
           {onExpand && (
             <button
               onClick={onExpand}
-              className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
+              className="inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:bg-gray-100 hover:text-blue-700"
               aria-label="Expand chat"
               title="Open full chat"
             >
@@ -182,7 +182,7 @@ export default function ChatPanel({
           {historyHref && (
             <Link
               href={historyHref}
-              className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
+              className="inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:bg-gray-100 hover:text-blue-700"
               title="Past conversations"
             >
               History
@@ -191,7 +191,7 @@ export default function ChatPanel({
           <button
             onClick={onNewChat}
             disabled={messages.length === 0}
-            className="text-xs text-gray-500 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
+            className="inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             New chat
           </button>
@@ -201,7 +201,7 @@ export default function ChatPanel({
                 setShowPicker(false)
                 onClose()
               }}
-              className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
+              className="inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-blue-600 hover:bg-gray-100 hover:text-blue-700"
               aria-label="Close chat"
               title="Close chat"
             >
@@ -229,7 +229,7 @@ export default function ChatPanel({
                   <button
                     key={suggestion}
                     onClick={() => onSend(suggestion, deepThink, false)}
-                    className="text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 text-gray-500 hover:text-blue-600 transition-colors"
+                    className="text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 text-gray-500 hover:text-blue-700 transition-colors"
                   >
                     {suggestion}
                   </button>

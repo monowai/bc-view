@@ -406,7 +406,7 @@ export default function ContributionsStep({
             label: "Your Investment Target",
             value: investmentTarget,
             format: "currency" as const,
-            valueClassName: "text-green-600 font-bold",
+            valueClassName: "text-green-700 font-bold",
           },
         ]
       : []),
@@ -451,7 +451,7 @@ export default function ContributionsStep({
 
       {(!isEditMode || workingIncomeMonthly === 0) && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <i className="fas fa-check-circle text-green-700 mt-0.5 mr-2"></i>
           <p className="text-sm text-green-700">{msg.skipHint}</p>
         </div>
       )}
@@ -488,7 +488,7 @@ export default function ContributionsStep({
         {!configsLoading && rentalProperties.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
-              <i className="fas fa-home text-green-600 mr-2"></i>
+              <i className="fas fa-home text-green-700 mr-2"></i>
               <h3 className="text-sm font-semibold text-green-800">
                 Property Rental Income
               </h3>
@@ -522,7 +522,7 @@ export default function ContributionsStep({
                             : [...current, config.assetId]
                           setValue("excludedRentalAssetIds", updated)
                         }}
-                        className="w-4 h-4 text-green-500 rounded border-gray-300"
+                        className="w-4 h-4 text-green-700 rounded border-gray-300"
                       />
                       <span
                         className={`text-sm ${isExcluded ? "line-through text-gray-500" : "text-green-700"}`}
@@ -531,7 +531,7 @@ export default function ContributionsStep({
                       </span>
                     </div>
                     <span
-                      className={`text-sm font-medium ${isExcluded ? "text-gray-500 line-through" : "text-green-600"}`}
+                      className={`text-sm font-medium ${isExcluded ? "text-gray-500 line-through" : "text-green-700"}`}
                     >
                       {planCurrency}{" "}
                       {convertedIncome === undefined
@@ -551,7 +551,7 @@ export default function ContributionsStep({
                 )
               })}
             </div>
-            <p className="text-xs text-green-600 mt-2">
+            <p className="text-xs text-green-700 mt-2">
               <i className="fas fa-info-circle mr-1"></i>
               Net of expenses. Configure in Accounts &gt; Real Estate.
             </p>
@@ -579,7 +579,7 @@ export default function ContributionsStep({
               className={`text-sm px-3 py-1 rounded-full border transition-colors ${
                 useDC
                   ? "bg-teal-50 border-teal-300 text-teal-700"
-                  : "bg-gray-50 border-gray-300 text-gray-500"
+                  : "bg-gray-50 border-gray-300 text-gray-600"
               }`}
             >
               {useDC ? "Using DC" : "Ignoring DC"}
@@ -659,7 +659,7 @@ export default function ContributionsStep({
                     <div className="flex-1">
                       <div className="flex items-center">
                         <i
-                          className={`fas ${isHousing ? "fa-home text-amber-600" : "fa-piggy-bank text-purple-600"} mr-3`}
+                          className={`fas ${isHousing ? "fa-home text-amber-700" : "fa-piggy-bank text-purple-600"} mr-3`}
                         ></i>
                         <span className="font-medium text-gray-900">
                           {displayName}
@@ -743,7 +743,7 @@ export default function ContributionsStep({
               {housingTotal > 0 && (
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center">
-                    <i className="fas fa-home text-amber-600 mr-2 w-4"></i>
+                    <i className="fas fa-home text-amber-700 mr-2 w-4"></i>
                     <span className="text-gray-600">Housing</span>
                   </div>
                   <span className="font-medium text-amber-700">

@@ -26,7 +26,7 @@ const ScenarioSelector: React.FC<ScenarioSelectorProps> = ({
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
-            <i className="fas fa-plus-circle text-green-500"></i>
+            <i className="fas fa-plus-circle text-green-700"></i>
             <span className="font-medium">{"Invest Cash"}</span>
           </div>
           <p className="text-sm text-gray-600">
@@ -43,7 +43,7 @@ const ScenarioSelector: React.FC<ScenarioSelectorProps> = ({
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
-            <i className="fas fa-balance-scale text-blue-500"></i>
+            <i className="fas fa-balance-scale text-blue-600"></i>
             <span className="font-medium">{"Rebalance"}</span>
           </div>
           <p className="text-sm text-gray-600">

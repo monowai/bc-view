@@ -112,7 +112,7 @@ describe("FxEditModal form", () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0))
     })
-    expect(document.querySelector("p.text-red-500")).toBeInTheDocument()
+    expect(document.querySelector("p.text-red-600")).toBeInTheDocument()
     expect(deleteTrn).not.toHaveBeenCalled()
   })
 })

@@ -93,7 +93,7 @@ export default function ErrorOut({
         <svg
           data-testid="error-icon"
           aria-hidden="true"
-          className="w-16 h-16 text-orange-500 mb-4"
+          className="w-16 h-16 text-orange-700 mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -113,7 +113,7 @@ export default function ErrorOut({
       <svg
         data-testid="error-icon"
         aria-hidden="true"
-        className="w-16 h-16 text-red-500 mb-4"
+        className="w-16 h-16 text-red-600 mb-4"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

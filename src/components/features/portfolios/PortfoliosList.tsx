@@ -569,7 +569,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 {allSelected ? "Deselect all" : "Select all"}
               </span>
             </label>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-600">
               {effectiveSelected.size}/{portfolios.length} {"selected"}
             </span>
           </div>
@@ -634,7 +634,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       <ShareOfTotal share={shareOf(value)} compact />
                       {isStale(portfolio.valuedAt) && (
                         <span
-                          className="text-amber-600"
+                          className="text-amber-700"
                           title={`Valued: ${formatValuedAt(portfolio.valuedAt)}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`}
                         >
                           <i className="fas fa-clock text-xs"></i>
@@ -816,7 +816,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                         }
                       >
                         {isStale(portfolio.valuedAt) && (
-                          <i className="fas fa-clock mr-1.5 text-xs text-amber-600"></i>
+                          <i className="fas fa-clock mr-1.5 text-xs text-amber-700"></i>
                         )}
                         {formatValuedAt(portfolio.valuedAt)}
                       </span>

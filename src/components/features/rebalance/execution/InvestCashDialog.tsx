@@ -679,7 +679,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 </div>
                 <div>
                   <div className="text-gray-500">{"Spending"}</div>
-                  <div className="font-semibold text-green-600">
+                  <div className="font-semibold text-green-700">
                     {formatCurrency(totalSpending)}
                   </div>
                 </div>
@@ -687,7 +687,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                   <div className="text-gray-500">{"Cash After"}</div>
                   <div
                     className={`font-semibold ${
-                      cashAfter < 0 ? "text-red-600" : "text-green-600"
+                      cashAfter < 0 ? "text-red-600" : "text-green-700"
                     }`}
                   >
                     {formatCurrency(cashAfter)}
@@ -695,7 +695,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 </div>
               </div>
               {cashAfter < 0 && (
-                <div className="mt-2 text-xs text-amber-600">
+                <div className="mt-2 text-xs text-amber-700">
                   <i className="fas fa-exclamation-triangle mr-1"></i>
                   {
                     "Warning: Insufficient cash. You may still create proposed transactions for review."

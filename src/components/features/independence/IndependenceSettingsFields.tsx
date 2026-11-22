@@ -77,7 +77,7 @@ export default function IndependenceSettingsFields({
           type="checkbox"
           checked={retired}
           onChange={(e) => onRetiredChange(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-independence-600"
+          className="h-4 w-4 rounded border-gray-300 text-independence-700"
         />
         I&apos;m retired
       </label>
@@ -123,7 +123,7 @@ export default function IndependenceSettingsFields({
       {!retired && targetIndependenceAge != null && lifeExpectancy != null && (
         <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
           <div className="flex">
-            <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+            <i className="fas fa-info-circle text-independence-700 mt-0.5 mr-3"></i>
             <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">
