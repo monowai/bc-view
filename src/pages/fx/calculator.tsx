@@ -52,12 +52,10 @@ export default withPageAuthRequired(
       return () => clearTimeout(timer)
     }, [])
 
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent): void => {
-        if (e.key === "Escape" && mountedRef.current) handleClose()
-      }
-      document.addEventListener("keydown", handleKeyDown)
-      return () => document.removeEventListener("keydown", handleKeyDown)
+    // Escape goes through the modal stack, so a dialog opened over the
+    // calculator (from the header) closes alone.
+    const handleEscape = useCallback((): void => {
+      if (mountedRef.current) handleClose()
     }, [handleClose])
 
     const { data: ccyResponse, isLoading: ccyLoading } = useSwr<{
@@ -96,7 +94,7 @@ export default withPageAuthRequired(
     const [amount, setAmount] = useState<number>(0)
     const titleId = useId()
     const panelRef = useRef<HTMLDivElement>(null)
-    useModalFocus(panelRef)
+    useModalFocus(panelRef, handleEscape)
 
     const selectPair = (pair: FxPair): void => {
       setFrom(pair.from)

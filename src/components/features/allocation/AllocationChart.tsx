@@ -90,9 +90,7 @@ const AllocationLegend: React.FC<AllocationLegendProps> = ({
                   {currencySymbol}
                   <FormatValue value={slice.value} />
                 </span>
-                <span
-                  className={`text-sm w-14 text-right tabular-nums ${isExcluded ? "text-gray-500" : "text-gray-500"}`}
-                >
+                <span className="text-sm w-14 text-right tabular-nums text-gray-500">
                   {isExcluded ? "-" : `${slice.percentage.toFixed(1)}%`}
                 </span>
               </div>

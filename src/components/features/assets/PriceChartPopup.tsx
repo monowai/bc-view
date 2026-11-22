@@ -407,7 +407,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         </div>
       )}
       {ratioLabel && typeof point.ratio === "number" && (
-        <div className="text-xs text-sky-600 tabular-nums">
+        <div className="text-xs text-gray-800 tabular-nums">
           {ratioLabel}: {point.ratio.toFixed(3)}
           <span className="ml-1 text-gray-500">
             ({point.ratio >= 1 ? "+" : ""}
@@ -1127,9 +1127,9 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               <span className="flex items-center gap-1">
                 <span
                   aria-hidden
-                  className="inline-block w-4 h-0.5 bg-sky-500 rounded"
+                  className="inline-block w-4 h-0.5 bg-gray-800 rounded"
                 />
-                <span className="text-sky-700">{overlay.label}</span>
+                <span className="text-gray-800">{overlay.label}</span>
                 {typeof ratioLast === "number" && (
                   <span className="tabular-nums whitespace-nowrap">
                     {ratioLast >= 1 ? "+" : ""}

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 export interface ConfirmOptions {
@@ -25,6 +25,16 @@ export function useConfirm(): [
 ] {
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
   const resolver = useRef<((ok: boolean) => void) | null>(null)
+
+  // Like window.confirm, every call returns: a caller that unmounts with a
+  // confirm open gets false rather than an await that never settles.
+  useEffect(
+    () => () => {
+      resolver.current?.(false)
+      resolver.current = null
+    },
+    [],
+  )
 
   const confirm = useCallback((next: ConfirmOptions): Promise<boolean> => {
     resolver.current?.(false)

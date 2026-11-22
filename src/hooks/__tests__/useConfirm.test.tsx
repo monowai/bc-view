@@ -55,4 +55,27 @@ describe("useConfirm", () => {
       expect(screen.getByTestId("result")).toHaveTextContent("cancelled"),
     )
   })
+
+  it("resolves false when the caller unmounts with a confirm pending", async () => {
+    let pending: Promise<boolean> | undefined
+    function Asker(): React.ReactElement {
+      const [confirm, confirmDialog] = useConfirm()
+      return (
+        <>
+          <button
+            onClick={() => {
+              pending = confirm({ title: "Delete", message: "Sure?" })
+            }}
+          >
+            Ask
+          </button>
+          {confirmDialog}
+        </>
+      )
+    }
+    const { unmount } = render(<Asker />)
+    fireEvent.click(screen.getByText("Ask"))
+    unmount()
+    await expect(pending).resolves.toBe(false)
+  })
 })

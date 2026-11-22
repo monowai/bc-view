@@ -81,10 +81,16 @@ export function useModalFocus(
       const firstItem = items[0]
       const lastItem = items[items.length - 1]
       const active = document.activeElement
-      if (event.shiftKey && (active === firstItem || active === container)) {
+      // Focus outside the dialog (its element was removed, focus fell to
+      // <body>) wraps back in rather than escaping to the page behind.
+      const outside = !container.contains(active)
+      if (
+        event.shiftKey &&
+        (outside || active === firstItem || active === container)
+      ) {
         event.preventDefault()
         lastItem.focus()
-      } else if (!event.shiftKey && active === lastItem) {
+      } else if (!event.shiftKey && (outside || active === lastItem)) {
         event.preventDefault()
         firstItem.focus()
       }

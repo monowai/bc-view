@@ -77,6 +77,21 @@ describe("Dialog", () => {
     expect(save).toHaveFocus()
   })
 
+  it("pulls Tab focus back in when it has fallen outside the dialog", () => {
+    render(
+      <Dialog {...defaultProps} footer={<button>Save</button>}>
+        <input aria-label="Amount" />
+      </Dialog>,
+    )
+    ;(document.activeElement as HTMLElement).blur()
+    expect(document.body).toHaveFocus()
+    fireEvent.keyDown(document, { key: "Tab" })
+    expect(screen.getByRole("button", { name: "Close dialog" })).toHaveFocus()
+    ;(document.activeElement as HTMLElement).blur()
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true })
+    expect(screen.getByRole("button", { name: "Save" })).toHaveFocus()
+  })
+
   it("closes only the top dialog on Escape when dialogs are stacked", () => {
     const outerClose = jest.fn()
     const innerClose = jest.fn()

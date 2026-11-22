@@ -5,6 +5,7 @@ import "@testing-library/jest-dom"
 import useSWR from "swr"
 import { useRouter } from "next/router"
 import FxCalculator from "@pages/fx/calculator"
+import Dialog from "@components/ui/Dialog"
 
 const CalculatorPage = FxCalculator as React.ComponentType<any>
 
@@ -121,5 +122,25 @@ describe("FX Calculator page", () => {
     await user.keyboard("{Escape}")
 
     expect(back).toHaveBeenCalledTimes(1)
+  })
+
+  it("leaves the calculator open when Escape closes a dialog above it", () => {
+    jest.useFakeTimers()
+    const closeDialog = jest.fn()
+    render(
+      <>
+        <CalculatorPage />
+        <Dialog title="Log spend" onClose={closeDialog}>
+          <p>Spend</p>
+        </Dialog>
+      </>,
+    )
+    jest.advanceTimersByTime(150)
+    jest.useRealTimers()
+
+    fireEvent.keyDown(document, { key: "Escape" })
+
+    expect(closeDialog).toHaveBeenCalledTimes(1)
+    expect(back).not.toHaveBeenCalled()
   })
 })
