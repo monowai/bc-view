@@ -3,9 +3,14 @@ import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import useSwr from "swr"
 import type { NetWorth } from "types/beancounter"
-import type { IndependencePlan, RetirementPlan } from "types/independence"
+import type {
+  CompositeProjectionResult,
+  IndependencePlan,
+  RetirementPlan,
+} from "types/independence"
 import type { WealthSummary } from "@lib/wealth/liquidityGroups"
 import { makeNetWorth } from "@test-fixtures/beancounter"
+import { makeCompositeProjection } from "@test-fixtures/independence"
 
 // ── SWR: keyed by url so /api/independence/plans can be shaped per test ──────
 
@@ -55,8 +60,27 @@ jest.mock("@components/features/independence", () => ({
 
 jest.mock("@components/features/wealth/IndependenceMetrics", () => ({
   __esModule: true,
-  default: ({ primaryPlan }: { primaryPlan: RetirementPlan }) => (
-    <div data-testid="independence-metrics">{primaryPlan.name}</div>
+  default: ({
+    primaryPlan,
+    journey,
+    journeyProjection,
+    journeyProjectionLoading,
+  }: {
+    primaryPlan: RetirementPlan
+    journey?: IndependencePlan
+    journeyProjection: CompositeProjectionResult | null
+    journeyProjectionLoading: boolean
+  }) => (
+    <div data-testid="independence-metrics">
+      {primaryPlan.name}
+      <span data-testid="journey">{journey?.id}</span>
+      <span data-testid="journey-draw">
+        {journeyProjection?.plannedAnnualDraw}
+      </span>
+      <span data-testid="journey-loading">
+        {String(journeyProjectionLoading)}
+      </span>
+    </div>
   ),
 }))
 
@@ -296,6 +320,91 @@ describe("/wealth — independence headline resolves through the primary plan", 
     render(<WealthPage />)
 
     expect(screen.queryByTestId("independence-metrics")).not.toBeInTheDocument()
+  })
+})
+
+describe("/wealth — retired tiles are fed by the primary journey", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockJourneys = []
+  })
+
+  const owningPhase = makePhasePlan({
+    id: "plan-owning",
+    name: "Owning Go-Go",
+    independencePlanId: "jrn-owning",
+  })
+  const journeys = (): IndependencePlan[] => [
+    makeJourney({
+      id: "jrn-renting",
+      name: "Renting",
+      displayCurrency: "USD",
+      phases: JSON.stringify([{ planId: "plan-renting", fromAge: 60 }]),
+    }),
+    makeJourney({
+      id: "jrn-owning",
+      name: "With Property",
+      isPrimary: true,
+      displayCurrency: "USD",
+      phases: JSON.stringify([{ planId: "plan-owning", fromAge: 60 }]),
+    }),
+  ]
+
+  /** Answer the journey projection request for one journey id only. */
+  function mockJourneyProjection(
+    journeyId: string,
+    response: { data?: CompositeProjectionResult; isLoading?: boolean },
+  ): void {
+    const base = (useSwr as jest.Mock).getMockImplementation() as (
+      key: unknown,
+    ) => unknown
+    ;(useSwr as jest.Mock).mockImplementation((key: unknown) =>
+      Array.isArray(key) &&
+      key[0] === "/api/independence/composite/projection" &&
+      key.includes(journeyId)
+        ? { error: undefined, isLoading: false, ...response }
+        : base(key),
+    )
+  }
+
+  it("passes the primary journey and its projection to the metrics", () => {
+    mockJourneys = journeys()
+    mockSwr([owningPhase])
+    mockJourneyProjection("jrn-owning", {
+      data: makeCompositeProjection({
+        currentAge: 66,
+        retirementAge: 65,
+        plannedAnnualDraw: 54_321,
+      }),
+    })
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("journey")).toHaveTextContent("jrn-owning")
+    expect(screen.getByTestId("journey-draw")).toHaveTextContent("54321")
+    expect(screen.getByTestId("journey-loading")).toHaveTextContent("false")
+  })
+
+  it("tells the metrics while the journey projection is still loading", () => {
+    mockJourneys = journeys()
+    mockSwr([owningPhase])
+    mockJourneyProjection("jrn-owning", { isLoading: true })
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("journey-loading")).toHaveTextContent("true")
+    expect(screen.getByTestId("journey-draw")).toBeEmptyDOMElement()
+  })
+
+  it("passes no journey projection for a legacy account with no journey", () => {
+    mockJourneys = []
+    mockSwr([{ ...owningPhase, isPrimary: true }])
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("journey")).toBeEmptyDOMElement()
+    expect(screen.getByTestId("journey-draw")).toBeEmptyDOMElement()
+    expect(screen.getByTestId("journey-loading")).toHaveTextContent("false")
   })
 })
 

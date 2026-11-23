@@ -4,13 +4,24 @@ import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import Dialog from "@components/ui/Dialog"
 import { Currency, Transaction } from "types/beancounter"
-import type { RetirementPlan, RetirementProjection } from "types/independence"
+import type {
+  CompositeProjectionResult,
+  IndependencePlan,
+  RetirementPlan,
+  RetirementProjection,
+} from "types/independence"
 import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import WealthSection from "@components/features/wealth/WealthSection"
 import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { investmentsMonthlyTransactionsKey } from "@utils/api/client/trns"
-import { isRetired } from "@lib/independence/retiredMetrics"
+import { isJourneyRetired, isRetired } from "@lib/independence/retiredMetrics"
+import {
+  type RetiredBasis,
+  journeyRetiredBasis,
+  phaseRetiredBasis,
+} from "@lib/independence/retiredBasis"
+import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import RetiredMetrics, {
   METRIC_CLS,
 } from "@components/features/wealth/RetiredMetrics"
@@ -28,30 +39,35 @@ interface IndependenceMetricsProps {
   primaryPlan: RetirementPlan
   projectionData: RetirementProjection | null
   projectionLoading: boolean
+  /** The user's primary journey; absent on an account that has none. */
+  journey?: IndependencePlan
+  /** The journey's projection; null while loading, on failure, or with no journey. */
+  journeyProjection?: CompositeProjectionResult | null
+  journeyProjectionLoading?: boolean
   monthlyInvestmentData: MonthlyInvestmentData | undefined
   displayCurrency: Currency | null
   collapsed: boolean
   onToggle: () => void
 }
 
-/** Drawdown cards, fed by the data only a retired plan needs. */
+/** Drawdown cards, fed by the data only a retired owner needs. */
 function RetiredMetricsSection({
-  projection,
+  basis,
   displayCurrency,
 }: {
-  projection: RetirementProjection
+  basis: RetiredBasis
   displayCurrency: Currency | null
 }): React.ReactElement {
-  const cardData = useRetiredMetricsData(projection)
+  const cardData = useRetiredMetricsData(basis)
   const [showSpend, setShowSpend] = useState(false)
   const currencySymbol =
-    displayCurrency?.code === projection.currency
+    displayCurrency?.code === basis.currency
       ? displayCurrency.symbol
-      : `${projection.currency} `
+      : `${basis.currency} `
   return (
     <>
       <RetiredMetrics
-        projection={projection}
+        basis={basis}
         currencySymbol={currencySymbol}
         onLogSpend={() => setShowSpend(true)}
         {...cardData}
@@ -61,10 +77,35 @@ function RetiredMetricsSection({
   )
 }
 
+/**
+ * The retired cards for the journey. The horizon is the user's own life
+ * expectancy: a journey spans phases, and no one phase speaks for it.
+ */
+function JourneyRetiredSection({
+  journey,
+  projection,
+  displayCurrency,
+}: {
+  journey: IndependencePlan
+  projection: CompositeProjectionResult
+  displayCurrency: Currency | null
+}): React.ReactElement {
+  const { settings } = useIndependenceSettings()
+  return (
+    <RetiredMetricsSection
+      basis={journeyRetiredBasis(journey, projection, settings?.lifeExpectancy)}
+      displayCurrency={displayCurrency}
+    />
+  )
+}
+
 export default function IndependenceMetrics({
   primaryPlan,
-  projectionData,
-  projectionLoading,
+  projectionData: phaseProjection,
+  projectionLoading: phaseProjectionLoading,
+  journey,
+  journeyProjection = null,
+  journeyProjectionLoading = false,
   monthlyInvestmentData,
   displayCurrency,
   collapsed,
@@ -72,6 +113,16 @@ export default function IndependenceMetrics({
 }: IndependenceMetricsProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const [showInvestmentModal, setShowInvestmentModal] = useState(false)
+
+  // The journey speaks for a retired owner; the phase only when there is no
+  // journey projection to ask. Until the journey answers, hold the loading
+  // state rather than show the phase's cards and then swap them.
+  const retiredJourney =
+    journey && journeyProjection && isJourneyRetired(journeyProjection)
+      ? { journey, projection: journeyProjection }
+      : null
+  const projectionData = journeyProjectionLoading ? null : phaseProjection
+  const projectionLoading = phaseProjectionLoading || journeyProjectionLoading
 
   // Fetch transactions only when modal is open
   const investmentTrnsUrl = showInvestmentModal
@@ -92,16 +143,26 @@ export default function IndependenceMetrics({
         note={projectionLoading && <Spinner label="Calculating..." />}
         action={
           <Link
-            href={`/independence/plans/${primaryPlan.id}`}
+            href={
+              retiredJourney
+                ? `/independence?plan=${encodeURIComponent(retiredJourney.journey.id)}`
+                : `/independence/plans/${primaryPlan.id}`
+            }
             className="shrink-0 rounded-sm text-sm text-wealth-600 hover:text-wealth-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
           >
             Projections →
           </Link>
         }
       >
-        {projectionData && isRetired(projectionData) ? (
+        {retiredJourney ? (
+          <JourneyRetiredSection
+            journey={retiredJourney.journey}
+            projection={retiredJourney.projection}
+            displayCurrency={displayCurrency}
+          />
+        ) : projectionData && isRetired(projectionData) ? (
           <RetiredMetricsSection
-            projection={projectionData}
+            basis={phaseRetiredBasis(projectionData)}
             displayCurrency={displayCurrency}
           />
         ) : (

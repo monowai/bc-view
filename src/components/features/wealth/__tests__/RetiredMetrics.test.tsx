@@ -2,6 +2,7 @@ import React from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import RetiredMetrics from "../RetiredMetrics"
+import { phaseRetiredBasis } from "@lib/independence/retiredBasis"
 import type {
   MonteCarloResult,
   RetirementProjection,
@@ -42,7 +43,7 @@ const renderCards = (
 ): void => {
   render(
     <RetiredMetrics
-      projection={projection}
+      basis={phaseRetiredBasis(projection)}
       drawnLastMonth={3_500}
       drawnLastYear={44_000}
       monteCarlo={monteCarlo}

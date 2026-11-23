@@ -1,15 +1,10 @@
 import useSwr from "swr"
-import type {
-  MonteCarloResponse,
-  MonteCarloResult,
-  RetirementProjection,
-} from "types/independence"
+import type { MonteCarloResponse, MonteCarloResult } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { investmentsKey, investmentsMonthlyKey } from "@utils/api/client/trns"
-import { monteCarloUrl, runMonteCarlo } from "@utils/api/client/independence"
 import { usePlanExpenses } from "@components/features/independence/usePlanExpenses"
 import { useSpendHistory } from "@components/features/wealth/useSpendHistory"
-import { plannedAnnualDrawdown } from "@lib/independence/retiredMetrics"
+import type { RetiredBasis } from "@lib/independence/retiredBasis"
 import {
   MONTHS_PER_YEAR,
   type SpendSummary,
@@ -18,7 +13,7 @@ import {
 } from "@lib/independence/spendSummary"
 
 /** Fixed seed: the dashboard figure must not wobble between page loads. */
-const DASHBOARD_SEED = 20261119
+export const DASHBOARD_SEED = 20261119
 
 interface InvestmentWindow {
   totalInvested: number
@@ -45,16 +40,14 @@ const drawn = (window: InvestmentWindow | undefined): number | undefined =>
   window === undefined ? undefined : Math.max(-window.totalInvested, 0)
 
 /**
- * What the retired cards need beyond the projection: the net amount sold
- * from investments over 30 days and 12 months, and a seeded Monte Carlo run
- * of the plan on the same assets the projection used. Plus the monthly spend
- * log against the plan's budget, which outranks investment sales when present.
+ * What the retired cards need beyond their basis: the net amount sold from
+ * investments over 30 days and 12 months, and a seeded Monte Carlo run of the
+ * basis. Plus the monthly spend log against the current budget, which
+ * outranks investment sales when present.
  */
-export function useRetiredMetricsData(
-  projection: RetirementProjection,
-): RetiredMetricsData {
-  const monthKey = investmentsMonthlyKey(projection.currency)
-  const yearKey = investmentsKey(projection.currency, DAYS_PER_YEAR)
+export function useRetiredMetricsData(basis: RetiredBasis): RetiredMetricsData {
+  const monthKey = investmentsMonthlyKey(basis.currency)
+  const yearKey = investmentsKey(basis.currency, DAYS_PER_YEAR)
   const { data: month } = useSwr<InvestmentWindow>(
     monthKey,
     simpleFetcher(monthKey),
@@ -64,30 +57,14 @@ export function useRetiredMetricsData(
     simpleFetcher(yearKey),
   )
 
-  const nonSpendableAssets = projection.totalAssets - projection.liquidAssets
   const {
     data: monteCarlo,
     isLoading: monteCarloLoading,
     error: monteCarloError,
   } = useSwr<MonteCarloResult | null>(
-    [
-      monteCarloUrl(projection.planId),
-      projection.currency,
-      projection.liquidAssets,
-      nonSpendableAssets,
-    ],
-    async ([, currency, liquidAssets, nonSpendable]: [
-      string,
-      string,
-      number,
-      number,
-    ]) => {
-      const res = await runMonteCarlo(projection.planId, {
-        currency,
-        liquidAssets,
-        nonSpendableAssets: nonSpendable,
-        seed: DASHBOARD_SEED,
-      })
+    basis.monteCarloKey,
+    async () => {
+      const res = await basis.runMonteCarlo(DASHBOARD_SEED)
       if (!res.ok) throw new Error("Failed to run Monte Carlo simulation")
       const body: MonteCarloResponse = await res.json()
       return body.data
@@ -97,21 +74,19 @@ export function useRetiredMetricsData(
 
   const history = useSpendHistory()
   const window = history.historyMonths.slice(-MONTHS_PER_YEAR)
-  const { expenses } = usePlanExpenses(projection.planId)
+  const { expenses } = usePlanExpenses(basis.budgetPlanId)
   const spendEntries = history.entries
-  // The service locks the log to its first currency; budgets are in the plan's.
+  // The service locks the log to its first currency; budgets are in the basis's.
   const logCurrency = spendEntries[0]?.currency ?? null
   const spendOtherCurrency =
-    logCurrency !== null && logCurrency !== projection.currency
-      ? logCurrency
-      : null
+    logCurrency !== null && logCurrency !== basis.currency ? logCurrency : null
 
   return {
     spendOtherCurrency,
     spend: spendSummary(
       spendOtherCurrency === null ? spendEntries : [],
       retirementBudgets(expenses),
-      plannedAnnualDrawdown(projection),
+      basis.plannedAnnualDraw,
       window,
     ),
     spendUnavailable: history.error !== undefined,
