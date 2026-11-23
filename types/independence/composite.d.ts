@@ -115,6 +115,17 @@ export interface CompositeProjectionResult {
    */
   currentAge?: number
   /**
+   * Owner's resolved retirement age: the age on the date they retired, else
+   * their target independence age. `currentAge >= retirementAge` means the
+   * owner is drawing down.
+   */
+  retirementAge?: number
+  /**
+   * A retired owner's planned draw on the liquid pot this year (expenses less
+   * cashflow income), display currency. Absent when not retired.
+   */
+  plannedAnnualDraw?: number
+  /**
    * Journey-level target ending balance (svc-retire#282), resolved
    * (`journey.targetBalance ?? stage.targetBalance`) and already converted
    * to {@link displayCurrency} by the backend. Absent when neither the

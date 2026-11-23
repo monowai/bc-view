@@ -45,6 +45,17 @@ export default function PlanVerdict(): React.ReactElement | null {
 
   const successRate = mc.result?.successRate
 
+  // A retired owner is drawing down, so "still to save" and "you get there at"
+  // answer a question they no longer have: the balance may well cross the
+  // target years from now, but that is growth in drawdown, not an arrival.
+  // Same test as the wealth page — the owner's age has reached the retirement
+  // age svc-retire resolved (their retired-on date, else their target age).
+  const ownerAge = projection.currentAge ?? currentAge
+  const retirementAge = projection.retirementAge
+  const retired =
+    retirementAge != null && ownerAge != null && ownerAge >= retirementAge
+  const draw = projection.plannedAnnualDraw
+
   // Privacy mode hides amounts AND ages. An age is the other half of the same
   // disclosure: "your money runs out at 78" tells a shoulder-surfer as much as
   // the balance does, and masking only the headline left it in plain sight in
@@ -54,6 +65,20 @@ export default function PlanVerdict(): React.ReactElement | null {
   // no date — it is the one figure here that says nothing about this person's
   // wealth — and blanking it would leave the verdict with nothing readable.
   const milestone = ((): { label: string; value: string; sub: string } => {
+    if (retired) {
+      if (hideValues) {
+        return { label: "Retired", value: HIDDEN_VALUE, sub: "hidden" }
+      }
+      const yearsAgo = ownerAge - retirementAge
+      return {
+        label: "Retired",
+        value: `since ${retirementAge}`,
+        sub:
+          yearsAgo === 0
+            ? "this year"
+            : `${yearsAgo} year${yearsAgo === 1 ? "" : "s"} ago`,
+      }
+    }
     if (hideValues) {
       return { label: "You get there at", value: HIDDEN_VALUE, sub: "hidden" }
     }
@@ -161,12 +186,24 @@ export default function PlanVerdict(): React.ReactElement | null {
           value={money(answers.fiNumber)}
           sub="25× your yearly spending"
         />
-        <KpiCard
-          label={answers.isAchieved ? "You're over by" : "Still to save"}
-          value={money(Math.abs(answers.gap))}
-          tone={answers.isAchieved ? "positive" : "default"}
-          sub={answers.isAchieved ? "past the target" : "to reach the target"}
-        />
+        {retired ? (
+          <KpiCard
+            label="Planned draw this year"
+            value={draw != null ? money(draw) : "—"}
+            sub={
+              draw != null && projection.liquidAssets > 0
+                ? `${((draw / projection.liquidAssets) * 100).toFixed(1)}% of liquid`
+                : "from liquid assets"
+            }
+          />
+        ) : (
+          <KpiCard
+            label={answers.isAchieved ? "You're over by" : "Still to save"}
+            value={money(Math.abs(answers.gap))}
+            tone={answers.isAchieved ? "positive" : "default"}
+            sub={answers.isAchieved ? "past the target" : "to reach the target"}
+          />
+        )}
         <KpiCard
           label={milestone.label}
           value={milestone.value}
