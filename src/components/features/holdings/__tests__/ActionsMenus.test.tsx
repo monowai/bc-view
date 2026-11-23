@@ -2,7 +2,13 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { ActionsMenu, CashActionsMenu } from "../ActionsMenus"
-import { makeAsset } from "@test-fixtures/beancounter"
+import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
+import { useWatchlist } from "@hooks/useWatchlist"
+
+jest.mock("@hooks/useWatchlist")
+beforeEach(() => {
+  ;(useWatchlist as jest.Mock).mockReturnValue({ items: [] })
+})
 
 let capturedWatchlistProps: Record<string, unknown> | null = null
 jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
@@ -162,6 +168,22 @@ describe("menu behaviour shared by both menus", () => {
 describe("ActionsMenu — watchlist", () => {
   beforeEach(() => {
     capturedWatchlistProps = null
+  })
+
+  it("offers to edit the watch target when the asset is already watched", () => {
+    ;(useWatchlist as jest.Mock).mockReturnValue({
+      items: [makeWatchlistItem({ asset, targetPrice: null })],
+    })
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+
+    expect(
+      screen.queryByRole("button", { name: "Add to Watchlist" }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+
+    expect(screen.getByLabelText(/Target price/)).toHaveValue("")
+    expect(capturedWatchlistProps).toBeNull()
   })
 
   it("opens the add-to-watchlist dialog for the holding's asset", () => {
