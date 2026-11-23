@@ -71,3 +71,24 @@ export function movePhase(
   updated[index] = { ...updated[index], planId: phases[target].planId }
   return updated
 }
+
+/**
+ * Start the first stage today for a retired owner.
+ *
+ * A journey phased before its owner said they retired still opens at the old
+ * target age. svc-retire projects a retired owner's first stage from their
+ * current age, so the timeline drawn from these phases has to start there too.
+ * Left alone when the owner is not retired, the age is unknown, or the first
+ * stage has already ended.
+ */
+export function startFirstPhaseNowIfRetired(
+  phases: CompositePhase[],
+  retired: boolean,
+  currentAge: number | undefined,
+): CompositePhase[] {
+  const [first, ...rest] = phases
+  if (!retired || currentAge == null || !first) return phases
+  if (first.toAge != null && currentAge >= first.toAge) return phases
+  if (first.fromAge === currentAge) return phases
+  return [{ ...first, fromAge: currentAge }, ...rest]
+}

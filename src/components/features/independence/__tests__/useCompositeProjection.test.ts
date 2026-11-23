@@ -376,3 +376,62 @@ describe("useCompositeProjection — composite config lives on the journey", () 
     })
   })
 })
+
+// A journey phased before the owner said they retired still opens at the old
+// target age. svc-retire starts a retired owner's first phase today; the
+// timeline is drawn from these phases, so the seed has to say the same.
+describe("useCompositeProjection — retired owner", () => {
+  const plans = [
+    makePlan({ id: "go-go", name: "Go-Go" }),
+    makePlan({ id: "slow-go", name: "Slow-Go" }),
+  ]
+  const savedPhases = [
+    { planId: "go-go", fromAge: 75, toAge: 80 },
+    { planId: "slow-go", fromAge: 80 },
+  ]
+  // Born in January, so the owner has turned 60 this year whatever today is.
+  const yearOfBirth = new Date().getFullYear() - 60
+  const settingsFor = (retiredOn?: string): UserIndependenceSettings =>
+    ({
+      yearOfBirth,
+      monthOfBirth: 1,
+      lifeExpectancy: 90,
+      retiredOn,
+    }) as unknown as UserIndependenceSettings
+
+  beforeEach(() => {
+    mockJourneysLoading = false
+    mockJourneys = [makeJourney({ phases: JSON.stringify(savedPhases) })]
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { yearlyProjections: [] } }),
+    })
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it("starts the first phase today when the owner is retired", () => {
+    const { result } = renderHook(() =>
+      useCompositeProjection(
+        plans,
+        settingsFor(`${yearOfBirth + 58}-03-01`),
+        "j1",
+      ),
+    )
+
+    expect(result.current.phases).toEqual([
+      { planId: "go-go", fromAge: 60, toAge: 80 },
+      { planId: "slow-go", fromAge: 80 },
+    ])
+  })
+
+  it("keeps the saved phase ages when the owner is not retired", () => {
+    const { result } = renderHook(() =>
+      useCompositeProjection(plans, settingsFor(), "j1"),
+    )
+
+    expect(result.current.phases).toEqual(savedPhases)
+  })
+})
