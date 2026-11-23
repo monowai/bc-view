@@ -1,4 +1,5 @@
 import type {
+  CompositeProjectionResult,
   RetirementProjection,
   YearlyPercentileBand,
 } from "types/independence"
@@ -10,6 +11,19 @@ const GUARDRAIL_TOLERANCE = 0.2
 export function isRetired(projection: RetirementProjection | null): boolean {
   const currentAge = projection?.planInputs?.currentAge
   const retirementAge = projection?.planInputs?.retirementAge
+  if (currentAge == null || retirementAge == null) return false
+  return currentAge >= retirementAge
+}
+
+/**
+ * True once the journey's owner has reached its retirement age. Both ages are
+ * svc-retire's own; without them the journey is not known to be retired.
+ */
+export function isJourneyRetired(
+  projection: CompositeProjectionResult | null | undefined,
+): boolean {
+  const currentAge = projection?.currentAge
+  const retirementAge = projection?.retirementAge
   if (currentAge == null || retirementAge == null) return false
   return currentAge >= retirementAge
 }

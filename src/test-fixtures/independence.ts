@@ -3,7 +3,11 @@
  *
  * Each builder takes `Partial<T>` overrides over a fully-formed default.
  */
-import type { RetirementPlan } from "types/independence"
+import type {
+  CompositeProjectionResult,
+  IndependencePlan,
+  RetirementPlan,
+} from "types/independence"
 import type { CompositeProjectionValue } from "@components/features/independence/composite/CompositeProjectionContext"
 
 /** A complete RetirementPlan (phase) as svc-retire returns it. */
@@ -64,6 +68,43 @@ export function makeCompositeCtx(
     isSettled: true,
     error: null,
     mc: { result: null, isRunning: false, error: null, run: jest.fn() },
+    ...overrides,
+  }
+}
+
+/** A journey (IndependencePlan) with no timeline; pass `phases` to phase it. */
+export function makeJourney(
+  overrides: Partial<IndependencePlan> = {},
+): IndependencePlan {
+  return {
+    id: "journey-1",
+    ownerId: "owner-1",
+    name: "Test Journey",
+    isPrimary: true,
+    createdDate: "2025-01-01",
+    updatedDate: "2025-01-01",
+    ...overrides,
+  }
+}
+
+/**
+ * A journey projection as svc-retire returns it for an owner still working:
+ * no ages and no planned draw. Pass `currentAge`, `retirementAge` and
+ * `plannedAnnualDraw` for a retired owner.
+ */
+export function makeCompositeProjection(
+  overrides: Partial<CompositeProjectionResult> = {},
+): CompositeProjectionResult {
+  return {
+    asOfDate: "2026-01-01",
+    displayCurrency: "USD",
+    phases: [],
+    totalAssets: 0,
+    liquidAssets: 0,
+    runwayYears: 0,
+    isSustainable: true,
+    yearlyProjections: [],
+    warnings: [],
     ...overrides,
   }
 }

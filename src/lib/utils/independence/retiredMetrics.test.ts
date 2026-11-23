@@ -1,9 +1,11 @@
 import {
+  isJourneyRetired,
   isRetired,
   plannedAnnualDrawdown,
   withdrawalGuardrail,
   moneyLastsTo,
 } from "./retiredMetrics"
+import { makeCompositeProjection } from "@test-fixtures/independence"
 import type {
   RetirementProjection,
   YearlyPercentileBand,
@@ -129,5 +131,39 @@ describe("moneyLastsTo", () => {
   it("is null for a path that never runs dry", () => {
     const bands = [band(65, 900_000, 1_000_000), band(95, 50_000, 800_000)]
     expect(moneyLastsTo(bands)).toEqual({ median: null, badCase: null })
+  })
+})
+
+describe("isJourneyRetired", () => {
+  it("is retired once the owner has reached the journey's retirement age", () => {
+    expect(
+      isJourneyRetired(
+        makeCompositeProjection({ currentAge: 66, retirementAge: 65 }),
+      ),
+    ).toBe(true)
+    expect(
+      isJourneyRetired(
+        makeCompositeProjection({ currentAge: 65, retirementAge: 65 }),
+      ),
+    ).toBe(true)
+  })
+
+  it("is not retired before the retirement age", () => {
+    expect(
+      isJourneyRetired(
+        makeCompositeProjection({ currentAge: 58, retirementAge: 65 }),
+      ),
+    ).toBe(false)
+  })
+
+  it("is not retired when the backend sent no ages, or no projection", () => {
+    expect(isJourneyRetired(makeCompositeProjection())).toBe(false)
+    expect(isJourneyRetired(makeCompositeProjection({ currentAge: 66 }))).toBe(
+      false,
+    )
+    expect(
+      isJourneyRetired(makeCompositeProjection({ retirementAge: 65 })),
+    ).toBe(false)
+    expect(isJourneyRetired(null)).toBe(false)
   })
 })

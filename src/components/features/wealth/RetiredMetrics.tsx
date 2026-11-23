@@ -1,12 +1,12 @@
 import React from "react"
-import type { MonteCarloResult, RetirementProjection } from "types/independence"
+import type { MonteCarloResult } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import {
   type GuardrailBand,
   moneyLastsTo,
-  plannedAnnualDrawdown,
   withdrawalGuardrail,
 } from "@lib/independence/retiredMetrics"
+import type { RetiredBasis } from "@lib/independence/retiredBasis"
 import {
   MONTHS_PER_YEAR,
   type SpendSummary,
@@ -41,7 +41,8 @@ const BAND_CLS: Record<GuardrailBand, string> = {
 }
 
 interface RetiredMetricsProps {
-  projection: RetirementProjection
+  /** The journey, or the lone phase, the cards report on. */
+  basis: RetiredBasis
   /** Net amount drawn from investments in the last 30 days. */
   drawnLastMonth: number | undefined
   /** Net amount drawn from investments in the last 12 months. */
@@ -82,7 +83,7 @@ function Bar({
  * pot is being drawn, against plan, and how long it lasts.
  */
 export default function RetiredMetrics({
-  projection,
+  basis,
   drawnLastMonth,
   drawnLastYear,
   monteCarlo,
@@ -98,18 +99,18 @@ export default function RetiredMetrics({
   const money = (n: number): string =>
     `${currencySymbol}${Math.round(n).toLocaleString()}`
 
-  const planned = plannedAnnualDrawdown(projection)
+  const planned = basis.plannedAnnualDraw
   // Recorded spend, when there is any, says more than investment sales.
   const annualDraw = spend ? spend.annualDraw : drawnLastYear
   const guardrail =
     annualDraw === undefined
       ? null
-      : withdrawalGuardrail(annualDraw, planned, projection.liquidAssets)
+      : withdrawalGuardrail(annualDraw, planned, basis.liquidAssets)
   const lastsTo = monteCarlo ? moneyLastsTo(monteCarlo.yearlyBands) : null
   const simulationNote = monteCarloLoading
     ? SIMULATING
     : monteCarloUnavailable && SIMULATION_FAILED
-  const lifeExpectancy = projection.planInputs?.lifeExpectancy
+  const lifeExpectancy = basis.lifeExpectancy
   const beyondPlan = lifeExpectancy ? `${lifeExpectancy}+` : "Lasts the plan"
 
   return (
