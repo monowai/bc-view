@@ -61,6 +61,8 @@ export default function PlanVerdict(): React.ReactElement | null {
   // Percentages stay visible on purpose. A survival rate carries no amount and
   // no date — it is the one figure here that says nothing about this person's
   // wealth — and blanking it would leave the verdict with nothing readable.
+  // The draw rate is not that kind of percentage: it relates this owner's
+  // draw to their balance, so it is hidden with them.
   const milestone = ((): { label: string; value: string; sub: string } => {
     if (retired) {
       if (hideValues) {
@@ -188,7 +190,7 @@ export default function PlanVerdict(): React.ReactElement | null {
             label="Planned draw this year"
             value={draw != null ? money(draw) : "—"}
             sub={
-              draw != null && projection.liquidAssets > 0
+              !hideValues && draw != null && projection.liquidAssets > 0
                 ? `${((draw / projection.liquidAssets) * 100).toFixed(1)}% of liquid`
                 : "from liquid assets"
             }

@@ -191,6 +191,22 @@ describe("PlanVerdict for a retired owner", () => {
     expect(screen.queryByText("You get there at")).not.toBeInTheDocument()
   })
 
+  it("hides the draw rate in privacy mode", () => {
+    jest
+      .requireMock("@hooks/usePrivacyMode")
+      .usePrivacyMode.mockReturnValue({ hideValues: true })
+    try {
+      renderWithCtx({ currentAge: 60, projection: retired() })
+
+      expect(screen.queryByText(/% of liquid/)).not.toBeInTheDocument()
+      expect(screen.getByText("from liquid assets")).toBeInTheDocument()
+    } finally {
+      jest
+        .requireMock("@hooks/usePrivacyMode")
+        .usePrivacyMode.mockReturnValue({ hideValues: false })
+    }
+  })
+
   it("says this year when the owner retired this year", () => {
     renderWithCtx({
       currentAge: 60,
