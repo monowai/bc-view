@@ -161,7 +161,7 @@ describe("JourneyReport", () => {
   it("should render the versioned footer", () => {
     render(<JourneyReport {...baseProps} />)
     expect(screen.getByTestId("report-footer")).toHaveTextContent(
-      "Slow travel · as of 2026-09-29 · report v0.2",
+      "Slow travel · as of 2026-09-29 · report v0.3",
     )
   })
 })

@@ -38,8 +38,8 @@ exports[`buildJourneyReport should match the golden snapshot 1`] = `
   },
   "footer": {
     "disclaimer": "Projections are estimates, not advice.",
-    "line": "Slow travel · as of 2026-09-29 · report v0.2",
-    "templateVersion": "0.2",
+    "line": "Slow travel · as of 2026-09-29 · report v0.3",
+    "templateVersion": "0.3",
   },
   "stages": [
     {

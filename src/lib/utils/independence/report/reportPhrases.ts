@@ -9,7 +9,7 @@
  *
  * Spec: bc-claude/INDEPENDENCE_REPORT.md → Narrative.
  */
-export const REPORT_TEMPLATE_VERSION = "0.2"
+export const REPORT_TEMPLATE_VERSION = "0.3"
 
 /** Finding codes svc-retire's FindingsService can emit today. */
 export const FINDING_CODES = [
