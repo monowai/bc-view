@@ -217,6 +217,19 @@ describe("ActionsMenu — watchlist", () => {
     expect(onRowDoubleClick).not.toHaveBeenCalled()
   })
 
+  it("offers no watch action until the watchlist has loaded", () => {
+    ;(useWatchlist as jest.Mock).mockReturnValue({ items: undefined })
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+
+    expect(
+      screen.queryByRole("button", { name: "Add to Watchlist" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Edit watch target" }),
+    ).not.toBeInTheDocument()
+  })
+
   it("does not offer an asset the server marks unwatchable", () => {
     render(
       <ActionsMenu

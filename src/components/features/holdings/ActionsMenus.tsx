@@ -412,7 +412,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           onClick={handle(onAnalyseHolding)}
         />
       )}
-      {canWatch && (
+      {/* Until the watchlist loads, add and edit cannot be told apart. */}
+      {canWatch && watchlistItems && (
         <MenuItem
           iconClass={watched ? "fas fa-bullseye" : "fas fa-eye"}
           label={watched ? "Edit watch target" : "Add to Watchlist"}

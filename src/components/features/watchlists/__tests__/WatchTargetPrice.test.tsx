@@ -115,6 +115,24 @@ describe("WatchTargetPrice", () => {
     expect(screen.queryByTestId("watch-target")).not.toBeInTheDocument()
   })
 
+  it("does not reopen the editor when an unwatched asset is watched again", () => {
+    const item = makeWatchlistItem({ asset, targetPrice: 150 })
+    watching([item])
+    const { rerender } = render(
+      <WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />,
+    )
+    fireEvent.click(screen.getByTestId("watch-target"))
+    expect(screen.getByLabelText(/Target price/)).toBeInTheDocument()
+
+    watching([])
+    rerender(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
+    watching([item])
+    rerender(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
+
+    expect(screen.getByTestId("watch-target")).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Target price/)).not.toBeInTheDocument()
+  })
+
   it("renders nothing while the watchlist loads", () => {
     watching(undefined)
     render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)

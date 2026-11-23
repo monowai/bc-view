@@ -29,7 +29,12 @@ export default function WatchTargetPrice({
   const { items } = useWatchlist()
   const [editing, setEditing] = useState(false)
   const item = items?.find((i) => i.asset.id === assetId)
-  if (!item) return null
+  if (!item) {
+    // A vanished item must not leave the editor armed, or it reopens
+    // unasked when the asset is watched again.
+    if (editing) setEditing(false)
+    return null
+  }
 
   let label: React.ReactNode
   let title: string
