@@ -70,6 +70,8 @@ type Slots<K extends string> = Record<K, string>
 export const phrases = {
   AGE_LINE: (s: Slots<"currentAge" | "lifeExpectancy" | "retirementAge">) =>
     `Age ${s.currentAge}, planning to age ${s.lifeExpectancy}, independence target age ${s.retirementAge}`,
+  AGE_LINE_RETIRED: (s: Slots<"currentAge" | "lifeExpectancy" | "retiredAt">) =>
+    `Age ${s.currentAge}, planning to age ${s.lifeExpectancy}, retired at age ${s.retiredAt}`,
 
   VERDICT_FUNDED: (s: Slots<"lifeExpectancy" | "terminalP50">) =>
     `Your plan funds every year to age ${s.lifeExpectancy} with ${s.terminalP50} to spare in the median case.`,

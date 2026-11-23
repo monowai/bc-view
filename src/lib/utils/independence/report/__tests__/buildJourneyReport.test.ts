@@ -180,3 +180,35 @@ describe("buildJourneyReport", () => {
     expect(report).toMatchSnapshot()
   })
 })
+
+describe("buildJourneyReport for a retired owner", () => {
+  // Retired at 58; the first stage starts today, at 60.
+  const retired = (): ReturnType<typeof makeJourneyProjection> =>
+    makeJourneyProjection({
+      currentAge: 60,
+      retirementAge: 58,
+      accumulationProjections: [],
+    })
+
+  it("names the age they retired at, not today's age, as their independence", () => {
+    const report = buildJourneyReport({ ...base, projection: retired() })
+    expect(report.cover.ageLine).toBe(
+      "Age 60, planning to age 90, retired at age 58",
+    )
+    expect(report.assumptions).toContainEqual({
+      label: "Retired at",
+      value: "58",
+    })
+    expect(report.assumptions.map((r) => r.label)).not.toContain(
+      "Independence age",
+    )
+  })
+
+  it("labels the opening liquid wealth as today's", () => {
+    const report = buildJourneyReport({ ...base, projection: retired() })
+    expect(report.verdict.kpis[0]).toMatchObject({
+      label: "Liquid wealth today",
+      caption: "at age 60",
+    })
+  })
+})

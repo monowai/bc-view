@@ -48,12 +48,9 @@ export default function PlanVerdict(): React.ReactElement | null {
   // A retired owner is drawing down, so "still to save" and "you get there at"
   // answer a question they no longer have: the balance may well cross the
   // target years from now, but that is growth in drawdown, not an arrival.
-  // Same test as the wealth page — the owner's age has reached the retirement
-  // age svc-retire resolved (their retired-on date, else their target age).
-  const ownerAge = projection.currentAge ?? currentAge
-  const retirementAge = projection.retirementAge
-  const retired =
-    retirementAge != null && ownerAge != null && ownerAge >= retirementAge
+  const { retired } = answers
+  const ownerAge = projection.currentAge ?? currentAge ?? 0
+  const retirementAge = projection.retirementAge ?? ownerAge
   const draw = projection.plannedAnnualDraw
 
   // Privacy mode hides amounts AND ages. An age is the other half of the same

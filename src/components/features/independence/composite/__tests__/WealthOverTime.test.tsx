@@ -127,3 +127,20 @@ describe("WealthOverTime crossing marker", () => {
     expect(screen.queryByText(/^Age \d+$/)).not.toBeInTheDocument()
   })
 })
+
+describe("WealthOverTime for a retired owner", () => {
+  const retired = projection({ currentAge: 61, retirementAge: 58 })
+
+  it("marks no crossing: the balance reaching the target in drawdown is not an arrival", () => {
+    renderWithCtx({ currentAge: 61, projection: retired })
+    expect(screen.queryByText(/^Age \d+$/)).not.toBeInTheDocument()
+  })
+
+  it("describes the balance as money being drawn down, not saved toward retiring", () => {
+    renderWithCtx({ currentAge: 61, projection: retired })
+    expect(
+      screen.queryByText(/target you need to retire on/i),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/as you draw it down/i)).toBeInTheDocument()
+  })
+})
