@@ -18,6 +18,7 @@ import type {
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import { toErrorMessage } from "@lib/formatters"
 import { currentAgeFromSettings } from "@lib/independence/age"
+import { startFirstPhaseNowIfRetired } from "@lib/independence/phaseEdits"
 import { landingPlan } from "@lib/independence/journeyPhases"
 import {
   runCompositeProjection,
@@ -244,7 +245,13 @@ export function useCompositeProjection(
       savedPhases &&
       savedPhases.every((phase) => planIds.has(phase.planId))
     ) {
-      setPhases(savedPhases)
+      setPhases(
+        startFirstPhaseNowIfRetired(
+          savedPhases,
+          !!settings.retiredOn,
+          localCurrentAge,
+        ),
+      )
     } else {
       const exclusions = savedExclusions ?? new Set<string>()
       const initial = buildInitialPhases(

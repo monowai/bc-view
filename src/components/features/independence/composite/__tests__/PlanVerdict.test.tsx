@@ -162,3 +162,90 @@ describe("PlanVerdict milestone tile", () => {
     expect(screen.getByText("22 yrs")).toBeInTheDocument()
   })
 })
+
+describe("PlanVerdict for a retired owner", () => {
+  const retired = (
+    overrides: Partial<CompositeProjectionResult> = {},
+  ): CompositeProjectionResult =>
+    projection({
+      liquidAssets: 1_300_000,
+      fiNumber: 1_310_000,
+      currentAge: 60,
+      retirementAge: 58,
+      plannedAnnualDraw: 52_000,
+      yearlyProjections: [row(60, 1_290_000), row(75, 1_320_000)],
+      ...overrides,
+    })
+
+  it("frames the tiles as drawdown, not saving toward a target", () => {
+    renderWithCtx({ currentAge: 60, projection: retired() })
+
+    expect(screen.getByText("Target to retire on")).toBeInTheDocument()
+    expect(screen.getByText("Planned draw this year")).toBeInTheDocument()
+    expect(screen.getByText("S$52K")).toBeInTheDocument()
+    expect(screen.getByText("4.0% of liquid")).toBeInTheDocument()
+    expect(screen.getByText("Retired")).toBeInTheDocument()
+    expect(screen.getByText("since 58")).toBeInTheDocument()
+    expect(screen.getByText("2 years ago")).toBeInTheDocument()
+    expect(screen.queryByText("Still to save")).not.toBeInTheDocument()
+    expect(screen.queryByText("You get there at")).not.toBeInTheDocument()
+  })
+
+  it("hides the draw rate in privacy mode", () => {
+    jest
+      .requireMock("@hooks/usePrivacyMode")
+      .usePrivacyMode.mockReturnValue({ hideValues: true })
+    try {
+      renderWithCtx({ currentAge: 60, projection: retired() })
+
+      expect(screen.queryByText(/% of liquid/)).not.toBeInTheDocument()
+      expect(screen.getByText("from liquid assets")).toBeInTheDocument()
+    } finally {
+      jest
+        .requireMock("@hooks/usePrivacyMode")
+        .usePrivacyMode.mockReturnValue({ hideValues: false })
+    }
+  })
+
+  it("says this year when the owner retired this year", () => {
+    renderWithCtx({
+      currentAge: 60,
+      projection: retired({ retirementAge: 60 }),
+    })
+
+    expect(screen.getByText("since 60")).toBeInTheDocument()
+    expect(screen.getByText("this year")).toBeInTheDocument()
+  })
+
+  it("keeps the saving tiles while the owner is short of their retirement age", () => {
+    renderWithCtx({
+      currentAge: 59,
+      projection: retired({
+        currentAge: 59,
+        retirementAge: 65,
+        plannedAnnualDraw: undefined,
+      }),
+    })
+
+    expect(screen.getByText("Still to save")).toBeInTheDocument()
+    expect(screen.queryByText("Planned draw this year")).not.toBeInTheDocument()
+  })
+})
+
+describe("PlanVerdict for a retired owner without a planned draw", () => {
+  it("shows a dash rather than a zero draw", () => {
+    renderWithCtx({
+      currentAge: 66,
+      projection: projection({
+        currentAge: 66,
+        retirementAge: 65,
+        plannedAnnualDraw: undefined,
+      }),
+    })
+
+    const tile = screen.getByText("from liquid assets").parentElement
+    expect(tile).toHaveTextContent("Planned draw this year")
+    expect(tile).toHaveTextContent("—")
+    expect(tile).not.toHaveTextContent("S$0")
+  })
+})

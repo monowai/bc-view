@@ -90,3 +90,25 @@ describe("compositeAnswers", () => {
     expect(a.yearsToFi).toBeNull()
   })
 })
+
+describe("compositeAnswers retired", () => {
+  it("is retired once the owner's age reaches the retirement age", () => {
+    const a = compositeAnswers(
+      projection({ currentAge: 60, retirementAge: 58 }),
+      60,
+    )!
+    expect(a.retired).toBe(true)
+  })
+
+  it("is not retired while the owner is short of the retirement age", () => {
+    const a = compositeAnswers(
+      projection({ currentAge: 59, retirementAge: 65 }),
+      59,
+    )!
+    expect(a.retired).toBe(false)
+  })
+
+  it("is not retired when the projection carries no retirement age", () => {
+    expect(compositeAnswers(projection(), 60)!.retired).toBe(false)
+  })
+})

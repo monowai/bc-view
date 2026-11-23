@@ -29,6 +29,13 @@ export interface CompositeAnswers {
    * Worth saying out loud — "FI at 61" alone would be a half-truth.
    */
   dipsBelow: boolean
+  /**
+   * The owner is drawing down: their age has reached the retirement age
+   * svc-retire resolved (the retired-on date, else the target age). Same test
+   * the wealth page applies to a single plan. Saving framing — still to save,
+   * the age the balance crosses the target — does not apply.
+   */
+  retired: boolean
 }
 
 /**
@@ -61,6 +68,12 @@ export function compositeAnswers(
     firstAbove !== -1 &&
     rows.slice(firstAbove + 1).some((r) => r.endingBalance < fiNumber)
 
+  const ownerAge = projection.currentAge ?? currentAge
+  const retired =
+    projection.retirementAge != null &&
+    ownerAge != null &&
+    ownerAge >= projection.retirementAge
+
   return {
     fiNumber,
     currentLiquid,
@@ -72,5 +85,6 @@ export function compositeAnswers(
         ? fiCrossingAge - currentAge
         : null,
     dipsBelow,
+    retired,
   }
 }

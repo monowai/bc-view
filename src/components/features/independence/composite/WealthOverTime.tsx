@@ -85,6 +85,9 @@ const LENSES: { id: Lens; label: string; hint: string }[] = [
   },
 ]
 
+const RETIRED_LASTS_HINT =
+  "Money you can spend as you draw it down, against your target."
+
 /**
  * The one chart on this page.
  *
@@ -122,9 +125,12 @@ export default function WealthOverTime(): React.ReactElement | null {
   // is already past the target crosses on its very first point, and a marker
   // there labels the start of retirement as the moment the money arrived.
   // The verdict above this chart says "today"; the chart must not argue.
-  const crossingAge = answers?.isAchieved
-    ? null
-    : (answers?.fiCrossingAge ?? null)
+  // A retired owner is already drawing down; the balance crossing the target
+  // later is growth in drawdown, not an arrival, and the verdict says so.
+  const crossingAge =
+    answers?.isAchieved || answers?.retired
+      ? null
+      : (answers?.fiCrossingAge ?? null)
 
   // ——— "Will it last?" rows: liquid balance, plus MC bands once run ———
   const trajectory = useMemo<LensRow[]>(() => {
@@ -239,6 +245,10 @@ export default function WealthOverTime(): React.ReactElement | null {
 
   const hasBands = Boolean(mc.result)
   const activeLens = LENSES.find((l) => l.id === lens)!
+  const lensHint =
+    activeLens.id === "lasts" && answers?.retired
+      ? RETIRED_LASTS_HINT
+      : activeLens.hint
 
   const runStress = (): void => {
     // Results land as bands on the "Will it last?" lens, so show that lens —
@@ -260,7 +270,7 @@ export default function WealthOverTime(): React.ReactElement | null {
             Your wealth over time
           </h2>
           <p className="mt-0.5 max-w-prose text-sm text-gray-600 dark:text-gray-400">
-            {activeLens.hint}
+            {lensHint}
           </p>
         </div>
 

@@ -1,3 +1,4 @@
+import { compositeAnswers } from "@lib/independence/compositeAnswers"
 import type {
   CompositeProjectionResult,
   CompositeYearlyProjection,
@@ -68,13 +69,22 @@ export interface JourneyReportModel {
 
 interface JourneyAges {
   currentAge?: number
-  /** First stage's starting age. */
+  /** First stage's starting age: when drawdown begins. */
   independenceAge: number
+  /**
+   * The age a retired owner retired at (svc-retire's resolved retirement age).
+   * Absent until the owner has retired. Their first stage starts today, so
+   * {@link independenceAge} is today's age, not the age they retired.
+   */
+  retiredAt?: number
   /** Last stage's final age. */
   lifeExpectancy: number
 }
 
-function journeyAges(projection: CompositeProjectionResult): JourneyAges {
+function journeyAges(
+  projection: CompositeProjectionResult,
+  retired: boolean,
+): JourneyAges {
   const phases = projection.phases
   const first = phases[0]
   const last = phases[phases.length - 1]
@@ -83,6 +93,7 @@ function journeyAges(projection: CompositeProjectionResult): JourneyAges {
   return {
     currentAge: has(projection.currentAge) ? projection.currentAge : undefined,
     independenceAge: first?.fromAge ?? lastRow?.age ?? 0,
+    retiredAt: retired ? projection.retirementAge : undefined,
     lifeExpectancy: last?.toAge ?? lastRow?.age ?? 0,
   }
 }
@@ -125,7 +136,9 @@ function buildVerdict(
 
   const kpis: ReportKpi[] = [
     {
-      label: "Liquid wealth at independence",
+      label: has(ages.retiredAt)
+        ? "Liquid wealth today"
+        : "Liquid wealth at independence",
       value: moneyShort(
         firstRow?.startingBalance ?? projection.liquidAssets,
         sym,
@@ -206,7 +219,9 @@ function buildAssumptions(
 ): ReportRow[] {
   const rows: ReportRow[] = [
     { label: "Display currency", value: projection.displayCurrency },
-    { label: "Independence age", value: String(ages.independenceAge) },
+    has(ages.retiredAt)
+      ? { label: "Retired at", value: String(ages.retiredAt) }
+      : { label: "Independence age", value: String(ages.independenceAge) },
     { label: "Planning horizon", value: `age ${ages.lifeExpectancy}` },
   ]
   if (has(projection.targetBalance)) {
@@ -234,7 +249,10 @@ export function buildJourneyReport(
   input: BuildJourneyReportInput,
 ): JourneyReportModel {
   const { journeyName, projection, mc, currencySymbol: sym } = input
-  const ages = journeyAges(projection)
+  const ages = journeyAges(
+    projection,
+    compositeAnswers(projection, undefined)?.retired ?? false,
+  )
   const seed = mc && has(input.seed) ? input.seed : null
   const fiProgress = has(projection.fiProgress) ? projection.fiProgress : null
   return {
@@ -246,11 +264,17 @@ export function buildJourneyReport(
       stageLine: phrases.JOURNEY_STAGE_COUNT({
         count: String(projection.phases.length),
       }),
-      ageLine: phrases.AGE_LINE({
-        currentAge: has(ages.currentAge) ? String(ages.currentAge) : "—",
-        lifeExpectancy: String(ages.lifeExpectancy),
-        retirementAge: String(ages.independenceAge),
-      }),
+      ageLine: has(ages.retiredAt)
+        ? phrases.AGE_LINE_RETIRED({
+            currentAge: has(ages.currentAge) ? String(ages.currentAge) : "—",
+            lifeExpectancy: String(ages.lifeExpectancy),
+            retiredAt: String(ages.retiredAt),
+          })
+        : phrases.AGE_LINE({
+            currentAge: has(ages.currentAge) ? String(ages.currentAge) : "—",
+            lifeExpectancy: String(ages.lifeExpectancy),
+            retirementAge: String(ages.independenceAge),
+          }),
     },
     verdict: buildVerdict(input, ages, sym),
     standing: {

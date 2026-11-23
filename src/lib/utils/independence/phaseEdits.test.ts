@@ -1,5 +1,9 @@
 import type { CompositePhase } from "types/independence"
-import { movePhase, setBoundaryAge } from "./phaseEdits"
+import {
+  movePhase,
+  setBoundaryAge,
+  startFirstPhaseNowIfRetired,
+} from "./phaseEdits"
 
 const phases: CompositePhase[] = [
   { planId: "a", fromAge: 61, toAge: 70 },
@@ -74,5 +78,31 @@ describe("movePhase", () => {
   it("is a no-op at either end", () => {
     expect(movePhase(phases, 0, "earlier")).toBe(phases)
     expect(movePhase(phases, 2, "later")).toBe(phases)
+  })
+})
+
+describe("startFirstPhaseNowIfRetired", () => {
+  const saved = [
+    { planId: "go-go", fromAge: 75, toAge: 80 },
+    { planId: "slow-go", fromAge: 80 },
+  ]
+
+  it("starts the first stage at the current age for a retired owner", () => {
+    expect(startFirstPhaseNowIfRetired(saved, true, 60)).toEqual([
+      { planId: "go-go", fromAge: 60, toAge: 80 },
+      { planId: "slow-go", fromAge: 80 },
+    ])
+  })
+
+  it("leaves the stages alone when the owner is not retired", () => {
+    expect(startFirstPhaseNowIfRetired(saved, false, 60)).toBe(saved)
+  })
+
+  it("leaves the stages alone when the current age is unknown", () => {
+    expect(startFirstPhaseNowIfRetired(saved, true, undefined)).toBe(saved)
+  })
+
+  it("leaves the stages alone when the first stage has already ended", () => {
+    expect(startFirstPhaseNowIfRetired(saved, true, 82)).toBe(saved)
   })
 })
