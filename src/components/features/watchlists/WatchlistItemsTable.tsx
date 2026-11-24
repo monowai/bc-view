@@ -52,7 +52,28 @@ const toTradeOption = (item: WatchlistItem): AssetOption => {
 // Every figure is the backend's; this component only formats. Percent fields
 // are fractions (0.25 = 25%), hence formatSignedPercent.
 
-/** The day's move as a percent; the amount is on hover, as on holdings. */
+/** A move as its percent, or its amount when the backend sent no percent. */
+function signedMove(
+  amount: number | null,
+  percent: number | null,
+  decimals: number,
+): { text: string; tone: string } | null {
+  if (percent != null) {
+    return { text: formatSignedPercent(percent), tone: gainLossClass(percent) }
+  }
+  if (amount != null) {
+    return {
+      text: formatSignedNumber(amount, decimals),
+      tone: gainLossClass(amount),
+    }
+  }
+  return null
+}
+
+/**
+ * The day's move as a percent, the amount on hover, as on holdings. With no
+ * percent from the backend, the amount shows instead.
+ */
 function DayChange({
   item,
   decimals,
@@ -65,20 +86,41 @@ function DayChange({
     amount == null
       ? undefined
       : `Change on day ${formatSignedNumber(amount, decimals)}`
-  if (percent == null) {
-    return (
-      <span data-testid="day-change" title={title}>
-        {DASH}
-      </span>
-    )
-  }
+  const move = signedMove(amount, percent, decimals)
   return (
     <span
       data-testid="day-change"
       title={title}
-      className={`tabular-nums ${gainLossClass(percent)}`}
+      className={move ? `tabular-nums ${move.tone}` : undefined}
     >
-      {formatSignedPercent(percent)}
+      {move ? move.text : DASH}
+    </span>
+  )
+}
+
+/**
+ * The move since added as text: hover titles reach neither touch screens nor
+ * screen readers. Visible on stacked cards, screen-reader-only on desktop.
+ */
+function SinceAdded({
+  item,
+  decimals,
+}: {
+  item: WatchlistItem
+  decimals: number
+}): React.ReactElement | null {
+  const move = signedMove(
+    item.changeSinceAdded,
+    item.changeSinceAddedPercent,
+    decimals,
+  )
+  if (!move) return null
+  return (
+    <span
+      data-testid="since-added"
+      className={`md:sr-only ml-1 text-xs tabular-nums ${move.tone}`}
+    >
+      {`(${move.text})`}
     </span>
   )
 }
@@ -254,18 +296,21 @@ export default function WatchlistItemsTable({
               </td>
               <td className={td}>
                 <MobileLabel>{"Added"}</MobileLabel>
-                <span
-                  data-testid="added"
-                  title={addedTitle(item, dp)}
-                  className="tabular-nums"
-                >
-                  {formatCurrency(item.addedPrice, dp)}
-                  {/* The Price cell names the currency; with no price, say it here. */}
-                  {item.price == null && (
-                    <span className="ml-1 text-xs text-gray-500">
-                      {item.currency.code}
-                    </span>
-                  )}
+                <span>
+                  <span
+                    data-testid="added"
+                    title={addedTitle(item, dp)}
+                    className="tabular-nums"
+                  >
+                    {formatCurrency(item.addedPrice, dp)}
+                    {/* The Price cell names the currency; with no price, say it here. */}
+                    {item.price == null && (
+                      <span className="ml-1 text-xs text-gray-500">
+                        {item.currency.code}
+                      </span>
+                    )}
+                  </span>
+                  <SinceAdded item={item} decimals={dp} />
                 </span>
               </td>
             </tr>

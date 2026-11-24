@@ -342,6 +342,44 @@ describe("Watchlist page", () => {
     )
   })
 
+  it("shows the day's amount when the backend sent no percent", async () => {
+    watchlist = makeWatchlist({
+      items: [{ ...priced, changeOnDayPercent: null }, unpriced],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    const day = within(row("wi-1")).getByTestId("day-change")
+    expect(day).toHaveTextContent(/^-1\.50$/)
+    expect(day).toHaveClass("text-red-600")
+  })
+
+  it("shows the move since added as text, visible when rows stack", async () => {
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    // Touch screens and screen readers do not get the hover title, so the
+    // percent is text: visible on cards, screen-reader-only on desktop.
+    const since = within(row("wi-1")).getByTestId("since-added")
+    expect(since).toHaveTextContent(/^\(\+33\.33%\)$/)
+    expect(since).toHaveClass("md:sr-only")
+    expect(
+      within(row("wi-2")).queryByTestId("since-added"),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows the since-added amount when the backend sent no percent", async () => {
+    watchlist = makeWatchlist({
+      items: [{ ...priced, changeSinceAddedPercent: null }, unpriced],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    expect(within(row("wi-1")).getByTestId("since-added")).toHaveTextContent(
+      /^\(\+7\.77\)$/,
+    )
+  })
+
   it("shows a dash for every figure the backend left null", async () => {
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")
