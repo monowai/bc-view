@@ -285,6 +285,23 @@ describe("useRetiredMetricsData — journey basis", () => {
     currentAge: 76,
     retirementAge: 60,
     plannedAnnualDraw: 50_000,
+    // svc-retire names every phase and the currency it budgets in.
+    phases: [
+      {
+        planId: "plan-go",
+        planName: "Go",
+        fromAge: 60,
+        toAge: 75,
+        expensesCurrency: "NZD",
+      },
+      {
+        planId: "plan-slow",
+        planName: "Slow",
+        fromAge: 75,
+        toAge: 95,
+        expensesCurrency: "NZD",
+      },
+    ],
     yearlyProjections: [row(76, "plan-slow"), row(77, "plan-slow")],
   })
   const basis = journeyRetiredBasis(journey, composite, 95)
@@ -437,6 +454,20 @@ describe("useRetiredMetricsData — journey basis", () => {
       expect(result.current.spend).toBeNull()
       expect(result.current.spendOtherCurrency).toBe("SGD")
     })
+  })
+
+  it("does not compare spend when the projection does not name the budget phase's currency", () => {
+    expenseRowsByPlan = { "plan-slow": [housing(2_000)] }
+    spendRows = nzdSpend()
+    const unnamed = journeyRetiredBasis(
+      journey,
+      { ...composite, phases: [] },
+      95,
+    )
+    expect(unnamed.budgetCurrency).toBeUndefined()
+    const { result } = renderHook(() => useRetiredMetricsData(unnamed))
+    expect(result.current.spend).toBeNull()
+    expect(result.current.spendOtherCurrency).toBe("NZD")
   })
 
   it("compares spend when the log, the budget and the journey share a currency", () => {

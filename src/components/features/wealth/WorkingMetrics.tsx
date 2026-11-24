@@ -129,15 +129,20 @@ function MonthlyInvestment({
           </>
         )}
       </button>
-      <div className="mt-2 bg-gray-100 rounded-full h-1.5">
-        <div
-          className={`h-1.5 rounded-full transition-all ${barCls}`}
-          style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
-        />
-      </div>
-      <p className={NOTE_CLS}>
-        {investedNote(isNegative, target, targetCurrency, progress)}
-      </p>
+      {/* The bar and the note give progress away, so they are hidden too. */}
+      {!hideValues && (
+        <>
+          <div className="mt-2 bg-gray-100 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${barCls}`}
+              style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+            />
+          </div>
+          <p className={NOTE_CLS}>
+            {investedNote(isNegative, target, targetCurrency, progress)}
+          </p>
+        </>
+      )}
     </>
   )
 }
