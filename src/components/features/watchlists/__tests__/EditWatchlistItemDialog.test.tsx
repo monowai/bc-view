@@ -154,6 +154,11 @@ describe("EditWatchlistItemDialog typed percentage target", () => {
     fireEvent.change(target(), { target: { value: text } })
   }
 
+  it("asks for a keyboard that can type a sign and a percent", () => {
+    renderDialog(priced)
+    expect(target()).toHaveAttribute("inputmode", "text")
+  })
+
   it("previews a typed percentage below the close as a price", () => {
     renderDialog(priced)
     type("7%")

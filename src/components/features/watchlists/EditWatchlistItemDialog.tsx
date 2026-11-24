@@ -164,7 +164,7 @@ export default function EditWatchlistItemDialog({
           <input
             id={`${fieldId}-target`}
             className={inputClass}
-            inputMode="decimal"
+            inputMode="text"
             placeholder={"Price or %"}
             value={targetText}
             onChange={(e) => setTargetText(e.target.value)}
