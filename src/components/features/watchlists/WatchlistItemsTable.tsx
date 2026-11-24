@@ -117,13 +117,13 @@ export default function WatchlistItemsTable({
       <thead className="hidden md:table-header-group border-b border-gray-200">
         <tr>
           <th className={`${th} text-left`}>{"Asset"}</th>
+          <th className={`${th} text-left`}>
+            <span className="sr-only">{"Actions"}</span>
+          </th>
           <th className={`${th} text-right`}>{"Price"}</th>
           <th className={`${th} text-right`}>{"Target"}</th>
           <th className={`${th} text-right`}>{"Day"}</th>
           <th className={`${th} text-right`}>{"Added"}</th>
-          <th className={`${th} text-right`}>
-            <span className="sr-only">{"Actions"}</span>
-          </th>
         </tr>
       </thead>
       <tbody className="block md:table-row-group">
@@ -153,6 +153,60 @@ export default function WatchlistItemsTable({
                 {item.targetHitOn && (
                   <TargetHitBadge hitOn={item.targetHitOn} className="mt-1" />
                 )}
+              </td>
+              <td className="block md:table-cell px-3 py-1 md:py-2">
+                <div data-testid="row-actions" className="flex items-center">
+                  {/* Hidden when empty, so no divider is left dangling. */}
+                  <span
+                    data-testid="asset-icons"
+                    className="flex items-center empty:hidden mr-1.5 pr-1.5 border-r border-gray-300"
+                  >
+                    <AssetNewsButton
+                      asset={item.asset}
+                      onShow={() => onNews(item)}
+                      buttonClassName={ROW_ICON_BUTTON}
+                      iconClassName=""
+                    />
+                    <AssetReviewButton
+                      asset={item.asset}
+                      onShow={() => onReview(item)}
+                      buttonClassName={ROW_ICON_BUTTON}
+                      iconClassName=""
+                    />
+                    {item.asset.chartable && (
+                      <button
+                        type="button"
+                        aria-label={`Show price chart for ${code}`}
+                        title="Price Chart"
+                        onClick={() => onChart(item)}
+                        className={`${ROW_ICON_BUTTON} hover:text-blue-700`}
+                      >
+                        <i aria-hidden="true" className="fas fa-chart-line"></i>
+                      </button>
+                    )}
+                  </span>
+                  {isTradeable(item.asset) && (
+                    <TradeAssetAction asset={toTradeOption(item)} compact />
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Edit ${code}`}
+                    title="Edit"
+                    onClick={() => onEdit(item)}
+                    className={`${ROW_ICON_BUTTON} hover:bg-gray-100 hover:text-gray-700`}
+                  >
+                    <i aria-hidden="true" className="fas fa-pen"></i>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${code}`}
+                    title="Remove"
+                    onClick={() => onRemove(item)}
+                    className={`${ROW_ICON_BUTTON} hover:bg-red-50 hover:text-red-700`}
+                  >
+                    <i aria-hidden="true" className="fas fa-trash"></i>
+                  </button>
+                </div>
               </td>
               <td className={td}>
                 <MobileLabel>{"Price"}</MobileLabel>
@@ -212,63 +266,6 @@ export default function WatchlistItemsTable({
                     </span>
                   )}
                 </span>
-              </td>
-              <td className="block md:table-cell px-3 py-1 md:py-2">
-                <div
-                  data-testid="row-actions"
-                  className="flex items-center justify-end"
-                >
-                  {/* Hidden when empty, so no divider is left dangling. */}
-                  <span
-                    data-testid="asset-icons"
-                    className="flex items-center empty:hidden mr-1.5 pr-1.5 border-r border-gray-300"
-                  >
-                    <AssetNewsButton
-                      asset={item.asset}
-                      onShow={() => onNews(item)}
-                      buttonClassName={ROW_ICON_BUTTON}
-                      iconClassName=""
-                    />
-                    <AssetReviewButton
-                      asset={item.asset}
-                      onShow={() => onReview(item)}
-                      buttonClassName={ROW_ICON_BUTTON}
-                      iconClassName=""
-                    />
-                    {item.asset.chartable && (
-                      <button
-                        type="button"
-                        aria-label={`Show price chart for ${code}`}
-                        title="Price Chart"
-                        onClick={() => onChart(item)}
-                        className={`${ROW_ICON_BUTTON} hover:text-blue-700`}
-                      >
-                        <i aria-hidden="true" className="fas fa-chart-line"></i>
-                      </button>
-                    )}
-                  </span>
-                  {isTradeable(item.asset) && (
-                    <TradeAssetAction asset={toTradeOption(item)} compact />
-                  )}
-                  <button
-                    type="button"
-                    aria-label={`Edit ${code}`}
-                    title="Edit"
-                    onClick={() => onEdit(item)}
-                    className={`${ROW_ICON_BUTTON} hover:bg-gray-100 hover:text-gray-700`}
-                  >
-                    <i aria-hidden="true" className="fas fa-pen"></i>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${code}`}
-                    title="Remove"
-                    onClick={() => onRemove(item)}
-                    className={`${ROW_ICON_BUTTON} hover:bg-red-50 hover:text-red-700`}
-                  >
-                    <i aria-hidden="true" className="fas fa-trash"></i>
-                  </button>
-                </div>
               </td>
             </tr>
           )

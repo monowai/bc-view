@@ -245,7 +245,7 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("target-arrow")).toHaveTextContent("▲")
   })
 
-  it("puts Target beside Price and drops the Since Added column", async () => {
+  it("puts the actions beside the asset and Target beside Price", async () => {
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")
 
@@ -254,11 +254,11 @@ describe("Watchlist page", () => {
       .map((h) => h.textContent)
     expect(headers).toEqual([
       "Asset",
+      "Actions",
       "Price",
       "Target",
       "Day",
       "Added",
-      "Actions",
     ])
   })
 
