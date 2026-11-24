@@ -117,12 +117,7 @@ export default function WatchlistItemsTable({
     <table className="w-full text-sm">
       <thead className="hidden md:table-header-group border-b border-gray-200">
         <tr>
-          <th className={`${th} text-left`}>{"Asset"}</th>
-          {/* Actions take the slack, so they hug the asset and the
-              figures stay together on the right. */}
-          <th className={`${th} w-full text-left`}>
-            <span className="sr-only">{"Actions"}</span>
-          </th>
+          <th className={`${th} w-full text-left`}>{"Asset"}</th>
           <th className={`${th} pl-8 text-right`}>{"Price"}</th>
           <th className={`${th} pl-8 text-right`}>{"Target"}</th>
           <th className={`${th} pl-8 text-right`}>{"Day"}</th>
@@ -156,14 +151,14 @@ export default function WatchlistItemsTable({
                 {item.targetHitOn && (
                   <TargetHitBadge hitOn={item.targetHitOn} className="mt-1" />
                 )}
-              </td>
-              <td className="block md:table-cell px-3 py-1 md:py-2">
-                <div data-testid="row-actions" className="flex items-center">
-                  {/* On a phone an empty group hides, taking its divider with it. On
-                      desktop it keeps its width so every row's icons line up. */}
+                <div
+                  data-testid="row-actions"
+                  className="mt-1 -ml-2 flex items-center"
+                >
+                  {/* An empty group hides, taking its divider with it. */}
                   <span
                     data-testid="asset-icons"
-                    className="flex items-center empty:hidden md:empty:flex md:w-[6.375rem] md:justify-end mr-1.5 pr-1.5 border-r border-gray-300"
+                    className="flex items-center empty:hidden mr-1.5 pr-1.5 border-r border-gray-300"
                   >
                     <AssetNewsButton
                       asset={item.asset}
@@ -189,9 +184,7 @@ export default function WatchlistItemsTable({
                       </button>
                     )}
                   </span>
-                  {/* Right-aligned in a fixed width: Edit and Remove keep
-                      their place when an asset cannot be traded. */}
-                  <span className="flex items-center md:w-24 md:justify-end">
+                  <span className="flex items-center">
                     {isTradeable(item.asset) && (
                       <TradeAssetAction asset={toTradeOption(item)} compact />
                     )}

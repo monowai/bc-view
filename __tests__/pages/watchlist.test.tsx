@@ -245,21 +245,14 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("target-arrow")).toHaveTextContent("▲")
   })
 
-  it("puts the actions beside the asset and Target beside Price", async () => {
+  it("has no actions column and puts Target beside Price", async () => {
     renderPage()
     await screen.findByTestId("watchlist-item-wi-1")
 
     const headers = screen
       .getAllByRole("columnheader")
       .map((h) => h.textContent)
-    expect(headers).toEqual([
-      "Asset",
-      "Actions",
-      "Price",
-      "Target",
-      "Day",
-      "Added",
-    ])
+    expect(headers).toEqual(["Asset", "Price", "Target", "Day", "Added"])
   })
 
   it("groups the asset icons, a divider, then the row actions", async () => {
@@ -294,11 +287,11 @@ describe("Watchlist page", () => {
         .getAllByRole("button")
         .map((b) => b.getAttribute("aria-label")),
     ).toEqual(["News AAA", "AI review AAA", "Show price chart for AAA"])
-    // The asset cell keeps the code and name only.
+    // The actions sit under the asset's name, in the asset cell.
     const assetCell = within(row("wi-1"))
       .getByRole("link", { name: "AAA" })
       .closest("td") as HTMLElement
-    expect(within(assetCell).queryAllByRole("button")).toHaveLength(0)
+    expect(assetCell).toContainElement(actions)
   })
 
   it("shows a target below the price as a distance, not as a loss", async () => {
