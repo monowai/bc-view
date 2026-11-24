@@ -27,12 +27,47 @@ const asset = makeAsset({ id: "asset-aapl" })
 
 describe("WatchTargetPrice", () => {
   it("shows the watch target in the price's own currency symbol", () => {
-    watching([makeWatchlistItem({ asset, targetPrice: 150 })])
+    watching([makeWatchlistItem({ asset, targetPrice: 150, toTarget: 0.25 })])
     render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
 
     const target = screen.getByTestId("watch-target")
     expect(target).toHaveTextContent("Target $150.00")
-    expect(target).toHaveAttribute("title", "Watchlist target $150.00")
+    expect(target).toHaveAttribute(
+      "title",
+      "Watchlist target $150.00 · price must rise 25.00%",
+    )
+  })
+
+  it("says on hover how far the price must fall to the target", () => {
+    watching([makeWatchlistItem({ asset, targetPrice: 150, toTarget: -0.098 })])
+    render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
+
+    expect(screen.getByTestId("watch-target")).toHaveAttribute(
+      "title",
+      "Watchlist target $150.00 · price must fall 9.80%",
+    )
+  })
+
+  it("says on hover when the price is at the target", () => {
+    watching([
+      makeWatchlistItem({ asset, targetPrice: 150, toTarget: 0.00001 }),
+    ])
+    render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
+
+    expect(screen.getByTestId("watch-target")).toHaveAttribute(
+      "title",
+      "Watchlist target $150.00 · at target",
+    )
+  })
+
+  it("leaves the distance out of the hover when the server has none", () => {
+    watching([makeWatchlistItem({ asset, targetPrice: 150, toTarget: null })])
+    render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
+
+    expect(screen.getByTestId("watch-target")).toHaveAttribute(
+      "title",
+      "Watchlist target $150.00",
+    )
   })
 
   it("names the target's currency when the price is shown in another one", () => {
@@ -55,17 +90,15 @@ describe("WatchTargetPrice", () => {
     )
   })
 
-  it("shows Watching when the asset is watched without a target", () => {
+  it("renders nothing when the asset is watched without a target", () => {
     watching([makeWatchlistItem({ asset, targetPrice: null })])
     render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
 
-    const marker = screen.getByTestId("watch-target")
-    expect(marker).toHaveTextContent("Watching")
-    expect(marker).not.toHaveTextContent("Target")
+    expect(screen.queryByTestId("watch-target")).not.toBeInTheDocument()
   })
 
-  it("sets a target from the marker on an item that has none", async () => {
-    const item = makeWatchlistItem({ id: "wi-1", asset, targetPrice: null })
+  it("changes the target from the marker", async () => {
+    const item = makeWatchlistItem({ id: "wi-1", asset, targetPrice: 150 })
     watching([item])
     ;(updateWatchlistItem as jest.Mock).mockResolvedValue({
       ...item,

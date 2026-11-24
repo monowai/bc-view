@@ -7,6 +7,22 @@ interface TargetDistanceProps {
   className?: string
 }
 
+/** Rounded as shown, so a target the price rounds to reads "at target". */
+function roundedDistance(toTarget: number): {
+  shown: string
+  atTarget: boolean
+} {
+  const shown = formatPercent(Math.abs(toTarget))
+  return { shown, atTarget: Number.parseFloat(shown) === 0 }
+}
+
+/** The distance in words, for a tooltip: "price must fall 16.72%". */
+export function describeTargetDistance(toTarget: number): string {
+  const { shown, atTarget } = roundedDistance(toTarget)
+  if (atTarget) return "at target"
+  return `${toTarget < 0 ? "price must fall" : "price must rise"} ${shown}`
+}
+
 /**
  * How far the price must move to reach a watchlist target, and which way:
  * "▼ 16.72%". A distance is neither a gain nor a loss, so it is never
@@ -16,9 +32,7 @@ export default function TargetDistance({
   toTarget,
   className = "",
 }: TargetDistanceProps): React.ReactElement {
-  // Rounded as shown, so a target the price rounds to reads "at target".
-  const shown = formatPercent(Math.abs(toTarget))
-  const atTarget = Number.parseFloat(shown) === 0
+  const { shown, atTarget } = roundedDistance(toTarget)
   const falls = toTarget < 0
   return (
     <span

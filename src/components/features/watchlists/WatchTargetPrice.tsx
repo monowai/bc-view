@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useWatchlist } from "@hooks/useWatchlist"
 import { formatCurrency } from "@lib/formatters"
 import WatchItemEditor from "@components/features/watchlists/WatchItemEditor"
+import { describeTargetDistance } from "@components/features/watchlists/TargetDistance"
 
 interface WatchTargetPriceProps {
   assetId: string
@@ -15,10 +16,9 @@ interface WatchTargetPriceProps {
 
 /**
  * The caller's watchlist target for an asset, set small beneath or beside its
- * price; "Watching" when the asset is watched without a target. Hidden when
- * the asset is not watched. Clicking it edits the watchlist item. The target
- * is never converted: when the price beside it is in another currency, the
- * target names its own.
+ * price, with the distance to it on hover. Hidden unless a target is set.
+ * Clicking it edits the watchlist item. The target is never converted: when
+ * the price beside it is in another currency, the target names its own.
  */
 export default function WatchTargetPrice({
   assetId,
@@ -29,35 +29,22 @@ export default function WatchTargetPrice({
   const { items } = useWatchlist()
   const [editing, setEditing] = useState(false)
   const item = items?.find((i) => i.asset.id === assetId)
-  if (!item) {
-    // A vanished item must not leave the editor armed, or it reopens
-    // unasked when the asset is watched again.
+  if (item?.targetPrice == null) {
+    // A vanished target must not leave the editor armed, or it reopens
+    // unasked when a target is set again.
     if (editing) setEditing(false)
     return null
   }
 
-  let label: React.ReactNode
-  let title: string
-  let icon: string
-  if (item.targetPrice == null) {
-    label = "Watching"
-    title = "On your watchlist, no target. Click to set one"
-    icon = "fa-eye"
-  } else {
-    const value = formatCurrency(item.targetPrice, scale)
-    const money =
-      item.currency.code === currencyCode
-        ? `${item.currency.symbol}${value}`
-        : `${item.currency.code} ${value}`
-    label = (
-      <>
-        {"Target "}
-        <span className="font-mono tabular-nums">{money}</span>
-      </>
-    )
-    title = `Watchlist target ${money}`
-    icon = "fa-bullseye"
-  }
+  const value = formatCurrency(item.targetPrice, scale)
+  const money =
+    item.currency.code === currencyCode
+      ? `${item.currency.symbol}${value}`
+      : `${item.currency.code} ${value}`
+  const title =
+    item.toTarget == null
+      ? `Watchlist target ${money}`
+      : `Watchlist target ${money} · ${describeTargetDistance(item.toTarget)}`
 
   return (
     <span className={className}>
@@ -72,8 +59,11 @@ export default function WatchTargetPrice({
         }}
         onDoubleClick={(e) => e.stopPropagation()}
       >
-        <i aria-hidden="true" className={`fas ${icon} text-gray-400`}></i>
-        <span>{label}</span>
+        <i aria-hidden="true" className="fas fa-bullseye text-gray-400"></i>
+        <span>
+          {"Target "}
+          <span className="font-mono tabular-nums">{money}</span>
+        </span>
       </button>
       {editing && (
         <WatchItemEditor item={item} onClose={() => setEditing(false)} />
