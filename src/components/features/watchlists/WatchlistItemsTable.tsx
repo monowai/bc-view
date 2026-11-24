@@ -102,7 +102,8 @@ const MobileLabel = ({
 )
 
 const th = "px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500"
-const td = "flex justify-between md:table-cell px-3 py-1 md:py-2 md:text-right"
+const td =
+  "flex justify-between md:table-cell px-3 py-1 md:py-2 md:text-right md:font-mono md:whitespace-nowrap"
 
 export default function WatchlistItemsTable({
   items,
@@ -117,13 +118,15 @@ export default function WatchlistItemsTable({
       <thead className="hidden md:table-header-group border-b border-gray-200">
         <tr>
           <th className={`${th} text-left`}>{"Asset"}</th>
-          <th className={`${th} text-left`}>
+          {/* Actions take the slack, so they hug the asset and the
+              figures stay together on the right. */}
+          <th className={`${th} w-full text-left`}>
             <span className="sr-only">{"Actions"}</span>
           </th>
-          <th className={`${th} text-right`}>{"Price"}</th>
-          <th className={`${th} text-right`}>{"Target"}</th>
-          <th className={`${th} text-right`}>{"Day"}</th>
-          <th className={`${th} text-right`}>{"Added"}</th>
+          <th className={`${th} lg:min-w-36 text-right`}>{"Price"}</th>
+          <th className={`${th} lg:min-w-40 text-right`}>{"Target"}</th>
+          <th className={`${th} lg:min-w-24 text-right`}>{"Day"}</th>
+          <th className={`${th} lg:min-w-32 text-right`}>{"Added"}</th>
         </tr>
       </thead>
       <tbody className="block md:table-row-group">
@@ -136,7 +139,7 @@ export default function WatchlistItemsTable({
               data-testid={`watchlist-item-${item.id}`}
               className="block md:table-row border border-gray-200 md:border-0 md:border-b rounded-lg md:rounded-none mb-3 md:mb-0 py-2 md:py-0 bg-white"
             >
-              <td className="block md:table-cell px-3 py-1 md:py-2">
+              <td className="block md:table-cell px-3 py-1 md:py-2 md:whitespace-nowrap">
                 <div>
                   <Link
                     href={buildAssetLookupHref(item.asset)}
@@ -156,10 +159,11 @@ export default function WatchlistItemsTable({
               </td>
               <td className="block md:table-cell px-3 py-1 md:py-2">
                 <div data-testid="row-actions" className="flex items-center">
-                  {/* Hidden when empty, so no divider is left dangling. */}
+                  {/* On a phone an empty group hides, taking its divider with it. On
+                      desktop it keeps its width so every row's icons line up. */}
                   <span
                     data-testid="asset-icons"
-                    className="flex items-center empty:hidden mr-1.5 pr-1.5 border-r border-gray-300"
+                    className="flex items-center empty:hidden md:empty:flex md:w-[6.375rem] md:justify-end mr-1.5 pr-1.5 border-r border-gray-300"
                   >
                     <AssetNewsButton
                       asset={item.asset}
@@ -185,27 +189,31 @@ export default function WatchlistItemsTable({
                       </button>
                     )}
                   </span>
-                  {isTradeable(item.asset) && (
-                    <TradeAssetAction asset={toTradeOption(item)} compact />
-                  )}
-                  <button
-                    type="button"
-                    aria-label={`Edit ${code}`}
-                    title="Edit"
-                    onClick={() => onEdit(item)}
-                    className={`${ROW_ICON_BUTTON} hover:bg-gray-100 hover:text-gray-700`}
-                  >
-                    <i aria-hidden="true" className="fas fa-pen"></i>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${code}`}
-                    title="Remove"
-                    onClick={() => onRemove(item)}
-                    className={`${ROW_ICON_BUTTON} hover:bg-red-50 hover:text-red-700`}
-                  >
-                    <i aria-hidden="true" className="fas fa-trash"></i>
-                  </button>
+                  {/* Right-aligned in a fixed width: Edit and Remove keep
+                      their place when an asset cannot be traded. */}
+                  <span className="flex items-center md:w-24 md:justify-end">
+                    {isTradeable(item.asset) && (
+                      <TradeAssetAction asset={toTradeOption(item)} compact />
+                    )}
+                    <button
+                      type="button"
+                      aria-label={`Edit ${code}`}
+                      title="Edit"
+                      onClick={() => onEdit(item)}
+                      className={`${ROW_ICON_BUTTON} hover:bg-gray-100 hover:text-gray-700`}
+                    >
+                      <i aria-hidden="true" className="fas fa-pen"></i>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${code}`}
+                      title="Remove"
+                      onClick={() => onRemove(item)}
+                      className={`${ROW_ICON_BUTTON} hover:bg-red-50 hover:text-red-700`}
+                    >
+                      <i aria-hidden="true" className="fas fa-trash"></i>
+                    </button>
+                  </span>
                 </div>
               </td>
               <td className={td}>
