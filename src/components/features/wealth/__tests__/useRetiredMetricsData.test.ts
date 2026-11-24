@@ -359,26 +359,108 @@ describe("useRetiredMetricsData — journey basis", () => {
     })
   })
 
-  it("budgets from the first phase when no row carries the owner's age", () => {
+  const nzdSpend = (): unknown[] => [
+    {
+      month: thisMonth(),
+      categoryLabelId: "housing",
+      actual: 2_500,
+      currency: "NZD",
+    },
+  ]
+
+  it("budgets from the phase the owner's age falls in when no row carries it", () => {
     expenseRowsByPlan = {
       "plan-go": [housing(9_000)],
       "plan-slow": [housing(2_000)],
     }
-    spendRows = [
-      {
-        month: thisMonth(),
-        categoryLabelId: "housing",
-        actual: 2_500,
-        currency: "NZD",
-      },
-    ]
+    spendRows = nzdSpend()
     const noRows = journeyRetiredBasis(
       journey,
       { ...composite, yearlyProjections: [] },
       95,
     )
     const { result } = renderHook(() => useRetiredMetricsData(noRows))
-    expect(result.current.spend).toMatchObject({ budget: 9_000 })
+    expect(result.current.spend).toMatchObject({ budget: 2_000 })
+  })
+
+  it("budgets from the earliest phase when the owner's age is unknown", () => {
+    const basis = journeyRetiredBasis(
+      journey,
+      { ...composite, currentAge: undefined, yearlyProjections: [] },
+      95,
+    )
+    expect(basis.budgetPlanId).toBe("plan-go")
+  })
+
+  it("budgets from the earliest phase when the owner is younger than every phase", () => {
+    const basis = journeyRetiredBasis(
+      journey,
+      { ...composite, currentAge: 50, yearlyProjections: [] },
+      95,
+    )
+    expect(basis.budgetPlanId).toBe("plan-go")
+  })
+
+  describe("when the budget phase is priced in another currency", () => {
+    // The journey reports in NZD; the phase the owner is in budgets in SGD.
+    const sgdBudget = journeyRetiredBasis(
+      journey,
+      {
+        ...composite,
+        phases: [
+          {
+            planId: "plan-slow",
+            planName: "Slow",
+            fromAge: 75,
+            toAge: 95,
+            expensesCurrency: "SGD",
+          },
+        ],
+      },
+      95,
+    )
+
+    beforeEach(() => {
+      expenseRowsByPlan = { "plan-slow": [housing(2_000)] }
+    })
+
+    it("does not set spend logged in the journey's currency against that budget", () => {
+      spendRows = nzdSpend()
+      const { result } = renderHook(() => useRetiredMetricsData(sgdBudget))
+      expect(result.current.spend).toBeNull()
+      expect(result.current.spendOtherCurrency).toBe("NZD")
+    })
+
+    it("does not set spend logged in the budget's currency against the journey's assets", () => {
+      spendRows = [{ ...(nzdSpend()[0] as object), currency: "SGD" }]
+      const { result } = renderHook(() => useRetiredMetricsData(sgdBudget))
+      expect(result.current.spend).toBeNull()
+      expect(result.current.spendOtherCurrency).toBe("SGD")
+    })
+  })
+
+  it("compares spend when the log, the budget and the journey share a currency", () => {
+    expenseRowsByPlan = { "plan-slow": [housing(2_000)] }
+    spendRows = nzdSpend()
+    const sameCurrency = journeyRetiredBasis(
+      journey,
+      {
+        ...composite,
+        phases: [
+          {
+            planId: "plan-slow",
+            planName: "Slow",
+            fromAge: 75,
+            toAge: 95,
+            expensesCurrency: "NZD",
+          },
+        ],
+      },
+      95,
+    )
+    const { result } = renderHook(() => useRetiredMetricsData(sameCurrency))
+    expect(result.current.spendOtherCurrency).toBeNull()
+    expect(result.current.spend).toMatchObject({ budget: 2_000 })
   })
 })
 
@@ -436,12 +518,20 @@ describe("retired basis adapters", () => {
     })
   })
 
-  it("plans no draw when the backend sent none", () => {
+  it("leaves the planned draw unknown when the backend sent none", () => {
     const basis = journeyRetiredBasis(
       makeJourney(),
       makeCompositeProjection(),
       undefined,
     )
-    expect(basis.plannedAnnualDraw).toBe(0)
+    expect(basis.plannedAnnualDraw).toBeUndefined()
+  })
+
+  it("leaves a phase's planned draw unknown when its projection has no years", () => {
+    const basis = phaseRetiredBasis({
+      ...projection,
+      yearlyProjections: [],
+    } as unknown as RetirementProjection)
+    expect(basis.plannedAnnualDraw).toBeUndefined()
   })
 })

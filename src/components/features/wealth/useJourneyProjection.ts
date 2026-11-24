@@ -1,47 +1,31 @@
 import useSwr from "swr"
 import type {
-  CompositeProjectionRequest,
   CompositeProjectionResult,
   IndependencePlan,
+  RetirementPlan,
 } from "types/independence"
-import {
-  compositeProjectionUrl,
-  runCompositeProjection,
-} from "@utils/api/client/independence"
-import { parseJourneyPhases } from "@lib/independence/journeyPhases"
+import { runCompositeProjection } from "@utils/api/client/independence"
+import { savedJourneyProjection } from "@lib/independence/journeyRequest"
 
 /**
  * The journey's projection as saved, read-only: no editing state and nothing
- * written back. A journey with no timeline, or no display currency to project
- * in, has nothing to project and is not fetched.
+ * written back. A journey with no timeline has nothing to project and is not
+ * fetched. `landingPlan` supplies the currency for a journey that saved none.
  */
-export function useJourneyProjection(journey: IndependencePlan | undefined): {
+export function useJourneyProjection(
+  journey: IndependencePlan | undefined,
+  landingPlan?: Pick<RetirementPlan, "expensesCurrency">,
+): {
   projection: CompositeProjectionResult | null
   isLoading: boolean
   error: Error | undefined
 } {
-  const phases = parseJourneyPhases(journey)
-  const displayCurrency = journey?.displayCurrency
-  const workScenarioId = journey?.workScenarioId
-  const key =
-    journey && phases.length > 0 && displayCurrency
-      ? [
-          compositeProjectionUrl,
-          journey.id,
-          journey.phases,
-          displayCurrency,
-          workScenarioId,
-        ]
-      : null
+  const saved = savedJourneyProjection(journey, landingPlan)
   const { data, isLoading, error } = useSwr<CompositeProjectionResult, Error>(
-    key,
+    saved?.key ?? null,
     async () => {
-      const request: CompositeProjectionRequest = {
-        displayCurrency: displayCurrency ?? "",
-        phases,
-        ...(workScenarioId ? { workScenarioId } : {}),
-      }
-      const res = await runCompositeProjection(request)
+      if (!saved) throw new Error("No journey to project")
+      const res = await runCompositeProjection(saved.request)
       if (!res.ok) throw new Error(`Journey projection failed (${res.status})`)
       const body: { data: CompositeProjectionResult } = await res.json()
       return body.data

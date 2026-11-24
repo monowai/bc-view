@@ -18,8 +18,6 @@ import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog
 import { errorOut } from "@components/errors/ErrorOut"
 import { useFxRates } from "@hooks/useFxRates"
 import { usePrimaryPlan } from "@components/features/independence/usePrimaryPlan"
-import { useIndependencePlans } from "@hooks/useIndependencePlans"
-import { primaryJourney } from "@lib/independence/journeyPhases"
 import { useJourneyProjection } from "@components/features/wealth/useJourneyProjection"
 import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
 import IndependenceMetrics from "@components/features/wealth/IndependenceMetrics"
@@ -118,7 +116,13 @@ function WealthDashboard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
 
-  const { primaryPlan, resolved: primaryPlanResolved } = usePrimaryPlan()
+  // The phase plan and the journey it belongs to, resolved together.
+  const {
+    primaryPlan,
+    journey,
+    journeysLoading,
+    resolved: primaryPlanResolved,
+  } = usePrimaryPlan()
 
   const currencies = useMemo(
     () => currencyData?.data || [],
@@ -194,11 +198,12 @@ function WealthDashboard(): React.ReactElement {
       assets,
     })
 
-  // The retired tiles report on the journey, not on one phase of it.
-  const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
-  const journey = primaryJourney(journeys)
-  const { projection: journeyProjection, isLoading: journeyProjectionLoading } =
-    useJourneyProjection(journey)
+  // The independence tiles report on the journey, not on one phase of it.
+  const {
+    projection: journeyProjection,
+    isLoading: journeyProjectionLoading,
+    error: journeyProjectionError,
+  } = useJourneyProjection(journey, primaryPlan)
 
   if (portfolioError) {
     return errorOut("Error retrieving portfolios", portfolioError)
@@ -339,6 +344,7 @@ function WealthDashboard(): React.ReactElement {
               journeyProjectionLoading={
                 journeysLoading || journeyProjectionLoading
               }
+              journeyProjectionFailed={journeyProjectionError !== undefined}
               monthlyInvestmentData={monthlyInvestmentData}
               displayCurrency={displayCurrency}
               collapsed={collapsedSections.independence}

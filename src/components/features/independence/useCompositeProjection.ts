@@ -11,7 +11,6 @@ import type {
   RetirementPlan,
   UserIndependenceSettings,
   CompositePhase,
-  CompositeProjectionRequest,
   CompositeProjectionResult,
   CompositeScenarioComparison,
 } from "types/independence"
@@ -20,6 +19,10 @@ import { toErrorMessage } from "@lib/formatters"
 import { currentAgeFromSettings } from "@lib/independence/age"
 import { startFirstPhaseNowIfRetired } from "@lib/independence/phaseEdits"
 import { landingPlan } from "@lib/independence/journeyPhases"
+import {
+  compositeRequest,
+  journeyDisplayCurrency,
+} from "@lib/independence/journeyRequest"
 import {
   runCompositeProjection,
   runCompositeScenarios,
@@ -138,7 +141,7 @@ export function useCompositeProjection(
   // `plans` is already scoped to the active journey by the page, which is what
   // makes this resolve that journey's default rather than another's.
   const primaryPlan = landingPlan(plans)
-  const defaultCurrency = primaryPlan?.expensesCurrency || "USD"
+  const defaultCurrency = journeyDisplayCurrency(undefined, primaryPlan)
   // Month-of-birth aware local derivation (settings first, plan as
   // fallback — plans don't carry monthOfBirth, only yearOfBirth). Used
   // only until a projection lands; see `currentAge` below. Memoized
@@ -236,7 +239,7 @@ export function useCompositeProjection(
     // Set unconditionally — anything the journey doesn't carry has to reset
     // to its default, not inherit from whichever journey was shown before.
     setExcludedPlanIds(savedExclusions ?? new Set<string>())
-    setDisplayCurrency(savedCurrency || defaultCurrency)
+    setDisplayCurrency(journeyDisplayCurrency(savedCurrency, primaryPlan))
     setCompositeWorkScenarioId(savedWorkScenarioId ?? undefined)
 
     // Validate saved phases — all planIds must still exist
@@ -339,13 +342,11 @@ export function useCompositeProjection(
       setIsLoading(true)
       setError(null)
 
-      const request: CompositeProjectionRequest = {
+      const request = compositeRequest(
         displayCurrency,
         phases,
-        ...(compositeWorkScenarioId
-          ? { workScenarioId: compositeWorkScenarioId }
-          : {}),
-      }
+        compositeWorkScenarioId,
+      )
 
       // Reset result state to an error with the given message. Used for
       // both expected HTTP-non-OK responses and unexpected network errors

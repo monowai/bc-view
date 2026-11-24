@@ -29,7 +29,10 @@ interface RetiredMetricsData {
   spend: SpendSummary | null
   /** The spend log failed to load; the cards fall back to investment sales. */
   spendUnavailable: boolean
-  /** The spend log's currency when it differs from the plan's; spend is then not compared. */
+  /**
+   * The spend log's currency when it is not both the budget's and the
+   * basis's; spend is then not compared.
+   */
   spendOtherCurrency: string | null
 }
 
@@ -76,10 +79,15 @@ export function useRetiredMetricsData(basis: RetiredBasis): RetiredMetricsData {
   const window = history.historyMonths.slice(-MONTHS_PER_YEAR)
   const { expenses } = usePlanExpenses(basis.budgetPlanId)
   const spendEntries = history.entries
-  // The service locks the log to its first currency; budgets are in the basis's.
+  // The service locks the log to its first currency. Spend is set against the
+  // budget, in the budget plan's currency, and its draw against liquid assets,
+  // in the basis's: it is comparable only when the log is in both. Nothing is
+  // converted here.
   const logCurrency = spendEntries[0]?.currency ?? null
+  const comparable =
+    logCurrency === basis.currency && logCurrency === basis.budgetCurrency
   const spendOtherCurrency =
-    logCurrency !== null && logCurrency !== basis.currency ? logCurrency : null
+    logCurrency !== null && !comparable ? logCurrency : null
 
   return {
     spendOtherCurrency,

@@ -5,6 +5,7 @@ import type { IndependencePlan } from "types/independence"
 import {
   makeCompositeProjection,
   makeJourney,
+  makePlan,
 } from "@test-fixtures/independence"
 import { compositeProjectionUrl } from "@utils/api/client/independence"
 import { useJourneyProjection } from "../useJourneyProjection"
@@ -67,6 +68,23 @@ describe("useJourneyProjection", () => {
       phases,
       workScenarioId: "ws-1",
     })
+  })
+
+  it("projects in the landing plan's currency when the journey has none saved", async () => {
+    answer({ data: makeCompositeProjection({ displayCurrency: "SGD" }) })
+
+    const { result } = renderHook(
+      () =>
+        useJourneyProjection(
+          phased({ displayCurrency: undefined }),
+          makePlan({ expensesCurrency: "SGD" }),
+        ),
+      { wrapper },
+    )
+
+    await waitFor(() => expect(result.current.projection).not.toBeNull())
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0]
+    expect(JSON.parse(init.body).displayCurrency).toBe("SGD")
   })
 
   it("is loading until the projection lands", () => {

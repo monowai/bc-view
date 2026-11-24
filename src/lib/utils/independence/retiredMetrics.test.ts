@@ -90,8 +90,8 @@ describe("plannedAnnualDrawdown", () => {
     expect(plannedAnnualDrawdown(p)).toBe(42_000)
   })
 
-  it("is zero when the projection has no years", () => {
-    expect(plannedAnnualDrawdown(projection())).toBe(0)
+  it("is unknown when the projection has no years", () => {
+    expect(plannedAnnualDrawdown(projection())).toBeUndefined()
   })
 })
 

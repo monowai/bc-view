@@ -10,10 +10,9 @@ import type {
   RetirementPlan,
   RetirementProjection,
 } from "types/independence"
-import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import WealthSection from "@components/features/wealth/WealthSection"
 import Spinner from "@components/ui/Spinner"
-import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { ACTIVE_PLAN_QUERY_PARAM } from "@hooks/useIndependencePlans"
 import { investmentsMonthlyTransactionsKey } from "@utils/api/client/trns"
 import { isJourneyRetired, isRetired } from "@lib/independence/retiredMetrics"
 import {
@@ -22,9 +21,13 @@ import {
   phaseRetiredBasis,
 } from "@lib/independence/retiredBasis"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
-import RetiredMetrics, {
-  METRIC_CLS,
-} from "@components/features/wealth/RetiredMetrics"
+import {
+  type WorkingBasis,
+  journeyWorkingBasis,
+  phaseWorkingBasis,
+} from "@lib/independence/workingBasis"
+import RetiredMetrics from "@components/features/wealth/RetiredMetrics"
+import WorkingMetrics from "@components/features/wealth/WorkingMetrics"
 import { useRetiredMetricsData } from "@components/features/wealth/useRetiredMetricsData"
 import SpendLogDialog from "@components/features/wealth/SpendLogDialog"
 
@@ -44,6 +47,8 @@ interface IndependenceMetricsProps {
   /** The journey's projection; null while loading, on failure, or with no journey. */
   journeyProjection?: CompositeProjectionResult | null
   journeyProjectionLoading?: boolean
+  /** The journey's projection could not be had; the phase stands in for it. */
+  journeyProjectionFailed?: boolean
   monthlyInvestmentData: MonthlyInvestmentData | undefined
   displayCurrency: Currency | null
   collapsed: boolean
@@ -99,6 +104,16 @@ function JourneyRetiredSection({
   )
 }
 
+/** What the section shows: one journey or phase, retired or still working. */
+type MetricsView =
+  | {
+      kind: "journeyRetired"
+      journey: IndependencePlan
+      projection: CompositeProjectionResult
+    }
+  | { kind: "phaseRetired"; projection: RetirementProjection }
+  | { kind: "working"; basis: WorkingBasis | null }
+
 export default function IndependenceMetrics({
   primaryPlan,
   projectionData: phaseProjection,
@@ -106,23 +121,33 @@ export default function IndependenceMetrics({
   journey,
   journeyProjection = null,
   journeyProjectionLoading = false,
+  journeyProjectionFailed = false,
   monthlyInvestmentData,
   displayCurrency,
   collapsed,
   onToggle,
 }: IndependenceMetricsProps): React.ReactElement {
-  const { hideValues } = usePrivacyMode()
   const [showInvestmentModal, setShowInvestmentModal] = useState(false)
 
-  // The journey speaks for a retired owner; the phase only when there is no
-  // journey projection to ask. Until the journey answers, hold the loading
-  // state rather than show the phase's cards and then swap them.
-  const retiredJourney =
-    journey && journeyProjection && isJourneyRetired(journeyProjection)
-      ? { journey, projection: journeyProjection }
-      : null
-  const projectionData = journeyProjectionLoading ? null : phaseProjection
+  // The journey speaks for the owner; the phase only when there is no journey
+  // projection to ask. Until the journey answers, hold the loading state
+  // rather than show the phase's figures and then swap them.
   const projectionLoading = phaseProjectionLoading || journeyProjectionLoading
+  const view = ((): MetricsView => {
+    if (journeyProjectionLoading) return { kind: "working", basis: null }
+    if (journey && journeyProjection) {
+      return isJourneyRetired(journeyProjection)
+        ? { kind: "journeyRetired", journey, projection: journeyProjection }
+        : { kind: "working", basis: journeyWorkingBasis(journeyProjection) }
+    }
+    if (phaseProjection && isRetired(phaseProjection)) {
+      return { kind: "phaseRetired", projection: phaseProjection }
+    }
+    return {
+      kind: "working",
+      basis: phaseWorkingBasis(phaseProjection, primaryPlan),
+    }
+  })()
 
   // Fetch transactions only when modal is open
   const investmentTrnsUrl = showInvestmentModal
@@ -132,6 +157,35 @@ export default function IndependenceMetrics({
     investmentTrnsUrl,
     investmentTrnsUrl ? simpleFetcher(investmentTrnsUrl) : null,
   )
+
+  const metrics = ((): React.ReactElement => {
+    if (view.kind === "journeyRetired") {
+      return (
+        <JourneyRetiredSection
+          journey={view.journey}
+          projection={view.projection}
+          displayCurrency={displayCurrency}
+        />
+      )
+    }
+    if (view.kind === "phaseRetired") {
+      return (
+        <RetiredMetricsSection
+          basis={phaseRetiredBasis(view.projection)}
+          displayCurrency={displayCurrency}
+        />
+      )
+    }
+    return (
+      <WorkingMetrics
+        basis={view.basis}
+        loading={projectionLoading}
+        invested={monthlyInvestmentData?.totalInvested}
+        displayCurrency={displayCurrency}
+        onShowInvestments={() => setShowInvestmentModal(true)}
+      />
+    )
+  })()
 
   return (
     <>
@@ -144,8 +198,8 @@ export default function IndependenceMetrics({
         action={
           <Link
             href={
-              retiredJourney
-                ? `/independence?plan=${encodeURIComponent(retiredJourney.journey.id)}`
+              journey
+                ? `/independence?${ACTIVE_PLAN_QUERY_PARAM}=${encodeURIComponent(journey.id)}`
                 : `/independence/plans/${primaryPlan.id}`
             }
             className="shrink-0 rounded-sm text-sm text-wealth-600 hover:text-wealth-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
@@ -154,273 +208,13 @@ export default function IndependenceMetrics({
           </Link>
         }
       >
-        {retiredJourney ? (
-          <JourneyRetiredSection
-            journey={retiredJourney.journey}
-            projection={retiredJourney.projection}
-            displayCurrency={displayCurrency}
-          />
-        ) : projectionData && isRetired(projectionData) ? (
-          <RetiredMetricsSection
-            basis={phaseRetiredBasis(projectionData)}
-            displayCurrency={displayCurrency}
-          />
-        ) : (
-          <div
-            className={`grid grid-cols-1 gap-y-4 ${projectionData ? "sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-gray-100" : ""}`}
-          >
-            {/* Monthly Investment Progress */}
-            <div className={METRIC_CLS}>
-              <p className="text-xs font-medium text-gray-500 mb-1">
-                Monthly Investment
-              </p>
-              {(() => {
-                // Monthly investment target = the backend-computed net
-                // contribution. Prefer the projection echo (authoritative,
-                // full formula); fall back to computing it from the plan with
-                // the SAME formula the backend uses — surplus includes bonus
-                // and is net of taxes, which the old surplus calc dropped,
-                // collapsing the target to 0 whenever income ≈ expenses.
-                const planContribution = Math.max(
-                  ((primaryPlan.workingIncomeMonthly ?? 0) +
-                    (primaryPlan.bonusMonthly ?? 0) -
-                    (primaryPlan.workingExpensesMonthly ?? 0) -
-                    (primaryPlan.taxesMonthly ?? 0)) *
-                    (primaryPlan.investmentAllocationPercent ?? 0.8),
-                  0,
-                )
-                const target = Math.round(
-                  projectionData?.preRetirementAccumulation
-                    ?.monthlyContribution ?? planContribution,
-                )
-                const actual = Math.round(
-                  monthlyInvestmentData?.totalInvested ?? 0,
-                )
-                const progress = target > 0 ? (actual / target) * 100 : 0
-                const currencySymbol = displayCurrency?.symbol || ""
-                const isNegative = actual < 0
-                return (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        !hideValues && setShowInvestmentModal(true)
-                      }
-                      className={`flex items-baseline gap-2 ${!hideValues ? "cursor-pointer hover:opacity-80" : ""}`}
-                      disabled={hideValues}
-                    >
-                      {hideValues ? (
-                        <span className="text-2xl font-bold text-gray-500">
-                          ****
-                        </span>
-                      ) : (
-                        <>
-                          <span
-                            className={`text-2xl font-bold tabular-nums ${isNegative ? "text-loss" : progress >= 100 ? "text-gain" : "text-gray-900"}`}
-                          >
-                            {isNegative ? "-" : ""}
-                            {currencySymbol}
-                            {Math.abs(actual).toLocaleString()}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            / {currencySymbol}
-                            {target.toLocaleString()}
-                          </span>
-                          <i className="fas fa-external-link-alt text-xs text-gray-400 ml-1"></i>
-                        </>
-                      )}
-                    </button>
-                    <div className="mt-2 bg-gray-100 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all ${isNegative ? "bg-loss" : progress >= 100 ? "bg-gain" : "bg-independence-500"}`}
-                        style={{
-                          width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {isNegative
-                        ? "Net withdrawal (last 30 days)"
-                        : progress >= 100
-                          ? "Target met!"
-                          : `${progress.toFixed(0)}% of monthly target`}
-                    </p>
-                  </>
-                )
-              })()}
-            </div>
-
-            {/* Headline progress — driven by the plan's effective headline
-                metric. Falls back to Progress when the
-                selected metric has no value. */}
-            {(projectionLoading || projectionData) &&
-              (() => {
-                const headline = pickHeadlineGauge(
-                  projectionData?.effectiveHeadlineMetric,
-                  projectionData?.fiMetrics,
-                )
-                return (
-                  <div className={METRIC_CLS}>
-                    <p className="text-xs font-medium text-gray-500 mb-1">
-                      {headline.label}
-                    </p>
-                    {projectionLoading && !projectionData ? (
-                      <>
-                        <div className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="mt-2 bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-gray-300 h-1.5 rounded-full w-0"></div>
-                        </div>
-                        <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-baseline gap-2">
-                          {hideValues ? (
-                            <span className="text-2xl font-bold text-gray-500">
-                              ****
-                            </span>
-                          ) : (
-                            <span className="text-2xl font-bold tabular-nums text-gray-900">
-                              {headline.display}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className="bg-independence-500 h-1.5 rounded-full transition-all"
-                            style={{
-                              width: hideValues
-                                ? "0%"
-                                : `${headline.fillPercent}%`,
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {hideValues
-                            ? ""
-                            : projectionData?.fiMetrics
-                                  ?.isFinanciallyIndependent
-                              ? "Financially Independent!"
-                              : headline.byline}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )
-              })()}
-
-            {/* Years to FI */}
-            {(projectionLoading || projectionData) && (
-              <div className={METRIC_CLS}>
-                <p className="text-xs font-medium text-gray-500 mb-1">
-                  Years to FI
-                </p>
-                {projectionLoading && !projectionData ? (
-                  <>
-                    <div className="h-9 w-16 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-36 bg-gray-200 rounded animate-pulse mt-2"></div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-2">
-                      {hideValues ? (
-                        <span className="text-2xl font-bold text-gray-500">
-                          ****
-                        </span>
-                      ) : projectionData?.fiMetrics
-                          ?.isFinanciallyIndependent ? (
-                        <span className="text-2xl font-bold text-gain">
-                          FI Achieved!
-                        </span>
-                      ) : projectionData?.fiMetrics?.realYearsToFi != null ? (
-                        <>
-                          <span className="text-2xl font-bold tabular-nums text-gray-900">
-                            {Math.round(projectionData.fiMetrics.realYearsToFi)}
-                          </span>
-                          <span className="text-sm text-gray-500">years</span>
-                        </>
-                      ) : (
-                        <span className="text-2xl font-bold text-gray-500">
-                          —
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {hideValues
-                        ? ""
-                        : projectionData?.fiMetrics?.isFinanciallyIndependent
-                          ? "You've reached financial independence!"
-                          : projectionData?.fiAchievementAge
-                            ? `FI at age ${projectionData.fiAchievementAge}`
-                            : "Keep investing to reach FI"}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Property Liquidation Age */}
-            {(projectionLoading || projectionData) && (
-              <div className={METRIC_CLS}>
-                <p className="text-xs font-medium text-gray-500 mb-1">
-                  Property Sale Age
-                </p>
-                {projectionLoading && !projectionData ? (
-                  <>
-                    <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
-                  </>
-                ) : (
-                  (() => {
-                    const liquidationYear =
-                      projectionData?.yearlyProjections?.find(
-                        (y) => y.propertyLiquidated,
-                      )
-                    const hasProperty =
-                      (projectionData?.nonSpendableAtRetirement ?? 0) > 0
-                    return (
-                      <>
-                        <div className="flex items-baseline gap-2">
-                          {hideValues ? (
-                            <span className="text-2xl font-bold text-gray-500">
-                              ****
-                            </span>
-                          ) : liquidationYear?.age ? (
-                            <>
-                              <span className="text-2xl font-bold tabular-nums text-gray-900">
-                                {liquidationYear.age}
-                              </span>
-                              <span className="text-sm text-gray-500">
-                                years old
-                              </span>
-                            </>
-                          ) : hasProperty ? (
-                            <span className="text-2xl font-bold text-gain">
-                              Not needed
-                            </span>
-                          ) : (
-                            <span className="text-2xl font-bold text-gray-500">
-                              N/A
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {hideValues
-                            ? ""
-                            : liquidationYear?.age
-                              ? "When liquid assets run low"
-                              : hasProperty
-                                ? "Liquid assets sufficient"
-                                : "No illiquid assets"}
-                        </p>
-                      </>
-                    )
-                  })()
-                )}
-              </div>
-            )}
-          </div>
+        {journeyProjectionFailed && (
+          <p className="text-xs text-gray-500 mb-3">
+            Journey projection unavailable — figures are for the current phase
+            only
+          </p>
         )}
+        {metrics}
       </WealthSection>
 
       {/* Monthly Investment Transactions Modal */}

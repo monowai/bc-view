@@ -1,3 +1,4 @@
+import type { HeadlineMetric } from "./plan"
 import type { IncomeBreakdown } from "./projection"
 
 // ============ Composite Projection Types ============
@@ -34,6 +35,8 @@ export interface CompositeYearlyProjection {
   totalWealth: number
   currency: string
   incomeBreakdown?: IncomeBreakdown
+  /** True on the year non-spendable assets were sold into the liquid balance. */
+  propertyLiquidated?: boolean
 }
 
 /**
@@ -139,6 +142,26 @@ export interface CompositeProjectionResult {
    * meaningful — and only ever sent — alongside {@link targetBalance}.
    */
   surplusOrDeficit?: number
+  /** Age at which non-spendable assets are sold; absent when they never are. */
+  liquidationAge?: number
+  /** Liquid balance just before that sale, display currency; absent when never sold. */
+  liquidBalanceAtLiquidation?: number
+  /**
+   * Monthly contribution the pre-retirement accumulation ran on, display
+   * currency. Absent once the first phase has started: nothing is being
+   * accumulated.
+   */
+  monthlyContribution?: number
+  /**
+   * Non-spendable value (property plus locked balances) the journey carried
+   * into its first phase, display currency.
+   */
+  nonSpendableAtRetirement?: number
+  /**
+   * Headline metric of the journey's first phase plan: the owner's pinned
+   * choice, else the default for the plan's effective strategy.
+   */
+  effectiveHeadlineMetric?: HeadlineMetric
 }
 
 export interface CompositeScenarioResult {

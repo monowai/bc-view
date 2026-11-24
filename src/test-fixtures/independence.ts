@@ -88,9 +88,11 @@ export function makeJourney(
 }
 
 /**
- * A journey projection as svc-retire returns it for an owner still working:
- * no ages and no planned draw. Pass `currentAge`, `retirementAge` and
- * `plannedAnnualDraw` for a retired owner.
+ * A bare journey projection: no ages, no planned draw and none of the
+ * working-years echoes. Pass `currentAge`, `retirementAge` and
+ * `plannedAnnualDraw` for a retired owner; `monthlyContribution`,
+ * `nonSpendableAtRetirement` and `effectiveHeadlineMetric` for one still
+ * working, as svc-retire sends them.
  */
 export function makeCompositeProjection(
   overrides: Partial<CompositeProjectionResult> = {},

@@ -13,6 +13,23 @@ export interface HeadlineGauge {
 }
 
 /**
+ * The figures a headline gauge can feature. A phase projection carries all of
+ * them in its `fiMetrics`; a journey projection only the two progress figures,
+ * so its other headlines fall back to plain progress.
+ */
+export type HeadlineFigures = Partial<
+  Pick<
+    FiMetrics,
+    | "fiProgress"
+    | "retirementAgeFiProgress"
+    | "incomeCoverageAtRetirement"
+    | "bridgeProgress"
+    | "bridgeYears"
+    | "bridgeYearsNeeded"
+  >
+>
+
+/**
  * Picks which metric to feature based on the plan's effective headline metric.
  * Falls back to Progress when the selected metric has no data.
  * Shared by the plans-list card and the Wealth tab card (IndependenceMetrics).
@@ -23,7 +40,7 @@ export interface HeadlineGauge {
  */
 export function pickHeadlineGauge(
   metric: HeadlineMetric | undefined,
-  fi: FiMetrics | undefined,
+  fi: HeadlineFigures | undefined,
 ): HeadlineGauge {
   const fiProgress = fi?.fiProgress ?? 0
   const earlyRetirement: HeadlineGauge = {

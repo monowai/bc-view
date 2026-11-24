@@ -104,6 +104,17 @@ describe("spendSummary", () => {
     expect(s?.annualDraw).toBe(54_000)
   })
 
+  it("has no annual draw when the planned draw is unknown", () => {
+    const s = spendSummary(
+      [entry("2026-09", "housing", 3500)],
+      budgets,
+      undefined,
+      window,
+    )
+    expect(s).toMatchObject({ actual: 3500 })
+    expect(s?.annualDraw).toBeUndefined()
+  })
+
   it("never draws less than nothing when well under budget", () => {
     const s = spendSummary(
       [entry("2026-09", "housing", 100)],

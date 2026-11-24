@@ -32,15 +32,16 @@ export function isJourneyRetired(
  * This year's planned draw on the liquid pot: expenses less guaranteed
  * income, as svc-retire projects it. The retirement rows start at the
  * retirement age, which for someone retired years ago is in the past, so
- * take the row for the owner's current age.
+ * take the row for the owner's current age. Undefined when the projection
+ * has no rows: the draw is unknown, not nothing.
  */
 export function plannedAnnualDrawdown(
   projection: RetirementProjection,
-): number {
+): number | undefined {
   const rows = projection.yearlyProjections
   const currentAge = projection.planInputs?.currentAge
   const row = rows.find((y) => y.age != null && y.age === currentAge) ?? rows[0]
-  return row?.withdrawals ?? 0
+  return row?.withdrawals
 }
 
 export type GuardrailBand = "under" | "onTrack" | "over" | "none"
