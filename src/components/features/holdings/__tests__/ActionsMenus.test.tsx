@@ -186,7 +186,7 @@ describe("ActionsMenu — watchlist", () => {
     expect(
       screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+    fireEvent.click(screen.getByRole("button", { name: "Edit Watch" }))
 
     expect(screen.getByLabelText(/Target price/)).toHaveValue("")
     expect(capturedWatchlistProps).toBeNull()
@@ -232,7 +232,7 @@ describe("ActionsMenu — watchlist", () => {
       screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole("button", { name: "Edit watch target" }),
+      screen.queryByRole("button", { name: "Edit Watch" }),
     ).not.toBeInTheDocument()
   })
 
@@ -264,7 +264,7 @@ describe("ActionsMenu — remove from watchlist", () => {
   const openRemove = (): void => {
     render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
     openMenu()
-    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+    fireEvent.click(screen.getByRole("button", { name: "Edit Watch" }))
     fireEvent.click(
       screen.getByRole("button", { name: "Remove from watchlist" }),
     )
@@ -275,7 +275,7 @@ describe("ActionsMenu — remove from watchlist", () => {
     openMenu()
 
     const watchItems = screen.getAllByRole("button", { name: /watch/i })
-    expect(watchItems.map((b) => b.textContent)).toEqual(["Edit watch target"])
+    expect(watchItems.map((b) => b.textContent)).toEqual(["Edit Watch"])
   })
 
   it("removes a watched asset from the edit dialog after confirmation", async () => {

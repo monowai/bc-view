@@ -16,11 +16,10 @@ function roundedDistance(toTarget: number): {
   return { shown, atTarget: Number.parseFloat(shown) === 0 }
 }
 
-/** The distance in words, for a tooltip: "price must fall 16.72%". */
+/** The distance in words, for a tooltip: "Price is off by 16.72%". */
 export function describeTargetDistance(toTarget: number): string {
   const { shown, atTarget } = roundedDistance(toTarget)
-  if (atTarget) return "at target"
-  return `${toTarget < 0 ? "price must fall" : "price must rise"} ${shown}`
+  return atTarget ? "Price is at target" : `Price is off by ${shown}`
 }
 
 /**

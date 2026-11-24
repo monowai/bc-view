@@ -44,7 +44,7 @@ export default function WatchTargetPrice({
   const title =
     item.toTarget == null
       ? `Watchlist target ${money}`
-      : `Watchlist target ${money} · ${describeTargetDistance(item.toTarget)}`
+      : describeTargetDistance(item.toTarget)
 
   return (
     <span className={className}>

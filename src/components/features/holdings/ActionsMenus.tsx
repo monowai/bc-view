@@ -417,7 +417,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       {canWatch && watchlistItems && (
         <MenuItem
           iconClass={watched ? "fas fa-bullseye" : "fas fa-eye"}
-          label={watched ? "Edit watch target" : "Add to Watchlist"}
+          label={watched ? "Edit Watch" : "Add to Watchlist"}
           onClick={handle(() => setWatching(true))}
         />
       )}

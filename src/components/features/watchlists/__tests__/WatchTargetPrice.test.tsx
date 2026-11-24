@@ -32,19 +32,16 @@ describe("WatchTargetPrice", () => {
 
     const target = screen.getByTestId("watch-target")
     expect(target).toHaveTextContent("Target $150.00")
-    expect(target).toHaveAttribute(
-      "title",
-      "Watchlist target $150.00 · price must rise 25.00%",
-    )
+    expect(target).toHaveAttribute("title", "Price is off by 25.00%")
   })
 
-  it("says on hover how far the price must fall to the target", () => {
+  it("says on hover how far a falling target is off", () => {
     watching([makeWatchlistItem({ asset, targetPrice: 150, toTarget: -0.098 })])
     render(<WatchTargetPrice assetId="asset-aapl" currencyCode="USD" />)
 
     expect(screen.getByTestId("watch-target")).toHaveAttribute(
       "title",
-      "Watchlist target $150.00 · price must fall 9.80%",
+      "Price is off by 9.80%",
     )
   })
 
@@ -56,7 +53,7 @@ describe("WatchTargetPrice", () => {
 
     expect(screen.getByTestId("watch-target")).toHaveAttribute(
       "title",
-      "Watchlist target $150.00 · at target",
+      "Price is at target",
     )
   })
 

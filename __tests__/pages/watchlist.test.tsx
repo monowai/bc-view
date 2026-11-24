@@ -316,6 +316,8 @@ describe("Watchlist page", () => {
       within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
     )
     fireEvent.click(screen.getByRole("button", { name: /clear target/i }))
+    expect(screen.getByLabelText(/target price/i)).toHaveValue("")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
       expect(
@@ -444,6 +446,8 @@ describe("Watchlist page", () => {
       target: { value: "85" },
     })
     fireEvent.click(screen.getByRole("button", { name: /clear target/i }))
+    expect(screen.getByLabelText(/target price/i)).toHaveValue("")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
       expect(

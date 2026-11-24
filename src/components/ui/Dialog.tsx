@@ -75,7 +75,7 @@ export default function Dialog({
         </div>
 
         {footer && (
-          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200">
+          <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200">
             {footer}
           </div>
         )}
