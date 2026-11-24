@@ -11,6 +11,8 @@ interface WatchItemRemoverProps {
   /** What the reader sees in the question, e.g. the display code. */
   label: string
   onClose: () => void
+  /** After a successful remove; defaults to onClose. */
+  onRemoved?: () => void
 }
 
 /**
@@ -21,6 +23,7 @@ export default function WatchItemRemover({
   item,
   label,
   onClose,
+  onRemoved = onClose,
 }: WatchItemRemoverProps): React.ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -35,7 +38,7 @@ export default function WatchItemRemover({
       setSubmitting(false)
       return
     }
-    onClose()
+    onRemoved()
     // Revalidate in the background: the delete already succeeded.
     void mutate(watchlistKey)
   }

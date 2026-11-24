@@ -8,12 +8,16 @@ interface EditWatchlistItemDialogProps {
   item: WatchlistItem
   /** Resolve on success; throw to show the error. */
   onSubmit: (update: WatchlistItemUpdate) => Promise<void>
+  /** Given → the dialog offers to remove the item from the watchlist. */
+  onRemove?: () => void
   onClose: () => void
 }
 
 const inputClass =
   "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
+const dangerButtonClass =
+  "px-4 py-2 rounded text-red-600 hover:bg-red-50 transition-colors"
 
 /**
  * Edit a watchlist item's target and added price. Only changed fields are
@@ -23,6 +27,7 @@ const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 export default function EditWatchlistItemDialog({
   item,
   onSubmit,
+  onRemove,
   onClose,
 }: EditWatchlistItemDialogProps): React.ReactElement {
   const fieldId = useId()
@@ -78,16 +83,28 @@ export default function EditWatchlistItemDialog({
       onClose={onClose}
       footer={
         <>
-          {item.targetPrice != null && (
-            <button
-              type="button"
-              className="mr-auto px-4 py-2 rounded text-red-600 hover:bg-red-50 transition-colors"
-              onClick={() => handleSave(true)}
-              disabled={submitting}
-            >
-              {"Clear target"}
-            </button>
-          )}
+          <div className="mr-auto flex flex-wrap gap-1">
+            {onRemove && (
+              <button
+                type="button"
+                className={dangerButtonClass}
+                onClick={onRemove}
+                disabled={submitting}
+              >
+                {"Remove from watchlist"}
+              </button>
+            )}
+            {item.targetPrice != null && (
+              <button
+                type="button"
+                className={dangerButtonClass}
+                onClick={() => handleSave(true)}
+                disabled={submitting}
+              >
+                {"Clear target"}
+              </button>
+            )}
+          </div>
           <Dialog.CancelButton onClick={onClose} />
           <Dialog.SubmitButton
             onClick={() => handleSave()}

@@ -254,74 +254,64 @@ describe("ActionsMenu — watchlist", () => {
 
 describe("ActionsMenu — remove from watchlist", () => {
   const watchedItem = makeWatchlistItem({ id: "wi-1", asset })
+  const question = "Remove AAPL from your watchlist?"
 
   beforeEach(() => {
     ;(useWatchlist as jest.Mock).mockReturnValue({ items: [watchedItem] })
     ;(removeWatchlistItem as jest.Mock).mockReset()
   })
 
-  it("does not offer removal for an asset that is not watched", () => {
-    ;(useWatchlist as jest.Mock).mockReturnValue({ items: [] })
+  const openRemove = (): void => {
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove from watchlist" }),
+    )
+  }
+
+  it("offers one watch item in the menu", () => {
     render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
     openMenu()
 
-    expect(
-      screen.queryByRole("button", { name: "Remove from Watchlist" }),
-    ).not.toBeInTheDocument()
+    const watchItems = screen.getAllByRole("button", { name: /watch/i })
+    expect(watchItems.map((b) => b.textContent)).toEqual(["Edit watch target"])
   })
 
-  it("removes a watched asset after confirmation", async () => {
+  it("removes a watched asset from the edit dialog after confirmation", async () => {
     ;(removeWatchlistItem as jest.Mock).mockResolvedValue(undefined)
-    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
-    openMenu()
-    fireEvent.click(
-      screen.getByRole("button", { name: "Remove from Watchlist" }),
-    )
+    openRemove()
 
-    expect(
-      screen.getByText("Remove AAPL from your watchlist?"),
-    ).toBeInTheDocument()
+    expect(screen.getByText(question)).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Remove" }))
 
     await waitFor(() =>
       expect(removeWatchlistItem).toHaveBeenCalledWith("wi-1"),
     )
     await waitFor(() =>
-      expect(
-        screen.queryByText("Remove AAPL from your watchlist?"),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByText(question)).not.toBeInTheDocument(),
     )
+    expect(screen.queryByLabelText(/Target price/)).not.toBeInTheDocument()
   })
 
   it("keeps the dialog open with the error when removal fails", async () => {
     ;(removeWatchlistItem as jest.Mock).mockRejectedValue(
       new Error("Remove failed: 500"),
     )
-    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
-    openMenu()
-    fireEvent.click(
-      screen.getByRole("button", { name: "Remove from Watchlist" }),
-    )
+    openRemove()
     fireEvent.click(screen.getByRole("button", { name: "Remove" }))
 
     expect(await screen.findByText("Remove failed: 500")).toBeInTheDocument()
-    expect(
-      screen.getByText("Remove AAPL from your watchlist?"),
-    ).toBeInTheDocument()
+    expect(screen.getByText(question)).toBeInTheDocument()
   })
 
-  it("cancels without removing", () => {
-    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
-    openMenu()
-    fireEvent.click(
-      screen.getByRole("button", { name: "Remove from Watchlist" }),
-    )
+  it("returns to the edit dialog when the removal is cancelled", () => {
+    openRemove()
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
 
     expect(removeWatchlistItem).not.toHaveBeenCalled()
-    expect(
-      screen.queryByText("Remove AAPL from your watchlist?"),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(question)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Target price/)).toBeInTheDocument()
   })
 })
 
