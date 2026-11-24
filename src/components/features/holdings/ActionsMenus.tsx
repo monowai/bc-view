@@ -260,6 +260,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const { handle } = menu
   const assetCode = asset.displayCode
   const [watching, setWatching] = useState(false)
+  const closeWatch = (): void => setWatching(false)
   const canWatch = asset.watchable
   const { items: watchlistItems } = useWatchlist()
   const watched = watchlistItems?.find((i) => i.asset.id === asset.id)
@@ -283,12 +284,12 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       after={
         watching &&
         (watched ? (
-          <WatchItemEditor item={watched} onClose={() => setWatching(false)} />
+          <WatchItemEditor item={watched} onClose={closeWatch} />
         ) : (
           <RowSafePortal>
             <AddToWatchlistDialog
               asset={{ id: asset.id, label: assetCode }}
-              onClose={() => setWatching(false)}
+              onClose={closeWatch}
             />
           </RowSafePortal>
         ))
@@ -416,7 +417,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       {canWatch && watchlistItems && (
         <MenuItem
           iconClass={watched ? "fas fa-bullseye" : "fas fa-eye"}
-          label={watched ? "Edit watch target" : "Add to Watchlist"}
+          label={watched ? "Edit Watch" : "Add to Watchlist"}
           onClick={handle(() => setWatching(true))}
         />
       )}

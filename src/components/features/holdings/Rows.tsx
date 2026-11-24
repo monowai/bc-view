@@ -44,7 +44,7 @@ import {
 } from "@lib/holdings/holdingAnalysis"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import ChartIconButton from "@components/features/holdings/ChartIconButton"
-import WatchTargetPrice from "@components/features/watchlists/WatchTargetPrice"
+import WatchIcon from "@components/features/watchlists/WatchIcon"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
 import {
@@ -247,6 +247,11 @@ export default function Rows({
                       onShow={() => openReview(asset)}
                       iconClassName="text-micro"
                     />
+                    <WatchIcon
+                      assetId={asset.id}
+                      scale={priceDecimals(asset)}
+                      iconClassName="text-micro"
+                    />
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
@@ -402,12 +407,6 @@ export default function Rows({
                       </span>
                     )
                   })()}
-                  <WatchTargetPrice
-                    assetId={asset.id}
-                    currencyCode={moneyValues[valueIn].currency.code}
-                    scale={priceDecimals(asset)}
-                    className="mt-0.5 flex justify-end"
-                  />
                 </>
               )}
             </td>

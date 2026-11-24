@@ -28,8 +28,8 @@ afterEach(() => window.localStorage.clear())
 
 const asset = makeAsset()
 
-describe("CardView watch target", () => {
-  it("shows the watchlist target with the card's price", () => {
+describe("CardView watch icon", () => {
+  it("shows the watch icon in the card heading", () => {
     ;(useWatchlist as jest.Mock).mockReturnValue({
       items: [makeWatchlistItem({ asset, targetPrice: 150 })],
     })
@@ -53,8 +53,8 @@ describe("CardView watch target", () => {
       />,
     )
 
-    expect(screen.getByTestId("watch-target")).toHaveTextContent(
-      "Target $150.00",
-    )
+    const heading = screen.getByTestId("watch-icon").closest("h3")
+    expect(heading).toHaveTextContent(asset.displayCode)
+    expect(screen.queryByText(/Target/)).not.toBeInTheDocument()
   })
 })

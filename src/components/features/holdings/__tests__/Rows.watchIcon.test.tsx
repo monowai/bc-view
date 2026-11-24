@@ -40,25 +40,26 @@ function renderRow(): void {
   )
 }
 
-describe("Rows watch target", () => {
-  it("shows the watchlist target beneath the price", () => {
+describe("Rows watch icon", () => {
+  it("shows the watch icon beside the asset name, not under the price", () => {
     ;(useWatchlist as jest.Mock).mockReturnValue({
       items: [makeWatchlistItem({ asset, targetPrice: 150 })],
     })
     renderRow()
 
-    const priceButton = screen.getByRole("button", {
-      name: "Show price chart for AAPL",
-    })
-    const cell = priceButton.closest("td") as HTMLElement
-    expect(within(cell).getByTestId("watch-target")).toHaveTextContent(
-      "Target $150.00",
-    )
+    const nameCell = screen
+      .getByTitle(asset.displayCode)
+      .closest("td") as HTMLElement
+    expect(within(nameCell).getByTestId("watch-icon")).toBeInTheDocument()
+    const priceCell = screen
+      .getByRole("button", { name: "Show price chart for AAPL" })
+      .closest("td") as HTMLElement
+    expect(within(priceCell).queryByText(/Target/)).not.toBeInTheDocument()
   })
 
-  it("shows no target when the asset has none", () => {
+  it("shows no watch icon when the asset is not watched", () => {
     ;(useWatchlist as jest.Mock).mockReturnValue({ items: [] })
     renderRow()
-    expect(screen.queryByTestId("watch-target")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("watch-icon")).not.toBeInTheDocument()
   })
 })

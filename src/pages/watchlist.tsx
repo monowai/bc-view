@@ -3,21 +3,17 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { errorOut } from "@components/errors/ErrorOut"
 import { rootLoader } from "@components/ui/PageLoader"
 import EmptyState from "@components/ui/EmptyState"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
-import Alert from "@components/ui/Alert"
 import WatchlistItemsTable from "@components/features/watchlists/WatchlistItemsTable"
 import EditWatchlistItemDialog from "@components/features/watchlists/EditWatchlistItemDialog"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
+import WatchItemRemover from "@components/features/watchlists/WatchItemRemover"
 import AssetReviewPopup from "@components/features/assets/AssetReviewPopup"
 import AssetChart from "@components/features/assets/AssetChart"
 import { useNewsAsset } from "@components/features/assets/useNewsAsset"
 import WatchlistAlertsPanel from "@components/features/watchlists/WatchlistAlertsPanel"
 import { useWatchlist } from "@hooks/useWatchlist"
 import { useWatchlistAlerts } from "@hooks/useWatchlistAlerts"
-import {
-  removeWatchlistItem,
-  updateWatchlistItem,
-} from "@utils/api/client/watchlist"
+import { updateWatchlistItem } from "@utils/api/client/watchlist"
 import {
   buildNewsAsset,
   getPositionDisplayName,
@@ -37,7 +33,6 @@ export default withPageAuthRequired(
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<WatchlistItem | null>(null)
     const [removing, setRemoving] = useState<WatchlistItem | null>(null)
-    const [actionError, setActionError] = useState<string | null>(null)
 
     // A failed background refresh keeps the last good copy on screen.
     if (error && !items) return errorOut("Error retrieving watchlist", error)
@@ -46,23 +41,8 @@ export default withPageAuthRequired(
     const handleEdit = async (update: WatchlistItemUpdate): Promise<void> => {
       if (!editing) return
       await updateWatchlistItem(editing.id, update)
-      setActionError(null)
       setEditing(null)
       // Revalidate in the background: the write already succeeded.
-      void mutate()
-    }
-
-    const handleRemove = async (): Promise<void> => {
-      if (!removing) return
-      const item = removing
-      setRemoving(null)
-      setActionError(null)
-      try {
-        await removeWatchlistItem(item.id)
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Remove failed")
-        return
-      }
       void mutate()
     }
 
@@ -86,12 +66,6 @@ export default withPageAuthRequired(
             </button>
           </div>
         </div>
-
-        {actionError && (
-          <Alert variant="error" className="mb-4">
-            {actionError}
-          </Alert>
-        )}
 
         {alerts && (
           <WatchlistAlertsPanel
@@ -143,12 +117,7 @@ export default withPageAuthRequired(
             onClose={() => setCharting(null)}
           />
         )}
-        {adding && (
-          <AddToWatchlistDialog
-            onAdded={() => setActionError(null)}
-            onClose={() => setAdding(false)}
-          />
-        )}
+        {adding && <AddToWatchlistDialog onClose={() => setAdding(false)} />}
         {editing && (
           <EditWatchlistItemDialog
             item={editing}
@@ -157,13 +126,10 @@ export default withPageAuthRequired(
           />
         )}
         {removing && (
-          <ConfirmDialog
-            title="Remove from Watchlist"
-            message={`Remove ${getPositionDisplayName(removing.asset)} from your watchlist?`}
-            confirmLabel="Remove"
-            variant="red"
-            onConfirm={handleRemove}
-            onCancel={() => setRemoving(null)}
+          <WatchItemRemover
+            item={removing}
+            label={getPositionDisplayName(removing.asset)}
+            onClose={() => setRemoving(null)}
           />
         )}
       </div>

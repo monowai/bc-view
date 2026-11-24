@@ -374,7 +374,7 @@ describe("Asset Lookup Page — last close", () => {
     expect(lastClose).toHaveTextContent(formatDate("2026-09-29"))
   })
 
-  it("shows the watchlist target beside the latest close", () => {
+  it("shows the watch icon beside the asset symbol", () => {
     watchlistFixture = {
       data: {
         items: [
@@ -388,14 +388,19 @@ describe("Asset Lookup Page — last close", () => {
     render(<AssetLookupPage />)
     watchlistFixture = { data: { items: [] } }
 
+    const heading = screen.getByRole("heading", { level: 2 })
+    expect(within(heading).getByTestId("watch-icon")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/^Target USD 200\.00/),
+    )
     expect(
-      within(screen.getByTestId("last-close")).getByTestId("watch-target"),
-    ).toHaveTextContent("Target $200.00")
+      within(screen.getByTestId("last-close")).queryByTestId("watch-icon"),
+    ).not.toBeInTheDocument()
   })
 
-  it("shows no target when the asset is not watched", () => {
+  it("shows no watch icon when the asset is not watched", () => {
     render(<AssetLookupPage />)
-    expect(screen.queryByTestId("watch-target")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("watch-icon")).not.toBeInTheDocument()
   })
 
   it("omits the change when the provider sent no previous close", () => {

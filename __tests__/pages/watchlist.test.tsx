@@ -19,30 +19,6 @@ import {
 import { Watchlist, WatchlistAlert } from "types/beancounter"
 import { formatDate } from "@lib/formatters"
 
-// The dialog has its own tests; here it only needs to report a successful add.
-jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
-  return function AddToWatchlistDialog(props: {
-    onAdded?: (item: unknown) => void
-    onClose: () => void
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          props.onAdded?.({})
-          props.onClose()
-        }}
-      >
-        {"stub add"}
-      </button>
-    )
-  }
-})
-
-async function addFromDialog(): Promise<void> {
-  fireEvent.click(await screen.findByRole("button", { name: "stub add" }))
-}
-
 let mockCanRunAi = false
 jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => ({
@@ -340,6 +316,8 @@ describe("Watchlist page", () => {
       within(row("wi-1")).getByRole("button", { name: /edit AAA/i }),
     )
     fireEvent.click(screen.getByRole("button", { name: /clear target/i }))
+    expect(screen.getByLabelText(/target price/i)).toHaveValue("")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
       expect(
@@ -468,6 +446,8 @@ describe("Watchlist page", () => {
       target: { value: "85" },
     })
     fireEvent.click(screen.getByRole("button", { name: /clear target/i }))
+    expect(screen.getByLabelText(/target price/i)).toHaveValue("")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() =>
       expect(
@@ -494,14 +474,11 @@ describe("Watchlist page", () => {
     expect(within(row("wi-2")).getByTestId("added")).toHaveTextContent("USD")
   })
 
-  it("clears an earlier error once an add succeeds", async () => {
+  it("keeps a failed remove in its dialog until cancelled", async () => {
     const base = global.fetch as jest.Mock
     global.fetch = jest.fn((input: RequestInfo, init?: RequestInit) => {
       if (init?.method === "DELETE") {
         return Promise.resolve(jsonResponse(500, { error: "Remove broke" }))
-      }
-      if (init?.method === "POST") {
-        return Promise.resolve(jsonResponse(200, { data: priced }))
       }
       return base(input, init)
     }) as unknown as typeof fetch
@@ -513,13 +490,12 @@ describe("Watchlist page", () => {
     )
     fireEvent.click(screen.getByRole("button", { name: "Remove" }))
     expect(await screen.findByText("Remove broke")).toBeInTheDocument()
+    expect(screen.getByText(/from your watchlist\?/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: /add asset/i }))
-    await addFromDialog()
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
 
-    await waitFor(() =>
-      expect(screen.queryByText("Remove broke")).not.toBeInTheDocument(),
-    )
+    expect(screen.queryByText("Remove broke")).not.toBeInTheDocument()
+    expect(screen.getByTestId("watchlist-item-wi-1")).toBeInTheDocument()
   })
 
   it("offers an AI review beside each eligible asset, for that asset", async () => {

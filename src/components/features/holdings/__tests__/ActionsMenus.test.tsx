@@ -1,11 +1,17 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { ActionsMenu, CashActionsMenu } from "../ActionsMenus"
 import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
 import { useWatchlist } from "@hooks/useWatchlist"
+import { removeWatchlistItem } from "@utils/api/client/watchlist"
 
 jest.mock("@hooks/useWatchlist")
+jest.mock("swr", () => ({ mutate: jest.fn() }))
+jest.mock("@utils/api/client/watchlist", () => ({
+  ...jest.requireActual("@utils/api/client/watchlist"),
+  removeWatchlistItem: jest.fn(),
+}))
 beforeEach(() => {
   ;(useWatchlist as jest.Mock).mockReturnValue({ items: [] })
 })
@@ -180,7 +186,7 @@ describe("ActionsMenu — watchlist", () => {
     expect(
       screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+    fireEvent.click(screen.getByRole("button", { name: "Edit Watch" }))
 
     expect(screen.getByLabelText(/Target price/)).toHaveValue("")
     expect(capturedWatchlistProps).toBeNull()
@@ -226,7 +232,7 @@ describe("ActionsMenu — watchlist", () => {
       screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole("button", { name: "Edit watch target" }),
+      screen.queryByRole("button", { name: "Edit Watch" }),
     ).not.toBeInTheDocument()
   })
 
@@ -243,6 +249,69 @@ describe("ActionsMenu — watchlist", () => {
     expect(
       screen.queryByRole("button", { name: "Add to Watchlist" }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("ActionsMenu — remove from watchlist", () => {
+  const watchedItem = makeWatchlistItem({ id: "wi-1", asset })
+  const question = "Remove AAPL from your watchlist?"
+
+  beforeEach(() => {
+    ;(useWatchlist as jest.Mock).mockReturnValue({ items: [watchedItem] })
+    ;(removeWatchlistItem as jest.Mock).mockReset()
+  })
+
+  const openRemove = (): void => {
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+    fireEvent.click(screen.getByRole("button", { name: "Edit Watch" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove from watchlist" }),
+    )
+  }
+
+  it("offers one watch item in the menu", () => {
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+
+    const watchItems = screen.getAllByRole("button", { name: /watch/i })
+    expect(watchItems.map((b) => b.textContent)).toEqual(["Edit Watch"])
+  })
+
+  it("removes a watched asset from the edit dialog after confirmation", async () => {
+    ;(removeWatchlistItem as jest.Mock).mockResolvedValue(undefined)
+    openRemove()
+
+    expect(screen.getByText(question)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+
+    await waitFor(() =>
+      expect(removeWatchlistItem).toHaveBeenCalledWith("wi-1"),
+    )
+    await waitFor(() =>
+      expect(screen.queryByText(question)).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByLabelText(/Target price/)).not.toBeInTheDocument()
+  })
+
+  it("keeps the dialog open with the error when removal fails", async () => {
+    ;(removeWatchlistItem as jest.Mock).mockRejectedValue(
+      new Error("Remove failed: 500"),
+    )
+    openRemove()
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }))
+
+    expect(await screen.findByText("Remove failed: 500")).toBeInTheDocument()
+    expect(screen.getByText(question)).toBeInTheDocument()
+  })
+
+  it("returns to the edit dialog when the removal is cancelled", () => {
+    openRemove()
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+
+    expect(removeWatchlistItem).not.toHaveBeenCalled()
+    expect(screen.queryByText(question)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Target price/)).toBeInTheDocument()
   })
 })
 
