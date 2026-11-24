@@ -243,10 +243,10 @@ describe("IndependenceMetrics — retired tiles report on the journey", () => {
   it("falls back to the phase figures when the journey projection failed", () => {
     render_(phase, 0, { journey, journeyProjection: null })
     expect(screen.getByText(/plan 5\.0%/)).toBeInTheDocument()
-    // The journey still exists, so the link still opens it.
+    // The tiles are the phase's, so the link opens the phase.
     expect(projectionsLink()).toHaveAttribute(
       "href",
-      "/independence?plan=jrn%2F1",
+      `/independence/plans/${maryPlan.id}`,
     )
   })
 
@@ -263,9 +263,40 @@ describe("IndependenceMetrics — retired tiles report on the journey", () => {
     expect(screen.getByText(/plan 5\.0%/)).toBeInTheDocument()
   })
 
-  it("says nothing of the kind when the journey answered or there is none", () => {
+  it("says nothing of the kind when the journey answered", () => {
     render_(phase, 0, { journey, journeyProjection })
     expect(screen.queryByText(PHASE_ONLY)).not.toBeInTheDocument()
+  })
+
+  it("says nothing of a journey projection on an account with no journey", () => {
+    render_(phase, 0, { journeyProjectionFailed: true })
+    expect(screen.queryByText(PHASE_ONLY)).not.toBeInTheDocument()
+    expect(screen.getByText(/plan 5\.0%/)).toBeInTheDocument()
+  })
+
+  it("does not call the figures the phase's while the journey is still loading", () => {
+    render_(phase, 0, {
+      journey,
+      journeyProjection: null,
+      journeyProjectionLoading: true,
+      journeyProjectionFailed: true,
+    })
+    expect(screen.getByText("Calculating...")).toBeInTheDocument()
+    expect(screen.queryByText(PHASE_ONLY)).not.toBeInTheDocument()
+  })
+
+  it("keeps the journey's link and no phase note when a refresh fails over figures already shown", () => {
+    render_(phase, 0, {
+      journey,
+      journeyProjection,
+      journeyProjectionFailed: true,
+    })
+    expect(screen.getByText(/plan 2\.5%/)).toBeInTheDocument()
+    expect(screen.queryByText(PHASE_ONLY)).not.toBeInTheDocument()
+    expect(projectionsLink()).toHaveAttribute(
+      "href",
+      "/independence?plan=jrn%2F1",
+    )
   })
 
   it("shows the working-years tiles for a journey still in its working years", () => {
@@ -435,6 +466,15 @@ describe("IndependenceMetrics — working-years tiles report on the journey", ()
     expect(screen.queryByText("12.3%")).not.toBeInTheDocument()
     expect(screen.queryByText("/ $1,111")).not.toBeInTheDocument()
     expect(screen.queryByText("/ $1,880")).not.toBeInTheDocument()
+  })
+
+  it("links to the phase when a working owner's journey has no projection", () => {
+    render_(phase, 0, { journey, journeyProjection: null })
+    expect(screen.getByText("/ $1,111")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Projections →" })).toHaveAttribute(
+      "href",
+      `/independence/plans/${maryPlan.id}`,
+    )
   })
 
   it("keeps the phase figures when there is no journey", () => {
