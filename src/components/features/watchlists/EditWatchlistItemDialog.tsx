@@ -23,7 +23,31 @@ const chipClass =
   "rounded-full border border-gray-300 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
 
 /** Stop-loss presets: how far below the latest close the target sits. */
-const STOP_LOSS_PCTS = [5, 10]
+const STOP_LOSS_PCTS = [5, 10, 15, 20]
+
+/** A target typed as a move from the close: "7%" or "-7%" below, "+7%" above. */
+interface PercentMove {
+  pct: number
+  above: boolean
+}
+
+const PERCENT_MOVE = /^([+\-−])?\s*(\d+(?:\.\d+)?)\s*%$/
+
+function parsePercentMove(text: string): PercentMove | null {
+  const match = PERCENT_MOVE.exec(text.trim())
+  if (!match) return null
+  return { pct: Number(match[2]), above: match[1] === "+" }
+}
+
+/** The price a move from the close lands on, at the asset's price places. */
+function priceFromMove(
+  close: number,
+  move: PercentMove,
+  places: number,
+): string {
+  const factor = 1 + ((move.above ? 1 : -1) * move.pct) / 100
+  return (close * factor).toFixed(places)
+}
 
 /**
  * Edit a watchlist item's target and added price. Only changed fields are
@@ -56,16 +80,24 @@ export default function EditWatchlistItemDialog({
     }
   }
 
-  // Rounded to the asset's price places, so the field shows what is saved.
-  const setTargetFromClose = (pctBelow: number): void => {
-    if (item.price == null) return
-    const price = item.price * (1 - pctBelow / 100)
-    setTargetText(price.toFixed(priceDecimals(item.asset)))
+  const places = priceDecimals(item.asset)
+  const close = item.price
+  const move = parsePercentMove(targetText)
+  const movedPrice =
+    move && close != null ? priceFromMove(close, move, places) : null
+
+  // Leaving the field turns a typed move into the price it stands for.
+  const settleMove = (): void => {
+    if (movedPrice !== null) setTargetText(movedPrice)
   }
 
   // An emptied target clears it; clearTarget and targetPrice never pair.
   const handleSave = async (): Promise<void> => {
-    const target = parseOptionalPrice(targetText)
+    if (move && movedPrice === null) {
+      setError("No latest close to take a percentage from")
+      return
+    }
+    const target = parseOptionalPrice(movedPrice ?? targetText)
     const added = parseOptionalPrice(addedText)
     if (target === null || added === null) {
       setError("Prices must be positive numbers")
@@ -156,11 +188,24 @@ export default function EditWatchlistItemDialog({
             id={`${fieldId}-target`}
             className={inputClass}
             inputMode="decimal"
-            placeholder={"None"}
+            placeholder={"Price or %"}
             value={targetText}
             onChange={(e) => setTargetText(e.target.value)}
+            onBlur={settleMove}
           />
-          {item.price != null && (
+          {move && movedPrice !== null && (
+            <p
+              data-testid="target-from-percent"
+              aria-live="polite"
+              className="mt-1 text-xs text-gray-600"
+            >
+              {`${move.pct}% ${move.above ? "above" : "below"} close = `}
+              <span className="font-mono tabular-nums text-gray-900">
+                {`${item.currency.code} ${formatCurrency(Number(movedPrice), places)}`}
+              </span>
+            </p>
+          )}
+          {close != null && (
             <div
               role="group"
               aria-label="Quick set target"
@@ -170,7 +215,7 @@ export default function EditWatchlistItemDialog({
                 type="button"
                 aria-label="Set target to the latest close"
                 className={chipClass}
-                onClick={() => setTargetFromClose(0)}
+                onClick={() => setTargetText(close.toFixed(places))}
                 disabled={submitting}
               >
                 {"Close"}
@@ -181,7 +226,11 @@ export default function EditWatchlistItemDialog({
                   type="button"
                   aria-label={`Set target ${pct}% below the latest close`}
                   className={chipClass}
-                  onClick={() => setTargetFromClose(pct)}
+                  onClick={() =>
+                    setTargetText(
+                      priceFromMove(close, { pct, above: false }, places),
+                    )
+                  }
                   disabled={submitting}
                 >
                   {`−${pct}%`}

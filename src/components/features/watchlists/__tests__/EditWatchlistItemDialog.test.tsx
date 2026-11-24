@@ -95,6 +95,14 @@ describe("EditWatchlistItemDialog quick-set target", () => {
     expect(target()).toHaveValue("597.60")
   })
 
+  it("offers the usual stop-loss levels", () => {
+    renderDialog(priced)
+    const quick = screen.getByRole("group", { name: "Quick set target" })
+    expect(
+      Array.from(quick.querySelectorAll("button")).map((b) => b.textContent),
+    ).toEqual(["Close", "−5%", "−10%", "−15%", "−20%"])
+  })
+
   it("sets a stop-loss target a percentage below the latest close", () => {
     renderDialog(priced)
     fireEvent.click(
@@ -131,5 +139,68 @@ describe("EditWatchlistItemDialog quick-set target", () => {
     expect(
       screen.queryByRole("button", { name: /latest close/ }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("EditWatchlistItemDialog typed percentage target", () => {
+  const priced = makeWatchlistItem({
+    asset,
+    price: 597.6,
+    addedPrice: 600,
+    targetPrice: 632,
+  })
+  const target = (): HTMLElement => screen.getByLabelText(/Target price/)
+  const type = (text: string): void => {
+    fireEvent.change(target(), { target: { value: text } })
+  }
+
+  it("previews a typed percentage below the close as a price", () => {
+    renderDialog(priced)
+    type("7%")
+    expect(screen.getByTestId("target-from-percent")).toHaveTextContent(
+      "7% below close = USD 555.77",
+    )
+  })
+
+  it("reads a minus sign as below and a plus sign as above the close", () => {
+    renderDialog(priced)
+    type("-7%")
+    expect(screen.getByTestId("target-from-percent")).toHaveTextContent(
+      "7% below close = USD 555.77",
+    )
+    type("+3%")
+    expect(screen.getByTestId("target-from-percent")).toHaveTextContent(
+      "3% above close = USD 615.53",
+    )
+  })
+
+  it("turns a typed percentage into the price when the field is left", () => {
+    renderDialog(priced)
+    type("12.5%")
+    fireEvent.blur(target())
+    expect(target()).toHaveValue("522.90")
+  })
+
+  it("saves a typed percentage as the price it stands for", async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined)
+    renderDialog(priced, onSubmit)
+    type("-7%")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({ targetPrice: 555.77 }),
+    )
+  })
+
+  it("refuses a percentage when there is no close to take it from", () => {
+    const onSubmit = jest.fn()
+    renderDialog(makeWatchlistItem({ asset, price: null }), onSubmit)
+    type("7%")
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    expect(
+      screen.getByText("No latest close to take a percentage from"),
+    ).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
   })
 })
