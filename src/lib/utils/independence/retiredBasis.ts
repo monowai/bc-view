@@ -28,9 +28,10 @@ export interface RetiredBasis {
   budgetPlanId: string | undefined
   /**
    * Currency the budget plan's expenses are priced in. A journey reports in
-   * its display currency while each phase budgets in its own.
+   * its display currency while each phase budgets in its own. Undefined when
+   * the projection does not say: the budget is then not comparable.
    */
-  budgetCurrency: string
+  budgetCurrency: string | undefined
   /** Identifies the simulation: a new key is a new run. */
   monteCarloKey: readonly unknown[]
   runMonteCarlo: (seed: number) => Promise<Response>
@@ -97,11 +98,11 @@ export function journeyRetiredBasis(
   )
   const budgetPlanId =
     currentRow?.planId ?? currentPhase(phases, currentAge)?.planId
-  // The phase's own currency as svc-retire echoes it; a projection that does
-  // not name the phase leaves the display currency as the only one known.
-  const budgetCurrency =
-    projection.phases.find((phase) => phase.planId === budgetPlanId)
-      ?.expensesCurrency ?? displayCurrency
+  // The phase's own currency as svc-retire echoes it; unknown when the
+  // projection does not name the phase. The display currency is not assumed.
+  const budgetCurrency = projection.phases.find(
+    (phase) => phase.planId === budgetPlanId,
+  )?.expensesCurrency
   return {
     currency: displayCurrency,
     liquidAssets,

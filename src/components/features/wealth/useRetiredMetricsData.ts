@@ -81,8 +81,8 @@ export function useRetiredMetricsData(basis: RetiredBasis): RetiredMetricsData {
   const spendEntries = history.entries
   // The service locks the log to its first currency. Spend is set against the
   // budget, in the budget plan's currency, and its draw against liquid assets,
-  // in the basis's: it is comparable only when the log is in both. Nothing is
-  // converted here.
+  // in the basis's: it is comparable only when the log is in both. A budget
+  // whose currency is unknown is in neither. Nothing is converted here.
   const logCurrency = spendEntries[0]?.currency ?? null
   const comparable =
     logCurrency === basis.currency && logCurrency === basis.budgetCurrency

@@ -133,6 +133,17 @@ export default function IndependenceMetrics({
   // projection to ask. Until the journey answers, hold the loading state
   // rather than show the phase's figures and then swap them.
   const projectionLoading = phaseProjectionLoading || journeyProjectionLoading
+  // Whose figures the tiles carry, or will once the journey answers. The link
+  // and the fallback note follow it, so they never describe another plan.
+  const journeyShown =
+    journey && (journeyProjectionLoading || journeyProjection)
+      ? journey
+      : undefined
+  const phaseStandsIn =
+    journey !== undefined &&
+    journeyShown === undefined &&
+    journeyProjectionFailed &&
+    !projectionLoading
   const view = ((): MetricsView => {
     if (journeyProjectionLoading) return { kind: "working", basis: null }
     if (journey && journeyProjection) {
@@ -198,8 +209,8 @@ export default function IndependenceMetrics({
         action={
           <Link
             href={
-              journey
-                ? `/independence?${ACTIVE_PLAN_QUERY_PARAM}=${encodeURIComponent(journey.id)}`
+              journeyShown
+                ? `/independence?${ACTIVE_PLAN_QUERY_PARAM}=${encodeURIComponent(journeyShown.id)}`
                 : `/independence/plans/${primaryPlan.id}`
             }
             className="shrink-0 rounded-sm text-sm text-wealth-600 hover:text-wealth-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-wealth-500"
@@ -208,7 +219,7 @@ export default function IndependenceMetrics({
           </Link>
         }
       >
-        {journeyProjectionFailed && (
+        {phaseStandsIn && (
           <p className="text-xs text-gray-500 mb-3">
             Journey projection unavailable — figures are for the current phase
             only
