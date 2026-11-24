@@ -2,7 +2,13 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { ActionsMenu, CashActionsMenu } from "../ActionsMenus"
-import { makeAsset } from "@test-fixtures/beancounter"
+import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
+import { useWatchlist } from "@hooks/useWatchlist"
+
+jest.mock("@hooks/useWatchlist")
+beforeEach(() => {
+  ;(useWatchlist as jest.Mock).mockReturnValue({ items: [] })
+})
 
 let capturedWatchlistProps: Record<string, unknown> | null = null
 jest.mock("@components/features/watchlists/AddToWatchlistDialog", () => {
@@ -164,6 +170,22 @@ describe("ActionsMenu — watchlist", () => {
     capturedWatchlistProps = null
   })
 
+  it("offers to edit the watch target when the asset is already watched", () => {
+    ;(useWatchlist as jest.Mock).mockReturnValue({
+      items: [makeWatchlistItem({ asset, targetPrice: null })],
+    })
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+
+    expect(
+      screen.queryByRole("button", { name: "Add to Watchlist" }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Edit watch target" }))
+
+    expect(screen.getByLabelText(/Target price/)).toHaveValue("")
+    expect(capturedWatchlistProps).toBeNull()
+  })
+
   it("opens the add-to-watchlist dialog for the holding's asset", () => {
     render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
     openMenu()
@@ -193,6 +215,19 @@ describe("ActionsMenu — watchlist", () => {
 
     expect(onRowClick).not.toHaveBeenCalled()
     expect(onRowDoubleClick).not.toHaveBeenCalled()
+  })
+
+  it("offers no watch action until the watchlist has loaded", () => {
+    ;(useWatchlist as jest.Mock).mockReturnValue({ items: undefined })
+    render(<ActionsMenu {...baseProps} onTrade={jest.fn()} />)
+    openMenu()
+
+    expect(
+      screen.queryByRole("button", { name: "Add to Watchlist" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Edit watch target" }),
+    ).not.toBeInTheDocument()
   })
 
   it("does not offer an asset the server marks unwatchable", () => {

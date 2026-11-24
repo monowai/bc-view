@@ -23,6 +23,9 @@ import {
   isFundLike,
 } from "@lib/assets/assetUtils"
 import AddToWatchlistDialog from "@components/features/watchlists/AddToWatchlistDialog"
+import RowSafePortal from "@components/ui/RowSafePortal"
+import WatchItemEditor from "@components/features/watchlists/WatchItemEditor"
+import { useWatchlist } from "@hooks/useWatchlist"
 import { usePermissions } from "@hooks/usePermissions"
 import { canEditAsset } from "./assetEditRights"
 
@@ -258,6 +261,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const assetCode = asset.displayCode
   const [watching, setWatching] = useState(false)
   const canWatch = asset.watchable
+  const { items: watchlistItems } = useWatchlist()
+  const watched = watchlistItems?.find((i) => i.asset.id === asset.id)
   const { admin: isAdmin } = usePermissions()
 
   const tradePayload = (): QuickSellData => ({
@@ -277,20 +282,16 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
       menu={menu}
       after={
         watching &&
-        createPortal(
-          // React events bubble through portals to the holding row, whose
-          // double-click opens trades; stop them at the dialog boundary.
-          <div
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => e.stopPropagation()}
-          >
+        (watched ? (
+          <WatchItemEditor item={watched} onClose={() => setWatching(false)} />
+        ) : (
+          <RowSafePortal>
             <AddToWatchlistDialog
               asset={{ id: asset.id, label: assetCode }}
               onClose={() => setWatching(false)}
             />
-          </div>,
-          document.body,
-        )
+          </RowSafePortal>
+        ))
       }
     >
       {onTrade && (
@@ -411,10 +412,11 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           onClick={handle(onAnalyseHolding)}
         />
       )}
-      {canWatch && (
+      {/* Until the watchlist loads, add and edit cannot be told apart. */}
+      {canWatch && watchlistItems && (
         <MenuItem
-          iconClass="fas fa-eye"
-          label="Add to Watchlist"
+          iconClass={watched ? "fas fa-bullseye" : "fas fa-eye"}
+          label={watched ? "Edit watch target" : "Add to Watchlist"}
           onClick={handle(() => setWatching(true))}
         />
       )}
