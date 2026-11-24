@@ -228,18 +228,77 @@ describe("Watchlist page", () => {
       "title",
       expect.stringContaining("2026"),
     )
-    expect(r.getByTestId("day-change")).toHaveTextContent("-1.50")
-    expect(r.getByTestId("day-change")).toHaveTextContent("-1.23%")
+    // The day's move shows as a percent; the amount is on hover.
+    expect(r.getByTestId("day-change")).toHaveTextContent(/^-1\.23%$/)
+    expect(r.getByTestId("day-change")).toHaveAttribute(
+      "title",
+      "Change on day -1.50",
+    )
+    // The move since added is on hover over the added price.
     expect(r.getByTestId("added")).toHaveTextContent(/^80\.00$/)
     expect(r.getByTestId("added")).toHaveAttribute(
       "title",
-      `Added ${formatDate("2026-02-03")}`,
+      `Added ${formatDate("2026-02-03")} · +7.77 (+33.33%)`,
     )
-    expect(r.getByTestId("since-added")).toHaveTextContent("+7.77")
-    expect(r.getByTestId("since-added")).toHaveTextContent("+33.33%")
     expect(r.getByTestId("target")).toHaveTextContent("99.00")
     expect(r.getByTestId("target")).toHaveTextContent(/44\.44%$/)
     expect(r.getByTestId("target-arrow")).toHaveTextContent("▲")
+  })
+
+  it("puts Target beside Price and drops the Since Added column", async () => {
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    const headers = screen
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent)
+    expect(headers).toEqual([
+      "Asset",
+      "Price",
+      "Target",
+      "Day",
+      "Added",
+      "Actions",
+    ])
+  })
+
+  it("groups the asset icons, a divider, then the row actions", async () => {
+    mockCanRunAi = true
+    watchlist = makeWatchlist({
+      items: [
+        { ...priced, asset: { ...priced.asset, hasNews: true } },
+        unpriced,
+      ],
+    })
+    renderPage()
+    await screen.findByTestId("watchlist-item-wi-1")
+
+    const actions = within(row("wi-1")).getByTestId("row-actions")
+    const names = within(actions)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label"))
+    expect(names).toEqual([
+      "News AAA",
+      "AI review AAA",
+      "Show price chart for AAA",
+      "Trade AAA",
+      "Edit AAA",
+      "Remove AAA",
+    ])
+    // The divider is the asset group's edge: News, review and chart sit
+    // inside it, the row actions after it.
+    const assetIcons = within(actions).getByTestId("asset-icons")
+    expect(assetIcons).toHaveClass("border-r")
+    expect(
+      within(assetIcons)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["News AAA", "AI review AAA", "Show price chart for AAA"])
+    // The asset cell keeps the code and name only.
+    const assetCell = within(row("wi-1"))
+      .getByRole("link", { name: "AAA" })
+      .closest("td") as HTMLElement
+    expect(within(assetCell).queryAllByRole("button")).toHaveLength(0)
   })
 
   it("shows a target below the price as a distance, not as a loss", async () => {
@@ -279,8 +338,11 @@ describe("Watchlist page", () => {
     expect(r.getByTestId("price")).toHaveTextContent("0.7254")
     expect(r.getByTestId("added")).toHaveTextContent("0.7123")
     expect(r.getByTestId("target")).toHaveTextContent("0.7500")
-    expect(r.getByTestId("day-change")).toHaveTextContent("+0.0012")
-    expect(r.getByTestId("since-added")).toHaveTextContent("+0.0131")
+    expect(r.getByTestId("day-change")).toHaveAttribute(
+      "title",
+      "Change on day +0.0012",
+    )
+    expect(r.getByTestId("added").getAttribute("title")).toContain("+0.0131")
     // An equity stays at 2 places.
     expect(within(row("wi-1")).getByTestId("price")).toHaveTextContent(
       /^90\.00/,
@@ -294,7 +356,10 @@ describe("Watchlist page", () => {
     const r = within(row("wi-2"))
     expect(r.getByTestId("price")).toHaveTextContent(/^–$/)
     expect(r.getByTestId("day-change")).toHaveTextContent(/^–$/)
-    expect(r.getByTestId("since-added")).toHaveTextContent(/^–$/)
+    expect(r.getByTestId("added")).toHaveAttribute(
+      "title",
+      `Added ${formatDate(unpriced.addedOn)}`,
+    )
     expect(r.getByTestId("target")).toHaveTextContent(/^–$/)
     expect(r.getByTestId("added")).toHaveTextContent("10.00")
   })

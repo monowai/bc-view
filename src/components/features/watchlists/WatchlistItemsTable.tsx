@@ -16,6 +16,7 @@ import {
 } from "@lib/formatters"
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
+import { ROW_ICON_BUTTON } from "@components/features/assets/iconButtonClasses"
 import TargetDistance from "./TargetDistance"
 import TargetHitBadge from "./TargetHitBadge"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
@@ -50,29 +51,45 @@ const toTradeOption = (item: WatchlistItem): AssetOption => {
 
 // Every figure is the backend's; this component only formats. Percent fields
 // are fractions (0.25 = 25%), hence formatSignedPercent.
-function Change({
-  amount,
-  percent,
-  testId,
+
+/** The day's move as a percent; the amount is on hover, as on holdings. */
+function DayChange({
+  item,
   decimals,
 }: {
-  amount: number | null
-  percent: number | null
-  testId: string
+  item: WatchlistItem
   decimals: number
 }): React.ReactElement {
-  if (amount == null && percent == null) {
-    return <span data-testid={testId}>{DASH}</span>
-  }
-  const tone = gainLossClass(amount ?? percent ?? 0)
-  return (
-    <span data-testid={testId} className={`tabular-nums ${tone}`}>
-      {amount == null ? DASH : formatSignedNumber(amount, decimals)}
-      <span className="ml-1 text-xs">
-        {percent == null ? `(${DASH})` : `(${formatSignedPercent(percent)})`}
+  const { changeOnDay: amount, changeOnDayPercent: percent } = item
+  const title =
+    amount == null
+      ? undefined
+      : `Change on day ${formatSignedNumber(amount, decimals)}`
+  if (percent == null) {
+    return (
+      <span data-testid="day-change" title={title}>
+        {DASH}
       </span>
+    )
+  }
+  return (
+    <span
+      data-testid="day-change"
+      title={title}
+      className={`tabular-nums ${gainLossClass(percent)}`}
+    >
+      {formatSignedPercent(percent)}
     </span>
   )
+}
+
+/** When the item was added and how far the price has moved since. */
+function addedTitle(item: WatchlistItem, decimals: number): string {
+  const added = `Added ${formatDate(item.addedOn)}`
+  const { changeSinceAdded: amount, changeSinceAddedPercent: percent } = item
+  if (amount == null) return added
+  const pct = percent == null ? DASH : formatSignedPercent(percent)
+  return `${added} · ${formatSignedNumber(amount, decimals)} (${pct})`
 }
 
 /** A cell label shown only when rows stack into cards on narrow screens. */
@@ -101,10 +118,9 @@ export default function WatchlistItemsTable({
         <tr>
           <th className={`${th} text-left`}>{"Asset"}</th>
           <th className={`${th} text-right`}>{"Price"}</th>
+          <th className={`${th} text-right`}>{"Target"}</th>
           <th className={`${th} text-right`}>{"Day"}</th>
           <th className={`${th} text-right`}>{"Added"}</th>
-          <th className={`${th} text-right`}>{"Since Added"}</th>
-          <th className={`${th} text-right`}>{"Target"}</th>
           <th className={`${th} text-right`}>
             <span className="sr-only">{"Actions"}</span>
           </th>
@@ -121,32 +137,13 @@ export default function WatchlistItemsTable({
               className="block md:table-row border border-gray-200 md:border-0 md:border-b rounded-lg md:rounded-none mb-3 md:mb-0 py-2 md:py-0 bg-white"
             >
               <td className="block md:table-cell px-3 py-1 md:py-2">
-                <div className="flex items-center gap-1.5">
+                <div>
                   <Link
                     href={buildAssetLookupHref(item.asset)}
                     className="font-semibold text-gray-900 hover:text-blue-700"
                   >
                     {code}
                   </Link>
-                  <AssetNewsButton
-                    asset={item.asset}
-                    onShow={() => onNews(item)}
-                  />
-                  <AssetReviewButton
-                    asset={item.asset}
-                    onShow={() => onReview(item)}
-                  />
-                  {item.asset.chartable && (
-                    <button
-                      type="button"
-                      aria-label={`Show price chart for ${code}`}
-                      title="Price Chart"
-                      onClick={() => onChart(item)}
-                      className="-m-1.5 p-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:text-blue-700 transition-colors"
-                    >
-                      <i aria-hidden="true" className="fas fa-chart-line"></i>
-                    </button>
-                  )}
                 </div>
                 {item.asset.name && item.asset.name !== code && (
                   <div className="text-xs text-gray-500 truncate max-w-[16rem]">
@@ -179,40 +176,6 @@ export default function WatchlistItemsTable({
                 )}
               </td>
               <td className={td}>
-                <MobileLabel>{"Day"}</MobileLabel>
-                <Change
-                  testId="day-change"
-                  amount={item.changeOnDay}
-                  percent={item.changeOnDayPercent}
-                  decimals={dp}
-                />
-              </td>
-              <td className={td}>
-                <MobileLabel>{"Added"}</MobileLabel>
-                <span
-                  data-testid="added"
-                  title={`Added ${formatDate(item.addedOn)}`}
-                  className="tabular-nums"
-                >
-                  {formatCurrency(item.addedPrice, dp)}
-                  {/* The Price cell names the currency; with no price, say it here. */}
-                  {item.price == null && (
-                    <span className="ml-1 text-xs text-gray-500">
-                      {item.currency.code}
-                    </span>
-                  )}
-                </span>
-              </td>
-              <td className={td}>
-                <MobileLabel>{"Since Added"}</MobileLabel>
-                <Change
-                  testId="since-added"
-                  amount={item.changeSinceAdded}
-                  percent={item.changeSinceAddedPercent}
-                  decimals={dp}
-                />
-              </td>
-              <td className={td}>
                 <MobileLabel>{"Target"}</MobileLabel>
                 {item.targetPrice == null ? (
                   <span data-testid="target">{DASH}</span>
@@ -230,28 +193,82 @@ export default function WatchlistItemsTable({
                   </span>
                 )}
               </td>
-              <td className="flex justify-end gap-1 md:table-cell px-3 py-1 md:py-2 md:text-right whitespace-nowrap">
-                {isTradeable(item.asset) && (
-                  <TradeAssetAction asset={toTradeOption(item)} compact />
-                )}
-                <button
-                  type="button"
-                  aria-label={`Edit ${code}`}
-                  title="Edit"
-                  onClick={() => onEdit(item)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              <td className={td}>
+                <MobileLabel>{"Day"}</MobileLabel>
+                <DayChange item={item} decimals={dp} />
+              </td>
+              <td className={td}>
+                <MobileLabel>{"Added"}</MobileLabel>
+                <span
+                  data-testid="added"
+                  title={addedTitle(item, dp)}
+                  className="tabular-nums"
                 >
-                  <i aria-hidden="true" className="fas fa-pen"></i>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Remove ${code}`}
-                  title="Remove"
-                  onClick={() => onRemove(item)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-red-50 hover:text-red-700"
+                  {formatCurrency(item.addedPrice, dp)}
+                  {/* The Price cell names the currency; with no price, say it here. */}
+                  {item.price == null && (
+                    <span className="ml-1 text-xs text-gray-500">
+                      {item.currency.code}
+                    </span>
+                  )}
+                </span>
+              </td>
+              <td className="block md:table-cell px-3 py-1 md:py-2">
+                <div
+                  data-testid="row-actions"
+                  className="flex items-center justify-end"
                 >
-                  <i aria-hidden="true" className="fas fa-trash"></i>
-                </button>
+                  {/* Hidden when empty, so no divider is left dangling. */}
+                  <span
+                    data-testid="asset-icons"
+                    className="flex items-center empty:hidden mr-1.5 pr-1.5 border-r border-gray-300"
+                  >
+                    <AssetNewsButton
+                      asset={item.asset}
+                      onShow={() => onNews(item)}
+                      buttonClassName={ROW_ICON_BUTTON}
+                      iconClassName=""
+                    />
+                    <AssetReviewButton
+                      asset={item.asset}
+                      onShow={() => onReview(item)}
+                      buttonClassName={ROW_ICON_BUTTON}
+                      iconClassName=""
+                    />
+                    {item.asset.chartable && (
+                      <button
+                        type="button"
+                        aria-label={`Show price chart for ${code}`}
+                        title="Price Chart"
+                        onClick={() => onChart(item)}
+                        className={`${ROW_ICON_BUTTON} hover:text-blue-700`}
+                      >
+                        <i aria-hidden="true" className="fas fa-chart-line"></i>
+                      </button>
+                    )}
+                  </span>
+                  {isTradeable(item.asset) && (
+                    <TradeAssetAction asset={toTradeOption(item)} compact />
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Edit ${code}`}
+                    title="Edit"
+                    onClick={() => onEdit(item)}
+                    className={`${ROW_ICON_BUTTON} hover:bg-gray-100 hover:text-gray-700`}
+                  >
+                    <i aria-hidden="true" className="fas fa-pen"></i>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${code}`}
+                    title="Remove"
+                    onClick={() => onRemove(item)}
+                    className={`${ROW_ICON_BUTTON} hover:bg-red-50 hover:text-red-700`}
+                  >
+                    <i aria-hidden="true" className="fas fa-trash"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           )
