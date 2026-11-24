@@ -1,12 +1,15 @@
 import React, { ReactElement } from "react"
 import { Asset } from "types/beancounter"
 import { usePermissions } from "@hooks/usePermissions"
+import { INLINE_ICON_BUTTON } from "./iconButtonClasses"
 
 interface AssetReviewButtonProps {
   asset: Asset
   onShow: () => void
   /** Override icon size (default `text-xs`). */
   iconClassName?: string
+  /** Override the button's box (default: a tight inline hit area). */
+  buttonClassName?: string
 }
 
 /**
@@ -19,6 +22,7 @@ const AssetReviewButton: React.FC<AssetReviewButtonProps> = ({
   asset,
   onShow,
   iconClassName = "text-xs",
+  buttonClassName = INLINE_ICON_BUTTON,
 }): ReactElement | null => {
   const { canUseAi } = usePermissions()
   if (!canUseAi) return null
@@ -32,7 +36,7 @@ const AssetReviewButton: React.FC<AssetReviewButtonProps> = ({
         e.stopPropagation()
         onShow()
       }}
-      className="-m-1.5 p-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-gray-500 hover:text-purple-700 transition-colors"
+      className={`${buttonClassName} hover:text-purple-700`}
       title={`AI review of ${ticker}`}
       aria-label={`AI review ${ticker}`}
     >
