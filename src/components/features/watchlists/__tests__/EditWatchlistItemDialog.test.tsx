@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import EditWatchlistItemDialog from "../EditWatchlistItemDialog"
 import { makeAsset, makeWatchlistItem } from "@test-fixtures/beancounter"
@@ -8,11 +8,14 @@ import type { WatchlistItem } from "types/beancounter"
 
 const asset = makeAsset({ id: "asset-meta", code: "META" })
 
-function renderDialog(item: WatchlistItem): void {
+function renderDialog(
+  item: WatchlistItem,
+  onSubmit: jest.Mock = jest.fn(),
+): void {
   render(
     <EditWatchlistItemDialog
       item={item}
-      onSubmit={jest.fn()}
+      onSubmit={onSubmit}
       onClose={jest.fn()}
     />,
   )
@@ -72,5 +75,61 @@ describe("EditWatchlistItemDialog target details", () => {
     )
 
     expect(screen.queryByTestId("target-details")).not.toBeInTheDocument()
+  })
+})
+
+describe("EditWatchlistItemDialog quick-set target", () => {
+  const priced = makeWatchlistItem({
+    asset,
+    price: 597.6,
+    addedPrice: 600,
+    targetPrice: 632,
+  })
+  const target = (): HTMLElement => screen.getByLabelText(/Target price/)
+
+  it("sets the target to the latest close", () => {
+    renderDialog(priced)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Set target to the latest close" }),
+    )
+    expect(target()).toHaveValue("597.60")
+  })
+
+  it("sets a stop-loss target a percentage below the latest close", () => {
+    renderDialog(priced)
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Set target 5% below the latest close",
+      }),
+    )
+    expect(target()).toHaveValue("567.72")
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Set target 10% below the latest close",
+      }),
+    )
+    expect(target()).toHaveValue("537.84")
+  })
+
+  it("saves the quick-set target", async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined)
+    renderDialog(priced, onSubmit)
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Set target 10% below the latest close",
+      }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({ targetPrice: 537.84 }),
+    )
+  })
+
+  it("offers no quick-set without a latest close", () => {
+    renderDialog(makeWatchlistItem({ asset, price: null }))
+    expect(
+      screen.queryByRole("button", { name: /latest close/ }),
+    ).not.toBeInTheDocument()
   })
 })

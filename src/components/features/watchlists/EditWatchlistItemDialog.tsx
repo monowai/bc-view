@@ -19,6 +19,11 @@ interface EditWatchlistItemDialogProps {
 const inputClass =
   "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
+const chipClass =
+  "rounded-full border border-gray-300 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
+
+/** Stop-loss presets: how far below the latest close the target sits. */
+const STOP_LOSS_PCTS = [5, 10]
 
 /**
  * Edit a watchlist item's target and added price. Only changed fields are
@@ -49,6 +54,13 @@ export default function EditWatchlistItemDialog({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Rounded to the asset's price places, so the field shows what is saved.
+  const setTargetFromClose = (pctBelow: number): void => {
+    if (item.price == null) return
+    const price = item.price * (1 - pctBelow / 100)
+    setTargetText(price.toFixed(priceDecimals(item.asset)))
   }
 
   // An emptied target clears it; clearTarget and targetPrice never pair.
@@ -148,6 +160,35 @@ export default function EditWatchlistItemDialog({
             value={targetText}
             onChange={(e) => setTargetText(e.target.value)}
           />
+          {item.price != null && (
+            <div
+              role="group"
+              aria-label="Quick set target"
+              className="mt-1.5 flex flex-wrap gap-1"
+            >
+              <button
+                type="button"
+                aria-label="Set target to the latest close"
+                className={chipClass}
+                onClick={() => setTargetFromClose(0)}
+                disabled={submitting}
+              >
+                {"Close"}
+              </button>
+              {STOP_LOSS_PCTS.map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  aria-label={`Set target ${pct}% below the latest close`}
+                  className={chipClass}
+                  onClick={() => setTargetFromClose(pct)}
+                  disabled={submitting}
+                >
+                  {`−${pct}%`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor={`${fieldId}-added`} className={labelClass}>
