@@ -17,6 +17,7 @@ import {
 import AssetReviewButton from "@components/features/assets/AssetReviewButton"
 import AssetNewsButton from "@components/features/assets/AssetNewsButton"
 import TargetDistance from "./TargetDistance"
+import TargetHitBadge from "./TargetHitBadge"
 import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 
 const DASH = "–"
@@ -153,13 +154,7 @@ export default function WatchlistItemsTable({
                   </div>
                 )}
                 {item.targetHitOn && (
-                  <span
-                    data-testid="target-hit"
-                    className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                  >
-                    <i aria-hidden="true" className="fas fa-bullseye"></i>
-                    {`Target hit ${formatDate(item.targetHitOn)}`}
-                  </span>
+                  <TargetHitBadge hitOn={item.targetHitOn} className="mt-1" />
                 )}
               </td>
               <td className={td}>

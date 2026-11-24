@@ -1,7 +1,10 @@
 import React, { useId, useState } from "react"
 import { WatchlistItem, WatchlistItemUpdate } from "types/beancounter"
 import Dialog from "@components/ui/Dialog"
-import { getPositionDisplayName } from "@lib/assets/assetUtils"
+import { getPositionDisplayName, priceDecimals } from "@lib/assets/assetUtils"
+import { formatCurrency } from "@lib/formatters"
+import TargetHitBadge from "@components/features/watchlists/TargetHitBadge"
+import { describeTargetDistance } from "@components/features/watchlists/TargetDistance"
 import { parseOptionalPrice } from "@utils/api/client/watchlist"
 
 interface EditWatchlistItemDialogProps {
@@ -101,6 +104,21 @@ export default function EditWatchlistItemDialog({
         </>
       }
     >
+      {(item.price != null || item.targetHitOn) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {item.price != null && (
+            <p data-testid="target-details" className="text-sm text-gray-600">
+              {"Last close "}
+              <span className="font-mono tabular-nums text-gray-900">
+                {`${item.currency.code} ${formatCurrency(item.price, priceDecimals(item.asset))}`}
+              </span>
+              {item.toTarget != null &&
+                ` · ${describeTargetDistance(item.toTarget)}`}
+            </p>
+          )}
+          {item.targetHitOn && <TargetHitBadge hitOn={item.targetHitOn} />}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <div className="mb-1 flex items-baseline justify-between gap-2">
