@@ -6,6 +6,7 @@ import { formatCurrency } from "@lib/formatters"
 import TargetHitBadge from "@components/features/watchlists/TargetHitBadge"
 import { describeTargetDistance } from "@components/features/watchlists/TargetDistance"
 import { parseOptionalPrice } from "@utils/api/client/watchlist"
+import { describeMove, parsePercentMove, priceFromMove } from "@lib/percentMove"
 
 interface EditWatchlistItemDialogProps {
   item: WatchlistItem
@@ -24,30 +25,6 @@ const chipClass =
 
 /** Stop-loss presets: how far below the latest close the target sits. */
 const STOP_LOSS_PCTS = [5, 10, 15, 20]
-
-/** A target typed as a move from the close: "7%" or "-7%" below, "+7%" above. */
-interface PercentMove {
-  pct: number
-  above: boolean
-}
-
-const PERCENT_MOVE = /^([+\-−])?\s*(\d+(?:\.\d+)?)\s*%$/
-
-function parsePercentMove(text: string): PercentMove | null {
-  const match = PERCENT_MOVE.exec(text.trim())
-  if (!match) return null
-  return { pct: Number(match[2]), above: match[1] === "+" }
-}
-
-/** The price a move from the close lands on, at the asset's price places. */
-function priceFromMove(
-  close: number,
-  move: PercentMove,
-  places: number,
-): string {
-  const factor = 1 + ((move.above ? 1 : -1) * move.pct) / 100
-  return (close * factor).toFixed(places)
-}
 
 /**
  * Edit a watchlist item's target and added price. Only changed fields are
@@ -199,7 +176,7 @@ export default function EditWatchlistItemDialog({
               aria-live="polite"
               className="mt-1 text-xs text-gray-600"
             >
-              {`${move.pct}% ${move.above ? "above" : "below"} close = `}
+              {`${describeMove(move)} = `}
               <span className="font-mono tabular-nums text-gray-900">
                 {`${item.currency.code} ${formatCurrency(Number(movedPrice), places)}`}
               </span>
