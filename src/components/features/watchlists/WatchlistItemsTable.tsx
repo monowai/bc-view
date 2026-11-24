@@ -103,7 +103,7 @@ const MobileLabel = ({
 
 const th = "px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500"
 const td =
-  "flex justify-between md:table-cell px-3 py-1 md:py-2 md:text-right md:font-mono md:whitespace-nowrap"
+  "flex justify-between md:table-cell px-3 md:pl-8 py-1 md:py-2 md:text-right md:font-mono md:whitespace-nowrap"
 
 export default function WatchlistItemsTable({
   items,
@@ -123,10 +123,10 @@ export default function WatchlistItemsTable({
           <th className={`${th} w-full text-left`}>
             <span className="sr-only">{"Actions"}</span>
           </th>
-          <th className={`${th} lg:min-w-36 text-right`}>{"Price"}</th>
-          <th className={`${th} lg:min-w-40 text-right`}>{"Target"}</th>
-          <th className={`${th} lg:min-w-24 text-right`}>{"Day"}</th>
-          <th className={`${th} lg:min-w-32 text-right`}>{"Added"}</th>
+          <th className={`${th} pl-8 text-right`}>{"Price"}</th>
+          <th className={`${th} pl-8 text-right`}>{"Target"}</th>
+          <th className={`${th} pl-8 text-right`}>{"Day"}</th>
+          <th className={`${th} pl-8 text-right`}>{"Added"}</th>
         </tr>
       </thead>
       <tbody className="block md:table-row-group">
