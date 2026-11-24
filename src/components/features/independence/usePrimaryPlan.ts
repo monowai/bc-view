@@ -1,7 +1,11 @@
 import { useMemo } from "react"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import type { PlansResponse, RetirementPlan } from "types/independence"
+import type {
+  IndependencePlan,
+  PlansResponse,
+  RetirementPlan,
+} from "types/independence"
 import { plansKey } from "@utils/api/client/independence"
 import { useIndependencePlans } from "@hooks/useIndependencePlans"
 import {
@@ -22,9 +26,14 @@ import {
  * arbitrary row. `resolved` turns true once both lists have answered, so
  * "no primary plan" can be told apart from "not loaded yet". A failed plans
  * request counts as answered with no plan, so callers are not left waiting.
+ *
+ * `journey` is the primary journey the plan was resolved through, returned so
+ * a caller reading both cannot pair the plan with a different journey.
  */
 export function usePrimaryPlan(): {
   primaryPlan: RetirementPlan | undefined
+  journey: IndependencePlan | undefined
+  journeysLoading: boolean
   resolved: boolean
 } {
   const { data: plansData, error: plansError } = useSwr<PlansResponse>(
@@ -33,12 +42,15 @@ export function usePrimaryPlan(): {
   )
   const { plans: journeys, isLoading: journeysLoading } = useIndependencePlans()
   const phasePlans = useMemo(() => plansData?.data ?? [], [plansData?.data])
+  const journey = useMemo(() => primaryJourney(journeys), [journeys])
   const primaryPlan = useMemo(() => {
-    const ownPhases = journeyPhasePlans(primaryJourney(journeys), phasePlans)
+    const ownPhases = journeyPhasePlans(journey, phasePlans)
     return landingPlan(ownPhases) ?? phasePlans.find((plan) => plan.isPrimary)
-  }, [journeys, phasePlans])
+  }, [journey, phasePlans])
   return {
     primaryPlan,
+    journey,
+    journeysLoading,
     resolved:
       !journeysLoading && (plansData !== undefined || plansError !== undefined),
   }

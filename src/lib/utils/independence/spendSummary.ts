@@ -59,8 +59,9 @@ export interface SpendSummary {
   /**
    * The planned annual draw, moved by the overspend (or underspend) against
    * budget, annualised. Spending over budget comes straight out of the pot.
+   * Undefined when the planned draw is not known.
    */
-  annualDraw: number
+  annualDraw: number | undefined
 }
 
 /**
@@ -74,7 +75,7 @@ export interface SpendSummary {
 export function spendSummary(
   entries: SpendEntry[],
   budgets: Record<string, number>,
-  plannedAnnualDraw: number,
+  plannedAnnualDraw: number | undefined,
   window: string[],
 ): SpendSummary | null {
   const inWindow = new Set(window)
@@ -92,9 +93,13 @@ export function spendSummary(
   const monthsEntered = months.size
   if (monthsEntered === 0) return null
   const monthsEstimated = monthsEntered - typed.size
-  const annualDraw = Math.max(
-    plannedAnnualDraw + ((actual - budget) * MONTHS_PER_YEAR) / monthsEntered,
-    0,
-  )
+  const annualDraw =
+    plannedAnnualDraw === undefined
+      ? undefined
+      : Math.max(
+          plannedAnnualDraw +
+            ((actual - budget) * MONTHS_PER_YEAR) / monthsEntered,
+          0,
+        )
   return { monthsEntered, monthsEstimated, actual, budget, annualDraw }
 }

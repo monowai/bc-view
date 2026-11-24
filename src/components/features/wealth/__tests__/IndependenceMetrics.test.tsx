@@ -79,6 +79,7 @@ interface JourneyProps {
   journey?: IndependencePlan
   journeyProjection?: CompositeProjectionResult | null
   journeyProjectionLoading?: boolean
+  journeyProjectionFailed?: boolean
 }
 
 const render_ = (
@@ -247,6 +248,24 @@ describe("IndependenceMetrics — retired tiles report on the journey", () => {
       "href",
       "/independence?plan=jrn%2F1",
     )
+  })
+
+  const PHASE_ONLY =
+    "Journey projection unavailable — figures are for the current phase only"
+
+  it("says the figures are the current phase's when the journey projection failed", () => {
+    render_(phase, 0, {
+      journey,
+      journeyProjection: null,
+      journeyProjectionFailed: true,
+    })
+    expect(screen.getByText(PHASE_ONLY)).toBeInTheDocument()
+    expect(screen.getByText(/plan 5\.0%/)).toBeInTheDocument()
+  })
+
+  it("says nothing of the kind when the journey answered or there is none", () => {
+    render_(phase, 0, { journey, journeyProjection })
+    expect(screen.queryByText(PHASE_ONLY)).not.toBeInTheDocument()
   })
 
   it("shows the working-years tiles for a journey still in its working years", () => {

@@ -47,6 +47,8 @@ interface IndependenceMetricsProps {
   /** The journey's projection; null while loading, on failure, or with no journey. */
   journeyProjection?: CompositeProjectionResult | null
   journeyProjectionLoading?: boolean
+  /** The journey's projection could not be had; the phase stands in for it. */
+  journeyProjectionFailed?: boolean
   monthlyInvestmentData: MonthlyInvestmentData | undefined
   displayCurrency: Currency | null
   collapsed: boolean
@@ -119,6 +121,7 @@ export default function IndependenceMetrics({
   journey,
   journeyProjection = null,
   journeyProjectionLoading = false,
+  journeyProjectionFailed = false,
   monthlyInvestmentData,
   displayCurrency,
   collapsed,
@@ -205,6 +208,12 @@ export default function IndependenceMetrics({
           </Link>
         }
       >
+        {journeyProjectionFailed && (
+          <p className="text-xs text-gray-500 mb-3">
+            Journey projection unavailable — figures are for the current phase
+            only
+          </p>
+        )}
         {metrics}
       </WealthSection>
 

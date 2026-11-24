@@ -57,7 +57,7 @@ interface RetiredMetricsProps {
   onLogSpend: () => void
   /** The spend log failed to load. */
   spendUnavailable: boolean
-  /** The spend log's currency when it is not the plan's, so it cannot be compared. */
+  /** The spend log's currency when it is not both the budget's and the basis's, so it cannot be compared. */
   spendOtherCurrency: string | null
 }
 
@@ -102,8 +102,9 @@ export default function RetiredMetrics({
   const planned = basis.plannedAnnualDraw
   // Recorded spend, when there is any, says more than investment sales.
   const annualDraw = spend ? spend.annualDraw : drawnLastYear
+  // No plan to measure against is not a plan to draw nothing: no verdict.
   const guardrail =
-    annualDraw === undefined
+    annualDraw === undefined || planned === undefined
       ? null
       : withdrawalGuardrail(annualDraw, planned, basis.liquidAssets)
   const lastsTo = monteCarlo ? moneyLastsTo(monteCarlo.yearlyBands) : null
@@ -141,7 +142,12 @@ export default function RetiredMetrics({
             </p>
           </>
         ) : (
-          MUTED_VALUE
+          <>
+            {MUTED_VALUE}
+            {planned === undefined && (
+              <p className={NOTE_CLS}>Planned draw unavailable</p>
+            )}
+          </>
         )}
       </div>
 
@@ -200,18 +206,27 @@ export default function RetiredMetrics({
           <>
             <div className="flex items-baseline gap-2">
               <span className={VALUE_CLS}>{money(drawnLastYear)}</span>
-              <span className="text-sm text-gray-500">/ {money(planned)}</span>
+              {planned !== undefined && (
+                <span className="text-sm text-gray-500">
+                  / {money(planned)}
+                </span>
+              )}
             </div>
             <Bar
-              percent={planned > 0 ? (drawnLastYear / planned) * 100 : 0}
+              percent={
+                planned !== undefined && planned > 0
+                  ? (drawnLastYear / planned) * 100
+                  : 0
+              }
               className={
                 guardrail?.band === "over" ? "bg-loss" : "bg-independence-500"
               }
             />
             {drawnLastMonth !== undefined && (
               <p className={NOTE_CLS}>
-                Last 30 days: {money(drawnLastMonth)} of{" "}
-                {money(planned / MONTHS_PER_YEAR)}
+                Last 30 days: {money(drawnLastMonth)}
+                {planned !== undefined &&
+                  ` of ${money(planned / MONTHS_PER_YEAR)}`}
               </p>
             )}
           </>

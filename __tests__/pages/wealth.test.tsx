@@ -65,11 +65,13 @@ jest.mock("@components/features/wealth/IndependenceMetrics", () => ({
     journey,
     journeyProjection,
     journeyProjectionLoading,
+    journeyProjectionFailed,
   }: {
     primaryPlan: RetirementPlan
     journey?: IndependencePlan
     journeyProjection: CompositeProjectionResult | null
     journeyProjectionLoading: boolean
+    journeyProjectionFailed: boolean
   }) => (
     <div data-testid="independence-metrics">
       {primaryPlan.name}
@@ -79,6 +81,9 @@ jest.mock("@components/features/wealth/IndependenceMetrics", () => ({
       </span>
       <span data-testid="journey-loading">
         {String(journeyProjectionLoading)}
+      </span>
+      <span data-testid="journey-failed">
+        {String(journeyProjectionFailed)}
       </span>
     </div>
   ),
@@ -353,7 +358,11 @@ describe("/wealth — retired tiles are fed by the primary journey", () => {
   /** Answer the journey projection request for one journey id only. */
   function mockJourneyProjection(
     journeyId: string,
-    response: { data?: CompositeProjectionResult; isLoading?: boolean },
+    response: {
+      data?: CompositeProjectionResult
+      isLoading?: boolean
+      error?: Error
+    },
   ): void {
     const base = (useSwr as jest.Mock).getMockImplementation() as (
       key: unknown,
@@ -383,6 +392,17 @@ describe("/wealth — retired tiles are fed by the primary journey", () => {
     expect(screen.getByTestId("journey")).toHaveTextContent("jrn-owning")
     expect(screen.getByTestId("journey-draw")).toHaveTextContent("54321")
     expect(screen.getByTestId("journey-loading")).toHaveTextContent("false")
+  })
+
+  it("tells the metrics when the journey projection failed", () => {
+    mockJourneys = journeys()
+    mockSwr([owningPhase])
+    mockJourneyProjection("jrn-owning", { error: new Error("HTTP 500") })
+
+    render(<WealthPage />)
+
+    expect(screen.getByTestId("journey-failed")).toHaveTextContent("true")
+    expect(screen.getByTestId("journey-draw")).toBeEmptyDOMElement()
   })
 
   it("tells the metrics while the journey projection is still loading", () => {

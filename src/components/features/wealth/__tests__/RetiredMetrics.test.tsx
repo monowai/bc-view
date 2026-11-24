@@ -60,6 +60,27 @@ const renderCards = (
 }
 
 describe("RetiredMetrics", () => {
+  describe("when the planned draw is unknown", () => {
+    const unknownPlan = {
+      ...phaseRetiredBasis(projection),
+      plannedAnnualDraw: undefined,
+    }
+
+    it("gives no withdrawal verdict", () => {
+      renderCards({ basis: unknownPlan })
+      expect(screen.queryByText("No planned draw this year")).toBeNull()
+      expect(screen.queryByText("On track")).toBeNull()
+      expect(screen.queryByText(/plan 0\.0%/)).toBeNull()
+    })
+
+    it("shows what was drawn without a plan of nothing beside it", () => {
+      renderCards({ basis: unknownPlan })
+      expect(screen.getByText("$44,000")).toBeInTheDocument()
+      expect(screen.queryByText("/ $0")).toBeNull()
+      expect(screen.getByText("Planned draw unavailable")).toBeInTheDocument()
+    })
+  })
+
   it("shows the actual withdrawal rate against the planned rate", () => {
     renderCards()
     expect(screen.getByText("Withdrawal Rate")).toBeInTheDocument()
