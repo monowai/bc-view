@@ -1275,22 +1275,29 @@ const TradeInputForm: React.FC<{
                   </div>
                 )}
 
-                {/* Broker - hidden for EXPENSE/INCOME */}
-                {acceptsBroker(type?.value) && (
-                  <BrokerAccountField
-                    id="trade-broker"
-                    control={control as any}
-                    brokers={offeredBrokers}
-                    labelClassName={labelClass}
-                    inputClassName={inputClass}
-                  />
-                )}
-
-                {/* Comment for EXPENSE/INCOME types */}
-                {isSimpleAmount && (
+                {/* Broker and the note side by side, so the note costs no
+                    height. Expense and income have no broker. */}
+                <div
+                  className={
+                    acceptsBroker(type?.value) ? "grid grid-cols-2 gap-3" : ""
+                  }
+                >
+                  {acceptsBroker(type?.value) && (
+                    <BrokerAccountField
+                      id="trade-broker"
+                      control={control as any}
+                      brokers={offeredBrokers}
+                      labelClassName={labelClass}
+                      inputClassName={inputClass}
+                    />
+                  )}
                   <div>
-                    <label className={labelClass}>
-                      {isExpense ? "Expense Description" : "Income Description"}
+                    <label htmlFor="trade-comment" className={labelClass}>
+                      {isExpense
+                        ? "Expense description"
+                        : isIncome
+                          ? "Income description"
+                          : "Comments"}
                     </label>
                     <Controller
                       name="comment"
@@ -1298,19 +1305,22 @@ const TradeInputForm: React.FC<{
                       render={({ field }) => (
                         <input
                           {...field}
+                          id="trade-comment"
                           type="text"
                           className={inputClass}
                           value={field.value || ""}
                           placeholder={
                             isExpense
                               ? "e.g., Property rates, Insurance, Maintenance"
-                              : "e.g., Rental income, Dividend"
+                              : isIncome
+                                ? "e.g., Rental income, Dividend"
+                                : undefined
                           }
                         />
                       )}
                     />
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -1567,25 +1577,6 @@ const TradeInputForm: React.FC<{
                         fixedDecimalScale
                       />
                     </span>
-                  </div>
-                )}
-
-                {/* Comment (non-simple types) */}
-                {!isSimpleAmount && (
-                  <div>
-                    <label className={labelClass}>{"Comments"}</label>
-                    <Controller
-                      name="comment"
-                      control={control as any}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className={inputClass}
-                          value={field.value || ""}
-                        />
-                      )}
-                    />
                   </div>
                 )}
 

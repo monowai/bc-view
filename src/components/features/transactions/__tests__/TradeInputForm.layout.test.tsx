@@ -94,4 +94,10 @@ describe("TradeInputForm: layout", () => {
     })
     expect(screen.getByText("Different from current portfolio")).toBeVisible()
   })
+
+  // The trade tab is where the trade is described, so its note sits there too.
+  test("comments are on the trade tab", () => {
+    renderForm()
+    expect(screen.getByRole("textbox", { name: "Comments" })).toBeVisible()
+  })
 })
