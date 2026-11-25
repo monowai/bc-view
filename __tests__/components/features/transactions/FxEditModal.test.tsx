@@ -130,19 +130,21 @@ const trn = {
 }
 
 describe("FxEditModal", () => {
-  it("renders the FX Trade title", () => {
+  it("names the dialog as an exchange", () => {
     render(
       <FxEditModal trn={trn as any} onClose={jest.fn()} onDelete={jest.fn()} />,
     )
-    expect(screen.getByText("FX Trade")).toBeInTheDocument()
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Exchange currency")
   })
 
-  it("calls onClose on Escape", () => {
+  it("asks before discarding an edit on Escape", () => {
     const onClose = jest.fn()
     render(
       <FxEditModal trn={trn as any} onClose={onClose} onDelete={jest.fn()} />,
     )
     fireEvent.keyDown(document, { key: "Escape" })
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }))
     expect(onClose).toHaveBeenCalled()
   })
 })

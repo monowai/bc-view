@@ -9,6 +9,10 @@ interface DialogProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl"
   scrollable?: boolean
   footer?: React.ReactNode
+  /** Header controls (copy, delete) that sit beside the close button. */
+  actions?: React.ReactNode
+  /** Fixed band under the title bar, such as tabs; it never scrolls. */
+  subheader?: React.ReactNode
   // Stacking layer for the overlay. Default sits at z-50; raise it (e.g.
   // "z-[60]") when this Dialog opens on top of another z-50 modal.
   zClass?: string
@@ -32,6 +36,8 @@ export default function Dialog({
   maxWidth = "md",
   scrollable = false,
   footer,
+  actions,
+  subheader,
   zClass = "z-50",
 }: DialogProps): React.ReactElement {
   const titleId = useId()
@@ -57,6 +63,9 @@ export default function Dialog({
           <h2 id={titleId} className="text-xl font-semibold min-w-0 flex-1">
             {title}
           </h2>
+          {actions && (
+            <div className="ml-2 flex items-center gap-0.5">{actions}</div>
+          )}
           <button
             type="button"
             aria-label="Close dialog"
@@ -67,6 +76,12 @@ export default function Dialog({
           </button>
         </header>
 
+        {subheader && (
+          <div className="shrink-0 border-b border-gray-200 px-4">
+            {subheader}
+          </div>
+        )}
+
         <div
           data-modal-body
           className={`p-4 space-y-4 ${scrollable ? "overflow-y-auto flex-1" : ""}`}
@@ -75,7 +90,7 @@ export default function Dialog({
         </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200">
+          <div className="flex flex-wrap items-center justify-end gap-2 p-4 border-t border-gray-200">
             {footer}
           </div>
         )}

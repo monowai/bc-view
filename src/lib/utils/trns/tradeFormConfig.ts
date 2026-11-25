@@ -92,12 +92,6 @@ export const schema = yup.object().shape({
     }),
 })
 
-// Common CSS classes
-export const inputClass =
-  "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-export const labelClass =
-  "block text-xs font-medium text-gray-500 uppercase tracking-wide"
-
 // Props for edit mode
 export interface EditModeProps {
   transaction: Transaction

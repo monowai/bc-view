@@ -105,8 +105,8 @@ describe("FxEditModal form", () => {
 
   it("shows the validation error under an empty amount", async () => {
     await renderModal()
-    fireEvent.change(fieldInput("Sell Amount"), { target: { value: "0" } })
-    fireEvent.blur(fieldInput("Sell Amount"))
+    fireEvent.change(fieldInput("Sell amount"), { target: { value: "0" } })
+    fireEvent.blur(fieldInput("Sell amount"))
     fireEvent.change(fieldInput("Comments"), { target: { value: "x" } })
     fireEvent.click(screen.getByText("Save"))
     await act(async () => {
@@ -114,5 +114,20 @@ describe("FxEditModal form", () => {
     })
     expect(document.querySelector("p.text-red-600")).toBeInTheDocument()
     expect(deleteTrn).not.toHaveBeenCalled()
+  })
+
+  it("keeps the recorded buy amount until asked for the market rate", async () => {
+    render(
+      <FxEditModal
+        trn={{ ...trn, tradeAmount: 95 } as Transaction}
+        onClose={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    )
+    await act(() => Promise.resolve())
+    expect(fieldInput("Buy amount")).toHaveValue("95")
+    fireEvent.click(screen.getByRole("button", { name: "Use market rate" }))
+    await act(() => Promise.resolve())
+    expect(fieldInput("Buy amount")).toHaveValue("90")
   })
 })

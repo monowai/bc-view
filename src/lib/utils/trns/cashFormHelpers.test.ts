@@ -7,6 +7,9 @@ import {
   filterFxBuyOptions,
   buildCashCopyData,
   resolveFxDisplayInfo,
+  groupAssetOptions,
+  cashTypeOf,
+  CASH_TYPES,
 } from "./cashFormHelpers"
 import { Asset, Currency } from "types/beancounter"
 
@@ -375,5 +378,57 @@ describe("cashFormHelpers", () => {
       const result = resolveFxDisplayInfo("GBP", options)
       expect(result).toEqual({ label: "GBP", isCash: true })
     })
+  })
+})
+
+describe("groupAssetOptions", () => {
+  const options: AssetOption[] = [
+    { value: "USD", label: "USD", market: "CASH", currency: "USD" },
+    { value: "BANK", label: "Bank (NZD)", market: "PRIVATE", currency: "NZD" },
+    { value: "NZD", label: "NZD", market: "CASH", currency: "NZD" },
+  ]
+
+  it("groups currencies first, then bank accounts, skipping empty groups", () => {
+    const groups = groupAssetOptions(options)
+    expect(groups.map((g) => g.label)).toEqual(["Currencies", "Bank accounts"])
+    expect(groups[0].options.map((o) => o.value)).toEqual(["USD", "NZD"])
+    expect(groups[1].options.map((o) => o.value)).toEqual(["BANK"])
+  })
+
+  it("puts trade accounts last", () => {
+    const groups = groupAssetOptions([
+      { value: "IB", label: "IB (USD)", market: "TRADE", currency: "USD" },
+      ...options,
+    ])
+    expect(groups.map((g) => g.label)).toEqual([
+      "Currencies",
+      "Bank accounts",
+      "Trade accounts",
+    ])
+  })
+})
+
+describe("cashTypeOf", () => {
+  it("describes each cash type in words", () => {
+    expect(cashTypeOf("DEPOSIT").title).toBe("Deposit cash")
+    expect(cashTypeOf("FX").title).toBe("Exchange currency")
+    expect(CASH_TYPES.map((t) => t.value)).toEqual([
+      "DEPOSIT",
+      "WITHDRAWAL",
+      "INCOME",
+      "DEDUCTION",
+      "FX",
+    ])
+  })
+
+  it("marks withdrawals and deductions as money out", () => {
+    expect(cashTypeOf("WITHDRAWAL").flow).toBe("out")
+    expect(cashTypeOf("DEDUCTION").flow).toBe("out")
+    expect(cashTypeOf("DEPOSIT").flow).toBe("in")
+    expect(cashTypeOf("INCOME").flow).toBe("in")
+  })
+
+  it("falls back to a deposit for an unknown type", () => {
+    expect(cashTypeOf("NOPE").value).toBe("DEPOSIT")
   })
 })

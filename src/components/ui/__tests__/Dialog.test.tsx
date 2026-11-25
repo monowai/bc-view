@@ -236,3 +236,30 @@ describe("Dialog.SuccessAlert", () => {
     expect(container.firstChild).toBeNull()
   })
 })
+
+describe("Dialog header slots", () => {
+  it("puts actions beside the close button, outside the title", () => {
+    render(
+      <Dialog
+        title="Trade"
+        onClose={jest.fn()}
+        actions={<button title="Copy">c</button>}
+      >
+        <p>Body</p>
+      </Dialog>,
+    )
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Trade")
+    expect(screen.getByTitle("Copy")).toBeInTheDocument()
+  })
+
+  it("renders a subheader that stays out of the scrolling body", () => {
+    const { container } = render(
+      <Dialog title="Trade" onClose={jest.fn()} subheader={<nav>tabs</nav>}>
+        <p>Body</p>
+      </Dialog>,
+    )
+    const body = container.querySelector("[data-modal-body]")!
+    expect(screen.getByText("tabs")).toBeInTheDocument()
+    expect(body).not.toContainElement(screen.getByText("tabs"))
+  })
+})

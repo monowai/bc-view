@@ -354,27 +354,31 @@ export interface TradeColorScheme {
   text: string
 }
 
-export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
-  if (isPositionAdjustment(tradeType)) {
-    return {
-      bg: "bg-blue-50",
-      border: "border-blue-100",
-      text: "text-blue-600",
-    }
-  }
-  if (isSellSide(tradeType)) {
-    return {
-      bg: "bg-red-50",
-      border: "border-red-100",
-      text: "text-red-600",
-    }
-  }
-  return {
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-    text: "text-emerald-700",
-  }
+const ADJUST_SCHEME: TradeColorScheme = {
+  bg: "bg-blue-50",
+  border: "border-blue-100",
+  text: "text-blue-600",
 }
+const OUT_SCHEME: TradeColorScheme = {
+  bg: "bg-red-50",
+  border: "border-red-100",
+  text: "text-red-600",
+}
+const IN_SCHEME: TradeColorScheme = {
+  bg: "bg-emerald-50",
+  border: "border-emerald-100",
+  text: "text-emerald-700",
+}
+
+export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
+  if (isPositionAdjustment(tradeType)) return ADJUST_SCHEME
+  if (isSellSide(tradeType)) return OUT_SCHEME
+  return IN_SCHEME
+}
+
+/** The same colours for money moving into or out of a cash account. */
+export const getCashFlowColorScheme = (flow: "in" | "out"): TradeColorScheme =>
+  flow === "out" ? OUT_SCHEME : IN_SCHEME
 
 /**
  * Qty/Price input panel tint — lighter variant for the trade form input area.

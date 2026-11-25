@@ -1,18 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { FxResponse } from "types/beancounter"
 import { calculateFxBuyAmount } from "@lib/trns/cashFormHelpers"
-import { postFxRates } from "@utils/api/client/fx"
-
-// Fetcher for FX rates
-export const fxFetcher = async (
-  from: string,
-  to: string,
-): Promise<FxResponse | null> => {
-  if (!from || !to || from === to) return null
-  const response = await postFxRates({ pairs: [{ from, to }] })
-  if (!response.ok) return null
-  return response.json()
-}
 
 interface UseFxBuyAmountOptions {
   sellAmount: number
@@ -21,6 +8,8 @@ interface UseFxBuyAmountOptions {
   onBuyAmount: (value: number) => void
   /** False suspends the auto-calculation (e.g. not an FX transaction). */
   enabled?: boolean
+  /** True when the form opens on a recorded amount that must not move. */
+  startManual?: boolean
 }
 
 interface UseFxBuyAmountResult {
@@ -41,8 +30,9 @@ export function useFxBuyAmount({
   fxRate,
   onBuyAmount,
   enabled = true,
+  startManual = false,
 }: UseFxBuyAmountOptions): UseFxBuyAmountResult {
-  const [manualBuyAmount, setManualBuyAmount] = useState(false)
+  const [manualBuyAmount, setManualBuyAmount] = useState(startManual)
 
   // Pushes derived FX output back into the form so other watchers see it;
   // this *is* the intended side-effect.

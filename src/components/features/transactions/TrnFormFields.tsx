@@ -14,6 +14,8 @@ interface TrnFieldProps<T extends FieldValues> {
   control: Control<T, any, any>
   name: FieldPath<T>
   label: React.ReactNode
+  /** Ties the label to the input. */
+  id?: string
   labelClassName: string
   inputClassName: string
 }
@@ -22,6 +24,7 @@ function TrnField<T extends FieldValues>({
   control,
   name,
   label,
+  id,
   labelClassName,
   render,
   children,
@@ -31,7 +34,9 @@ function TrnField<T extends FieldValues>({
 }): React.ReactElement {
   return (
     <div>
-      <label className={labelClassName}>{label}</label>
+      <label htmlFor={id} className={labelClassName}>
+        {label}
+      </label>
       <Controller name={name} control={control} render={render} />
       {children}
     </div>
@@ -47,6 +52,7 @@ export function TrnDateField<T extends FieldValues>({
       {...field}
       render={({ field: { value, onChange } }) => (
         <DateInput
+          id={field.id}
           value={value}
           onChange={onChange}
           className={inputClassName}
@@ -71,6 +77,7 @@ export function TrnMathField<T extends FieldValues>({
       {...field}
       render={({ field: { value, onChange: applyChange } }) => (
         <MathInput
+          id={field.id}
           value={value}
           onChange={
             onChange ? (next) => onChange(next, applyChange) : applyChange
@@ -95,6 +102,7 @@ export function TrnTextField<T extends FieldValues>({
       render={({ field: controlled }) => (
         <input
           {...controlled}
+          id={field.id}
           type="text"
           className={inputClassName}
           value={controlled.value || ""}
