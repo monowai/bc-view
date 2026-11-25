@@ -3,6 +3,7 @@ import {
   formatCompactBare,
   formatCompactSymbol,
   formatDate,
+  formatFxRate,
   formatQuantity,
   formatSignedPercent,
   localIsoDate,
@@ -173,5 +174,12 @@ describe("signOf", () => {
     expect(signOf(12.5)).toBe("+")
     expect(signOf(-0.01)).toBe("-")
     expect(signOf(0)).toBe("")
+  })
+})
+
+describe("formatFxRate", () => {
+  it("quotes a rate to four decimals", () => {
+    expect(formatFxRate(1.7)).toBe("1.7000")
+    expect(formatFxRate(0.584795)).toBe("0.5848")
   })
 })

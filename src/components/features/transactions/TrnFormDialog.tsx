@@ -5,6 +5,9 @@ import { copyToClipboard } from "@lib/trns/formUtils"
 
 type CopyStatus = "idle" | "success" | "error"
 
+/** How long the Copy icon shows whether the copy worked. */
+const COPY_FEEDBACK_MS = 2000
+
 const COPY_STATE: Record<
   CopyStatus,
   { title: string; icon: string; tone: string }
@@ -37,7 +40,7 @@ function CopyRowButton({
   const copy = async (): Promise<void> => {
     const ok = await copyToClipboard(getRow())
     setStatus(ok ? "success" : "error")
-    setTimeout(() => setStatus("idle"), 2000)
+    setTimeout(() => setStatus("idle"), COPY_FEEDBACK_MS)
   }
   return (
     <HeaderIconButton

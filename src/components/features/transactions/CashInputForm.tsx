@@ -180,10 +180,11 @@ const CashInputForm: React.FC<{
   const pair = isFx
     ? resolveFxCurrencyPair(asset, cashCurrency?.value ?? "", combinedOptions)
     : null
-  const { rate: fxRate, loading: fxRateLoading } = useFxRate(
-    pair?.sellCurrency,
-    pair?.buyCurrency,
-  )
+  const {
+    rate: fxRate,
+    loading: fxRateLoading,
+    failed: fxRateFailed,
+  } = useFxRate(pair?.sellCurrency, pair?.buyCurrency)
 
   const setBuyAmount = useCallback(
     (value: number) => setValue("cashAmount", value),
@@ -379,6 +380,7 @@ const CashInputForm: React.FC<{
                 }
                 manual={manualBuyAmount}
                 loading={fxRateLoading}
+                failed={fxRateFailed}
                 onUseMarketRate={resumeAutoBuyAmount}
               />
             </div>

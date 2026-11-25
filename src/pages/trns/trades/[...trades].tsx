@@ -1,3 +1,4 @@
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
@@ -8,7 +9,6 @@ import {
   tradeKey,
   tradeKeyMulti,
   trnKey,
-  holdingKey,
 } from "@utils/api/fetchHelper"
 import { Transaction, TrnTradeSummary } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -22,8 +22,6 @@ import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
 import { buildTradeGroups } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import {
   TrnCardValue,
   TrnColumn,
@@ -352,11 +350,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         const response = await deleteTrn(transaction.id)
         if (response.ok) {
           // Invalidate holdings cache after delete (with delay for message broker)
-          setTimeout(() => {
-            mutate(holdingKey(transaction.portfolio.code, "today"))
-            mutate(aggregatedHoldingsTodayKey)
-            refreshNetWorth()
-          }, 1500)
+          refreshHoldingsSoon(mutate, transaction.portfolio.code)
           router.back()
         }
       } catch (err) {
@@ -380,11 +374,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         // On unsettle the server reverts the auto-settled cash legs to PROPOSED
         // (not deleted). Invalidate holdings so the row reflects the new PROPOSED
         // status, then close.
-        setTimeout(() => {
-          mutate(holdingKey(transaction.portfolio.code, "today"))
-          mutate(aggregatedHoldingsTodayKey)
-          refreshNetWorth()
-        }, 1500)
+        refreshHoldingsSoon(mutate, transaction.portfolio.code)
         router.back()
       } catch (err) {
         console.error("Error unsettling transaction:", err)

@@ -150,10 +150,11 @@ export default function FxEditModal({
   const sellAmount = watch("sellAmount")
   const buyAmount = watch("buyAmount")
 
-  const { rate: fxRate, loading: fxRateLoading } = useFxRate(
-    sellCurrency,
-    buyCurrency,
-  )
+  const {
+    rate: fxRate,
+    loading: fxRateLoading,
+    failed: fxRateFailed,
+  } = useFxRate(sellCurrency, buyCurrency)
 
   // The recorded buy amount stands until the sell side changes or the user
   // asks for the market rate.
@@ -326,6 +327,7 @@ export default function FxEditModal({
               impliedRate={impliedRate}
               manual={manualBuyAmount}
               loading={fxRateLoading}
+              failed={fxRateFailed}
               onUseMarketRate={resumeAutoBuyAmount}
             />
           </div>

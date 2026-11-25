@@ -1,3 +1,4 @@
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import React, { ReactElement, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { Portfolio, TransactionImport } from "types/beancounter"
@@ -5,10 +6,7 @@ import { DelimitedImport } from "types/app"
 import Papa from "papaparse"
 import { readFileText } from "@utils/readFileText"
 import { mutate } from "swr"
-import { holdingKey } from "@utils/api/fetchHelper"
 import { importTrnRow } from "@utils/api/client/trns"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 // Read a CSV file into rows.
 async function readFile(file: Blob): Promise<string[][]> {
@@ -82,11 +80,7 @@ export default function TrnDropZone({
       }
       console.log(`Sent ${rows} rows`)
       if (rows > 0) {
-        setTimeout(() => {
-          mutate(holdingKey(portfolio.code, "today"))
-          mutate(aggregatedHoldingsTodayKey)
-          refreshNetWorth()
-        }, 1500)
+        refreshHoldingsSoon(mutate, portfolio.code)
       }
     },
     [portfolio, purge],

@@ -1,3 +1,4 @@
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import React, { useEffect, useMemo, useState } from "react"
 import { useSWRConfig } from "swr"
 import { PrivateAssetConfig, Transaction } from "types/beancounter"
@@ -7,12 +8,9 @@ import SubAccountBalanceInputs, {
   SubAccountRow,
 } from "@components/features/transactions/SubAccountBalanceInputs"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
-import { holdingKey } from "@utils/api/fetchHelper"
 import { updateTrn } from "@utils/api/client/trns"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { getAssetConfig } from "@utils/api/client/assets"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 
 interface SubAccountTrnEditModalProps {
   trn: Transaction
@@ -113,11 +111,7 @@ export default function SubAccountTrnEditModal({
           body.message || body.detail || "Failed to update transaction",
         )
       }
-      setTimeout(() => {
-        mutate(holdingKey(trn.portfolio.code, "today"))
-        mutate(aggregatedHoldingsTodayKey)
-        refreshNetWorth()
-      }, 1500)
+      refreshHoldingsSoon(mutate, trn.portfolio.code)
     })
   }
 

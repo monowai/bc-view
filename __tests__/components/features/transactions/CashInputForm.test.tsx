@@ -139,4 +139,16 @@ describe("CashInputForm", () => {
     await act(async () => {})
     expect(buy).toHaveValue("50")
   })
+
+  it("says when the market rate cannot be fetched", async () => {
+    ;(postFxRates as jest.Mock).mockResolvedValue({ ok: false })
+    await renderForm("FX")
+    const sell = labelledField("Sell amount").querySelector("input")!
+    fireEvent.change(sell, { target: { value: "100" } })
+    fireEvent.blur(sell)
+    await act(async () => {})
+    expect(
+      screen.getByText("Market rate unavailable. Enter the amount received."),
+    ).toBeInTheDocument()
+  })
 })

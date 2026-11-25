@@ -27,11 +27,26 @@ describe("useFxRate", () => {
     expect(postFxRates).not.toHaveBeenCalled()
   })
 
-  it("has no rate when the service fails", async () => {
+  it("says the lookup failed when the service answers with an error", async () => {
     ;(postFxRates as jest.Mock).mockResolvedValue({ ok: false })
     const { result } = renderHook(() => useFxRate("USD", "NZD"))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.rate).toBeNull()
+    expect(result.current.failed).toBe(true)
+  })
+
+  it("says the lookup failed when the request never arrives", async () => {
+    ;(postFxRates as jest.Mock).mockRejectedValue(new Error("offline"))
+    const { result } = renderHook(() => useFxRate("USD", "NZD"))
+    await waitFor(() => expect(result.current.failed).toBe(true))
+  })
+
+  it("is not a failure when the service simply has no rate for the pair", async () => {
+    respond({})
+    const { result } = renderHook(() => useFxRate("USD", "NZD"))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.rate).toBeNull()
+    expect(result.current.failed).toBe(false)
   })
 
   it("drops the old rate when the pair changes", async () => {

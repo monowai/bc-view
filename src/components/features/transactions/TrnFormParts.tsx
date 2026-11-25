@@ -5,6 +5,7 @@ import { BrokerWithAccounts } from "types/beancounter"
 import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
 import { AssetOption, groupAssetOptions } from "@lib/trns/cashFormHelpers"
 import { TradeColorScheme } from "@lib/trns/tradeUtils"
+import { formatFxRate } from "@lib/formatters"
 
 /** A money figure, two decimals, thousands separated. */
 export function Money({ value }: { value: number }): React.ReactElement {
@@ -104,17 +105,22 @@ export function FxRateHint({
   impliedRate,
   manual,
   loading,
+  failed,
   onUseMarketRate,
 }: {
   marketRate: number | null
   impliedRate: number | null
   manual: boolean
   loading: boolean
+  /** The rate lookup failed, so the amount has to be typed. */
+  failed: boolean
   onUseMarketRate: () => void
 }): React.ReactElement | null {
-  const rate = (value: number): string => value.toFixed(4)
+  const rate = formatFxRate
   let text: React.ReactNode = null
   if (loading) text = "Fetching the market rate…"
+  else if (failed && !manual)
+    text = "Market rate unavailable. Enter the amount received."
   else if (manual && impliedRate)
     text = (
       <>
