@@ -336,6 +336,7 @@ jobs:
             GIT_BRANCH=${{ github.ref_name }}
             GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
+            SENTRY_RELEASE=${{ github.sha }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
             NEXT_PUBLIC_REGISTRATION_TTL_DAYS=${{ vars.NEXT_PUBLIC_REGISTRATION_TTL_DAYS || '30' }}
             NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${{ vars.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}

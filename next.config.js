@@ -30,6 +30,11 @@ const nextConfig = {
     includePaths: [path.join(__dirname, "styles")],
   },
   output: "standalone",
+  // Browser source maps, for Sentry. They are never served: `yarn build` runs
+  // scripts/source-maps.sh, which stamps debug IDs, keeps chunks and maps in
+  // .next/sourcemaps and deletes the maps from .next/static. bc-deploy uploads
+  // them from the running pod. Server maps are written anyway.
+  productionBrowserSourceMaps: true,
   // Turbopack configuration (for dev mode with --turbopack)
   turbopack: {
     rules: {
@@ -120,17 +125,12 @@ module.exports = withSentryConfig(module.exports, {
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 
-  // Source maps configuration
+  // The build uploads no maps. scripts/source-maps.sh readies them and
+  // bc-deploy uploads them and records the release after a rollout, so only
+  // what is deployed reaches Sentry and CI holds no token.
   sourcemaps: {
-    // Disable source map upload if no auth token
-    disable:
-      !process.env.SENTRY_AUTH_TOKEN ||
-      process.env.SENTRY_AUTH_TOKEN === "undefined",
-    deleteSourcemapsAfterUpload: true,
+    disable: true,
   },
-
-  // Upload a larger set of source maps for prettier stack traces
-  widenClientFileUpload: true,
 
   // Route browser requests through Next.js to circumvent ad-blockers
   tunnelRoute: "/monitoring",
