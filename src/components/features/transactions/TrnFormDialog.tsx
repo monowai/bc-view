@@ -161,7 +161,13 @@ export default function TrnFormDialog({
         }
         footer={
           <>
-            <div className="mr-auto min-w-0">{summary}</div>
+            {/* On a phone the read-back takes its own line, so the two
+                buttons stay together beneath it. */}
+            {summary ? (
+              <div className="mr-auto w-full min-w-0 sm:w-auto">{summary}</div>
+            ) : (
+              <span className="mr-auto" />
+            )}
             <Dialog.CancelButton onClick={requestClose} />
             <Dialog.SubmitButton
               onClick={onSubmit}

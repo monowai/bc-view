@@ -281,12 +281,20 @@ export default function FxEditModal({
         onSubmit={rhfHandleSubmit(onSubmit)}
         className="space-y-4"
       >
-        <TrnDateField
-          {...fieldProps}
-          id="fx-trade-date"
-          name="tradeDate"
-          label={"Trade date"}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <TrnDateField
+            {...fieldProps}
+            id="fx-trade-date"
+            name="tradeDate"
+            label={"Trade date"}
+          />
+          <TrnMathField
+            {...fieldProps}
+            id="fx-fees"
+            name="fees"
+            label={"Fees"}
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <TrnMathField
@@ -321,15 +329,6 @@ export default function FxEditModal({
               onUseMarketRate={resumeAutoBuyAmount}
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <TrnMathField
-            {...fieldProps}
-            id="fx-fees"
-            name="fees"
-            label={"Fees"}
-          />
         </div>
 
         <TrnTextField
