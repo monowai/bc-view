@@ -1147,3 +1147,32 @@ describe("tradeFormHelpers", () => {
     })
   })
 })
+
+describe("target weight never sizes a trade to zero shares", () => {
+  // 0.09% of 226,000 is about 203 — less than half a share at 1,000.
+  test("a small step up buys one share", () => {
+    expect(calculateQuantityFromTargetWeight(15, 14.91, 1000, 226000)).toEqual({
+      quantity: 1,
+      tradeType: "BUY",
+    })
+  })
+
+  test("a small step down sells one share", () => {
+    expect(
+      calculateQuantityFromTargetWeight(14.8, 14.91, 1000, 226000),
+    ).toEqual({ quantity: 1, tradeType: "SELL" })
+  })
+
+  // The target box shows the current weight to two decimals.
+  test("the current weight, as shown, trades nothing", () => {
+    expect(
+      calculateQuantityFromTargetWeight(14.91, 14.9134, 1000, 226000)?.quantity,
+    ).toBe(0)
+  })
+
+  test("a small new position buys one share", () => {
+    expect(
+      calculateNewPositionQuantityFromTargetWeight(0.01, 1000, 10000)?.quantity,
+    ).toBe(1)
+  })
+})

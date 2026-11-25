@@ -157,10 +157,15 @@ export const calculateQuantityFromTargetWeight = (
   const currentValue = (currentPositionWeight / 100) * portfolioMarketValue
   const valueDiff = targetValue - currentValue
   // valueDiff is base currency; divide by the base-converted price for shares.
-  const requiredShares = Math.round(Math.abs(valueDiff) / (price * fxRate))
+  const nearest = Math.round(Math.abs(valueDiff) / (price * fxRate))
+  // A target that differs from the weight shown (two decimals) is a request to
+  // trade, so it trades at least one share.
+  const moved =
+    Math.round(targetWeightPercent * 100) !==
+    Math.round(currentPositionWeight * 100)
 
   return {
-    quantity: requiredShares,
+    quantity: moved ? Math.max(nearest, 1) : nearest,
     tradeType: valueDiff >= 0 ? "BUY" : "SELL",
   }
 }
@@ -201,7 +206,8 @@ export const calculateNewPositionQuantityFromTargetWeight = (
   const priceInBase = price * fxRate
   // Round (not floor) so we land on the nearest share to the target weight,
   // matching calculateQuantityFromTargetWeight and avoiding float undershoot.
-  const quantity = Math.round(targetValue / priceInBase)
+  // At least one share: a positive target is a request to buy.
+  const quantity = Math.max(Math.round(targetValue / priceInBase), 1)
   return {
     quantity,
     tradeType: "BUY",

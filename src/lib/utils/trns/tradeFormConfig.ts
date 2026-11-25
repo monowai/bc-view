@@ -3,6 +3,11 @@ import { Transaction } from "types/beancounter"
 import { todayIso } from "@lib/formatters"
 import { hasCostDate } from "./tradeUtils"
 
+export const QUANTITY_REQUIRED = "Quantity must be more than 0"
+
+/** Types that move shares, so a zero quantity is no trade at all. */
+const SHARE_TYPES = ["BUY", "SELL", "ADD", "REDUCE"]
+
 export const COST_DATE_AFTER_TRADE_DATE =
   "Cost date cannot be after the trade date"
 
@@ -57,7 +62,13 @@ export const schema = yup.object().shape({
   asset: yup.string().required(),
   market: yup.string().required(),
   tradeDate: yup.string().required(),
-  quantity: yup.number().default(0).required(),
+  quantity: yup
+    .number()
+    .default(0)
+    .required()
+    .test("positive-quantity", QUANTITY_REQUIRED, function (value) {
+      return !SHARE_TYPES.includes(this.parent.type?.value) || (value ?? 0) > 0
+    }),
   price: yup.number().required().default(0),
   tradeCurrency: yup
     .object()
