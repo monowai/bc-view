@@ -7,6 +7,9 @@ RUN apk add --no-cache libc6-compat
 ARG GIT_BRANCH
 ARG GIT_COMMIT
 ARG BUILD_ID
+# The full commit SHA. The Sentry SDK names its release from it, and bc-deploy
+# reads it from the running pod to record that release and its deploy.
+ARG SENTRY_RELEASE
 # Public Sentry DSN — must be present at build time so Next.js can inline it
 # into the client bundle (process.env.NEXT_PUBLIC_* is substituted by the
 # bundler at compile, not read at runtime). Passed from CI via --build-arg.
@@ -25,6 +28,7 @@ ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
 ENV GIT_BRANCH=$GIT_BRANCH
 ENV GIT_COMMIT=$GIT_COMMIT
 ENV BUILD_ID=$BUILD_ID
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
@@ -46,6 +50,11 @@ ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
 ENV NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=$NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
 COPY . .
 
+# @sentry/cli stamps debug IDs into the build (scripts/source-maps.sh). Its
+# binary comes from the lockfile's platform package; the install script's
+# fallback download stays off, so a missing binary fails the build at the
+# stamp rather than fetching one unpinned.
+ENV SENTRYCLI_SKIP_DOWNLOAD=1
 RUN yarn install --frozen-lockfile --prefer-offline --production=false
 
 RUN if [ -d ".next" ] && [ -n "$(ls -A .next 2>/dev/null)" ]; then \
@@ -93,6 +102,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Chunks and their maps, for bc-deploy to upload to Sentry from the running
+# pod. Outside .next and public, so nothing serves them.
+COPY --from=builder --chown=nextjs:nodejs /app/.next/sourcemaps ./sourcemaps
 
 # Switch to non-root user
 USER nextjs
