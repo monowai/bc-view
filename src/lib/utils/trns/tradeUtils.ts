@@ -337,6 +337,14 @@ export const isBuySide = (tradeType: string): boolean =>
 export const isSellSide = (tradeType: string): boolean =>
   ["SELL", "REDUCE", "EXPENSE"].includes(tradeType)
 
+/** The cash legs svc-data posts to settle a trade carry this provider. */
+const AUTO_SETTLE_PROVIDER = "BC-AUTO"
+
+/** An auto-settle WITHDRAWAL or DEPOSIT: edited through the trade it settles. */
+export const isAutoSettleLeg = (trn?: {
+  callerRef?: { provider?: string } | null
+}): boolean => trn?.callerRef?.provider === AUTO_SETTLE_PROVIDER
+
 /** Only an ADD carries a cost date: when it was paid for, if before the trade date */
 export const hasCostDate = (tradeType?: string): boolean => tradeType === "ADD"
 

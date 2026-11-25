@@ -19,8 +19,8 @@ import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
 import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
-import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
-import { buildTradeGroups } from "@utils/trns/tradeUtils"
+import { deleteTrn, settledTradeKey, unsettleTrn } from "@utils/api/client/trns"
+import { buildTradeGroups, isAutoSettleLeg } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
 import {
   TrnCardValue,
@@ -183,6 +183,24 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       dedupingInterval: 0, // Disable deduplication to always fetch fresh
     },
   )
+
+  // An auto-settle cash leg is edited through the trade it settles: find that
+  // trade and open its edit in place of the leg's.
+  const editTarget = Array.isArray(singleTrn.data?.data)
+    ? singleTrn.data.data[0]
+    : singleTrn.data?.data
+  const isLeg = !!isEditMode && !!trnId && isAutoSettleLeg(editTarget)
+  const settledTrade = useSwr(
+    isLeg ? settledTradeKey(trnId as string) : null,
+    isLeg ? simpleFetcher(settledTradeKey(trnId as string)) : null,
+  )
+  const parentTrade: Transaction | undefined = settledTrade.data?.data?.[0]
+  useEffect(() => {
+    if (parentTrade)
+      void router.replace(
+        `/trns/trades/edit/${parentTrade.portfolio.id}/${parentTrade.id}`,
+      )
+  }, [parentTrade, router])
 
   // Fetch asset and trades for list mode
   const asset = useSwr(
@@ -382,6 +400,12 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           err instanceof Error ? err.message : "Failed to unsettle",
         )
       }
+    }
+
+    // Waiting on the trade this leg settles. When it is gone, the leg is
+    // edited on its own so it can still be put right.
+    if (isLeg && !settledTrade.error) {
+      return rootLoader("Opening the trade…")
     }
 
     // svc-retire owns a month's spend withdrawal and rewrites it on every save,
