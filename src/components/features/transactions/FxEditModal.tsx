@@ -280,7 +280,7 @@ export default function FxEditModal({
       <form
         id="fx-edit-form"
         onSubmit={rhfHandleSubmit(onSubmit)}
-        className="space-y-4"
+        className="space-y-3"
       >
         <div className="grid grid-cols-2 gap-3">
           <TrnDateField

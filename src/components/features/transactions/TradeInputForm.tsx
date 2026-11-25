@@ -38,6 +38,7 @@ import TrnFormDialog, {
 import {
   BrokerAccountField,
   Money,
+  PortfolioSwitch,
   TrnStatusField,
   TrnSummary,
 } from "@components/features/transactions/TrnFormParts"
@@ -890,9 +891,29 @@ const TradeInputForm: React.FC<{
             isEditMode ? editAssetCode : stripOwnerPrefix(asset) || "New trade"
           }
           subtitle={
-            isEditMode
-              ? [editAssetName, editMarketCode].filter(Boolean).join(" · ")
-              : `${portfolio.code} · ${portfolio.name}`
+            <>
+              {isEditMode && (
+                <span className="mr-2">
+                  {[editAssetName, editMarketCode].filter(Boolean).join(" · ")}
+                </span>
+              )}
+              {showPortfolioPicker(portfolios, preferences) ? (
+                <PortfolioSwitch
+                  portfolios={portfolios}
+                  value={selectedPortfolioId}
+                  onChange={setSelectedPortfolioId}
+                  changedNote={
+                    portfolioChanged
+                      ? isEditMode
+                        ? "Will move to this portfolio"
+                        : "Different from current portfolio"
+                      : undefined
+                  }
+                />
+              ) : (
+                !isEditMode && `${portfolio.code} · ${portfolio.name}`
+              )}
+            </>
           }
           status={<TrnStatusField control={control as any} />}
           tabs={
@@ -1000,11 +1021,11 @@ const TradeInputForm: React.FC<{
               e.preventDefault()
               void submitForm()
             }}
-            className="space-y-4"
+            className="space-y-3"
           >
             {/* === Trade Tab === */}
             {activeTab === "trade" && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Type and Date */}
                 <div className="grid grid-cols-2 gap-3">
                   <div data-testid="trade-type">
@@ -1120,35 +1141,6 @@ const TradeInputForm: React.FC<{
                         onSelect={handleAssetSelect}
                       />
                     </div>
-                  </div>
-                )}
-
-                {/* Portfolio Selection — only when there's a choice to make.
-                  With a single portfolio it's already the selection
-                  (selectedPortfolioId defaults to it), so the dropdown is
-                  noise. Routed through the shared zen-mode helper so the
-                  hide rule stays consistent with the rest of bc-view. */}
-                {showPortfolioPicker(portfolios, preferences) && (
-                  <div>
-                    <label className={labelClass}>{"Portfolio"}</label>
-                    <select
-                      value={selectedPortfolioId}
-                      onChange={(e) => setSelectedPortfolioId(e.target.value)}
-                      className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
-                    >
-                      {portfolios.map((p: Portfolio) => (
-                        <option key={p.id} value={p.id}>
-                          {p.code} - {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    {portfolioChanged && (
-                      <p className="text-xs text-amber-700 mt-0.5">
-                        {isEditMode
-                          ? "Will move to this portfolio"
-                          : "Different from current portfolio"}
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -1482,7 +1474,7 @@ const TradeInputForm: React.FC<{
 
             {/* === Settlement Tab === */}
             {activeTab === "settlement" && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Settlement Account */}
                 <div data-testid="settlement-account">
                   <label className={labelClass}>

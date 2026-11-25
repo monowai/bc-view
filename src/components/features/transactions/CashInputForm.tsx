@@ -310,7 +310,7 @@ const CashInputForm: React.FC<{
           e.preventDefault()
           void submit()
         }}
-        className="space-y-4"
+        className="space-y-3"
       >
         <div className="grid grid-cols-2 gap-3">
           <div>

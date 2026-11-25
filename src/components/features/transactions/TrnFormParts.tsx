@@ -1,7 +1,7 @@
 import React from "react"
 import { Control, Controller, FieldValues, Path } from "react-hook-form"
 import { NumericFormat } from "react-number-format"
-import { BrokerWithAccounts } from "types/beancounter"
+import { BrokerWithAccounts, Portfolio } from "types/beancounter"
 import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
 import { AssetOption, groupAssetOptions } from "@lib/trns/cashFormHelpers"
 import { TradeColorScheme } from "@lib/trns/tradeUtils"
@@ -308,5 +308,42 @@ export function BrokerAccountField<T extends FieldValues>({
         )}
       />
     </div>
+  )
+}
+
+/**
+ * The portfolio a transaction lands in, chosen on the context line under the
+ * title. A note says when it differs from where the form was opened.
+ */
+export function PortfolioSwitch({
+  portfolios,
+  value,
+  onChange,
+  changedNote,
+}: {
+  portfolios: Portfolio[]
+  value: string
+  onChange: (portfolioId: string) => void
+  /** Shown when the choice differs from the portfolio the form opened on. */
+  changedNote?: string
+}): React.ReactElement {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <select
+        aria-label="Portfolio"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`min-w-0 max-w-full truncate rounded-md py-0.5 pl-1.5 pr-1 text-xs hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${changedNote ? "bg-amber-50 text-amber-800" : "text-gray-600"}`}
+      >
+        {portfolios.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.code} · {p.name}
+          </option>
+        ))}
+      </select>
+      {changedNote && (
+        <span className="shrink-0 text-xs text-amber-700">{changedNote}</span>
+      )}
+    </span>
   )
 }
