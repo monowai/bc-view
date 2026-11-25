@@ -291,7 +291,8 @@ export default function AssetSearch({
     styles: {
       control: (base: Record<string, unknown>) => ({
         ...base,
-        minHeight: "38px",
+        // Matches .input-height, so it lines up with the inputs beside it.
+        minHeight: "40px",
       }),
       menu: (base: Record<string, unknown>) => ({
         ...base,

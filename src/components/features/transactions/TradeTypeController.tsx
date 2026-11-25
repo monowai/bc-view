@@ -27,6 +27,8 @@ const TradeTypeController = forwardRef<
           }
           menuPosition="fixed"
           styles={{
+            // Same height as the inputs beside it.
+            control: (base) => ({ ...base, minHeight: 40 }),
             menuPortal: (base) => ({
               ...base,
               zIndex: 9999,

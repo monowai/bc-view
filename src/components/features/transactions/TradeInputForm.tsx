@@ -1030,14 +1030,16 @@ const TradeInputForm: React.FC<{
                 <div className="grid grid-cols-2 gap-3">
                   <div data-testid="trade-type">
                     <label className={labelClass}>{"Type"}</label>
-                    <TradeTypeController
-                      name="type"
-                      control={control as any}
-                      options={TradeTypeValues.map((value) => ({
-                        value,
-                        label: value,
-                      }))}
-                    />
+                    <div className="mt-1">
+                      <TradeTypeController
+                        name="type"
+                        control={control as any}
+                        options={TradeTypeValues.map((value) => ({
+                          value,
+                          label: value,
+                        }))}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label htmlFor="trade-date" className={labelClass}>
@@ -1132,14 +1134,16 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>
                         {isFetchingPrice ? `${"Asset"} ...` : "Asset"}
                       </label>
-                      <AssetSearch
-                        name="asset"
-                        inputId="asset-search"
-                        control={control as any}
-                        market={watch("market")}
-                        defaultValue={initialValues?.asset}
-                        onSelect={handleAssetSelect}
-                      />
+                      <div className="mt-1">
+                        <AssetSearch
+                          name="asset"
+                          inputId="asset-search"
+                          control={control as any}
+                          market={watch("market")}
+                          defaultValue={initialValues?.asset}
+                          onSelect={handleAssetSelect}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
