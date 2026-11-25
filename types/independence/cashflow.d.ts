@@ -27,7 +27,9 @@ export interface PlanExpensesResponse {
 export interface PlanWithExpensesResponse {
   plan: RetirementPlan
   expenses: PlanExpense[]
+  /** In `currency`: each row converted from its own currency at today's rate. */
   totalMonthlyExpenses: number
+  currency: string
 }
 
 // ============ Plan Contributions ============
@@ -55,7 +57,9 @@ export interface PlanContributionRequest {
 
 export interface PlanContributionsResponse {
   data: PlanContribution[]
+  /** In `currency`: each row converted from its own currency at today's rate. */
   totalMonthlyContributions: number
+  currency: string
 }
 
 // ============ Property Income ============
