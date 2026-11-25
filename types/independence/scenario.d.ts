@@ -38,8 +38,6 @@ export interface WorkScenarioDetail {
   scenario: WorkScenario
   expenses: PlanExpense[]
   contributions: PlanContribution[]
-  totalMonthlyExpenses: number
-  totalMonthlyContributions: number
   computedMonthlyContribution: number
 }
 
