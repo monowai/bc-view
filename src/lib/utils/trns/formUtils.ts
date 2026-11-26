@@ -1,6 +1,5 @@
 import { Portfolio } from "types/beancounter"
 import { convert } from "@lib/trns/tradeUtils"
-import { useEffect, useState, useCallback } from "react"
 import { postData } from "@components/ui/DropZone"
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
@@ -50,46 +49,3 @@ export const onSubmit = async (
     return `Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`
   }
 }
-
-export interface EscapeHandlerResult {
-  showEscapeConfirm: boolean
-  onEscapeConfirm: () => void
-  onEscapeCancel: () => void
-}
-
-export const useEscapeHandler = (
-  isDirty: boolean,
-  setModalOpen: (open: boolean) => void,
-): EscapeHandlerResult => {
-  const [showEscapeConfirm, setShowEscapeConfirm] = useState(false)
-
-  useEffect((): (() => void) => {
-    const handleEscape = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        if (isDirty) {
-          setShowEscapeConfirm(true)
-        } else {
-          setModalOpen(false)
-        }
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape)
-    return (): void => {
-      document.removeEventListener("keydown", handleEscape)
-    }
-  }, [isDirty, setModalOpen])
-
-  const onEscapeConfirm = useCallback(() => {
-    setShowEscapeConfirm(false)
-    setModalOpen(false)
-  }, [setModalOpen])
-
-  const onEscapeCancel = useCallback(() => {
-    setShowEscapeConfirm(false)
-  }, [])
-
-  return { showEscapeConfirm, onEscapeConfirm, onEscapeCancel }
-}
-
-export default useEscapeHandler

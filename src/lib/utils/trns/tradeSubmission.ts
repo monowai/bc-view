@@ -15,6 +15,12 @@ export const deriveSettlementCurrency = (
 /**
  * Build a TrnUpdatePayload for the PATCH API (edit mode).
  * Handles EXPENSE special case (quantity=1, price=amount).
+ *
+ * Caller contract: a trade's `cashAmount` is in the settlement currency and
+ * must come prefilled (TradeInputForm rescales the saved cash to the edited
+ * amount via `rescaleCashAmount`). It is never derived here from quantity and
+ * price, which are in the trade currency; 0 asks the server to settle it at
+ * the trade-to-cash market rate.
  */
 export const buildEditPayload = (
   formData: TradeFormValues,
@@ -41,8 +47,9 @@ export const buildEditPayload = (
       ? -(formData.tradeAmount || 0)
       : isIncome
         ? formData.tradeAmount || 0
-        : formData.cashAmount ||
-          -(formData.quantity * formData.price + (formData.fees || 0)),
+        : // 0 leaves the server to work the cash out from the amount at the
+          // trade-to-cash market rate, as it does for a new trade.
+          formData.cashAmount || 0,
     fees: formData.fees,
     tax: formData.tax,
     comments: formData.comment || "",

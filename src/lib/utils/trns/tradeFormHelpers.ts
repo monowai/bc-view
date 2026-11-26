@@ -13,6 +13,7 @@ import {
 } from "./tradeUtils"
 import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
+import { roundMoney } from "@lib/money"
 
 // --- Weight and position calculations ---
 
@@ -157,10 +158,15 @@ export const calculateQuantityFromTargetWeight = (
   const currentValue = (currentPositionWeight / 100) * portfolioMarketValue
   const valueDiff = targetValue - currentValue
   // valueDiff is base currency; divide by the base-converted price for shares.
-  const requiredShares = Math.round(Math.abs(valueDiff) / (price * fxRate))
+  const nearest = Math.round(Math.abs(valueDiff) / (price * fxRate))
+  // A target that differs from the weight shown (two decimals) is a request to
+  // trade, so it trades at least one share.
+  const moved =
+    Math.round(targetWeightPercent * 100) !==
+    Math.round(currentPositionWeight * 100)
 
   return {
-    quantity: requiredShares,
+    quantity: moved ? Math.max(nearest, 1) : nearest,
     tradeType: valueDiff >= 0 ? "BUY" : "SELL",
   }
 }
@@ -201,7 +207,8 @@ export const calculateNewPositionQuantityFromTargetWeight = (
   const priceInBase = price * fxRate
   // Round (not floor) so we land on the nearest share to the target weight,
   // matching calculateQuantityFromTargetWeight and avoiding float undershoot.
-  const quantity = Math.round(targetValue / priceInBase)
+  // At least one share: a positive target is a request to buy.
+  const quantity = Math.max(Math.round(targetValue / priceInBase), 1)
   return {
     quantity,
     tradeType: "BUY",
@@ -295,6 +302,32 @@ export interface TradeFormValues {
   brokerId: string
   /** ADD only: when it was paid for. Blank means the trade date. */
   costDate?: string
+}
+
+/**
+ * The cash an edited trade settles for. In the trade's own currency that is
+ * the trade amount, debit or credit as saved. In another currency the saved
+ * cash moves with the amount at the rate it settled at (cash per unit of trade
+ * amount), keeping the rate. With no saved cash to take the direction from, 0
+ * leaves the cash to be worked out from the amount.
+ */
+export const rescaleCashAmount = (
+  saved: {
+    tradeAmount: number
+    cashAmount: number
+    tradeCurrency: { code: string }
+    cashCurrency: string
+  },
+  tradeAmount: number,
+): number => {
+  if (!saved.cashAmount) return 0
+  const direction = Math.sign(saved.cashAmount)
+  if (saved.cashCurrency === saved.tradeCurrency.code)
+    return direction * Math.abs(tradeAmount)
+  if (!saved.tradeAmount) return 0
+  if (tradeAmount === saved.tradeAmount) return saved.cashAmount
+  const rate = Math.abs(saved.cashAmount / saved.tradeAmount)
+  return roundMoney(direction * Math.abs(tradeAmount) * rate)
 }
 
 /**

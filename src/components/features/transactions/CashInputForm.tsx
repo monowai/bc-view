@@ -1,51 +1,50 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { Portfolio } from "types/beancounter"
-import { SelectInstance } from "react-select"
-import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import useSwr, { mutate } from "swr"
-import { ccyKey, holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  calculateTradeAmount,
+  convert,
+  getCashFlowColorScheme,
+} from "@lib/trns/tradeUtils"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { CurrencyOptionSchema } from "@lib/portfolio/schema"
-import {
-  onSubmit,
-  useEscapeHandler,
-  copyToClipboard,
-} from "@lib/trns/formUtils"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
-import { convert } from "@lib/trns/tradeUtils"
-import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import TradeStatusToggle from "@components/features/transactions/TradeStatusToggle"
+import { onSubmit } from "@lib/trns/formUtils"
 import {
   TrnDateField,
   TrnMathField,
   TrnTextField,
 } from "@components/features/transactions/TrnFormFields"
+import TrnFormDialog from "@components/features/transactions/TrnFormDialog"
+import {
+  CashAccountSelect,
+  FxRateHint,
+  FxSummary,
+  SegmentedChoice,
+  TrnStatusField,
+  TrnSummary,
+} from "@components/features/transactions/TrnFormParts"
 import Alert from "@components/ui/Alert"
-import Spinner from "@components/ui/Spinner"
 import {
   buildCombinedAssetOptions,
   resolveFxCurrencyPair,
   resolveAssetSelection,
   filterFxBuyOptions,
+  fxBuyChoice,
   buildCashCopyData,
   resolveFxDisplayInfo,
+  cashTypeOf,
+  CASH_TYPES,
 } from "@lib/trns/cashFormHelpers"
+import { inputClass, labelClass } from "@lib/trns/trnFormStyles"
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import { todayIso } from "@lib/formatters"
 import { accountsKey, tradeAccountsKey } from "@utils/api/client/assets"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
-import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
-
-const TradeTypeValues = [
-  "DEPOSIT",
-  "WITHDRAWAL",
-  "INCOME",
-  "DEDUCTION",
-  "FX",
-] as const
+import { useFxBuyAmount } from "./useFxBuyAmount"
+import { useFxRate } from "./useFxRate"
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
@@ -92,6 +91,15 @@ const cashSchema = yup.object().shape({
   comment: yup.string().notRequired(),
 })
 
+const typeOption = (value: string): { value: string; label: string } => ({
+  value,
+  label: value,
+})
+
+/**
+ * Money in or out of a cash account — deposit, withdrawal, income, deduction —
+ * or an exchange from one currency to another.
+ */
 const CashInputForm: React.FC<{
   portfolio: Portfolio
   modalOpen: boolean
@@ -106,93 +114,45 @@ const CashInputForm: React.FC<{
     setValue,
     getValues,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: yupResolver(cashSchema),
     defaultValues,
   })
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  )
-  const typeSelectRef =
-    useRef<SelectInstance<{ value: string; label: string }>>(null)
-
-  // Reset form when modal opens
   useEffect(() => {
     if (modalOpen) {
       reset({
         ...defaultValues,
         asset: initialAsset || defaultValues.asset,
-        type: initialType
-          ? { value: initialType, label: initialType }
-          : defaultValues.type,
+        type: initialType ? typeOption(initialType) : defaultValues.type,
       })
     }
   }, [modalOpen, reset, initialAsset, initialType])
-
-  // Focus type select when modal opens
-  useEffect(() => {
-    if (modalOpen) {
-      setTimeout(() => {
-        typeSelectRef.current?.focus()
-      }, 100)
-    }
-  }, [modalOpen])
-
-  const [selectedMarket, setSelectedMarket] = useState("CASH")
-  const [submitError, setSubmitError] = useState<string | null>(null)
-
-  const handleCopy = async (): Promise<void> => {
-    const data = buildCashCopyData(getValues(), selectedMarket)
-    const row = convert(data)
-    const success = await copyToClipboard(row)
-    setCopyStatus(success ? "success" : "error")
-    setTimeout(() => setCopyStatus("idle"), 2000)
-  }
 
   const { data: ccyData, isLoading: ccyLoading } = useSwr(
     ccyKey,
     simpleFetcher(ccyKey),
   )
-  const { data: accountsData, error: accountsError } = useSwr(
-    accountsKey,
-    simpleFetcher(accountsKey),
-  )
+  const { data: accountsData } = useSwr(accountsKey, simpleFetcher(accountsKey))
   const { data: tradeAccountsData } = useSwr(
     tradeAccountsKey,
     simpleFetcher(tradeAccountsKey),
   )
 
-  // Log accounts fetch status for debugging
-  useEffect(() => {
-    if (accountsError) {
-      console.log("Failed to fetch accounts:", accountsError)
-    }
-  }, [accountsData, accountsError])
-  // Use useWatch (a hook) rather than the watch() function returned from
-  // useForm. The function form returns a fresh closure each render, which the
-  // React Compiler can't memoize safely; useWatch is the React-friendly
-  // subscription path and lets the compiler optimize this component.
   const tax = useWatch({ control, name: "tax" })
   const fees = useWatch({ control, name: "fees" })
   const type = useWatch({ control, name: "type" })
   const qty = useWatch({ control, name: "quantity" })
   const asset = useWatch({ control, name: "asset" })
+  const market = useWatch({ control, name: "market" })
   const cashCurrency = useWatch({ control, name: "cashCurrency" })
-  const cashAmount = useWatch({ control, name: "cashAmount" })
+  const cashAmount = useWatch({ control, name: "cashAmount" }) ?? 0
 
-  const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
-    useEscapeHandler(isDirty, setModalOpen)
+  const isFx = type.value === "FX"
+  const cashType = cashTypeOf(type.value)
 
-  // Shared close handler — checks for unsaved changes before closing.
-  // Dispatches an Escape keydown event to reuse the useEscapeHandler logic,
-  // which shows a confirmation dialog when isDirty.
-  const handleClose = useCallback(() => {
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
-  }, [])
-
-  // Combine currency options with account options (must be before FX rate logic)
   const combinedOptions = useMemo(
     () =>
       buildCombinedAssetOptions(
@@ -202,48 +162,30 @@ const CashInputForm: React.FC<{
       ),
     [ccyData?.data, accountsData?.data, tradeAccountsData?.data],
   )
+  const sellCurrency = resolveAssetSelection(asset, combinedOptions)?.currency
+  const buyOptions = useMemo(
+    () => filterFxBuyOptions(combinedOptions, sellCurrency),
+    [combinedOptions, sellCurrency],
+  )
 
-  // FX rate state
-  const [fxRate, setFxRate] = useState<number | null>(null)
-  const [fxRateLoading, setFxRateLoading] = useState(false)
-
-  // Fetch FX rate when currencies change (for FX transactions). The sync
-  // setFxRate(null) early returns are deliberate "clear stale rate" steps;
-  // refactoring to derived state would couple FX results into render and
-  // is out of scope for the compiler-warning sweep.
+  // The buy side can never be the currency being sold. When it is (the
+  // defaults, or the sell side just moved onto it), take the first currency
+  // on offer so what the select shows is what gets saved.
   useEffect(() => {
-    if (type.value !== "FX" || !asset || !cashCurrency?.value) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFxRate(null)
-      return
-    }
+    if (!isFx || buyOptions.length === 0) return
+    if (buyOptions.some((opt) => opt.value === cashCurrency?.value)) return
+    setValue("cashCurrency", fxBuyChoice(buyOptions[0]))
+  }, [isFx, buyOptions, cashCurrency?.value, setValue])
 
-    const pair = resolveFxCurrencyPair(
-      asset,
-      cashCurrency.value,
-      combinedOptions,
-    )
-    if (!pair) {
-      setFxRate(null)
-      return
-    }
+  const pair = isFx
+    ? resolveFxCurrencyPair(asset, cashCurrency?.value ?? "", combinedOptions)
+    : null
+  const {
+    rate: fxRate,
+    loading: fxRateLoading,
+    failed: fxRateFailed,
+  } = useFxRate(pair?.sellCurrency, pair?.buyCurrency)
 
-    setFxRateLoading(true)
-    fxFetcher(pair.sellCurrency, pair.buyCurrency)
-      .then((response) => {
-        if (response?.data?.rates) {
-          const key = `${pair.sellCurrency}:${pair.buyCurrency}`
-          const rate = response.data.rates[key]?.rate
-          setFxRate(rate ?? null)
-        } else {
-          setFxRate(null)
-        }
-      })
-      .catch(() => setFxRate(null))
-      .finally(() => setFxRateLoading(false))
-  }, [type.value, asset, cashCurrency?.value, combinedOptions])
-
-  // Auto-calculate buy amount when sell amount or rate changes.
   const setBuyAmount = useCallback(
     (value: number) => setValue("cashAmount", value),
     [setValue],
@@ -256,494 +198,226 @@ const CashInputForm: React.FC<{
     sellAmount: qty,
     fxRate,
     onBuyAmount: setBuyAmount,
-    enabled: type.value === "FX",
+    enabled: isFx,
   })
 
-  // Reset the manual-override flag when the user changes currencies so the
-  // auto-calc effect above re-engages. Form coordination, not derived state.
+  // A change of currency re-engages the market rate.
   useEffect(() => {
     resumeAutoBuyAmount()
   }, [asset, cashCurrency?.value, resumeAutoBuyAmount])
 
-  // Update market and currency when asset changes. setSelectedMarket and
-  // the form setValue calls are the intended side effects of an asset
-  // selection — same form-coordination class as the FX rate effect above.
+  // An account carries its own market and currency; outside FX, the cash
+  // moves in that same currency.
   useEffect(() => {
-    if (asset) {
-      const resolved = resolveAssetSelection(asset, combinedOptions)
-      if (resolved) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSelectedMarket(resolved.market)
-        setValue("tradeCurrency", {
-          value: resolved.currency,
-          label: resolved.currency,
-        })
-        // For FX transactions, don't sync cashCurrency to sell currency
-        if (type.value !== "FX") {
-          setValue("cashCurrency", {
-            value: resolved.currency,
-            label: resolved.currency,
-          })
-        }
-        setValue("market", resolved.market)
-      }
-    }
-  }, [asset, combinedOptions, setValue, type.value])
+    const resolved = asset && resolveAssetSelection(asset, combinedOptions)
+    if (!resolved) return
+    setValue("tradeCurrency", typeOption(resolved.currency))
+    if (!isFx) setValue("cashCurrency", typeOption(resolved.currency))
+    setValue("market", resolved.market)
+  }, [asset, combinedOptions, setValue, isFx])
 
+  // Outside FX the cash amount is the trade amount; in FX it comes from the
+  // rate (above).
   useEffect(() => {
-    const tradeAmount = calculateTradeAmount(qty, 1, tax, fees, type.value)
-    setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
-    // For FX transactions, cashAmount is calculated from FX rate, not tradeAmount
-    if (type.value !== "FX") {
-      setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
-    }
+    const tradeAmount = parseFloat(
+      calculateTradeAmount(qty, 1, tax, fees, type.value).toFixed(2),
+    )
+    setValue("tradeAmount", tradeAmount)
+    if (type.value !== "FX") setValue("cashAmount", tradeAmount)
   }, [tax, fees, type, qty, setValue])
 
-  // Common CSS classes (matching trade form)
-  const inputClass =
-    "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-  const labelClass =
-    "block text-xs font-medium text-gray-500 uppercase tracking-wide"
+  if (ccyLoading) return rootLoader("Loading...")
+  if (!modalOpen) return null
+
+  const submit = handleSubmit(async (data) => {
+    setSubmitError(null)
+    const err = await onSubmit(portfolio, errors, data, (open) => {
+      setModalOpen(open)
+      if (!open) refreshHoldingsSoon(mutate)
+    })
+    if (err) setSubmitError(err)
+  })
+
+  const sellInfo = resolveFxDisplayInfo(asset, combinedOptions)
+  const buyInfo = resolveFxDisplayInfo(
+    cashCurrency?.value ?? "",
+    combinedOptions,
+  )
   const fieldProps = {
     control,
     labelClassName: labelClass,
     inputClassName: inputClass,
   }
-
-  // Only wait for currencies - accounts are optional enhancement
-  if (ccyLoading) return rootLoader("Loading...")
+  const validationErrors = Object.values(errors)
+    .map((error) => error?.message)
+    .filter(Boolean)
 
   return (
-    <>
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={handleClose}
-          ></div>
-          <div
-            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <header className="flex-shrink-0 pb-3 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  className="text-gray-500 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                  onClick={handleClose}
-                  title={"Cancel"}
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-                <div className="text-center flex-1 px-3">
-                  <div className="font-semibold text-gray-900">
-                    {type.value === "FX" ? "FX Trade" : "Cash Transaction"}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {portfolio.code} - {portfolio.name}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-                    copyStatus === "success"
-                      ? "text-green-700 bg-green-50"
-                      : copyStatus === "error"
-                        ? "text-red-600 bg-red-50"
-                        : "text-gray-500 hover:text-green-800 hover:bg-green-50"
-                  }`}
-                  onClick={handleCopy}
-                  title={"Copy"}
-                >
-                  <i
-                    className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
-                  ></i>
-                </button>
-              </div>
-
-              {/* Cash Transaction Summary */}
-              {type.value !== "FX" && qty > 0 && (
-                <div
-                  className={`rounded-lg p-3 flex items-center justify-center gap-4 ${
-                    type.value === "WITHDRAWAL" || type.value === "DEDUCTION"
-                      ? "bg-red-50 border border-red-100"
-                      : "bg-emerald-50 border border-emerald-100"
-                  }`}
-                >
-                  <div className="text-center">
-                    <div
-                      className={`text-micro font-semibold uppercase tracking-wider ${
-                        type.value === "WITHDRAWAL" ||
-                        type.value === "DEDUCTION"
-                          ? "text-red-600"
-                          : "text-emerald-700"
-                      }`}
-                    >
-                      {type.value}
-                    </div>
-                    <div className="font-bold text-lg text-gray-900">
-                      {qty.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {resolveFxDisplayInfo(asset, combinedOptions).label}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* FX Trade Summary */}
-              {type.value === "FX" && (
-                <div className="rounded-lg p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="text-center">
-                      <div className="text-micro font-semibold text-red-600 uppercase tracking-wider">
-                        Sell
-                      </div>
-                      <div className="font-bold text-lg text-gray-900">
-                        {qty > 0 ? qty.toLocaleString() : "—"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {resolveFxDisplayInfo(asset, combinedOptions).label}
-                      </div>
-                    </div>
-                    <div className="text-center text-gray-300">
-                      <i className="fas fa-arrow-right text-xs"></i>
-                      {fxRateLoading ? (
-                        <div className="text-xs mt-1 text-gray-500">
-                          <Spinner />
-                        </div>
-                      ) : fxRate ? (
-                        <div className="text-xs mt-1 font-mono text-gray-500">
-                          @{fxRate.toFixed(4)}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="text-center">
-                      <div className="text-micro font-semibold text-emerald-700 uppercase tracking-wider">
-                        Buy
-                      </div>
-                      <div className="font-bold text-lg text-gray-900">
-                        {(cashAmount ?? 0) > 0
-                          ? (cashAmount ?? 0).toLocaleString()
-                          : "—"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {
-                          resolveFxDisplayInfo(
-                            cashCurrency?.value ?? "",
-                            combinedOptions,
-                          ).label
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  {fxRate && !manualBuyAmount && (
-                    <div className="text-center text-xs text-gray-500 mt-2">
-                      Rate auto-applied from FX service
-                    </div>
-                  )}
-                  {manualBuyAmount && (
-                    <div className="text-center text-xs text-amber-700 mt-2">
-                      Manual amount entered
-                    </div>
-                  )}
-                </div>
-              )}
-            </header>
-
-            <form
-              id="cash-form"
-              onSubmit={handleSubmit(async (data) => {
-                setSubmitError(null)
-                const err = await onSubmit(portfolio, errors, data, (open) => {
-                  setModalOpen(open)
-                  if (!open) {
-                    setTimeout(() => {
-                      mutate(holdingKey(portfolio.code, "today"))
-                      mutate(aggregatedHoldingsTodayKey)
-                      refreshNetWorth()
-                    }, 1500)
-                  }
-                })
-                if (err) setSubmitError(err)
-              })}
-              className="flex-1 overflow-y-auto py-4 space-y-4"
+    <TrnFormDialog
+      title={cashType.title}
+      subtitle={`${portfolio.code} · ${portfolio.name}`}
+      status={<TrnStatusField control={control} />}
+      tabs={
+        <Controller
+          name="type"
+          control={control}
+          render={({ field }) => (
+            <SegmentedChoice
+              name="cash-type"
+              legend="Transaction type"
+              value={cashType.value}
+              options={CASH_TYPES}
+              onChange={(value) => field.onChange(typeOption(value))}
+            />
+          )}
+        />
+      }
+      copyRow={() => convert(buildCashCopyData(getValues(), market ?? "CASH"))}
+      isDirty={isDirty}
+      onClose={() => setModalOpen(false)}
+      onSubmit={() => void submit()}
+      submitLabel="Submit"
+      isSubmitting={isSubmitting}
+      summary={
+        isFx ? (
+          <FxSummary
+            sellAmount={qty}
+            sellLabel={sellInfo.label}
+            buyAmount={cashAmount}
+            buyLabel={buyInfo.label}
+          />
+        ) : (
+          qty > 0 && (
+            <TrnSummary
+              label={cashType.label}
+              amount={cashAmount}
+              currency={sellCurrency}
+              scheme={getCashFlowColorScheme(cashType.flow)}
             >
-              {submitError && <Alert>{submitError}</Alert>}
-              {/* Type, Status, Date */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>{"Type"}</label>
-                  <TradeTypeController
-                    ref={typeSelectRef}
-                    name="type"
-                    control={control}
-                    options={TradeTypeValues.map((value) => ({
-                      value,
-                      label: value,
-                    }))}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{"Status"}</label>
-                  <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                      <div className="mt-2">
-                        <TradeStatusToggle
-                          isSettled={field.value.value === "SETTLED"}
-                          onChange={(isSettled) => {
-                            const newStatus = isSettled ? "SETTLED" : "PROPOSED"
-                            field.onChange({
-                              value: newStatus,
-                              label: newStatus,
-                            })
-                          }}
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Date - for non-FX */}
-              {type.value !== "FX" && (
-                <TrnDateField
-                  {...fieldProps}
-                  name="tradeDate"
-                  label={"Trade Date"}
+              {!sellInfo.isCash && (
+                <span className="truncate text-xs text-gray-500">
+                  {cashType.flow === "in" ? "into " : "from "}
+                  {sellInfo.label}
+                </span>
+              )}
+            </TrnSummary>
+          )
+        )
+      }
+    >
+      <form
+        id="cash-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void submit()
+        }}
+        className="space-y-3"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="cash-account" className={labelClass}>
+              {isFx ? "From" : "Cash account"}
+            </label>
+            <Controller
+              name="asset"
+              control={control}
+              render={({ field }) => (
+                <CashAccountSelect
+                  id="cash-account"
+                  value={field.value}
+                  options={combinedOptions}
+                  onChange={(option) => field.onChange(option.value)}
+                  className={inputClass}
                 />
               )}
+            />
+          </div>
+          <TrnMathField
+            {...fieldProps}
+            id="cash-amount"
+            name="quantity"
+            label={isFx ? "Sell amount" : "Amount"}
+          />
+        </div>
 
-              {/* Account/Currency and Amount */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>
-                    {type.value === "FX" ? "Sell Currency" : "Account"}
-                  </label>
-                  <Controller
-                    name="asset"
-                    control={control}
-                    defaultValue={portfolio.currency.code}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        className={`${inputClass} ${
-                          type.value === "FX"
-                            ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
-                            : ""
-                        }`}
-                        value={field.value}
-                      >
-                        <optgroup label="Currencies">
-                          {combinedOptions
-                            .filter((opt) => opt.market === "CASH")
-                            .map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                        </optgroup>
-                        {combinedOptions.some(
-                          (opt) => opt.market === "PRIVATE",
-                        ) && (
-                          <optgroup label="Bank Accounts">
-                            {combinedOptions
-                              .filter((opt) => opt.market === "PRIVATE")
-                              .map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                          </optgroup>
-                        )}
-                        {combinedOptions.some(
-                          (opt) => opt.market === "TRADE",
-                        ) && (
-                          <optgroup label="Trade Accounts">
-                            {combinedOptions
-                              .filter((opt) => opt.market === "TRADE")
-                              .map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                          </optgroup>
-                        )}
-                      </select>
-                    )}
+        {isFx && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="cash-buy-account" className={labelClass}>
+                {"To"}
+              </label>
+              <Controller
+                name="cashCurrency"
+                control={control}
+                render={({ field }) => (
+                  <CashAccountSelect
+                    id="cash-buy-account"
+                    value={field.value.value}
+                    options={buyOptions}
+                    onChange={(option) => field.onChange(fxBuyChoice(option))}
+                    className={inputClass}
                   />
-                  {errors.asset && (
-                    <p className="text-red-600 text-xs mt-1">
-                      {errors.asset.message}
-                    </p>
-                  )}
-                </div>
-                <TrnMathField
-                  {...fieldProps}
-                  name="quantity"
-                  label={type.value === "FX" ? "Sell Amount" : "Amount"}
-                  inputClassName={`${inputClass} ${
-                    type.value === "FX"
-                      ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
-                      : ""
-                  }`}
-                />
-              </div>
-
-              {/* FX-specific: Buy Currency, Buy Amount, Date */}
-              {type.value === "FX" && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelClass}>{"Buy Currency"}</label>
-                      <Controller
-                        name="cashCurrency"
-                        control={control}
-                        render={({ field }) => {
-                          const sellCurrency = resolveAssetSelection(
-                            asset,
-                            combinedOptions,
-                          )?.currency
-                          const buyOptions = filterFxBuyOptions(
-                            combinedOptions,
-                            sellCurrency,
-                          )
-
-                          return (
-                            <select
-                              className={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
-                              value={field.value.value}
-                              onChange={(e) => {
-                                const selected = combinedOptions.find(
-                                  (opt) => opt.value === e.target.value,
-                                )
-                                if (selected) {
-                                  field.onChange({
-                                    value: selected.value,
-                                    label: selected.label,
-                                    currency: selected.currency,
-                                    market: selected.market,
-                                  })
-                                }
-                              }}
-                            >
-                              <optgroup label="Currencies">
-                                {buyOptions
-                                  .filter((opt) => opt.market === "CASH")
-                                  .map((option) => (
-                                    <option
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </option>
-                                  ))}
-                              </optgroup>
-                              {buyOptions.some(
-                                (opt) => opt.market === "PRIVATE",
-                              ) && (
-                                <optgroup label="Bank Accounts">
-                                  {buyOptions
-                                    .filter((opt) => opt.market === "PRIVATE")
-                                    .map((option) => (
-                                      <option
-                                        key={option.value}
-                                        value={option.value}
-                                      >
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                </optgroup>
-                              )}
-                              {buyOptions.some(
-                                (opt) => opt.market === "TRADE",
-                              ) && (
-                                <optgroup label="Trade Accounts">
-                                  {buyOptions
-                                    .filter((opt) => opt.market === "TRADE")
-                                    .map((option) => (
-                                      <option
-                                        key={option.value}
-                                        value={option.value}
-                                      >
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                </optgroup>
-                              )}
-                            </select>
-                          )
-                        }}
-                      />
-                    </div>
-                    <TrnMathField
-                      {...fieldProps}
-                      name="cashAmount"
-                      label={"Buy Amount"}
-                      onChange={handleBuyAmountChange}
-                      inputClassName={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
-                    />
-                  </div>
-                  <TrnDateField
-                    {...fieldProps}
-                    name="tradeDate"
-                    label={"Trade Date"}
-                  />
-                </>
-              )}
-
-              {/* Fees, Tax, Comments */}
-              <div className="grid grid-cols-2 gap-3">
-                <TrnMathField {...fieldProps} name="fees" label={"Fees"} />
-                <TrnMathField {...fieldProps} name="tax" label={"Tax"} />
-              </div>
-
-              <TrnTextField {...fieldProps} name="comment" label={"Comments"} />
-
-              {Object.keys(errors).length > 0 && (
-                <Alert>
-                  {Object.values(errors)
-                    .map((error) => error?.message)
-                    .join(" ")}
-                </Alert>
-              )}
-            </form>
-
-            {/* Footer */}
-            <div className="flex-shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
-              <button
-                type="button"
-                className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                onClick={handleClose}
-              >
-                {"Cancel"}
-              </button>
-              <button
-                type="submit"
-                form="cash-form"
-                className="px-5 py-2.5 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
-              >
-                {"Submit"}
-              </button>
+                )}
+              />
+            </div>
+            <div>
+              <TrnMathField
+                {...fieldProps}
+                id="cash-buy-amount"
+                name="cashAmount"
+                label={"Buy amount"}
+                onChange={handleBuyAmountChange}
+              />
+              <FxRateHint
+                marketRate={fxRate}
+                impliedRate={
+                  qty > 0 && cashAmount > 0 ? cashAmount / qty : null
+                }
+                manual={manualBuyAmount}
+                loading={fxRateLoading}
+                failed={fxRateFailed}
+                onUseMarketRate={resumeAutoBuyAmount}
+              />
             </div>
           </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="col-span-2 sm:col-span-1">
+            <TrnDateField
+              {...fieldProps}
+              id="cash-trade-date"
+              name="tradeDate"
+              label={"Trade date"}
+            />
+          </div>
+          <TrnMathField
+            {...fieldProps}
+            id="cash-fees"
+            name="fees"
+            label={"Fees"}
+          />
+          <TrnMathField
+            {...fieldProps}
+            id="cash-tax"
+            name="tax"
+            label={"Tax"}
+          />
         </div>
-      )}
-      {showEscapeConfirm && (
-        <ConfirmDialog
-          title="Unsaved Changes"
-          message="You have unsaved changes. Do you really want to close?"
-          confirmLabel="Close"
-          cancelLabel="Cancel"
-          variant="amber"
-          onConfirm={onEscapeConfirm}
-          onCancel={onEscapeCancel}
+
+        <TrnTextField
+          {...fieldProps}
+          id="cash-comment"
+          name="comment"
+          label={"Comments"}
         />
-      )}
-    </>
+
+        {submitError && <Alert>{submitError}</Alert>}
+        {validationErrors.length > 0 && (
+          <Alert>{validationErrors.join(" ")}</Alert>
+        )}
+      </form>
+    </TrnFormDialog>
   )
 }
 

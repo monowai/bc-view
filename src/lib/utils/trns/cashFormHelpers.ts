@@ -112,6 +112,19 @@ export const filterFxBuyOptions = (
   combinedOptions.filter((opt) => opt.currency !== sellCurrency)
 
 /**
+ * The FX buy side as the form stores it. The row it posts needs the option's
+ * currency (an account's value is its code) and market, not just its value.
+ */
+export const fxBuyChoice = (
+  option: AssetOption,
+): { value: string; label: string; currency: string; market: string } => ({
+  value: option.value,
+  label: option.label,
+  currency: option.currency ?? option.value,
+  market: option.market ?? "CASH",
+})
+
+/**
  * Build copy data from cash form values for the convert() function.
  * Adds market, forces price=1, and maps comment→comments.
  */
@@ -141,3 +154,55 @@ export const resolveFxDisplayInfo = (
     isCash,
   }
 }
+
+export interface AssetOptionGroup {
+  label: string
+  options: AssetOption[]
+}
+
+const OPTION_GROUPS: { market: string; label: string }[] = [
+  { market: "CASH", label: "Currencies" },
+  { market: "PRIVATE", label: "Bank accounts" },
+  { market: "TRADE", label: "Trade accounts" },
+]
+
+/**
+ * Groups account options for a select: currencies, then bank accounts, then
+ * trade accounts. Groups with nothing in them are left out.
+ */
+export const groupAssetOptions = (options: AssetOption[]): AssetOptionGroup[] =>
+  OPTION_GROUPS.map(({ market, label }) => ({
+    label,
+    options: options.filter((opt) => (opt.market || "CASH") === market),
+  })).filter((group) => group.options.length > 0)
+
+export interface CashType {
+  value: "DEPOSIT" | "WITHDRAWAL" | "INCOME" | "DEDUCTION" | "FX"
+  label: string
+  /** The dialog title while this type is chosen. */
+  title: string
+  /** Which way the money moves through the account. */
+  flow: "in" | "out"
+}
+
+export const CASH_TYPES: readonly CashType[] = [
+  { value: "DEPOSIT", label: "Deposit", title: "Deposit cash", flow: "in" },
+  {
+    value: "WITHDRAWAL",
+    label: "Withdrawal",
+    title: "Withdraw cash",
+    flow: "out",
+  },
+  { value: "INCOME", label: "Income", title: "Record income", flow: "in" },
+  {
+    value: "DEDUCTION",
+    label: "Deduction",
+    title: "Record a deduction",
+    flow: "out",
+  },
+  { value: "FX", label: "FX", title: "Exchange currency", flow: "out" },
+]
+
+/** The cash type for a transaction type code; unknown codes read as a deposit. */
+export const cashTypeOf = (value: string): CashType =>
+  CASH_TYPES.find((t) => t.value === value) ?? CASH_TYPES[0]

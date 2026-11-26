@@ -11,6 +11,9 @@ import { jsonInit } from "@utils/api/client/request"
 
 export const trnsKey = "/api/trns"
 export const trnKey = (trnId: string): string => `${trnsKey}/${trnId}`
+/** The trade an auto-settle cash leg settles; 404 when it is not a leg. */
+export const settledTradeKey = (legId: string): string =>
+  `${trnsKey}/settles/${legId}`
 export const tradeKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/trades/${portfolioId}/${assetId}`
 export const tradeKeyMulti = (

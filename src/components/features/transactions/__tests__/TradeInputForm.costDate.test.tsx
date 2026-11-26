@@ -196,7 +196,7 @@ describe("TradeInputForm — cost date", () => {
     save()
     await screen.findByText("Cost date cannot be after the trade date")
 
-    fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Settlement" }))
 
     expect(
       screen.getByText("Cost date cannot be after the trade date"),
