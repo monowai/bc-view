@@ -7,14 +7,10 @@ name: Build and Package
 
 on:
   push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      build_image:
-        description: "Build and publish docker image"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -233,9 +229,7 @@ jobs:
       # against the final .next regardless of which path produced it, so this
       # cannot silently regress.
       - name: Upload build artifacts
-        if: |
-          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          (github.event_name == 'workflow_dispatch' && inputs.build_image)
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v7
         with:
           name: build-output
@@ -249,14 +243,13 @@ jobs:
 
   docker:
     name: Build Docker (${{ matrix.platform }})
-    # The arm64 image builds on Kauri when CI_RUNNER is set. This job runs
-    # only on a push to main or a manual dispatch, so it builds merged code.
+    # The arm64 image builds on Kauri when CI_RUNNER is set.
     runs-on: ${{ matrix.platform == 'linux/arm64' && vars.CI_RUNNER || matrix.runner }}
     timeout-minutes: 30
     needs: [test, build]
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+    # Images are released from main only: a push to main, or a manual run
+    # started on main.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
       packages: write
@@ -350,9 +343,7 @@ jobs:
     name: Create Multi-arch Manifest
     runs-on: ubuntu-latest
     needs: docker
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
       packages: write
