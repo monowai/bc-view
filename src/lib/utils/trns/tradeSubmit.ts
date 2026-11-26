@@ -8,17 +8,15 @@ import {
   buildIncomePayload,
   buildCreateModeData,
 } from "./tradeSubmission"
-import { holdingKey } from "@utils/api/fetchHelper"
 import { onSubmit } from "./formUtils"
 import {
   createTrns,
   isProposedTrnsKey,
   updateTrn,
 } from "@utils/api/client/trns"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
+import { refreshHoldingsSoon } from "./refreshHoldings"
 
-type MutateFn = (key: string) => Promise<any>
+type MutateFn = (matcher: (key: unknown) => boolean) => unknown
 
 /**
  * Extract `warnings` array from a successful TrnResponse, tolerating mocks /
@@ -48,8 +46,6 @@ export interface SubmitEditModeParams {
   }
   selectedModelId: string | undefined
   selectedPortfolioId: string
-  portfolioChanged: boolean
-  portfolios: Portfolio[]
   editMode: { onClose: () => void }
   mutate: MutateFn
   setSubmitError: (error: string | null) => void
@@ -67,8 +63,6 @@ export async function submitEditMode(
     transaction,
     selectedModelId,
     selectedPortfolioId,
-    portfolioChanged,
-    portfolios,
     editMode,
     mutate,
     setSubmitError,
@@ -90,19 +84,7 @@ export async function submitEditMode(
     )
     if (response.ok) {
       mutateProposedCaches()
-      setTimeout(() => {
-        mutate(holdingKey(transaction.portfolio.code, "today"))
-        mutate(aggregatedHoldingsTodayKey)
-        refreshNetWorth()
-        if (portfolioChanged) {
-          const newPortfolio = portfolios.find(
-            (p) => p.id === selectedPortfolioId,
-          )
-          if (newPortfolio) {
-            mutate(holdingKey(newPortfolio.code, "today"))
-          }
-        }
-      }, 1500)
+      refreshHoldingsSoon(mutate)
       editMode.onClose()
     } else {
       const errorData = await response.json().catch(() => ({}))
@@ -158,11 +140,7 @@ async function submitCashFlow(
     const response = await createTrns(payload)
     if (response.ok) {
       const warnings = await parseWarnings(response)
-      setTimeout(() => {
-        mutate(holdingKey(portfolio.code, "today"))
-        mutate(aggregatedHoldingsTodayKey)
-        refreshNetWorth()
-      }, 1500)
+      refreshHoldingsSoon(mutate)
       setSubmitWarnings?.(warnings)
       if (warnings.length === 0) {
         setModalOpen(false)
@@ -231,11 +209,7 @@ export async function submitCreateMode(
     (open) => {
       setModalOpen(open)
       if (!open) {
-        setTimeout(() => {
-          mutate(holdingKey(portfolio.code, "today"))
-          mutate(aggregatedHoldingsTodayKey)
-          refreshNetWorth()
-        }, 1500)
+        refreshHoldingsSoon(mutate)
       }
     },
   )

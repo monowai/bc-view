@@ -1,25 +1,31 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { NumericFormat } from "react-number-format"
+import React, { useMemo, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { mutate } from "swr"
 import { Transaction } from "types/beancounter"
 import { convert } from "@lib/trns/tradeUtils"
-import { copyToClipboard } from "@lib/trns/formUtils"
 import { postData } from "@components/ui/DropZone"
-import { holdingKey, trnKey } from "@utils/api/fetchHelper"
+import { trnKey } from "@utils/api/fetchHelper"
 import {
   TrnDateField,
   TrnMathField,
   TrnTextField,
 } from "@components/features/transactions/TrnFormFields"
 import Dialog from "@components/ui/Dialog"
+import TrnFormDialog, {
+  HeaderIconButton,
+} from "@components/features/transactions/TrnFormDialog"
+import {
+  FxRateHint,
+  FxSummary,
+} from "@components/features/transactions/TrnFormParts"
+import { inputClass, labelClass } from "@lib/trns/trnFormStyles"
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 import { deleteTrn, isProposedTrnsKey } from "@utils/api/client/trns"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
-import { fxFetcher, useFxBuyAmount } from "./useFxBuyAmount"
+import { useFxBuyAmount } from "./useFxBuyAmount"
+import { useFxRate } from "./useFxRate"
 
 interface FxEditFormData {
   tradeDate: string
@@ -42,16 +48,14 @@ const fxEditSchema = yup.object().shape({
 function AmountLabel({
   label,
   currency,
-  colorClass,
 }: {
   label: string
   currency: string
-  colorClass: string
 }): React.ReactElement {
   return (
     <>
-      <span className={colorClass}>{label}</span>
-      <span className="text-gray-500 ml-1">({currency})</span>
+      <span>{label}</span>
+      <span className="ml-1 text-gray-500">{currency}</span>
     </>
   )
 }
@@ -84,8 +88,6 @@ export default function FxEditModal({
   } = useDialogSubmit({
     fallbackError: "Failed to update transaction",
   })
-  const [fxRate, setFxRate] = useState<number | null>(null)
-  const [fxRateLoading, setFxRateLoading] = useState(false)
 
   // Extract FX-specific values from transaction
   // For FX_BUY: asset is the buy side, cashAsset is the sell side
@@ -148,24 +150,14 @@ export default function FxEditModal({
   const sellAmount = watch("sellAmount")
   const buyAmount = watch("buyAmount")
 
-  // Fetch FX rate for reference
-  useEffect(() => {
-    setFxRateLoading(true)
-    fxFetcher(sellCurrency, buyCurrency)
-      .then((response) => {
-        if (response?.data?.rates) {
-          const key = `${sellCurrency}:${buyCurrency}`
-          const rate = response.data.rates[key]?.rate
-          setFxRate(rate ?? null)
-        } else {
-          setFxRate(null)
-        }
-      })
-      .catch(() => setFxRate(null))
-      .finally(() => setFxRateLoading(false))
-  }, [sellCurrency, buyCurrency])
+  const {
+    rate: fxRate,
+    loading: fxRateLoading,
+    failed: fxRateFailed,
+  } = useFxRate(sellCurrency, buyCurrency)
 
-  // Auto-calculate buy amount when sell amount or rate changes (if not manually overridden)
+  // The recorded buy amount stands until the sell side changes or the user
+  // asks for the market rate.
   const setBuyAmount = useCallback(
     (value: number) => setValue("buyAmount", value),
     [setValue],
@@ -174,7 +166,12 @@ export default function FxEditModal({
     manualBuyAmount,
     overrideBuyAmount: handleBuyAmountChange,
     resumeAutoBuyAmount,
-  } = useFxBuyAmount({ sellAmount, fxRate, onBuyAmount: setBuyAmount })
+  } = useFxBuyAmount({
+    sellAmount,
+    fxRate,
+    onBuyAmount: setBuyAmount,
+    startManual: true,
+  })
 
   // Calculate implied rate from current values
   const impliedRate = useMemo(() => {
@@ -214,20 +211,6 @@ export default function FxEditModal({
     status: { value: trn.status, label: trn.status },
   })
 
-  const handleCopy = (): void => {
-    const row = convert(buildFxFormData(getValues()))
-    copyToClipboard(row)
-  }
-
-  // Invalidate holdings cache after transaction changes
-  const invalidateHoldingsCache = (portfolioCode: string): void => {
-    setTimeout(() => {
-      mutate(holdingKey(portfolioCode, "today"))
-      mutate(aggregatedHoldingsTodayKey)
-      refreshNetWorth()
-    }, 1500)
-  }
-
   const onSubmit = async (data: FxEditFormData): Promise<void> => {
     await dialogHandleSubmit(async () => {
       // FX transactions: Delete old + Add new via CSV import
@@ -240,215 +223,126 @@ export default function FxEditModal({
       await postData(trn.portfolio, false, row.split(","))
       await mutate(trnKey(trn.id))
       mutate(isProposedTrnsKey)
-      invalidateHoldingsCache(trn.portfolio.code)
+      refreshHoldingsSoon(mutate)
       onClose()
     })
   }
 
-  const handleSave = (): void => {
-    void rhfHandleSubmit(onSubmit)()
-  }
-
-  const inputClass =
-    "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-  const labelClass = "block text-xs font-medium text-gray-600"
   const fieldProps = {
     control,
     labelClassName: labelClass,
     inputClassName: inputClass,
   }
+  const settled = trn.status === "SETTLED"
 
   return (
-    <Dialog
-      title={
-        <div className="flex items-center justify-between w-full">
-          <div className="flex-1 text-center">
-            <div className="font-semibold text-base">{"FX Trade"}</div>
-            <div className="text-xs text-gray-500">{trn.tradeDate}</div>
-          </div>
-          <div className="flex gap-1 flex-shrink-0">
-            <button
-              type="button"
-              className="text-green-700 hover:text-green-800 p-1"
-              onClick={handleCopy}
-              title={"Copy"}
-            >
-              <i className="fas fa-copy"></i>
-            </button>
-            <button
-              type="button"
-              className="text-red-600 hover:text-red-700 p-1"
-              onClick={onDelete}
-              title={"Delete"}
-            >
-              <i className="fas fa-trash-can"></i>
-            </button>
-          </div>
-        </div>
+    <TrnFormDialog
+      title="Exchange currency"
+      subtitle={[trn.portfolio.code, trn.portfolio.name]
+        .filter(Boolean)
+        .join(" · ")}
+      status={
+        <span
+          className={`rounded px-2 py-0.5 text-xs font-medium ${
+            settled
+              ? "bg-green-50 text-green-700"
+              : "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {settled ? "Settled" : "Proposed"}
+        </span>
       }
+      copyRow={() => convert(buildFxFormData(getValues()))}
+      actions={
+        <HeaderIconButton
+          title="Delete"
+          icon="fa-trash-can"
+          tone="text-gray-500 hover:bg-red-50 hover:text-red-700"
+          onClick={onDelete}
+        />
+      }
+      isDirty={isDirty}
       onClose={onClose}
-      maxWidth="md"
-      scrollable
-      footer={
-        <>
-          <Dialog.CancelButton onClick={onClose} />
-          <Dialog.SubmitButton
-            onClick={handleSave}
-            label="Save"
-            loadingLabel="Saving..."
-            isSubmitting={isSubmitting}
-            disabled={!isDirty}
-            variant="blue"
-          />
-        </>
+      onSubmit={() => void rhfHandleSubmit(onSubmit)()}
+      submitLabel="Save"
+      submittingLabel="Saving..."
+      isSubmitting={isSubmitting}
+      submitDisabled={!isDirty}
+      summary={
+        <FxSummary
+          sellAmount={sellAmount}
+          sellLabel={sellDisplayName}
+          buyAmount={buyAmount}
+          buyLabel={buyDisplayName}
+        />
       }
     >
-      {/* FX Visual Summary */}
-      <div className="bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg p-3">
-        <div className="flex items-center justify-center gap-4">
-          {/* Sell Side */}
-          <div className="text-center flex-1">
-            <div className="text-xs text-red-600 font-medium uppercase mb-1">
-              {"Sell"}
-            </div>
-            <div className="font-bold text-red-700">
-              <NumericFormat
-                value={sellAmount}
-                displayType="text"
-                thousandSeparator
-                decimalScale={2}
-                fixedDecimalScale
-              />
-            </div>
-            <div
-              className="text-xs text-red-600 mt-1 truncate"
-              title={sellDisplayName}
-            >
-              {sellDisplayName}
-            </div>
-          </div>
-
-          {/* Arrow and Rate */}
-          <div className="text-center text-gray-500 px-2">
-            <i className="fas fa-arrow-right"></i>
-            {fxRateLoading ? (
-              <div className="text-xs mt-1">
-                <i className="fas fa-spinner fa-spin"></i>
-              </div>
-            ) : impliedRate ? (
-              <div className="text-xs mt-1 font-mono text-gray-600">
-                @{impliedRate.toFixed(4)}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Buy Side */}
-          <div className="text-center flex-1">
-            <div className="text-xs text-green-700 font-medium uppercase mb-1">
-              {"Buy"}
-            </div>
-            <div className="font-bold text-green-700">
-              <NumericFormat
-                value={buyAmount}
-                displayType="text"
-                thousandSeparator
-                decimalScale={2}
-                fixedDecimalScale
-              />
-            </div>
-            <div
-              className="text-xs text-green-700 mt-1 truncate"
-              title={buyDisplayName}
-            >
-              {buyDisplayName}
-            </div>
-          </div>
-        </div>
-        {fxRate && !manualBuyAmount && (
-          <div className="text-center text-xs text-gray-500 mt-2">
-            Market rate: {fxRate.toFixed(4)}
-          </div>
-        )}
-        {manualBuyAmount && (
-          <div className="text-center text-xs text-amber-700 mt-2">
-            Manual amount entered
-          </div>
-        )}
-      </div>
-
-      {/* Form */}
       <form
         id="fx-edit-form"
         onSubmit={rhfHandleSubmit(onSubmit)}
         className="space-y-3"
       >
-        {/* Trade Date */}
-        <TrnDateField {...fieldProps} name="tradeDate" label={"Trade Date"} />
+        <div className="grid grid-cols-2 gap-3">
+          <TrnDateField
+            {...fieldProps}
+            id="fx-trade-date"
+            name="tradeDate"
+            label={"Trade date"}
+          />
+          <TrnMathField
+            {...fieldProps}
+            id="fx-fees"
+            name="fees"
+            label={"Fees"}
+          />
+        </div>
 
-        {/* Sell Amount */}
-        <TrnMathField
-          {...fieldProps}
-          name="sellAmount"
-          label={
-            <AmountLabel
-              label={"Sell Amount"}
-              currency={sellCurrency}
-              colorClass="text-red-600"
+        <div className="grid grid-cols-2 gap-3">
+          <TrnMathField
+            {...fieldProps}
+            id="fx-sell-amount"
+            name="sellAmount"
+            label={
+              <AmountLabel label={"Sell amount"} currency={sellCurrency} />
+            }
+            onChange={(value, applyChange) => {
+              resumeAutoBuyAmount()
+              applyChange(value)
+            }}
+            error={errors.sellAmount?.message}
+          />
+          <div>
+            <TrnMathField
+              {...fieldProps}
+              id="fx-buy-amount"
+              name="buyAmount"
+              label={
+                <AmountLabel label={"Buy amount"} currency={buyCurrency} />
+              }
+              onChange={handleBuyAmountChange}
+              error={errors.buyAmount?.message}
             />
-          }
-          onChange={(value, applyChange) => {
-            resumeAutoBuyAmount() // Reset manual override when sell amount changes
-            applyChange(value)
-          }}
-          inputClassName={`${inputClass} border-red-200 bg-red-50`}
-          error={errors.sellAmount?.message}
-        />
-
-        {/* Buy Amount */}
-        <TrnMathField
-          {...fieldProps}
-          name="buyAmount"
-          label={
-            <AmountLabel
-              label={"Buy Amount"}
-              currency={buyCurrency}
-              colorClass="text-green-700"
+            <FxRateHint
+              marketRate={fxRate}
+              impliedRate={impliedRate}
+              manual={manualBuyAmount}
+              loading={fxRateLoading}
+              failed={fxRateFailed}
+              onUseMarketRate={resumeAutoBuyAmount}
             />
-          }
-          onChange={handleBuyAmountChange}
-          inputClassName={`${inputClass} border-green-200 bg-green-50`}
-          error={errors.buyAmount?.message}
-        />
+          </div>
+        </div>
 
-        {/* Fees */}
-        <TrnMathField {...fieldProps} name="fees" label={"Fees"} />
-
-        {/* Comments */}
         <TrnTextField
           {...fieldProps}
+          id="fx-comments"
           name="comments"
           label={"Comments"}
           placeholder={`Buy ${buyCurrency}/Sell ${sellCurrency}`}
         />
-
-        {/* Status (read-only) */}
-        <div>
-          <label className={labelClass}>{"Status"}</label>
-          <div className={`${inputClass} bg-gray-100 flex items-center`}>
-            <span
-              className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                trn.status === "SETTLED"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-yellow-100 text-yellow-800"
-              }`}
-            >
-              {trn.status}
-            </span>
-          </div>
-        </div>
       </form>
 
       <Dialog.ErrorAlert message={submitError} />
-    </Dialog>
+    </TrnFormDialog>
   )
 }

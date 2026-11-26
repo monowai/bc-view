@@ -258,3 +258,6 @@ export function toErrorMessage(
 export function gainLossClass(value: number): string {
   return value >= 0 ? "text-green-700" : "text-red-600"
 }
+
+/** An exchange rate as quoted: four decimals. */
+export const formatFxRate = (rate: number): string => rate.toFixed(4)

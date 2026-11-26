@@ -6,6 +6,7 @@ import {
   calculateNewPositionQuantityFromTargetWeight,
   calculateQuantityFromTradeValue,
   buildEditModeValues,
+  rescaleCashAmount,
   buildQuickSellValues,
   buildCreateModeValues,
   buildInitialSettlementAccount,
@@ -1145,5 +1146,77 @@ describe("tradeFormHelpers", () => {
         }),
       ).toBeCloseTo(70, 6)
     })
+  })
+})
+
+describe("target weight never sizes a trade to zero shares", () => {
+  // 0.09% of 226,000 is about 203 — less than half a share at 1,000.
+  test("a small step up buys one share", () => {
+    expect(calculateQuantityFromTargetWeight(15, 14.91, 1000, 226000)).toEqual({
+      quantity: 1,
+      tradeType: "BUY",
+    })
+  })
+
+  test("a small step down sells one share", () => {
+    expect(
+      calculateQuantityFromTargetWeight(14.8, 14.91, 1000, 226000),
+    ).toEqual({ quantity: 1, tradeType: "SELL" })
+  })
+
+  // The target box shows the current weight to two decimals.
+  test("the current weight, as shown, trades nothing", () => {
+    expect(
+      calculateQuantityFromTargetWeight(14.91, 14.9134, 1000, 226000)?.quantity,
+    ).toBe(0)
+  })
+
+  test("a small new position buys one share", () => {
+    expect(
+      calculateNewPositionQuantityFromTargetWeight(0.01, 1000, 10000)?.quantity,
+    ).toBe(1)
+  })
+})
+
+describe("rescaleCashAmount", () => {
+  type Saved = Parameters<typeof rescaleCashAmount>[0]
+  const sgd = (tradeAmount: number, cashAmount: number): Saved => ({
+    tradeAmount,
+    cashAmount,
+    tradeCurrency: { code: "USD" },
+    cashCurrency: "SGD",
+  })
+  const usd = (tradeAmount: number, cashAmount: number): Saved => ({
+    ...sgd(tradeAmount, cashAmount),
+    cashCurrency: "USD",
+  })
+
+  it("keeps the saved cash in another currency when the amount is unchanged", () => {
+    expect(rescaleCashAmount(sgd(200, -270), 200)).toBe(-270)
+  })
+
+  it("moves cash in another currency with the amount at the settled rate", () => {
+    expect(rescaleCashAmount(sgd(200, -270), 300)).toBe(-405)
+  })
+
+  it("settles a same-currency trade for its amount", () => {
+    expect(rescaleCashAmount(usd(200, -200), 300)).toBe(-300)
+  })
+
+  it("puts right a same-currency trade saved with the wrong cash", () => {
+    expect(rescaleCashAmount(usd(400, -200), 400)).toBe(-400)
+  })
+
+  it("keeps a credit positive", () => {
+    expect(rescaleCashAmount(usd(200, 200), 50)).toBe(50)
+  })
+
+  it("rounds to cents", () => {
+    expect(rescaleCashAmount(sgd(3, -1), 1)).toBe(-0.33)
+  })
+
+  it("leaves the cash to be worked out when nothing was saved", () => {
+    expect(rescaleCashAmount(sgd(0, 0), 100)).toBe(0)
+    expect(rescaleCashAmount(usd(100, 0), 200)).toBe(0)
   })
 })

@@ -1,3 +1,4 @@
+import { refreshHoldingsSoon } from "@lib/trns/refreshHoldings"
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
@@ -8,7 +9,6 @@ import {
   tradeKey,
   tradeKeyMulti,
   trnKey,
-  holdingKey,
 } from "@utils/api/fetchHelper"
 import { Transaction, TrnTradeSummary } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -19,18 +19,20 @@ import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
 import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
-import { deleteTrn, unsettleTrn } from "@utils/api/client/trns"
-import { buildTradeGroups } from "@utils/trns/tradeUtils"
+import { deleteTrn, settledTradeKey, unsettleTrn } from "@utils/api/client/trns"
+import { buildTradeGroups, isAutoSettleLeg } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
-import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
+import { cashLadderHref } from "@lib/trns/trnLinks"
+import { useTrnHighlight } from "@components/features/transactions/useTrnHighlight"
 import {
   TrnCardValue,
   TrnColumn,
   TrnDeleteConfirm,
   TrnDetailTabs,
   TrnEmptyState,
+  TrnNumber,
   TrnNumberCell,
+  TRN_DRILL_LINK,
   TrnPageNav,
   TrnRowActions,
   TrnStatusBadge,
@@ -82,6 +84,31 @@ function tradeColumns({
     { label: "Status" },
     { label: "Actions", align: "right" as const, srOnly: true },
   ]
+}
+
+/**
+ * A trade's cash, as a way into the cash ladder it settled to with the trade
+ * flashed. Plain when there is no settlement account to open.
+ */
+function TradeCash({
+  trn,
+  className,
+}: {
+  trn: Transaction
+  className?: string
+}): React.ReactElement {
+  const number = <TrnNumber value={trn.cashAmount} scale={2} blankZero />
+  if (!trn.cashAsset || !trn.cashAmount)
+    return className ? <span className={className}>{number}</span> : number
+  return (
+    <Link
+      href={cashLadderHref(trn.portfolio.id, trn.cashAsset.id, trn.id)}
+      title={"Open the cash ladder"}
+      className={`${className ?? ""} ${TRN_DRILL_LINK}`.trim()}
+    >
+      {number}
+    </Link>
+  )
 }
 
 /** Income and expense rows carry no units or price. */
@@ -186,6 +213,28 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     },
   )
 
+  // An auto-settle cash leg is edited through the trade it settles: find that
+  // trade and open its edit in place of the leg's.
+  const editTarget = Array.isArray(singleTrn.data?.data)
+    ? singleTrn.data.data[0]
+    : singleTrn.data?.data
+  const isLeg = !!isEditMode && !!trnId && isAutoSettleLeg(editTarget)
+  const settledTradeUrl = isLeg ? settledTradeKey(String(trnId)) : null
+  const settledTrade = useSwr(
+    settledTradeUrl,
+    settledTradeUrl ? simpleFetcher(settledTradeUrl) : null,
+  )
+  const parentTrade: Transaction | undefined = settledTrade.data?.data?.[0]
+  // Still looking for the leg's trade, or about to open it.
+  const openingTrade =
+    isLeg && !settledTrade.error && (!settledTrade.data || !!parentTrade)
+  useEffect(() => {
+    if (parentTrade)
+      void router.replace(
+        `/trns/trades/edit/${parentTrade.portfolio.id}/${parentTrade.id}`,
+      )
+  }, [parentTrade, router])
+
   // Fetch asset and trades for list mode
   const asset = useSwr(
     router.isReady && !isEditMode && assetId
@@ -233,6 +282,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       ),
     [trnResults, isMulti, trades.data?.summary],
   )
+  useTrnHighlight(groups.length > 0)
   // Decided over every trade on the page, so each broker's table has the
   // same columns.
   const flags: TradeColumnFlags = {
@@ -352,11 +402,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         const response = await deleteTrn(transaction.id)
         if (response.ok) {
           // Invalidate holdings cache after delete (with delay for message broker)
-          setTimeout(() => {
-            mutate(holdingKey(transaction.portfolio.code, "today"))
-            mutate(aggregatedHoldingsTodayKey)
-            refreshNetWorth()
-          }, 1500)
+          refreshHoldingsSoon(mutate)
           router.back()
         }
       } catch (err) {
@@ -380,11 +426,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         // On unsettle the server reverts the auto-settled cash legs to PROPOSED
         // (not deleted). Invalidate holdings so the row reflects the new PROPOSED
         // status, then close.
-        setTimeout(() => {
-          mutate(holdingKey(transaction.portfolio.code, "today"))
-          mutate(aggregatedHoldingsTodayKey)
-          refreshNetWorth()
-        }, 1500)
+        refreshHoldingsSoon(mutate)
         router.back()
       } catch (err) {
         console.error("Error unsettling transaction:", err)
@@ -392,6 +434,12 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           err instanceof Error ? err.message : "Failed to unsettle",
         )
       }
+    }
+
+    // Waiting on the trade this leg settles. When it is gone, the leg is
+    // edited on its own so it can still be put right.
+    if (openingTrade) {
+      return rootLoader("Opening the trade…")
     }
 
     // svc-retire owns a month's spend withdrawal and rewrites it on every save,
@@ -511,6 +559,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 {group.transactions.map((trn: Transaction) => (
                   <div
                     key={trn.id}
+                    data-trn-id={trn.id}
                     className="p-3 space-y-2 cursor-pointer hover:bg-blue-50/50 transition-colors"
                     onDoubleClick={() => editTrn(trn)}
                     title={"Double-click to edit"}
@@ -553,12 +602,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         blankZero
                         valueClassName="ml-1 font-semibold text-gray-900"
                       />
-                      <TrnCardValue
-                        label={"Cash"}
-                        value={trn.cashAmount}
-                        scale={2}
-                        blankZero
-                      />
+                      <div>
+                        <span className="text-gray-500">{"Cash"}:</span>
+                        <TradeCash trn={trn} className="ml-1 font-medium" />
+                      </div>
                       {!!trn.fees && (
                         <TrnCardValue
                           label={"Fees"}
@@ -639,6 +686,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       return (
                         <tr
                           key={trn.id}
+                          data-trn-id={trn.id}
                           className="hover:bg-blue-50/60 transition-colors cursor-pointer"
                           onDoubleClick={() => editTrn(trn)}
                           title={"Double-click to edit"}
@@ -674,12 +722,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                             blankZero
                             className={`${NUM_CELL} font-medium text-gray-900`}
                           />
-                          <TrnNumberCell
-                            value={trn.cashAmount}
-                            scale={2}
-                            blankZero
-                            className={`${NUM_CELL} text-gray-600`}
-                          />
+                          <td className={`${NUM_CELL} text-gray-600`}>
+                            <TradeCash trn={trn} />
+                          </td>
                           {flags.showFees && (
                             <TrnNumberCell
                               value={trn.fees}

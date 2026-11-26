@@ -32,12 +32,20 @@ import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
 import BrokerSelectionDialog from "@components/features/transactions/BrokerSelectionDialog"
-import TradeFormHeader from "@components/features/transactions/TradeFormHeader"
+import TrnFormDialog, {
+  HeaderIconButton,
+} from "@components/features/transactions/TrnFormDialog"
+import {
+  BrokerAccountField,
+  Money,
+  PortfolioSwitch,
+  TrnStatusField,
+  TrnSummary,
+} from "@components/features/transactions/TrnFormParts"
+import Alert from "@components/ui/Alert"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { AssetOption } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
-import { useEscapeHandler, copyToClipboard } from "@lib/trns/formUtils"
-import ConfirmDialog from "@components/ui/ConfirmDialog"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import { convert } from "@lib/trns/tradeUtils"
@@ -60,6 +68,7 @@ import {
   heldQuantityForBroker,
   brokersOfferedForTrade,
   singleHeldBrokerId,
+  rescaleCashAmount,
 } from "@lib/trns/tradeFormHelpers"
 import {
   submitEditMode,
@@ -67,16 +76,15 @@ import {
   submitIncome,
   submitCreateMode,
 } from "@lib/trns/tradeSubmit"
-import { getDisplayCode } from "@lib/assets/assetUtils"
+import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import {
   TradeTypeValues,
   defaultValues,
   schema,
-  inputClass,
-  labelClass,
   EditModeProps,
   COST_DATE_HELP,
 } from "@lib/trns/tradeFormConfig"
+import { inputClass, labelClass } from "@lib/trns/trnFormStyles"
 import Tooltip from "@components/ui/Tooltip"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { showPortfolioPicker } from "@lib/user/zenMode"
@@ -130,14 +138,10 @@ const TradeInputForm: React.FC<{
     resolver: yupResolver(schema),
     defaultValues,
   })
-  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  )
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
   const [activeTab, setActiveTab] = useState<"trade" | "invest" | "settlement">(
     "trade",
   )
-  const dateInputRef = useRef<HTMLInputElement>(null)
 
   // Edit mode state
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -255,7 +259,7 @@ const TradeInputForm: React.FC<{
     [brokersData?.data],
   )
 
-  const handleCopy = async (): Promise<void> => {
+  const copyRow = (): string => {
     const formData = getValues()
     const settlementCurrency = formData.settlementAccount?.currency || "USD"
     const data = {
@@ -264,10 +268,7 @@ const TradeInputForm: React.FC<{
       cashCurrency: { value: settlementCurrency, label: settlementCurrency },
       comments: formData.comment ?? undefined,
     }
-    const row = convert(data as any)
-    const success = await copyToClipboard(row)
-    setCopyStatus(success ? "success" : "error")
-    setTimeout(() => setCopyStatus("idle"), 2000)
+    return convert(data as any)
   }
 
   // Show broker selection dialog when QuickSell has multiple brokers
@@ -329,15 +330,6 @@ const TradeInputForm: React.FC<{
     portfolioDefaultMarket,
     portfolio.currency.code,
   ])
-
-  // Focus date input when modal opens
-  useEffect(() => {
-    if (modalOpen) {
-      setTimeout(() => {
-        dateInputRef.current?.focus()
-      }, 100)
-    }
-  }, [modalOpen])
 
   const { data: tradeAccountsData, isLoading: tradeAccountsLoading } = useSwr(
     tradeAccountsKey,
@@ -598,6 +590,15 @@ const TradeInputForm: React.FC<{
     }
   }, [quantity, price, tax, fees, type, setValue])
 
+  // An edited trade's cash moves with its amount, at the rate it settled at.
+  // The trade form never takes the cash by hand, so the saved figure must not
+  // outlive a change to quantity, price or fees.
+  const editedTradeAmount = watch("tradeAmount") || 0
+  useEffect(() => {
+    if (!transaction || isSimpleAmountType(type.value)) return
+    setValue("cashAmount", rescaleCashAmount(transaction, editedTradeAmount))
+  }, [transaction, editedTradeAmount, type, setValue])
+
   // Calculate trade weight
   const weightInfo = useMemo(
     () =>
@@ -622,16 +623,6 @@ const TradeInputForm: React.FC<{
       fxRate,
     ],
   )
-
-  const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
-    useEscapeHandler(isDirty, setModalOpen)
-
-  // Shared close handler — checks for unsaved changes before closing.
-  // Dispatches an Escape keydown event to reuse the useEscapeHandler logic,
-  // which shows a confirmation dialog when isDirty.
-  const handleClose = useCallback(() => {
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
-  }, [])
 
   const currentTradeCurrency = tradeCurrency?.value || "USD"
 
@@ -809,19 +800,31 @@ const TradeInputForm: React.FC<{
   const market = watch("market")
 
   // Derived cash amount for settlement tab display
+  // An expense or income settles for its amount, so a saved cash figure must
+  // not stand in for an edited one.
   const displayCashAmount = useMemo(() => {
-    if (cashAmountField) return cashAmountField
+    if (cashAmountField && !isSimpleAmountType(type?.value))
+      return cashAmountField
     return calculateCashAmount({
       type,
       market,
       quantity,
       price,
-      tradeAmount: watch("tradeAmount") || 0,
+      tradeAmount: editedTradeAmount,
       cashAmount: 0,
       fees,
       tax,
     } as any)
-  }, [type, market, quantity, price, cashAmountField, fees, tax, watch])
+  }, [
+    type,
+    market,
+    quantity,
+    price,
+    cashAmountField,
+    fees,
+    tax,
+    editedTradeAmount,
+  ])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader("Loading...")
@@ -844,8 +847,855 @@ const TradeInputForm: React.FC<{
     .filter(([field]) => !(costDateInline && field === "costDate"))
     .map(([, error]) => error?.message)
 
+  const needsPrice = !isSimpleAmount && (!price || price <= 0)
+  const tabClass = (tab: typeof activeTab, disabled = false): string =>
+    `flex-1 py-2 text-xs font-medium transition-colors ${
+      disabled
+        ? "text-gray-300 cursor-not-allowed"
+        : activeTab === tab
+          ? "border-b-2 border-blue-600 text-blue-600"
+          : "text-gray-500 hover:text-gray-700"
+    }`
+  const closeForm = (): void =>
+    isEditMode ? editMode?.onClose() : setModalOpen(false)
+  const submitForm = handleSubmit(async (data) => {
+    if (isEditMode && transaction && editMode) {
+      await submitEditMode({
+        data: data as any,
+        transaction,
+        selectedModelId,
+        selectedPortfolioId,
+        editMode,
+        mutate,
+        setSubmitError,
+        setIsSubmitting,
+      })
+    } else if (data.type.value === "EXPENSE") {
+      await submitExpense({
+        data: data as any,
+        portfolio: effectivePortfolio,
+        mutate,
+        setModalOpen,
+        setSubmitError,
+        setIsSubmitting,
+        setSubmitWarnings,
+      })
+    } else if (data.type.value === "INCOME") {
+      await submitIncome({
+        data: data as any,
+        portfolio: effectivePortfolio,
+        mutate,
+        setModalOpen,
+        setSubmitError,
+        setIsSubmitting,
+        setSubmitWarnings,
+      })
+    } else {
+      await submitCreateMode({
+        data: data as any,
+        portfolio: effectivePortfolio,
+        errors,
+        setModalOpen,
+        setSubmitError,
+        mutate,
+      })
+    }
+  })
+  const hasChanges = isDirty || portfolioChanged || modelChanged
+
   return (
     <>
+      {modalOpen && (
+        <TrnFormDialog
+          title={
+            isEditMode ? editAssetCode : stripOwnerPrefix(asset) || "New trade"
+          }
+          subtitle={
+            <>
+              {isEditMode && (
+                <span className="mr-2">
+                  {[editAssetName, editMarketCode].filter(Boolean).join(" · ")}
+                </span>
+              )}
+              {showPortfolioPicker(portfolios, preferences) ? (
+                <PortfolioSwitch
+                  portfolios={portfolios}
+                  value={selectedPortfolioId}
+                  onChange={setSelectedPortfolioId}
+                  changedNote={
+                    portfolioChanged
+                      ? isEditMode
+                        ? "Will move to this portfolio"
+                        : "Different from current portfolio"
+                      : undefined
+                  }
+                />
+              ) : (
+                !isEditMode && `${portfolio.code} · ${portfolio.name}`
+              )}
+            </>
+          }
+          status={<TrnStatusField control={control as any} />}
+          tabs={
+            <div className="flex" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "trade"}
+                className={tabClass("trade")}
+                onClick={() => setActiveTab("trade")}
+              >
+                {"Trade"}
+              </button>
+              {!isSimpleAmount && !isEditMode && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "invest"}
+                  disabled={needsPrice}
+                  title={needsPrice ? "Enter a price first" : undefined}
+                  className={tabClass("invest", needsPrice)}
+                  onClick={openInvestTab}
+                >
+                  {"Invest"}
+                </button>
+              )}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "settlement"}
+                disabled={needsPrice}
+                title={needsPrice ? "Enter a price first" : undefined}
+                className={tabClass("settlement", needsPrice)}
+                onClick={() => setActiveTab("settlement")}
+              >
+                {"Settlement"}
+              </button>
+            </div>
+          }
+          actions={
+            isEditMode && (
+              <>
+                {editMode?.onUnsettle && transaction?.status === "SETTLED" && (
+                  <HeaderIconButton
+                    title="Unsettle (move back to PROPOSED)"
+                    icon="fa-rotate-left"
+                    tone="text-gray-500 hover:bg-amber-50 hover:text-amber-800"
+                    onClick={editMode.onUnsettle}
+                  />
+                )}
+                <HeaderIconButton
+                  title="Delete"
+                  icon="fa-trash-can"
+                  tone="text-gray-500 hover:bg-red-50 hover:text-red-700"
+                  onClick={editMode?.onDelete}
+                />
+              </>
+            )
+          }
+          copyRow={copyRow}
+          isDirty={hasChanges}
+          onClose={closeForm}
+          onSubmit={() => void submitForm()}
+          submitLabel={isEditMode ? "Save" : "Submit"}
+          submittingLabel="Saving..."
+          isSubmitting={isSubmitting}
+          submitDisabled={isEditMode && !hasChanges}
+          summary={
+            <TrnSummary
+              testId="trade-summary"
+              label={type?.value || "BUY"}
+              amount={tradeAmount}
+              currency={tradeCurrency?.value}
+              scheme={getTradeColorScheme(type?.value)}
+            >
+              {/* How that amount was arrived at — the shares and the price
+                  they were struck at. Reading it back is how you catch a
+                  mis-keyed price before submitting. */}
+              {!isSimpleAmount && quantity > 0 && price > 0 && (
+                <span
+                  data-testid="trade-summary-basis"
+                  className="font-mono text-xs tabular-nums text-gray-500"
+                >
+                  {quantity.toLocaleString()}
+                  {" @ "}
+                  <Money value={price} />
+                </span>
+              )}
+              {!cashImpact && (
+                <span className="text-xs italic text-gray-500">
+                  {"No cash impact"}
+                </span>
+              )}
+              {weightInfo && !isSimpleAmount && (
+                <span
+                  data-testid="trade-summary-weight"
+                  className="font-mono text-xs font-medium tabular-nums text-blue-600"
+                >
+                  {(resultingPositionWeight ?? weightInfo.value).toFixed(2)}%
+                </span>
+              )}
+            </TrnSummary>
+          }
+        >
+          <form
+            id="trade-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void submitForm()
+            }}
+            className="space-y-3"
+          >
+            {/* === Trade Tab === */}
+            {activeTab === "trade" && (
+              <div className="space-y-3">
+                {/* Type and Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-testid="trade-type">
+                    <label className={labelClass}>{"Type"}</label>
+                    <div className="mt-1">
+                      <TradeTypeController
+                        name="type"
+                        control={control as any}
+                        options={TradeTypeValues.map((value) => ({
+                          value,
+                          label: value,
+                        }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="trade-date" className={labelClass}>
+                      {"Trade date"}
+                    </label>
+                    <Controller
+                      name="tradeDate"
+                      control={control as any}
+                      rules={tradeDateRules}
+                      render={({ field }) => (
+                        <DateInput
+                          id="trade-date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                  {/* Cost date: an ADD only, under the trade date it defaults to */}
+                  {hasCostDate(type?.value) && (
+                    <div className="col-start-2">
+                      <label htmlFor="cost-date" className={labelClass}>
+                        <Tooltip text={COST_DATE_HELP} position="below">
+                          {"Cost date"}
+                        </Tooltip>
+                      </label>
+                      <Controller
+                        name="costDate"
+                        control={control as any}
+                        render={({ field }) => (
+                          <DateInput
+                            id="cost-date"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            className={inputClass}
+                          />
+                        )}
+                      />
+                      {errors.costDate && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {String(errors.costDate.message)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Market and Asset */}
+                {isEditMode ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>{"Asset"}</label>
+                      <input
+                        type="text"
+                        value={editAssetCode}
+                        disabled
+                        className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>{"Market"}</label>
+                      <input
+                        type="text"
+                        value={editMarketCode}
+                        disabled
+                        className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>{"Market"}</label>
+                      <Controller
+                        name="market"
+                        control={control as any}
+                        render={({ field }) => (
+                          <select {...field} className={inputClass}>
+                            {marketOptions.map(
+                              (option: { value: string; label: string }) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ),
+                            )}
+                          </select>
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>
+                        {isFetchingPrice ? `${"Asset"} ...` : "Asset"}
+                      </label>
+                      <div className="mt-1">
+                        <AssetSearch
+                          name="asset"
+                          inputId="asset-search"
+                          control={control as any}
+                          market={watch("market")}
+                          defaultValue={initialValues?.asset}
+                          onSelect={handleAssetSelect}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Amount - shown for EXPENSE/INCOME types */}
+                {isSimpleAmount && (
+                  <div>
+                    <label htmlFor="trade-amount" className={labelClass}>
+                      {isIncome ? "Income Amount" : "Expense Amount"}
+                    </label>
+                    <Controller
+                      name="tradeAmount"
+                      control={control as any}
+                      render={({ field }) => (
+                        <MathInput
+                          id="trade-amount"
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={`${inputClass} text-lg font-medium`}
+                          placeholder={
+                            isIncome
+                              ? "Enter income amount"
+                              : "Enter expense amount"
+                          }
+                        />
+                      )}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {isIncome
+                        ? "This amount will be credited to the settlement account"
+                        : "This amount will be debited from the settlement account"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Fees - shown for EXPENSE/INCOME types */}
+                {isSimpleAmount && (
+                  <div>
+                    <label className={labelClass}>{"Fees"}</label>
+                    <Controller
+                      name="fees"
+                      control={control as any}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Quantity, Price, Fees - hidden for EXPENSE/INCOME types */}
+                {!isSimpleAmount && (
+                  <div
+                    className={`rounded-lg p-3 ${getQtyPriceTint(type?.value)}`}
+                  >
+                    {/* Three across at every width — wrapping Fees onto its
+                      own row is what pushes Broker below the fold on a
+                      phone. */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                      <div>
+                        <label htmlFor="trade-quantity" className={labelClass}>
+                          {actualPositionQuantity > 0 ? (
+                            hasHeldBrokers ? (
+                              <>
+                                {"Qty ("}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowBrokerSelectionDialog(true)
+                                  }
+                                  className="underline decoration-dotted underline-offset-2 text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                                  title="Choose the brokerage to sell from"
+                                >
+                                  {actualPositionQuantity.toLocaleString()}
+                                </button>
+                                {")"}
+                              </>
+                            ) : (
+                              `${"Qty"} (${actualPositionQuantity.toLocaleString()})`
+                            )
+                          ) : (
+                            "Qty"
+                          )}
+                        </label>
+                        <Controller
+                          name="quantity"
+                          control={control as any}
+                          render={({ field }) => (
+                            <MathInput
+                              id="trade-quantity"
+                              value={field.value}
+                              onChange={field.onChange}
+                              className={inputClass}
+                            />
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>{"Price"}</label>
+                        <Controller
+                          name="price"
+                          control={control as any}
+                          render={({ field }) => (
+                            <MathInput
+                              value={field.value}
+                              onChange={field.onChange}
+                              step="0.01"
+                              className={inputClass}
+                            />
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>{"Fees"}</label>
+                        <Controller
+                          name="fees"
+                          control={control as any}
+                          render={({ field }) => (
+                            <MathInput
+                              value={field.value}
+                              onChange={field.onChange}
+                              className={inputClass}
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Broker and the note side by side, so the note costs no
+                    height. Expense and income have no broker. */}
+                <div
+                  className={
+                    acceptsBroker(type?.value) ? "grid grid-cols-2 gap-3" : ""
+                  }
+                >
+                  {acceptsBroker(type?.value) && (
+                    <BrokerAccountField
+                      id="trade-broker"
+                      control={control as any}
+                      brokers={offeredBrokers}
+                      labelClassName={labelClass}
+                      inputClassName={inputClass}
+                    />
+                  )}
+                  <div>
+                    <label htmlFor="trade-comment" className={labelClass}>
+                      {isExpense
+                        ? "Expense description"
+                        : isIncome
+                          ? "Income description"
+                          : "Comments"}
+                    </label>
+                    <Controller
+                      name="comment"
+                      control={control as any}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          id="trade-comment"
+                          type="text"
+                          className={inputClass}
+                          value={field.value || ""}
+                          placeholder={
+                            isExpense
+                              ? "e.g., Property rates, Insurance, Maintenance"
+                              : isIncome
+                                ? "e.g., Rental income, Dividend"
+                                : undefined
+                          }
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* === Invest Tab === */}
+            {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
+              <div className="space-y-2.5">
+                {/* Cash, shares and weight are three views of one trade —
+                  set any one and the other two follow. The summary strip
+                  below the form carries the headline total and direction,
+                  so nothing here restates them. */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div>
+                    <label htmlFor="invest-amount" className={labelClass}>
+                      {isSellSide(type?.value) ? "Raise" : "Invest"}
+                    </label>
+                    <div className="relative">
+                      <MathInput
+                        id="invest-amount"
+                        value={investAmount}
+                        onChange={handleInvestAmountChange}
+                        placeholder="0.00"
+                        className={`${inputClass} pr-11`}
+                      />
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro font-medium text-gray-500">
+                        {currentTradeCurrency}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="invest-shares" className={labelClass}>
+                      {"Shares"}
+                    </label>
+                    <MathInput
+                      id="invest-shares"
+                      value={quantity}
+                      onChange={handleTradeQuantityChange}
+                      placeholder="0"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="invest-target-weight"
+                      className={labelClass}
+                    >
+                      {"Target"}
+                    </label>
+                    <div className="relative">
+                      <MathInput
+                        id="invest-target-weight"
+                        value={targetWeightValue}
+                        onChange={handleTargetWeightChange}
+                        placeholder={canSizeByWeight ? "0.0" : "—"}
+                        disabled={!canSizeByWeight}
+                        className={`${inputClass} pr-7 disabled:bg-gray-100 disabled:text-gray-500`}
+                      />
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                        {"%"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What you hold now, and where this trade leaves it. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
+                  <div className="grid grid-cols-[1fr_minmax(5.5rem,auto)_minmax(5.5rem,auto)] items-baseline gap-x-4 gap-y-1.5">
+                    <span />
+                    <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
+                      {"Current"}
+                    </span>
+                    <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
+                      {"After"}
+                    </span>
+
+                    <span className="text-sm text-gray-500">
+                      {"Value"}
+                      <span className="text-gray-500">
+                        {" "}
+                        {portfolio.currency.code}
+                      </span>
+                    </span>
+                    <span
+                      data-testid="invest-current-value"
+                      className="text-right font-mono text-sm tabular-nums text-gray-600"
+                    >
+                      {positionQty > 0 ? (
+                        <NumericFormat
+                          value={positionQty * price * fxRate}
+                          displayType="text"
+                          thousandSeparator
+                          decimalScale={2}
+                          fixedDecimalScale
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </span>
+                    <span
+                      data-testid="invest-after-value"
+                      className="text-right font-mono text-sm tabular-nums text-gray-900"
+                    >
+                      <NumericFormat
+                        value={resultingPositionQuantity * price * fxRate}
+                        displayType="text"
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                      />
+                    </span>
+
+                    <span className="text-sm text-gray-500">{"Weight"}</span>
+                    <span
+                      data-testid="invest-current-weight"
+                      className="text-right font-mono text-base tabular-nums text-gray-600"
+                    >
+                      {currentPositionWeight === null
+                        ? "—"
+                        : `${currentPositionWeight.toFixed(2)}%`}
+                    </span>
+                    <span
+                      data-testid="invest-after-weight"
+                      className="text-right font-mono text-base font-semibold tabular-nums text-gray-900"
+                    >
+                      {resultingPositionWeight === null
+                        ? "—"
+                        : `${resultingPositionWeight.toFixed(2)}%`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fees and where the trade executes. Price stays on the
+                  Trade tab — it describes the asset, not the sizing. */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    className={acceptsBroker(type?.value) ? "" : "col-span-2"}
+                  >
+                    <label htmlFor="invest-fees" className={labelClass}>
+                      {"Fees"}
+                    </label>
+                    <Controller
+                      name="fees"
+                      control={control as any}
+                      render={({ field }) => (
+                        <MathInput
+                          id="invest-fees"
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                  {acceptsBroker(type?.value) && (
+                    <BrokerAccountField
+                      id="invest-broker"
+                      control={control as any}
+                      brokers={offeredBrokers}
+                      labelClassName={labelClass}
+                      inputClassName={inputClass}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* === Settlement Tab === */}
+            {activeTab === "settlement" && (
+              <div className="space-y-3">
+                {/* Settlement Account */}
+                <div data-testid="settlement-account">
+                  <label className={labelClass}>
+                    {isIncome
+                      ? "Credit To Account"
+                      : isExpense
+                        ? "Debit From Account"
+                        : "Settlement Account"}
+                  </label>
+                  <SettlementAccountSelect
+                    name="settlementAccount"
+                    control={control as any}
+                    accounts={
+                      isIncome || isExpense ? [] : (allTradeAccounts as any[])
+                    }
+                    bankAccounts={allBankAccounts as any[]}
+                    cashAssets={
+                      isIncome || isExpense
+                        ? (filteredCashAssets as any[])
+                        : (cashAssetsForDropdown as any[])
+                    }
+                    trnType={type?.value || "BUY"}
+                    tradeCurrency={currentTradeCurrency}
+                    defaultValue={preferredCashAsset}
+                  />
+                </div>
+
+                {/* Charges — hidden for EXPENSE/INCOME (they have fees on Trade tab) */}
+                {!isSimpleAmount && (
+                  <div>
+                    <label className={labelClass}>{"Fees"}</label>
+                    <Controller
+                      name="fees"
+                      control={control as any}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Tax */}
+                <div>
+                  <label className={labelClass}>{"Tax"}</label>
+                  <Controller
+                    name="tax"
+                    control={control as any}
+                    render={({ field }) => (
+                      <MathInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={inputClass}
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* Trade Amount (read-only display) */}
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-xs text-gray-500">{"Amount"}</span>
+                  <span className="tabular-nums text-sm text-gray-900">
+                    <NumericFormat
+                      value={tradeAmount}
+                      displayType="text"
+                      thousandSeparator
+                      decimalScale={2}
+                      fixedDecimalScale
+                    />
+                  </span>
+                </div>
+
+                {/* Cash Amount (read-only display) — hidden when no cash impact */}
+                {cashImpact && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-xs text-gray-500">{"Cash"}</span>
+                    <span className="tabular-nums text-sm text-gray-900">
+                      <NumericFormat
+                        value={displayCashAmount}
+                        displayType="text"
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                      />
+                    </span>
+                  </div>
+                )}
+
+                {/* Model Selection (edit mode only) */}
+                {isEditMode && models.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className={labelClass}>{"Strategy/Model"}</label>
+                      {suggestedModelId &&
+                        suggestedModelId !== selectedModelId && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedModelId(suggestedModelId)}
+                            className="text-xs text-blue-600 hover:text-blue-700"
+                          >
+                            {"Use suggested"}
+                          </button>
+                        )}
+                    </div>
+                    <select
+                      className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
+                      value={selectedModelId || ""}
+                      onChange={(e) =>
+                        setSelectedModelId(e.target.value || undefined)
+                      }
+                    >
+                      <option value="">{"-- No model --"}</option>
+                      {suggestedModelId && (
+                        <optgroup label={"Suggested"}>
+                          {models
+                            .filter((m) => m.id === suggestedModelId)
+                            .map((model) => (
+                              <option
+                                key={`suggested-${model.id}`}
+                                value={model.id}
+                              >
+                                {model.name} (suggested)
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
+                      <optgroup label={"All Models"}>
+                        {models
+                          .filter((m) => m.id !== suggestedModelId)
+                          .map((model) => (
+                            <option key={model.id} value={model.id}>
+                              {model.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    {suggestedModelId && (
+                      <p className="text-xs text-purple-600 mt-0.5">
+                        {"Model suggested based on transaction origin"}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {formErrors.length > 0 && <Alert>{formErrors.join(" ")}</Alert>}
+            {submitError && <Alert>{submitError}</Alert>}
+
+            {/* Auto-settle warnings: trade saved but compensating cash transfer
+                was skipped (e.g. funding portfolio has no balance in the trade
+                currency). The form stays open so they can be read. */}
+            {submitWarnings.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+                  <i className="fas fa-triangle-exclamation"></i>
+                  Saved with warnings
+                </div>
+                <ul className="list-inside list-disc space-y-1 text-xs text-amber-900">
+                  {submitWarnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-amber-800 underline"
+                  onClick={() => {
+                    setSubmitWarnings([])
+                    setModalOpen(false)
+                  }}
+                >
+                  Dismiss & close
+                </button>
+              </div>
+            )}
+          </form>
+        </TrnFormDialog>
+      )}
+
       {showBrokerSelectionDialog && initialValues?.held && (
         <BrokerSelectionDialog
           held={initialValues.held}
@@ -863,1000 +1713,6 @@ const TradeInputForm: React.FC<{
             setValue("quantity", initialValues.quantity ?? 0)
             setShowBrokerSelectionDialog(false)
           }}
-        />
-      )}
-
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={handleClose}
-          ></div>
-          <div
-            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-3 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <TradeFormHeader
-              isEditMode={isEditMode}
-              editAssetCode={editAssetCode}
-              editAssetName={editAssetName}
-              editMarketCode={editMarketCode}
-              asset={asset}
-              portfolio={portfolio}
-              onClose={() =>
-                isEditMode ? editMode?.onClose() : setModalOpen(false)
-              }
-              onDelete={editMode?.onDelete}
-              onUnsettle={editMode?.onUnsettle}
-              isSettled={transaction?.status === "SETTLED"}
-              handleCopy={handleCopy}
-              copyStatus={copyStatus}
-              control={control as any}
-            />
-
-            {/* Tab Bar */}
-            {(() => {
-              const needsPrice = !isSimpleAmount && (!price || price <= 0)
-              return (
-                <div className="flex border-b border-gray-200 shrink-0">
-                  <button
-                    type="button"
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      activeTab === "trade"
-                        ? "border-b-2 border-blue-500 text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setActiveTab("trade")}
-                  >
-                    {"Trade"}
-                  </button>
-                  {!isSimpleAmount && !isEditMode && (
-                    <button
-                      type="button"
-                      disabled={needsPrice}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        needsPrice
-                          ? "text-gray-300 cursor-not-allowed"
-                          : activeTab === "invest"
-                            ? "border-b-2 border-blue-500 text-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                      }`}
-                      onClick={openInvestTab}
-                    >
-                      {"Invest"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    disabled={needsPrice}
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      needsPrice
-                        ? "text-gray-300 cursor-not-allowed"
-                        : activeTab === "settlement"
-                          ? "border-b-2 border-blue-500 text-blue-600"
-                          : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setActiveTab("settlement")}
-                  >
-                    {"Settlement"}
-                  </button>
-                </div>
-              )
-            })()}
-
-            {/* Scrollable form content */}
-            <form
-              id="trade-form"
-              onSubmit={handleSubmit(async (data) => {
-                if (isEditMode && transaction && editMode) {
-                  await submitEditMode({
-                    data: data as any,
-                    transaction,
-                    selectedModelId,
-                    selectedPortfolioId,
-                    portfolioChanged,
-                    portfolios,
-                    editMode,
-                    mutate,
-                    setSubmitError,
-                    setIsSubmitting,
-                  })
-                } else if (data.type.value === "EXPENSE") {
-                  await submitExpense({
-                    data: data as any,
-                    portfolio: effectivePortfolio,
-                    mutate,
-                    setModalOpen,
-                    setSubmitError,
-                    setIsSubmitting,
-                    setSubmitWarnings,
-                  })
-                } else if (data.type.value === "INCOME") {
-                  await submitIncome({
-                    data: data as any,
-                    portfolio: effectivePortfolio,
-                    mutate,
-                    setModalOpen,
-                    setSubmitError,
-                    setIsSubmitting,
-                    setSubmitWarnings,
-                  })
-                } else {
-                  await submitCreateMode({
-                    data: data as any,
-                    portfolio: effectivePortfolio,
-                    errors,
-                    setModalOpen,
-                    setSubmitError,
-                    mutate,
-                  })
-                }
-              })}
-              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 space-y-4"
-            >
-              {/* === Trade Tab === */}
-              {activeTab === "trade" && (
-                <div className="space-y-4">
-                  {/* Type and Date */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div data-testid="trade-type">
-                      <label className={labelClass}>{"Type"}</label>
-                      <TradeTypeController
-                        name="type"
-                        control={control as any}
-                        options={TradeTypeValues.map((value) => ({
-                          value,
-                          label: value,
-                        }))}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="trade-date" className={labelClass}>
-                        {"Trade date"}
-                      </label>
-                      <Controller
-                        name="tradeDate"
-                        control={control as any}
-                        rules={tradeDateRules}
-                        render={({ field }) => (
-                          <DateInput
-                            ref={dateInputRef}
-                            id="trade-date"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={inputClass}
-                          />
-                        )}
-                      />
-                    </div>
-                    {/* Cost date: an ADD only, under the trade date it defaults to */}
-                    {hasCostDate(type?.value) && (
-                      <div className="col-start-2">
-                        <label htmlFor="cost-date" className={labelClass}>
-                          <Tooltip text={COST_DATE_HELP} position="below">
-                            {"Cost date"}
-                          </Tooltip>
-                        </label>
-                        <Controller
-                          name="costDate"
-                          control={control as any}
-                          render={({ field }) => (
-                            <DateInput
-                              id="cost-date"
-                              value={field.value ?? ""}
-                              onChange={field.onChange}
-                              className={inputClass}
-                            />
-                          )}
-                        />
-                        {errors.costDate && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {String(errors.costDate.message)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Market and Asset */}
-                  {isEditMode ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelClass}>{"Asset"}</label>
-                        <input
-                          type="text"
-                          value={editAssetCode}
-                          disabled
-                          className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{"Market"}</label>
-                        <input
-                          type="text"
-                          value={editMarketCode}
-                          disabled
-                          className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelClass}>{"Market"}</label>
-                        <Controller
-                          name="market"
-                          control={control as any}
-                          render={({ field }) => (
-                            <select {...field} className={inputClass}>
-                              {marketOptions.map(
-                                (option: { value: string; label: string }) => (
-                                  <option
-                                    key={option.value}
-                                    value={option.value}
-                                  >
-                                    {option.label}
-                                  </option>
-                                ),
-                              )}
-                            </select>
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>
-                          {isFetchingPrice ? `${"Asset"} ...` : "Asset"}
-                        </label>
-                        <AssetSearch
-                          name="asset"
-                          inputId="asset-search"
-                          control={control as any}
-                          market={watch("market")}
-                          defaultValue={initialValues?.asset}
-                          onSelect={handleAssetSelect}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Portfolio Selection — only when there's a choice to make.
-                      With a single portfolio it's already the selection
-                      (selectedPortfolioId defaults to it), so the dropdown is
-                      noise. Routed through the shared zen-mode helper so the
-                      hide rule stays consistent with the rest of bc-view. */}
-                  {showPortfolioPicker(portfolios, preferences) && (
-                    <div>
-                      <label className={labelClass}>{"Portfolio"}</label>
-                      <select
-                        value={selectedPortfolioId}
-                        onChange={(e) => setSelectedPortfolioId(e.target.value)}
-                        className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
-                      >
-                        {portfolios.map((p: Portfolio) => (
-                          <option key={p.id} value={p.id}>
-                            {p.code} - {p.name}
-                          </option>
-                        ))}
-                      </select>
-                      {portfolioChanged && (
-                        <p className="text-xs text-amber-700 mt-0.5">
-                          {isEditMode
-                            ? "Will move to this portfolio"
-                            : "Different from current portfolio"}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Amount - shown for EXPENSE/INCOME types */}
-                  {isSimpleAmount && (
-                    <div>
-                      <label className={labelClass}>
-                        {isIncome ? "Income Amount" : "Expense Amount"}
-                      </label>
-                      <Controller
-                        name="tradeAmount"
-                        control={control as any}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={`${inputClass} text-lg font-medium`}
-                            placeholder={
-                              isIncome
-                                ? "Enter income amount"
-                                : "Enter expense amount"
-                            }
-                          />
-                        )}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {isIncome
-                          ? "This amount will be credited to the settlement account"
-                          : "This amount will be debited from the settlement account"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Fees - shown for EXPENSE/INCOME types */}
-                  {isSimpleAmount && (
-                    <div>
-                      <label className={labelClass}>{"Fees"}</label>
-                      <Controller
-                        name="fees"
-                        control={control as any}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={inputClass}
-                          />
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {/* Quantity, Price, Fees - hidden for EXPENSE/INCOME types */}
-                  {!isSimpleAmount && (
-                    <div
-                      className={`rounded-lg p-3 ${getQtyPriceTint(type?.value)}`}
-                    >
-                      {/* Three across at every width — wrapping Fees onto its
-                          own row is what pushes Broker below the fold on a
-                          phone. */}
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                        <div>
-                          <label className={labelClass}>
-                            {actualPositionQuantity > 0 ? (
-                              hasHeldBrokers ? (
-                                <>
-                                  {"Qty ("}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setShowBrokerSelectionDialog(true)
-                                    }
-                                    className="underline decoration-dotted underline-offset-2 text-indigo-600 hover:text-indigo-800 cursor-pointer"
-                                    title="Choose the brokerage to sell from"
-                                  >
-                                    {actualPositionQuantity.toLocaleString()}
-                                  </button>
-                                  {")"}
-                                </>
-                              ) : (
-                                `${"Qty"} (${actualPositionQuantity.toLocaleString()})`
-                              )
-                            ) : (
-                              "Qty"
-                            )}
-                          </label>
-                          <Controller
-                            name="quantity"
-                            control={control as any}
-                            render={({ field }) => (
-                              <MathInput
-                                value={field.value}
-                                onChange={field.onChange}
-                                className={inputClass}
-                              />
-                            )}
-                          />
-                        </div>
-                        <div>
-                          <label className={labelClass}>{"Price"}</label>
-                          <Controller
-                            name="price"
-                            control={control as any}
-                            render={({ field }) => (
-                              <MathInput
-                                value={field.value}
-                                onChange={field.onChange}
-                                step="0.01"
-                                className={inputClass}
-                              />
-                            )}
-                          />
-                        </div>
-                        <div>
-                          <label className={labelClass}>{"Fees"}</label>
-                          <Controller
-                            name="fees"
-                            control={control as any}
-                            render={({ field }) => (
-                              <MathInput
-                                value={field.value}
-                                onChange={field.onChange}
-                                className={inputClass}
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Broker - hidden for EXPENSE/INCOME */}
-                  {acceptsBroker(type?.value) && (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className={labelClass}>
-                          {"Brokerage account"}
-                        </label>
-                        <a
-                          href="/brokers"
-                          target="_blank"
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          {"Manage"}
-                        </a>
-                      </div>
-                      <Controller
-                        name="brokerId"
-                        control={control as any}
-                        render={({ field }) => (
-                          <select
-                            className={inputClass}
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          >
-                            <option value="">{"-- No account --"}</option>
-                            {offeredBrokers.map((broker) => (
-                              <option key={broker.id} value={broker.id}>
-                                {broker.name}
-                                {broker.accountNumber
-                                  ? ` (${broker.accountNumber})`
-                                  : ""}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {/* Comment for EXPENSE/INCOME types */}
-                  {isSimpleAmount && (
-                    <div>
-                      <label className={labelClass}>
-                        {isExpense
-                          ? "Expense Description"
-                          : "Income Description"}
-                      </label>
-                      <Controller
-                        name="comment"
-                        control={control as any}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className={inputClass}
-                            value={field.value || ""}
-                            placeholder={
-                              isExpense
-                                ? "e.g., Property rates, Insurance, Maintenance"
-                                : "e.g., Rental income, Dividend"
-                            }
-                          />
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* === Invest Tab === */}
-              {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
-                <div className="space-y-2.5">
-                  {/* Cash, shares and weight are three views of one trade —
-                      set any one and the other two follow. The summary strip
-                      below the form carries the headline total and direction,
-                      so nothing here restates them. */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    <div>
-                      <label htmlFor="invest-amount" className={labelClass}>
-                        {isSellSide(type?.value) ? "Raise" : "Invest"}
-                      </label>
-                      <div className="relative">
-                        <MathInput
-                          id="invest-amount"
-                          value={investAmount}
-                          onChange={handleInvestAmountChange}
-                          placeholder="0.00"
-                          className={`${inputClass} pr-11`}
-                        />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro font-medium text-gray-500">
-                          {currentTradeCurrency}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="invest-shares" className={labelClass}>
-                        {"Shares"}
-                      </label>
-                      <MathInput
-                        id="invest-shares"
-                        value={quantity}
-                        onChange={handleTradeQuantityChange}
-                        placeholder="0"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="invest-target-weight"
-                        className={labelClass}
-                      >
-                        {"Target"}
-                      </label>
-                      <div className="relative">
-                        <MathInput
-                          id="invest-target-weight"
-                          value={targetWeightValue}
-                          onChange={handleTargetWeightChange}
-                          placeholder={canSizeByWeight ? "0.0" : "—"}
-                          disabled={!canSizeByWeight}
-                          className={`${inputClass} pr-7 disabled:bg-gray-100 disabled:text-gray-500`}
-                        />
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                          {"%"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* What you hold now, and where this trade leaves it. */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
-                    <div className="grid grid-cols-[1fr_minmax(5.5rem,auto)_minmax(5.5rem,auto)] items-baseline gap-x-4 gap-y-1.5">
-                      <span />
-                      <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
-                        {"Current"}
-                      </span>
-                      <span className="text-right text-micro font-medium uppercase tracking-wide text-gray-500">
-                        {"After"}
-                      </span>
-
-                      <span className="text-sm text-gray-500">
-                        {"Value"}
-                        <span className="text-gray-500">
-                          {" "}
-                          {portfolio.currency.code}
-                        </span>
-                      </span>
-                      <span
-                        data-testid="invest-current-value"
-                        className="text-right font-mono text-sm tabular-nums text-gray-600"
-                      >
-                        {positionQty > 0 ? (
-                          <NumericFormat
-                            value={positionQty * price * fxRate}
-                            displayType="text"
-                            thousandSeparator
-                            decimalScale={2}
-                            fixedDecimalScale
-                          />
-                        ) : (
-                          "—"
-                        )}
-                      </span>
-                      <span
-                        data-testid="invest-after-value"
-                        className="text-right font-mono text-sm tabular-nums text-gray-900"
-                      >
-                        <NumericFormat
-                          value={resultingPositionQuantity * price * fxRate}
-                          displayType="text"
-                          thousandSeparator
-                          decimalScale={2}
-                          fixedDecimalScale
-                        />
-                      </span>
-
-                      <span className="text-sm text-gray-500">{"Weight"}</span>
-                      <span
-                        data-testid="invest-current-weight"
-                        className="text-right font-mono text-base tabular-nums text-gray-600"
-                      >
-                        {currentPositionWeight === null
-                          ? "—"
-                          : `${currentPositionWeight.toFixed(2)}%`}
-                      </span>
-                      <span
-                        data-testid="invest-after-weight"
-                        className="text-right font-mono text-base font-semibold tabular-nums text-gray-900"
-                      >
-                        {resultingPositionWeight === null
-                          ? "—"
-                          : `${resultingPositionWeight.toFixed(2)}%`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Fees and where the trade executes. Price stays on the
-                      Trade tab — it describes the asset, not the sizing. */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div
-                      className={acceptsBroker(type?.value) ? "" : "col-span-2"}
-                    >
-                      <label htmlFor="invest-fees" className={labelClass}>
-                        {"Fees"}
-                      </label>
-                      <Controller
-                        name="fees"
-                        control={control as any}
-                        render={({ field }) => (
-                          <MathInput
-                            id="invest-fees"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={inputClass}
-                          />
-                        )}
-                      />
-                    </div>
-                    {acceptsBroker(type?.value) && (
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <label htmlFor="invest-broker" className={labelClass}>
-                            {"Brokerage account"}
-                          </label>
-                          <a
-                            href="/brokers"
-                            target="_blank"
-                            className="text-xs text-blue-600 hover:text-blue-700"
-                          >
-                            {"Manage"}
-                          </a>
-                        </div>
-                        <Controller
-                          name="brokerId"
-                          control={control as any}
-                          render={({ field }) => (
-                            <select
-                              id="invest-broker"
-                              className={inputClass}
-                              value={field.value || ""}
-                              onChange={(e) => field.onChange(e.target.value)}
-                            >
-                              <option value="">{"-- No account --"}</option>
-                              {offeredBrokers.map((broker) => (
-                                <option key={broker.id} value={broker.id}>
-                                  {broker.name}
-                                  {broker.accountNumber
-                                    ? ` (${broker.accountNumber})`
-                                    : ""}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* === Settlement Tab === */}
-              {activeTab === "settlement" && (
-                <div className="space-y-4">
-                  {/* Settlement Account */}
-                  <div data-testid="settlement-account">
-                    <label className={labelClass}>
-                      {isIncome
-                        ? "Credit To Account"
-                        : isExpense
-                          ? "Debit From Account"
-                          : "Settlement Account"}
-                    </label>
-                    <SettlementAccountSelect
-                      name="settlementAccount"
-                      control={control as any}
-                      accounts={
-                        isIncome || isExpense ? [] : (allTradeAccounts as any[])
-                      }
-                      bankAccounts={allBankAccounts as any[]}
-                      cashAssets={
-                        isIncome || isExpense
-                          ? (filteredCashAssets as any[])
-                          : (cashAssetsForDropdown as any[])
-                      }
-                      trnType={type?.value || "BUY"}
-                      tradeCurrency={currentTradeCurrency}
-                      defaultValue={preferredCashAsset}
-                    />
-                  </div>
-
-                  {/* Charges — hidden for EXPENSE/INCOME (they have fees on Trade tab) */}
-                  {!isSimpleAmount && (
-                    <div>
-                      <label className={labelClass}>{"Fees"}</label>
-                      <Controller
-                        name="fees"
-                        control={control as any}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={inputClass}
-                          />
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {/* Tax */}
-                  <div>
-                    <label className={labelClass}>{"Tax"}</label>
-                    <Controller
-                      name="tax"
-                      control={control as any}
-                      render={({ field }) => (
-                        <MathInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={inputClass}
-                        />
-                      )}
-                    />
-                  </div>
-
-                  {/* Trade Amount (read-only display) */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-xs text-gray-500">{"Amount"}</span>
-                    <span className="tabular-nums text-sm text-gray-900">
-                      <NumericFormat
-                        value={tradeAmount}
-                        displayType="text"
-                        thousandSeparator
-                        decimalScale={2}
-                        fixedDecimalScale
-                      />
-                    </span>
-                  </div>
-
-                  {/* Cash Amount (read-only display) — hidden when no cash impact */}
-                  {cashImpact && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-xs text-gray-500">{"Cash"}</span>
-                      <span className="tabular-nums text-sm text-gray-900">
-                        <NumericFormat
-                          value={displayCashAmount}
-                          displayType="text"
-                          thousandSeparator
-                          decimalScale={2}
-                          fixedDecimalScale
-                        />
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Comment (non-simple types) */}
-                  {!isSimpleAmount && (
-                    <div>
-                      <label className={labelClass}>{"Comments"}</label>
-                      <Controller
-                        name="comment"
-                        control={control as any}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className={inputClass}
-                            value={field.value || ""}
-                          />
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {/* Model Selection (edit mode only) */}
-                  {isEditMode && models.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className={labelClass}>{"Strategy/Model"}</label>
-                        {suggestedModelId &&
-                          suggestedModelId !== selectedModelId && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedModelId(suggestedModelId)
-                              }
-                              className="text-xs text-blue-600 hover:text-blue-700"
-                            >
-                              {"Use suggested"}
-                            </button>
-                          )}
-                      </div>
-                      <select
-                        className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
-                        value={selectedModelId || ""}
-                        onChange={(e) =>
-                          setSelectedModelId(e.target.value || undefined)
-                        }
-                      >
-                        <option value="">{"-- No model --"}</option>
-                        {suggestedModelId && (
-                          <optgroup label={"Suggested"}>
-                            {models
-                              .filter((m) => m.id === suggestedModelId)
-                              .map((model) => (
-                                <option
-                                  key={`suggested-${model.id}`}
-                                  value={model.id}
-                                >
-                                  {model.name} (suggested)
-                                </option>
-                              ))}
-                          </optgroup>
-                        )}
-                        <optgroup label={"All Models"}>
-                          {models
-                            .filter((m) => m.id !== suggestedModelId)
-                            .map((model) => (
-                              <option key={model.id} value={model.id}>
-                                {model.name}
-                              </option>
-                            ))}
-                        </optgroup>
-                      </select>
-                      {suggestedModelId && (
-                        <p className="text-xs text-purple-600 mt-0.5">
-                          {"Model suggested based on transaction origin"}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Error Display (visible on all tabs) */}
-              {formErrors.length > 0 && (
-                <div className="text-red-600 text-xs bg-red-50 p-2 rounded">
-                  {formErrors.join(" ")}
-                </div>
-              )}
-            </form>
-
-            {/* Submit Error Display */}
-            {submitError && (
-              <div className="text-red-600 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
-                {submitError}
-              </div>
-            )}
-
-            {/* Auto-settle warnings: trade saved but compensating cash transfer
-                was skipped (e.g. funding portfolio has no balance in the trade
-                currency). Modal stays open so user can read and dismiss. */}
-            {submitWarnings.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded mx-3 mb-2 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-amber-800 text-sm font-semibold">
-                  <i className="fas fa-triangle-exclamation"></i>
-                  Saved with warnings
-                </div>
-                <ul className="text-amber-900 text-xs list-disc list-inside space-y-1">
-                  {submitWarnings.map((w, i) => (
-                    <li key={i}>{w}</li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="text-amber-800 text-xs font-semibold underline"
-                  onClick={() => {
-                    setSubmitWarnings([])
-                    setModalOpen(false)
-                  }}
-                >
-                  Dismiss & close
-                </button>
-              </div>
-            )}
-
-            {/* Trade Summary Strip */}
-            {(() => {
-              const colors = getTradeColorScheme(type?.value)
-              return (
-                <div
-                  className={`shrink-0 rounded-lg px-3 py-2 flex items-center justify-center gap-3 text-sm ${colors.bg} border ${colors.border}`}
-                >
-                  <span
-                    data-testid="trade-summary-type"
-                    className={`text-micro font-semibold uppercase tracking-wider ${colors.text}`}
-                  >
-                    {type?.value || "BUY"}
-                  </span>
-                  <span
-                    data-testid="trade-summary-amount"
-                    className="font-semibold text-gray-900 tabular-nums"
-                  >
-                    <NumericFormat
-                      value={tradeAmount}
-                      displayType="text"
-                      thousandSeparator
-                      decimalScale={2}
-                      fixedDecimalScale
-                    />
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {tradeCurrency?.value}
-                  </span>
-                  {/* How that amount was arrived at — the shares and the price
-                      they were struck at. Reading it back is how you catch a
-                      mis-keyed price before submitting. */}
-                  {!isSimpleAmount && quantity > 0 && price > 0 && (
-                    <span
-                      data-testid="trade-summary-basis"
-                      className="text-xs text-gray-500 tabular-nums"
-                    >
-                      {quantity.toLocaleString()}
-                      {" @ "}
-                      <NumericFormat
-                        value={price}
-                        displayType="text"
-                        thousandSeparator
-                        decimalScale={2}
-                        fixedDecimalScale
-                      />
-                    </span>
-                  )}
-                  {!cashImpact && (
-                    <span className="text-xs text-gray-500 italic">
-                      {"No cash impact"}
-                    </span>
-                  )}
-                  {weightInfo && !isSimpleAmount && (
-                    <span
-                      data-testid="trade-summary-weight"
-                      className="text-xs text-blue-600 font-medium"
-                    >
-                      {(resultingPositionWeight ?? weightInfo.value).toFixed(2)}
-                      %
-                    </span>
-                  )}
-                </div>
-              )
-            })()}
-
-            {/* Footer */}
-            <div className="shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
-              <button
-                type="button"
-                className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                onClick={() =>
-                  isEditMode ? editMode?.onClose() : setModalOpen(false)
-                }
-              >
-                {"Cancel"}
-              </button>
-              <button
-                type="submit"
-                form="trade-form"
-                disabled={
-                  isEditMode &&
-                  (isSubmitting ||
-                    (!isDirty && !portfolioChanged && !modelChanged))
-                }
-                className={`px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-colors ${
-                  isEditMode &&
-                  (isSubmitting ||
-                    (!isDirty && !portfolioChanged && !modelChanged))
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
-                }`}
-              >
-                {isEditMode ? (isSubmitting ? "Saving..." : "Save") : "Submit"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showEscapeConfirm && (
-        <ConfirmDialog
-          title="Unsaved Changes"
-          message="You have unsaved changes. Do you really want to close?"
-          confirmLabel="Close"
-          cancelLabel="Cancel"
-          variant="amber"
-          onConfirm={onEscapeConfirm}
-          onCancel={onEscapeCancel}
         />
       )}
     </>

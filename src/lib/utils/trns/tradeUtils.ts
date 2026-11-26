@@ -337,6 +337,14 @@ export const isBuySide = (tradeType: string): boolean =>
 export const isSellSide = (tradeType: string): boolean =>
   ["SELL", "REDUCE", "EXPENSE"].includes(tradeType)
 
+/** The cash legs svc-data posts to settle a trade carry this provider. */
+const AUTO_SETTLE_PROVIDER = "BC-AUTO"
+
+/** An auto-settle WITHDRAWAL or DEPOSIT: edited through the trade it settles. */
+export const isAutoSettleLeg = (trn?: {
+  callerRef?: { provider?: string } | null
+}): boolean => trn?.callerRef?.provider === AUTO_SETTLE_PROVIDER
+
 /** Only an ADD carries a cost date: when it was paid for, if before the trade date */
 export const hasCostDate = (tradeType?: string): boolean => tradeType === "ADD"
 
@@ -354,27 +362,31 @@ export interface TradeColorScheme {
   text: string
 }
 
-export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
-  if (isPositionAdjustment(tradeType)) {
-    return {
-      bg: "bg-blue-50",
-      border: "border-blue-100",
-      text: "text-blue-600",
-    }
-  }
-  if (isSellSide(tradeType)) {
-    return {
-      bg: "bg-red-50",
-      border: "border-red-100",
-      text: "text-red-600",
-    }
-  }
-  return {
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-    text: "text-emerald-700",
-  }
+const ADJUST_SCHEME: TradeColorScheme = {
+  bg: "bg-blue-50",
+  border: "border-blue-100",
+  text: "text-blue-600",
 }
+const OUT_SCHEME: TradeColorScheme = {
+  bg: "bg-red-50",
+  border: "border-red-100",
+  text: "text-red-600",
+}
+const IN_SCHEME: TradeColorScheme = {
+  bg: "bg-emerald-50",
+  border: "border-emerald-100",
+  text: "text-emerald-700",
+}
+
+export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
+  if (isPositionAdjustment(tradeType)) return ADJUST_SCHEME
+  if (isSellSide(tradeType)) return OUT_SCHEME
+  return IN_SCHEME
+}
+
+/** The same colours for money moving into or out of a cash account. */
+export const getCashFlowColorScheme = (flow: "in" | "out"): TradeColorScheme =>
+  flow === "out" ? OUT_SCHEME : IN_SCHEME
 
 /**
  * Qty/Price input panel tint — lighter variant for the trade form input area.

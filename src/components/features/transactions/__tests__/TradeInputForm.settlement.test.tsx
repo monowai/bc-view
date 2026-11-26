@@ -108,7 +108,7 @@ const recordAgainst = (
   type: "INCOME" | "EXPENSE",
 ): ReturnType<typeof render> => {
   const view = render(dialogFor(asset, type))
-  fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+  fireEvent.click(screen.getByRole("tab", { name: "Settlement" }))
   return view
 }
 
@@ -132,7 +132,7 @@ describe("TradeInputForm — settlement default", () => {
 
     accountsLoaded = true
     rerender(dialog)
-    fireEvent.click(screen.getByRole("button", { name: "Settlement" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Settlement" }))
 
     expect(within(settlement()).getByText("IBRK-USD (USD)")).toBeVisible()
   })

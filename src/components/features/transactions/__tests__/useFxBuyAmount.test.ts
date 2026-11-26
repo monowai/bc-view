@@ -5,6 +5,7 @@ interface Props {
   sellAmount: number
   fxRate: number | null
   enabled?: boolean
+  startManual?: boolean
 }
 
 const setup = (
@@ -57,5 +58,17 @@ describe("useFxBuyAmount", () => {
     act(() => result.current.resumeAutoBuyAmount())
     expect(result.current.manualBuyAmount).toBe(false)
     expect(onBuyAmount).toHaveBeenLastCalledWith(3000)
+  })
+
+  it("leaves a recorded amount alone until told to use the rate", () => {
+    const { onBuyAmount, result } = setup({
+      sellAmount: 100,
+      fxRate: 0.9,
+      startManual: true,
+    })
+    expect(onBuyAmount).not.toHaveBeenCalled()
+    expect(result.current.manualBuyAmount).toBe(true)
+    act(() => result.current.resumeAutoBuyAmount())
+    expect(onBuyAmount).toHaveBeenLastCalledWith(90)
   })
 })
