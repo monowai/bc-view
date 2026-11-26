@@ -800,19 +800,31 @@ const TradeInputForm: React.FC<{
   const market = watch("market")
 
   // Derived cash amount for settlement tab display
+  // An expense or income settles for its amount, so a saved cash figure must
+  // not stand in for an edited one.
   const displayCashAmount = useMemo(() => {
-    if (cashAmountField) return cashAmountField
+    if (cashAmountField && !isSimpleAmountType(type?.value))
+      return cashAmountField
     return calculateCashAmount({
       type,
       market,
       quantity,
       price,
-      tradeAmount: watch("tradeAmount") || 0,
+      tradeAmount: editedTradeAmount,
       cashAmount: 0,
       fees,
       tax,
     } as any)
-  }, [type, market, quantity, price, cashAmountField, fees, tax, watch])
+  }, [
+    type,
+    market,
+    quantity,
+    price,
+    cashAmountField,
+    fees,
+    tax,
+    editedTradeAmount,
+  ])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader("Loading...")
@@ -1162,7 +1174,7 @@ const TradeInputForm: React.FC<{
                 {/* Amount - shown for EXPENSE/INCOME types */}
                 {isSimpleAmount && (
                   <div>
-                    <label className={labelClass}>
+                    <label htmlFor="trade-amount" className={labelClass}>
                       {isIncome ? "Income Amount" : "Expense Amount"}
                     </label>
                     <Controller
@@ -1170,6 +1182,7 @@ const TradeInputForm: React.FC<{
                       control={control as any}
                       render={({ field }) => (
                         <MathInput
+                          id="trade-amount"
                           value={field.value}
                           onChange={field.onChange}
                           className={`${inputClass} text-lg font-medium`}

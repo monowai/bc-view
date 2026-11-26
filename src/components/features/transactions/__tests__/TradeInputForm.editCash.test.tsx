@@ -163,4 +163,26 @@ describe("TradeInputForm — cash follows an edited amount", () => {
     const body = await sentBody()
     expect(body.cashAmount).toBe(-270)
   })
+
+  test("an edited expense shows its new amount as the cash", async () => {
+    editing(
+      makeTrn({
+        trnType: "EXPENSE",
+        portfolio,
+        quantity: 1,
+        price: 50,
+        tradeAmount: 50,
+        cashAmount: -50,
+        fees: 0,
+        tax: 0,
+      }),
+    )
+
+    const amount = screen.getByLabelText("Expense Amount")
+    fireEvent.change(amount, { target: { value: "80" } })
+    fireEvent.blur(amount)
+    fireEvent.click(screen.getByRole("tab", { name: "Settlement" }))
+
+    await waitFor(() => expect(screen.getByText("-80.00")).toBeInTheDocument())
+  })
 })
