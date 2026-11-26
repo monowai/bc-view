@@ -18,6 +18,16 @@ export function sanitizePathParam(
   return str
 }
 
+/**
+ * Fold a query value to one string: Next.js gives string | string[] |
+ * undefined, and interpolating that raw yields "v1,v2" or "undefined".
+ * Arrays take their first element; undefined becomes "".
+ */
+export function asScalar(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? ""
+  return value ?? ""
+}
+
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
 
 const DEFAULT_BODY_METHODS: HttpMethod[] = ["POST", "PATCH", "PUT"]
