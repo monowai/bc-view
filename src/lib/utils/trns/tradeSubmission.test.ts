@@ -82,10 +82,20 @@ describe("tradeSubmission", () => {
       expect(result.tradeAmount).toBe(10 * 150) // qty * price
     })
 
-    test("computes cashAmount when form value is 0", () => {
+    test("with no cash to send, leaves the server to work it out at the market rate", () => {
       const data = { ...baseFormData, cashAmount: 0 }
       const result = buildEditPayload(data, "asset-id-1")
-      expect(result.cashAmount).toBe(-(10 * 150 + 5)) // -(qty*price + fees)
+      expect(result.cashAmount).toBe(0)
+    })
+
+    test("with no cash to send, a sell is not booked as a debit", () => {
+      const data = {
+        ...baseFormData,
+        type: { value: "SELL", label: "SELL" },
+        cashAmount: 0,
+      }
+      const result = buildEditPayload(data, "asset-id-1")
+      expect(result.cashAmount).toBe(0)
     })
 
     test("handles EXPENSE type: quantity=1, price=tradeAmount", () => {

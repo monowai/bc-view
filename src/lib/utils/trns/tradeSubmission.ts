@@ -41,8 +41,9 @@ export const buildEditPayload = (
       ? -(formData.tradeAmount || 0)
       : isIncome
         ? formData.tradeAmount || 0
-        : formData.cashAmount ||
-          -(formData.quantity * formData.price + (formData.fees || 0)),
+        : // 0 leaves the server to work the cash out from the amount at the
+          // trade-to-cash market rate, as it does for a new trade.
+          formData.cashAmount || 0,
     fees: formData.fees,
     tax: formData.tax,
     comments: formData.comment || "",
