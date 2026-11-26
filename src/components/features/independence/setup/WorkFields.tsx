@@ -1,5 +1,6 @@
 import React from "react"
 import { employmentInvestment } from "@utils/independence/employmentInvestment"
+import { grossIncomeHint } from "@utils/independence/messages"
 
 export interface WorkFieldsProps {
   workingIncomeMonthly: number
@@ -91,6 +92,7 @@ export default function WorkFields({
             }
             className={inputCls}
           />
+          <p className="mt-1 text-xs text-gray-500">{grossIncomeHint}</p>
         </div>
 
         <div>

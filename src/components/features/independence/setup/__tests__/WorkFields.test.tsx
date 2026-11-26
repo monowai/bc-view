@@ -49,5 +49,8 @@ describe("WorkFields contribution preview", () => {
     renderFields()
 
     expect(screen.getByText("Gross Monthly Income (SGD)")).toBeInTheDocument()
+    expect(
+      screen.getByText(/compulsory pension contributions/),
+    ).toBeInTheDocument()
   })
 })

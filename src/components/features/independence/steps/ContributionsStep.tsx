@@ -27,6 +27,7 @@ import {
 } from "../form"
 import { assetsKey } from "@utils/api/client/assets"
 import { employmentInvestment } from "@utils/independence/employmentInvestment"
+import { grossIncomeHint } from "@utils/independence/messages"
 import { fxPairsKey, postFxRates } from "@utils/api/client/fx"
 
 const msg = wizardMessages.steps.contributions
@@ -461,7 +462,7 @@ export default function ContributionsStep({
         <CurrencyInputWithPeriod
           name="workingIncomeMonthly"
           label="Gross Salary"
-          helperText="Your salary before taxes (not including bonus)."
+          helperText={`${grossIncomeHint} Excludes bonus.`}
           control={control}
           errors={errors}
         />

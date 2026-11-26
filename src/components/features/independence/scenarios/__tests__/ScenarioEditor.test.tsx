@@ -45,6 +45,16 @@ describe("ScenarioEditor", () => {
     expect(screen.getByDisplayValue("80")).toBeInTheDocument()
   })
 
+  it("labels the income as gross and says compulsory contributions come off", () => {
+    render(
+      <ScenarioEditor scenario={scenario} onSave={noop} onClose={() => {}} />,
+    )
+    expect(screen.getByText("Gross Monthly Income")).toBeInTheDocument()
+    expect(
+      screen.getByText(/compulsory pension contributions/),
+    ).toBeInTheDocument()
+  })
+
   it("renders Currency as a dropdown set to the scenario currency", () => {
     render(
       <ScenarioEditor scenario={scenario} onSave={noop} onClose={() => {}} />,

@@ -135,3 +135,19 @@ describe("ContributionsStep defined contribution", () => {
     ).toBeInTheDocument()
   })
 })
+
+describe("ContributionsStep gross salary", () => {
+  it("says compulsory contributions come off the gross salary", () => {
+    mockUsePrivateAssetConfigs.mockReturnValue({
+      configs: [],
+      assetNames: {},
+      isLoading: false,
+    })
+    givenFxRates({})
+    render(<Wrapper />)
+
+    expect(
+      screen.getByText(/compulsory pension contributions/),
+    ).toBeInTheDocument()
+  })
+})
