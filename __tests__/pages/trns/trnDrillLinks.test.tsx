@@ -97,7 +97,10 @@ const ladderView = (trns: object[]): void => {
   stubSwr({
     "cash-ladder": { data: trns },
     "/assets/": { data: cashAsset },
-    "/portfolios/": { data: { id: "p1", code: "PF1" } },
+    "/portfolios/fund": { data: { id: "fund", code: "FUND" } },
+    "/portfolios/": {
+      data: { id: "p1", code: "PF1", cashPortfolioId: "fund" },
+    },
   })
 }
 
@@ -150,10 +153,10 @@ describe("trade list: cash opens the cash ladder", () => {
 
 describe("cash ladder: a row opens the trade behind it", () => {
   it("links a trade's description to the asset's trades with it flashed", () => {
-    ladderView([makeTrn({ id: "t2", comments: "Buy 2 Apple" })])
+    ladderView([makeTrn({ id: "t2", comments: "CB" })])
     render(<CashLadder />)
 
-    const links = screen.getAllByRole("link", { name: "Buy 2 Apple" })
+    const links = screen.getAllByRole("link", { name: "Buy 2 Apple Inc · CB" })
     links.forEach((link) =>
       expect(link).toHaveAttribute("href", "/trns/trades/p1/a1#trn-t2"),
     )
@@ -202,5 +205,57 @@ describe("cash ladder: a row opens the trade behind it", () => {
       ),
     )
     expect(mockFetch.mock.calls[0][0]).toContain("/trns/settles/leg")
+  })
+})
+
+describe("cash ladder: an auto-settle leg sits with its trade", () => {
+  const pair = (): object[] => [
+    makeTrn({
+      id: "leg",
+      trnType: "DEPOSIT",
+      asset: cashAsset,
+      comments: "Auto-settle for BUY AAPL",
+      callerRef: { provider: "BC-AUTO", batch: "c1", callerId: "leg-c" },
+    }),
+    makeTrn({
+      id: "t1",
+      comments: "CB",
+      callerRef: { provider: "BC", batch: "b", callerId: "c1" },
+    }),
+  ]
+
+  it("says which trade the leg settles and where the cash came from", () => {
+    ladderView(pair())
+    render(<CashLadder />)
+
+    expect(
+      screen.getAllByRole("button", { name: "Settles this BUY · from FUND" })
+        .length,
+    ).toBeGreaterThan(0)
+  })
+
+  it("brackets the two rows together", () => {
+    ladderView(pair())
+    render(<CashLadder />)
+
+    const row = (id: string): Element =>
+      document.querySelector(`tr[data-trn-id="${id}"]`)!
+    expect(row("leg").querySelector('[data-pair-edge="top"]')).not.toBeNull()
+    expect(row("t1").querySelector('[data-pair-edge="bottom"]')).not.toBeNull()
+  })
+
+  it("tints both rows while either is hovered", () => {
+    ladderView(pair())
+    render(<CashLadder />)
+
+    const row = (id: string): Element =>
+      document.querySelector(`tr[data-trn-id="${id}"]`)!
+    fireEvent.mouseEnter(row("leg"))
+
+    expect(row("leg")).toHaveClass("bg-blue-50")
+    expect(row("t1")).toHaveClass("bg-blue-50")
+
+    fireEvent.mouseLeave(row("leg"))
+    expect(row("t1")).not.toHaveClass("bg-blue-50")
   })
 })
