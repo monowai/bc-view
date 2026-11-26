@@ -246,12 +246,14 @@ describe("cash ladder: an auto-settle leg folds into its trade", () => {
     expect(screen.getAllByText("· from FUND").length).toBeGreaterThan(0)
   })
 
-  it("shows what the pair nets to", () => {
+  it("shows the cash the trade moved, unsigned, as it passes straight through", () => {
     ladderView(pair())
     render(<CashLadder />)
 
     const row = document.querySelector('tr[data-trn-id="leg"]')!
-    expect(row).toHaveTextContent("+0.00")
+    expect(row).toHaveTextContent("200.00")
+    expect(row).not.toHaveTextContent("+0.00")
+    expect(row).not.toHaveTextContent("-200.00")
   })
 
   it("opens into both entries, bracketed, and closes again", () => {

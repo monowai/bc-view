@@ -171,7 +171,8 @@ type LadderRow =
       top: TrnWithBalance
       leg: TrnWithBalance
       trade: TrnWithBalance
-      net: number
+      /** The cash the trade used, in and straight back out of this account. */
+      moved: number
     }
 
 /** Folds each adjacent trade + leg pair into one line unless it is open. */
@@ -198,7 +199,7 @@ function buildLadderRows(
         top,
         leg,
         trade,
-        net: top.signedCashAmount + bottom.signedCashAmount,
+        moved: Math.abs(trade.signedCashAmount),
       })
       i++
     } else {
@@ -255,7 +256,7 @@ function PairToggle({
   )
 }
 
-/** Cash in green, out in red, a pair that nets to nothing in gray. */
+/** Cash in green, out in red, none in gray. */
 const cashTone = (amount: number): string =>
   Math.abs(amount) < 0.005
     ? "text-gray-600"
@@ -566,10 +567,9 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <TrnCardValue
                         label={"Cash"}
-                        value={row.net}
+                        value={row.moved}
                         scale={2}
-                        prefix={row.net >= 0 ? "+" : ""}
-                        valueClassName={`ml-1 font-medium ${cashTone(row.net)}`}
+                        valueClassName="ml-1 font-medium text-gray-600"
                       />
                       <TrnCardValue
                         label={"Balance"}
@@ -675,10 +675,9 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           </span>
                         </td>
                         <TrnNumberCell
-                          value={row.net}
+                          value={row.moved}
                           scale={2}
-                          prefix={row.net >= 0 ? "+" : ""}
-                          className={`px-4 py-3 text-right whitespace-nowrap font-medium ${cashTone(row.net)}`}
+                          className="px-4 py-3 text-right whitespace-nowrap font-medium text-gray-600"
                         />
                         <TrnNumberCell
                           value={row.top.runningBalance}
