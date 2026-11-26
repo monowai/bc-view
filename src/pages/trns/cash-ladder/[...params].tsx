@@ -163,6 +163,106 @@ interface TrnWithBalance extends Transaction {
   signedCashAmount: number
 }
 
+/** A ladder line: one entry, or a trade and its auto-settle leg folded together. */
+type LadderRow =
+  | { kind: "one"; trn: TrnWithBalance }
+  | {
+      kind: "pair"
+      top: TrnWithBalance
+      leg: TrnWithBalance
+      trade: TrnWithBalance
+      net: number
+    }
+
+/** Folds each adjacent trade + leg pair into one line unless it is open. */
+function buildLadderRows(
+  trns: TrnWithBalance[],
+  pairs: Map<string, LadderPair>,
+  open: Set<string>,
+): LadderRow[] {
+  const rows: LadderRow[] = []
+  for (let i = 0; i < trns.length; i++) {
+    const top = trns[i]
+    const pair = pairs.get(top.id)
+    const bottom = trns[i + 1]
+    if (
+      pair?.adjacent &&
+      pair.edge === "top" &&
+      bottom &&
+      !open.has(pair.tradeId)
+    ) {
+      const leg = isAutoSettleLeg(top) ? top : bottom
+      const trade = leg === top ? bottom : top
+      rows.push({
+        kind: "pair",
+        top,
+        leg,
+        trade,
+        net: top.signedCashAmount + bottom.signedCashAmount,
+      })
+      i++
+    } else {
+      rows.push({ kind: "one", trn: top })
+    }
+  }
+  return rows
+}
+
+const DEBIT_TYPES = ["BUY", "WITHDRAWAL", "REDUCE", "EXPENSE", "DEDUCTION"]
+const CREDIT_TYPES = ["SELL", "DEPOSIT", "DIVI", "INCOME"]
+
+function TypeBadge({ trnType }: { trnType: string }): React.ReactElement {
+  const tone = DEBIT_TYPES.includes(trnType)
+    ? "bg-red-100 text-red-800"
+    : CREDIT_TYPES.includes(trnType)
+      ? "bg-green-100 text-green-800"
+      : "bg-blue-100 text-blue-800"
+  return (
+    <span
+      className={`inline-block px-2 py-1 text-xs font-medium rounded ${tone}`}
+    >
+      {trnType}
+    </span>
+  )
+}
+
+/** Opens a folded trade + leg pair into its two entries, and closes it. */
+function PairToggle({
+  open,
+  onToggle,
+}: {
+  open: boolean
+  onToggle: () => void
+}): React.ReactElement {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-label={open ? "Hide the entries" : "Show both entries"}
+      title={open ? "Hide the entries" : "Show both entries"}
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggle()
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+    >
+      <i
+        className={`fas fa-chevron-right text-[10px] transition-transform ${open ? "rotate-90" : ""}`}
+        aria-hidden="true"
+      ></i>
+    </button>
+  )
+}
+
+/** Cash in green, out in red, a pair that nets to nothing in gray. */
+const cashTone = (amount: number): string =>
+  Math.abs(amount) < 0.005
+    ? "text-gray-600"
+    : amount < 0
+      ? "text-red-600"
+      : "text-green-700"
+
 export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   const router = useRouter()
 
@@ -307,6 +407,25 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   const inHoveredPair = (trn: Transaction): boolean =>
     !!hoveredPair && pairs.get(trn.id)?.tradeId === hoveredPair
 
+  // A trade and its leg show as one line, the trade's description against
+  // the leg, until opened.
+  const [openPairs, setOpenPairs] = useState<Set<string>>(() => new Set())
+  const togglePair = (tradeId: string): void =>
+    setOpenPairs((prev) => {
+      const next = new Set(prev)
+      if (next.has(tradeId)) next.delete(tradeId)
+      else next.add(tradeId)
+      return next
+    })
+  const ladderRows = useMemo(
+    () => buildLadderRows(transactionsWithBalance, pairs, openPairs),
+    [transactionsWithBalance, pairs, openPairs],
+  )
+  const fundingNote = (leg: Transaction): string | undefined =>
+    fundingCode
+      ? `· ${leg.trnType === "DEPOSIT" ? "from" : "to"} ${fundingCode}`
+      : undefined
+
   // An auto-settle leg opens the trade it settles. Should that trade be gone,
   // the leg's own edit still opens, so it can be put right.
   const openSettledTrade = useCallback(
@@ -408,63 +527,110 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
           <>
             {/* Mobile: Card layout */}
             <div className="md:hidden space-y-3">
-              {transactionsWithBalance.map((trn: TrnWithBalance) => (
-                <div
-                  key={trn.id}
-                  data-trn-id={trn.id}
-                  {...pairHover(trn)}
-                  className={`rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow ${inHoveredPair(trn) ? "bg-blue-50" : "bg-white"}${pairs.has(trn.id) ? " border-l-2 border-blue-200" : ""}`}
-                  onDoubleClick={() => handleEditClick(trn)}
-                  title={"Double-click to edit"}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                          trn.trnType === "BUY" ||
-                          trn.trnType === "WITHDRAWAL" ||
-                          trn.trnType === "REDUCE"
-                            ? "bg-red-100 text-red-800"
-                            : trn.trnType === "SELL" ||
-                                trn.trnType === "DEPOSIT" ||
-                                trn.trnType === "DIVI"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {trn.trnType}
-                      </span>
-                      <span className="ml-2 text-sm text-gray-700">
-                        <TrnDescription
-                          trn={trn}
-                          text={describe(trn)}
-                          onOpenSettledTrade={(leg) =>
-                            void openSettledTrade(leg)
-                          }
+              {ladderRows.map((row) =>
+                row.kind === "pair" ? (
+                  <div
+                    key={row.top.id}
+                    data-trn-id={row.leg.id}
+                    data-trn-ids={`${row.leg.id} ${row.trade.id}`}
+                    className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
+                    onDoubleClick={() => handleEditClick(row.trade)}
+                    title={"Double-click to edit the trade"}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-1 items-center gap-2">
+                        <TypeBadge trnType={row.leg.trnType} />
+                        <PairToggle
+                          open={false}
+                          onToggle={() => togglePair(row.trade.id)}
                         />
+                        <span className="text-sm text-gray-700">
+                          <TrnDescription
+                            trn={row.trade}
+                            text={formatTransaction(row.trade)}
+                            onOpenSettledTrade={(leg) =>
+                              void openSettledTrade(leg)
+                            }
+                          />
+                          {fundingNote(row.leg) && (
+                            <span className="ml-1 text-gray-500">
+                              {fundingNote(row.leg)}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {row.trade.tradeDate}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {trn.tradeDate}
-                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <TrnCardValue
+                        label={"Cash"}
+                        value={row.net}
+                        scale={2}
+                        prefix={row.net >= 0 ? "+" : ""}
+                        valueClassName={`ml-1 font-medium ${cashTone(row.net)}`}
+                      />
+                      <TrnCardValue
+                        label={"Balance"}
+                        value={row.top.runningBalance}
+                        scale={2}
+                        valueClassName="ml-1 font-bold"
+                      />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <TrnCardValue
-                      label={"Cash"}
-                      value={trn.signedCashAmount}
-                      scale={2}
-                      prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                      valueClassName={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-700"}`}
-                    />
-                    <TrnCardValue
-                      label={"Balance"}
-                      value={trn.runningBalance}
-                      scale={2}
-                      valueClassName="ml-1 font-bold"
-                    />
+                ) : (
+                  <div
+                    key={row.trn.id}
+                    data-trn-id={row.trn.id}
+                    {...pairHover(row.trn)}
+                    className={`rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow ${inHoveredPair(row.trn) ? "bg-blue-50" : "bg-white"}${pairs.has(row.trn.id) ? " border-l-2 border-blue-200" : ""}`}
+                    onDoubleClick={() => handleEditClick(row.trn)}
+                    title={"Double-click to edit"}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-1 items-center gap-2">
+                        <TypeBadge trnType={row.trn.trnType} />
+                        {pairs.get(row.trn.id)?.edge === "top" && (
+                          <PairToggle
+                            open
+                            onToggle={() =>
+                              togglePair(pairs.get(row.trn.id)!.tradeId)
+                            }
+                          />
+                        )}
+                        <span className="text-sm text-gray-700">
+                          <TrnDescription
+                            trn={row.trn}
+                            text={describe(row.trn)}
+                            onOpenSettledTrade={(leg) =>
+                              void openSettledTrade(leg)
+                            }
+                          />
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {row.trn.tradeDate}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <TrnCardValue
+                        label={"Cash"}
+                        value={row.trn.signedCashAmount}
+                        scale={2}
+                        prefix={row.trn.signedCashAmount >= 0 ? "+" : ""}
+                        valueClassName={`ml-1 font-medium ${cashTone(row.trn.signedCashAmount)}`}
+                      />
+                      <TrnCardValue
+                        label={"Balance"}
+                        value={row.trn.runningBalance}
+                        scale={2}
+                        valueClassName="ml-1 font-bold"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
 
             {/* Desktop: Table layout */}
@@ -472,84 +638,138 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
               <table className="min-w-full">
                 <TrnTableHead columns={COLUMNS} />
                 <tbody className="divide-y divide-gray-200">
-                  {transactionsWithBalance.map((trn: TrnWithBalance) => (
-                    <tr
-                      key={trn.id}
-                      data-trn-id={trn.id}
-                      {...pairHover(trn)}
-                      className={`cursor-pointer transition-colors ${inHoveredPair(trn) ? "bg-blue-50" : "hover:bg-gray-50"}`}
-                      onDoubleClick={() => handleEditClick(trn)}
-                      title={"Double-click to edit"}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {trn.tradeDate}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            trn.trnType === "BUY" ||
-                            trn.trnType === "WITHDRAWAL" ||
-                            trn.trnType === "REDUCE" ||
-                            trn.trnType === "EXPENSE" ||
-                            trn.trnType === "DEDUCTION"
-                              ? "bg-red-100 text-red-800"
-                              : trn.trnType === "SELL" ||
-                                  trn.trnType === "DEPOSIT" ||
-                                  trn.trnType === "DIVI" ||
-                                  trn.trnType === "INCOME"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {trn.trnType}
-                        </span>
-                      </td>
-                      <td className="relative px-4 py-3 whitespace-nowrap">
-                        {pairs.get(trn.id)?.adjacent && (
-                          <PairBracket
-                            edge={pairs.get(trn.id)!.edge}
-                            active={inHoveredPair(trn)}
+                  {ladderRows.map((row) =>
+                    row.kind === "pair" ? (
+                      <tr
+                        key={row.top.id}
+                        data-trn-id={row.leg.id}
+                        data-trn-ids={`${row.leg.id} ${row.trade.id}`}
+                        className="cursor-pointer transition-colors hover:bg-gray-50"
+                        onDoubleClick={() => handleEditClick(row.trade)}
+                        title={"Double-click to edit the trade"}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.trade.tradeDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <TypeBadge trnType={row.leg.trnType} />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5">
+                            <PairToggle
+                              open={false}
+                              onToggle={() => togglePair(row.trade.id)}
+                            />
+                            <TrnDescription
+                              trn={row.trade}
+                              text={formatTransaction(row.trade)}
+                              onOpenSettledTrade={(leg) =>
+                                void openSettledTrade(leg)
+                              }
+                            />
+                            {fundingNote(row.leg) && (
+                              <span className="text-gray-500">
+                                {fundingNote(row.leg)}
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <TrnNumberCell
+                          value={row.net}
+                          scale={2}
+                          prefix={row.net >= 0 ? "+" : ""}
+                          className={`px-4 py-3 text-right whitespace-nowrap font-medium ${cashTone(row.net)}`}
+                        />
+                        <TrnNumberCell
+                          value={row.top.runningBalance}
+                          scale={2}
+                          className="px-4 py-3 text-right whitespace-nowrap font-bold"
+                        />
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <TrnStatusBadge status={row.trade.status} />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <TrnRowActions
+                            onEdit={() => handleEditClick(row.trade)}
+                            onCopy={(e) => copyRowToClipboard(row.trade, e)}
                           />
-                        )}
-                        <TrnDescription
-                          trn={trn}
-                          text={describe(trn)}
-                          onOpenSettledTrade={(leg) =>
-                            void openSettledTrade(leg)
-                          }
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr
+                        key={row.trn.id}
+                        data-trn-id={row.trn.id}
+                        {...pairHover(row.trn)}
+                        className={`cursor-pointer transition-colors ${inHoveredPair(row.trn) ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                        onDoubleClick={() => handleEditClick(row.trn)}
+                        title={"Double-click to edit"}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.trn.tradeDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <TypeBadge trnType={row.trn.trnType} />
+                        </td>
+                        <td className="relative px-4 py-3 whitespace-nowrap">
+                          {pairs.get(row.trn.id)?.adjacent && (
+                            <PairBracket
+                              edge={pairs.get(row.trn.id)!.edge}
+                              active={inHoveredPair(row.trn)}
+                            />
+                          )}
+                          <span className="inline-flex items-center gap-1.5">
+                            {pairs.get(row.trn.id)?.adjacent &&
+                              (pairs.get(row.trn.id)!.edge === "top" ? (
+                                <PairToggle
+                                  open
+                                  onToggle={() =>
+                                    togglePair(pairs.get(row.trn.id)!.tradeId)
+                                  }
+                                />
+                              ) : (
+                                <span className="w-5 shrink-0" />
+                              ))}
+                            <TrnDescription
+                              trn={row.trn}
+                              text={describe(row.trn)}
+                              onOpenSettledTrade={(leg) =>
+                                void openSettledTrade(leg)
+                              }
+                            />
+                          </span>
+                        </td>
+                        <TrnNumberCell
+                          value={row.trn.signedCashAmount}
+                          scale={2}
+                          prefix={row.trn.signedCashAmount >= 0 ? "+" : ""}
+                          className={`px-4 py-3 text-right whitespace-nowrap font-medium ${cashTone(row.trn.signedCashAmount)}`}
                         />
-                      </td>
-                      <TrnNumberCell
-                        value={trn.signedCashAmount}
-                        scale={2}
-                        prefix={trn.signedCashAmount >= 0 ? "+" : ""}
-                        className={`px-4 py-3 text-right whitespace-nowrap font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-700"}`}
-                      />
-                      <TrnNumberCell
-                        value={trn.runningBalance}
-                        scale={2}
-                        className="px-4 py-3 text-right whitespace-nowrap font-bold"
-                      />
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <TrnStatusBadge status={trn.status} />
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <TrnRowActions
-                          onEdit={() => handleEditClick(trn)}
-                          onCopy={(e) => copyRowToClipboard(trn, e)}
-                          onDelete={
-                            // A cash move on a balance or bank account, not a trade.
-                            // Deleting a spend withdrawal removes only the
-                            // transaction; the month's spend stays, and its next
-                            // save posts a new one.
-                            isCash(trn.asset) || isAccount(trn.asset)
-                              ? () => requestDelete(trn)
-                              : undefined
-                          }
+                        <TrnNumberCell
+                          value={row.trn.runningBalance}
+                          scale={2}
+                          className="px-4 py-3 text-right whitespace-nowrap font-bold"
                         />
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <TrnStatusBadge status={row.trn.status} />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <TrnRowActions
+                            onEdit={() => handleEditClick(row.trn)}
+                            onCopy={(e) => copyRowToClipboard(row.trn, e)}
+                            onDelete={
+                              // A cash move on a balance or bank account, not a trade.
+                              // Deleting a spend withdrawal removes only the
+                              // transaction; the month's spend stays, and its next
+                              // save posts a new one.
+                              isCash(row.trn.asset) || isAccount(row.trn.asset)
+                                ? () => requestDelete(row.trn)
+                                : undefined
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ),
+                  )}
                 </tbody>
               </table>
             </div>

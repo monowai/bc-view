@@ -208,12 +208,14 @@ describe("cash ladder: a row opens the trade behind it", () => {
   })
 })
 
-describe("cash ladder: an auto-settle leg sits with its trade", () => {
+describe("cash ladder: an auto-settle leg folds into its trade", () => {
   const pair = (): object[] => [
     makeTrn({
       id: "leg",
       trnType: "DEPOSIT",
       asset: cashAsset,
+      cashAmount: 200,
+      quantity: 200,
       comments: "Auto-settle for BUY AAPL",
       callerRef: { provider: "BC-AUTO", batch: "c1", callerId: "leg-c" },
     }),
@@ -223,30 +225,61 @@ describe("cash ladder: an auto-settle leg sits with its trade", () => {
       callerRef: { provider: "BC", batch: "b", callerId: "c1" },
     }),
   ]
+  const rows = (): (string | null)[] =>
+    Array.from(document.querySelectorAll("tbody tr")).map((row) =>
+      row.getAttribute("data-trn-id"),
+    )
+  const expand = (): void => {
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Show both entries" })[0],
+    )
+  }
 
-  it("says which trade the leg settles and where the cash came from", () => {
+  it("shows the pair as one row carrying the trade's description", () => {
     ladderView(pair())
     render(<CashLadder />)
 
+    expect(rows()).toEqual(["leg"])
     expect(
-      screen.getAllByRole("button", { name: "Settles this BUY · from FUND" })
-        .length,
+      screen.getAllByRole("link", { name: "Buy 2 Apple Inc · CB" }).length,
     ).toBeGreaterThan(0)
+    expect(screen.getAllByText("· from FUND").length).toBeGreaterThan(0)
   })
 
-  it("brackets the two rows together", () => {
+  it("shows what the pair nets to", () => {
     ladderView(pair())
     render(<CashLadder />)
 
+    const row = document.querySelector('tr[data-trn-id="leg"]')!
+    expect(row).toHaveTextContent("+0.00")
+  })
+
+  it("opens into both entries, bracketed, and closes again", () => {
+    ladderView(pair())
+    render(<CashLadder />)
+
+    expand()
+
+    expect(rows()).toEqual(["leg", "t1"])
     const row = (id: string): Element =>
       document.querySelector(`tr[data-trn-id="${id}"]`)!
     expect(row("leg").querySelector('[data-pair-edge="top"]')).not.toBeNull()
     expect(row("t1").querySelector('[data-pair-edge="bottom"]')).not.toBeNull()
+    expect(
+      screen.getAllByRole("button", { name: "Settles this BUY · from FUND" })
+        .length,
+    ).toBeGreaterThan(0)
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Hide the entries" })[0],
+    )
+    expect(rows()).toEqual(["leg"])
   })
 
-  it("tints both rows while either is hovered", () => {
+  it("tints both entries while either is hovered", () => {
     ladderView(pair())
     render(<CashLadder />)
+    expand()
 
     const row = (id: string): Element =>
       document.querySelector(`tr[data-trn-id="${id}"]`)!
@@ -258,10 +291,22 @@ describe("cash ladder: an auto-settle leg sits with its trade", () => {
     fireEvent.mouseLeave(row("leg"))
     expect(row("t1")).not.toHaveClass("bg-blue-50")
   })
+
+  it("flashes the folded row when a link points at the trade inside it", async () => {
+    window.location.hash = "#trn-t1"
+    ladderView(pair())
+    render(<CashLadder />)
+
+    await waitFor(() =>
+      expect(
+        document.querySelector('tr[data-trn-id="leg"].asset-target'),
+      ).not.toBeNull(),
+    )
+  })
 })
 
 describe("cash ladder: legs posted together still sit with their trades", () => {
-  it("brackets each leg with its own trade", () => {
+  it("folds each leg into its own trade", () => {
     const legOf = (id: string, callerId: string): object =>
       makeTrn({
         id,
@@ -273,22 +318,27 @@ describe("cash ladder: legs posted together still sit with their trades", () => 
           callerId: `${id}-c`,
         },
       })
-    const tradeOf = (id: string, callerId: string): object =>
-      makeTrn({ id, callerRef: { provider: "BC", batch: "b", callerId } })
+    const tradeOf = (id: string, callerId: string, comments: string): object =>
+      makeTrn({
+        id,
+        comments,
+        callerRef: { provider: "BC", batch: "b", callerId },
+      })
     ladderView([
       legOf("l2", "c2"),
       legOf("l1", "c1"),
-      tradeOf("t2", "c2"),
-      tradeOf("t1", "c1"),
+      tradeOf("t2", "c2", "second"),
+      tradeOf("t1", "c1", "first"),
     ])
     render(<CashLadder />)
 
     const order = Array.from(document.querySelectorAll("tr[data-trn-id]")).map(
       (row) => row.getAttribute("data-trn-id"),
     )
-    expect(order).toEqual(["l2", "t2", "l1", "t1"])
-    expect(
-      screen.getAllByRole("button", { name: "Settles this BUY · from FUND" }),
-    ).toHaveLength(4)
+    expect(order).toEqual(["l2", "l1"])
+    const described = (id: string): string | null =>
+      document.querySelector(`tr[data-trn-id="${id}"]`)!.textContent
+    expect(described("l2")).toContain("second")
+    expect(described("l1")).toContain("first")
   })
 })
