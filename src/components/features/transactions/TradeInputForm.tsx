@@ -68,6 +68,7 @@ import {
   heldQuantityForBroker,
   brokersOfferedForTrade,
   singleHeldBrokerId,
+  rescaleCashAmount,
 } from "@lib/trns/tradeFormHelpers"
 import {
   submitEditMode,
@@ -588,6 +589,15 @@ const TradeInputForm: React.FC<{
       setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
     }
   }, [quantity, price, tax, fees, type, setValue])
+
+  // An edited trade's cash moves with its amount, at the rate it settled at.
+  // The trade form never takes the cash by hand, so the saved figure must not
+  // outlive a change to quantity, price or fees.
+  const editedTradeAmount = watch("tradeAmount") || 0
+  useEffect(() => {
+    if (!transaction || isSimpleAmountType(type.value)) return
+    setValue("cashAmount", rescaleCashAmount(transaction, editedTradeAmount))
+  }, [transaction, editedTradeAmount, type, setValue])
 
   // Calculate trade weight
   const weightInfo = useMemo(
@@ -1206,7 +1216,7 @@ const TradeInputForm: React.FC<{
                       phone. */}
                     <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       <div>
-                        <label className={labelClass}>
+                        <label htmlFor="trade-quantity" className={labelClass}>
                           {actualPositionQuantity > 0 ? (
                             hasHeldBrokers ? (
                               <>
@@ -1235,6 +1245,7 @@ const TradeInputForm: React.FC<{
                           control={control as any}
                           render={({ field }) => (
                             <MathInput
+                              id="trade-quantity"
                               value={field.value}
                               onChange={field.onChange}
                               className={inputClass}

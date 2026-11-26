@@ -6,6 +6,7 @@ import {
   calculateNewPositionQuantityFromTargetWeight,
   calculateQuantityFromTradeValue,
   buildEditModeValues,
+  rescaleCashAmount,
   buildQuickSellValues,
   buildCreateModeValues,
   buildInitialSettlementAccount,
@@ -1174,5 +1175,34 @@ describe("target weight never sizes a trade to zero shares", () => {
     expect(
       calculateNewPositionQuantityFromTargetWeight(0.01, 1000, 10000)?.quantity,
     ).toBe(1)
+  })
+})
+
+describe("rescaleCashAmount", () => {
+  it("keeps the saved cash when the amount is unchanged", () => {
+    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: -270 }, 200)).toBe(
+      -270,
+    )
+  })
+
+  it("moves a debit with the amount at the settled rate", () => {
+    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: -270 }, 300)).toBe(
+      -405,
+    )
+  })
+
+  it("moves a credit with the amount", () => {
+    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: 200 }, 50)).toBe(
+      50,
+    )
+  })
+
+  it("rounds to cents", () => {
+    expect(rescaleCashAmount({ tradeAmount: 3, cashAmount: -1 }, 1)).toBe(-0.33)
+  })
+
+  it("leaves the cash to be worked out when nothing was saved", () => {
+    expect(rescaleCashAmount({ tradeAmount: 0, cashAmount: 0 }, 100)).toBe(0)
+    expect(rescaleCashAmount({ tradeAmount: 100, cashAmount: 0 }, 200)).toBe(0)
   })
 })

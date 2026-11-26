@@ -304,6 +304,23 @@ export interface TradeFormValues {
 }
 
 /**
+ * The cash an edited trade settles for: its saved cash moved in step with the
+ * trade amount, at the rate it settled at (cash per unit of trade amount). A
+ * trade settled in another currency keeps its rate. With nothing saved to
+ * scale from, 0 leaves the cash to be worked out from the amount.
+ */
+export const rescaleCashAmount = (
+  saved: { tradeAmount: number; cashAmount: number },
+  tradeAmount: number,
+): number => {
+  if (!saved.tradeAmount || !saved.cashAmount) return 0
+  if (tradeAmount === saved.tradeAmount) return saved.cashAmount
+  const rate = Math.abs(saved.cashAmount / saved.tradeAmount)
+  const cash = Math.sign(saved.cashAmount) * Math.abs(tradeAmount) * rate
+  return Math.round(cash * 100) / 100
+}
+
+/**
  * Build form values from a Transaction for edit mode.
  */
 export const buildEditModeValues = (
