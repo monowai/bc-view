@@ -1,7 +1,12 @@
 import React, { useCallback, useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
-import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  assetKey,
+  optionalFetcher,
+  portfolioKey,
+  simpleFetcher,
+} from "@utils/api/fetchHelper"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
 import { getAssetCurrency, isAccount, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -12,6 +17,8 @@ import Link from "next/link"
 import { tradesHighlightHref } from "@lib/trns/trnLinks"
 import {
   LadderPair,
+  LadderRow,
+  buildLadderRows,
   groupAutoSettleLegs,
   pairAutoSettleRows,
 } from "@lib/trns/cashLadderPairs"
@@ -86,9 +93,17 @@ function legDescription(
   const settles = pair.adjacent
     ? `Settles this ${pair.trade.trnType}`
     : `Settles ${pair.trade.trnType} ${pair.trade.asset?.displayCode ?? ""}`.trim()
-  if (!fundingCode) return settles
-  const way = leg.trnType === "DEPOSIT" ? "from" : "to"
-  return `${settles} · ${way} ${fundingCode}`
+  const funding = fundingSuffix(leg, fundingCode)
+  return funding ? `${settles} ${funding}` : settles
+}
+
+/** Which way a leg moved cash, and with which funding portfolio. */
+function fundingSuffix(
+  leg: Transaction,
+  fundingCode: string | undefined,
+): string | undefined {
+  if (!fundingCode) return undefined
+  return `· ${leg.trnType === "DEPOSIT" ? "from" : "to"} ${fundingCode}`
 }
 
 /**
@@ -103,7 +118,7 @@ function TrnDescription({
 }: {
   trn: Transaction
   text: string
-  onOpenSettledTrade: (leg: Transaction) => void
+  onOpenSettledTrade: (leg: Transaction) => unknown
 }): React.ReactElement {
   if (isAutoSettleLeg(trn))
     return (
@@ -112,7 +127,7 @@ function TrnDescription({
         title={"Open the trade this settles"}
         onClick={(e) => {
           e.stopPropagation()
-          onOpenSettledTrade(trn)
+          void onOpenSettledTrade(trn)
         }}
         className={`text-left ${TRN_DRILL_LINK}`}
       >
@@ -163,52 +178,6 @@ interface TrnWithBalance extends Transaction {
   signedCashAmount: number
 }
 
-/** A ladder line: one entry, or a trade and its auto-settle leg folded together. */
-type LadderRow =
-  | { kind: "one"; trn: TrnWithBalance }
-  | {
-      kind: "pair"
-      top: TrnWithBalance
-      leg: TrnWithBalance
-      trade: TrnWithBalance
-      /** The cash the trade used, in and straight back out of this account. */
-      moved: number
-    }
-
-/** Folds each adjacent trade + leg pair into one line unless it is open. */
-function buildLadderRows(
-  trns: TrnWithBalance[],
-  pairs: Map<string, LadderPair>,
-  open: Set<string>,
-): LadderRow[] {
-  const rows: LadderRow[] = []
-  for (let i = 0; i < trns.length; i++) {
-    const top = trns[i]
-    const pair = pairs.get(top.id)
-    const bottom = trns[i + 1]
-    if (
-      pair?.adjacent &&
-      pair.edge === "top" &&
-      bottom &&
-      !open.has(pair.tradeId)
-    ) {
-      const leg = isAutoSettleLeg(top) ? top : bottom
-      const trade = leg === top ? bottom : top
-      rows.push({
-        kind: "pair",
-        top,
-        leg,
-        trade,
-        moved: Math.abs(trade.signedCashAmount),
-      })
-      i++
-    } else {
-      rows.push({ kind: "one", trn: top })
-    }
-  }
-  return rows
-}
-
 const DEBIT_TYPES = ["BUY", "WITHDRAWAL", "REDUCE", "EXPENSE", "DEDUCTION"]
 const CREDIT_TYPES = ["SELL", "DEPOSIT", "DIVI", "INCOME"]
 
@@ -253,6 +222,71 @@ function PairToggle({
         aria-hidden="true"
       ></i>
     </button>
+  )
+}
+
+/**
+ * A folded pair's description: the toggle that opens it, the trade's
+ * description and where its cash came from.
+ */
+function PairDescription({
+  trade,
+  leg,
+  fundingCode,
+  onToggle,
+  onOpenSettledTrade,
+}: {
+  trade: Transaction
+  leg: Transaction
+  fundingCode: string | undefined
+  onToggle: () => void
+  onOpenSettledTrade: (leg: Transaction) => unknown
+}): React.ReactElement {
+  const funding = fundingSuffix(leg, fundingCode)
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <PairToggle open={false} onToggle={onToggle} />
+      <TrnDescription
+        trn={trade}
+        text={formatTransaction(trade)}
+        onOpenSettledTrade={onOpenSettledTrade}
+      />
+      {funding && <span className="text-gray-500">{funding}</span>}
+    </span>
+  )
+}
+
+/**
+ * An entry's description. The top entry of an open pair carries the toggle
+ * that folds it again, and the bottom one keeps its place so both line up.
+ */
+function EntryDescription({
+  trn,
+  pair,
+  text,
+  onToggle,
+  onOpenSettledTrade,
+}: {
+  trn: Transaction
+  pair: LadderPair | undefined
+  text: string
+  onToggle: () => void
+  onOpenSettledTrade: (leg: Transaction) => unknown
+}): React.ReactElement {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {pair?.adjacent &&
+        (pair.edge === "top" ? (
+          <PairToggle open onToggle={onToggle} />
+        ) : (
+          <span className="w-5 shrink-0" />
+        ))}
+      <TrnDescription
+        trn={trn}
+        text={text}
+        onOpenSettledTrade={onOpenSettledTrade}
+      />
+    </span>
   )
 }
 
@@ -385,28 +419,24 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     [transactionsWithBalance],
   )
   const [hoveredPair, setHoveredPair] = useState<string | null>(null)
-  const describe = (trn: Transaction): string => {
-    const pair = pairs.get(trn.id)
-    return pair && isAutoSettleLeg(trn)
+  const describe = (trn: Transaction, pair?: LadderPair): string =>
+    pair && isAutoSettleLeg(trn)
       ? legDescription(trn, pair, fundingCode)
       : formatTransaction(trn)
-  }
   const pairHover = (
-    trn: Transaction,
+    pair?: LadderPair,
   ): Pick<
     React.HTMLAttributes<HTMLElement>,
     "onMouseEnter" | "onMouseLeave"
-  > => {
-    const pair = pairs.get(trn.id)
-    return pair
+  > =>
+    pair
       ? {
-          onMouseEnter: () => setHoveredPair(pair.tradeId),
+          onMouseEnter: () => setHoveredPair(pair.trade.id),
           onMouseLeave: () => setHoveredPair(null),
         }
       : {}
-  }
-  const inHoveredPair = (trn: Transaction): boolean =>
-    !!hoveredPair && pairs.get(trn.id)?.tradeId === hoveredPair
+  const inHoveredPair = (pair?: LadderPair): boolean =>
+    !!hoveredPair && pair?.trade.id === hoveredPair
 
   // A trade and its leg show as one line, the trade's description against
   // the leg, until opened.
@@ -418,34 +448,22 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
       else next.add(tradeId)
       return next
     })
-  const ladderRows = useMemo(
+  const ladderRows: LadderRow<TrnWithBalance>[] = useMemo(
     () => buildLadderRows(transactionsWithBalance, pairs, openPairs),
     [transactionsWithBalance, pairs, openPairs],
   )
-  const fundingNote = (leg: Transaction): string | undefined =>
-    fundingCode
-      ? `· ${leg.trnType === "DEPOSIT" ? "from" : "to"} ${fundingCode}`
-      : undefined
 
   // An auto-settle leg opens the trade it settles. Should that trade be gone,
   // the leg's own edit still opens, so it can be put right.
   const openSettledTrade = useCallback(
     async (leg: Transaction): Promise<void> => {
-      try {
-        const response = await fetch(settledTradeKey(leg.id))
-        const trade: Transaction | undefined = response.ok
-          ? (await response.json()).data?.[0]
-          : undefined
-        if (trade) {
-          void router.push(
-            tradesHighlightHref(trade.portfolio.id, trade.asset.id, trade.id),
-          )
-          return
-        }
-      } catch {
-        // fall through to the leg's own edit
-      }
-      void router.push(`/trns/trades/edit/${leg.portfolio.id}/${leg.id}`)
+      const found = await optionalFetcher(settledTradeKey(leg.id))()
+      const trade: Transaction | undefined = found?.data?.[0]
+      void router.push(
+        trade
+          ? tradesHighlightHref(trade.portfolio.id, trade.asset.id, trade.id)
+          : `/trns/trades/edit/${leg.portfolio.id}/${leg.id}`,
+      )
     },
     [router],
   )
@@ -541,23 +559,14 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                     <div className="flex justify-between items-start">
                       <div className="flex flex-1 items-center gap-2">
                         <TypeBadge trnType={row.leg.trnType} />
-                        <PairToggle
-                          open={false}
-                          onToggle={() => togglePair(row.trade.id)}
-                        />
                         <span className="text-sm text-gray-700">
-                          <TrnDescription
-                            trn={row.trade}
-                            text={formatTransaction(row.trade)}
-                            onOpenSettledTrade={(leg) =>
-                              void openSettledTrade(leg)
-                            }
+                          <PairDescription
+                            trade={row.trade}
+                            leg={row.leg}
+                            fundingCode={fundingCode}
+                            onToggle={() => togglePair(row.trade.id)}
+                            onOpenSettledTrade={openSettledTrade}
                           />
-                          {fundingNote(row.leg) && (
-                            <span className="ml-1 text-gray-500">
-                              {fundingNote(row.leg)}
-                            </span>
-                          )}
                         </span>
                       </div>
                       <span className="text-sm text-gray-500">
@@ -567,7 +576,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <TrnCardValue
                         label={"Cash"}
-                        value={row.moved}
+                        value={Math.abs(row.trade.signedCashAmount)}
                         scale={2}
                         valueClassName="ml-1 font-medium text-gray-600"
                       />
@@ -583,29 +592,23 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                   <div
                     key={row.trn.id}
                     data-trn-id={row.trn.id}
-                    {...pairHover(row.trn)}
-                    className={`rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow ${inHoveredPair(row.trn) ? "bg-blue-50" : "bg-white"}${pairs.has(row.trn.id) ? " border-l-2 border-blue-200" : ""}`}
+                    {...pairHover(row.pair)}
+                    className={`rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow ${inHoveredPair(row.pair) ? "bg-blue-50" : "bg-white"}${row.pair ? " border-l-2 border-blue-200" : ""}`}
                     onDoubleClick={() => handleEditClick(row.trn)}
                     title={"Double-click to edit"}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex flex-1 items-center gap-2">
                         <TypeBadge trnType={row.trn.trnType} />
-                        {pairs.get(row.trn.id)?.edge === "top" && (
-                          <PairToggle
-                            open
-                            onToggle={() =>
-                              togglePair(pairs.get(row.trn.id)!.tradeId)
-                            }
-                          />
-                        )}
                         <span className="text-sm text-gray-700">
-                          <TrnDescription
+                          <EntryDescription
                             trn={row.trn}
-                            text={describe(row.trn)}
-                            onOpenSettledTrade={(leg) =>
-                              void openSettledTrade(leg)
+                            pair={row.pair}
+                            text={describe(row.trn, row.pair)}
+                            onToggle={() =>
+                              row.pair && togglePair(row.pair.trade.id)
                             }
+                            onOpenSettledTrade={openSettledTrade}
                           />
                         </span>
                       </div>
@@ -655,27 +658,16 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           <TypeBadge trnType={row.leg.trnType} />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5">
-                            <PairToggle
-                              open={false}
-                              onToggle={() => togglePair(row.trade.id)}
-                            />
-                            <TrnDescription
-                              trn={row.trade}
-                              text={formatTransaction(row.trade)}
-                              onOpenSettledTrade={(leg) =>
-                                void openSettledTrade(leg)
-                              }
-                            />
-                            {fundingNote(row.leg) && (
-                              <span className="text-gray-500">
-                                {fundingNote(row.leg)}
-                              </span>
-                            )}
-                          </span>
+                          <PairDescription
+                            trade={row.trade}
+                            leg={row.leg}
+                            fundingCode={fundingCode}
+                            onToggle={() => togglePair(row.trade.id)}
+                            onOpenSettledTrade={openSettledTrade}
+                          />
                         </td>
                         <TrnNumberCell
-                          value={row.moved}
+                          value={Math.abs(row.trade.signedCashAmount)}
                           scale={2}
                           className="px-4 py-3 text-right whitespace-nowrap font-medium text-gray-600"
                         />
@@ -698,8 +690,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       <tr
                         key={row.trn.id}
                         data-trn-id={row.trn.id}
-                        {...pairHover(row.trn)}
-                        className={`cursor-pointer transition-colors ${inHoveredPair(row.trn) ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                        {...pairHover(row.pair)}
+                        className={`cursor-pointer transition-colors ${inHoveredPair(row.pair) ? "bg-blue-50" : "hover:bg-gray-50"}`}
                         onDoubleClick={() => handleEditClick(row.trn)}
                         title={"Double-click to edit"}
                       >
@@ -710,32 +702,21 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           <TypeBadge trnType={row.trn.trnType} />
                         </td>
                         <td className="relative px-4 py-3 whitespace-nowrap">
-                          {pairs.get(row.trn.id)?.adjacent && (
+                          {row.pair?.adjacent && (
                             <PairBracket
-                              edge={pairs.get(row.trn.id)!.edge}
-                              active={inHoveredPair(row.trn)}
+                              edge={row.pair.edge}
+                              active={inHoveredPair(row.pair)}
                             />
                           )}
-                          <span className="inline-flex items-center gap-1.5">
-                            {pairs.get(row.trn.id)?.adjacent &&
-                              (pairs.get(row.trn.id)!.edge === "top" ? (
-                                <PairToggle
-                                  open
-                                  onToggle={() =>
-                                    togglePair(pairs.get(row.trn.id)!.tradeId)
-                                  }
-                                />
-                              ) : (
-                                <span className="w-5 shrink-0" />
-                              ))}
-                            <TrnDescription
-                              trn={row.trn}
-                              text={describe(row.trn)}
-                              onOpenSettledTrade={(leg) =>
-                                void openSettledTrade(leg)
-                              }
-                            />
-                          </span>
+                          <EntryDescription
+                            trn={row.trn}
+                            pair={row.pair}
+                            text={describe(row.trn, row.pair)}
+                            onToggle={() =>
+                              row.pair && togglePair(row.pair.trade.id)
+                            }
+                            onOpenSettledTrade={openSettledTrade}
+                          />
                         </td>
                         <TrnNumberCell
                           value={row.trn.signedCashAmount}

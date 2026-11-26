@@ -1,5 +1,9 @@
 import { Transaction } from "types/beancounter"
-import { groupAutoSettleLegs, pairAutoSettleRows } from "./cashLadderPairs"
+import {
+  buildLadderRows,
+  groupAutoSettleLegs,
+  pairAutoSettleRows,
+} from "./cashLadderPairs"
 
 const trade = (
   id: string,
@@ -38,13 +42,11 @@ describe("pairAutoSettleRows", () => {
     const pairs = pairAutoSettleRows([leg("l1", "c1"), trade("t1", "c1")])
 
     expect(pairs.get("l1")).toEqual({
-      tradeId: "t1",
       trade: expect.objectContaining({ id: "t1" }),
       edge: "top",
       adjacent: true,
     })
     expect(pairs.get("t1")).toEqual({
-      tradeId: "t1",
       trade: expect.objectContaining({ id: "t1" }),
       edge: "bottom",
       adjacent: true,
@@ -115,5 +117,38 @@ describe("groupAutoSettleLegs", () => {
     ])
 
     expect(ids(grouped)).toEqual(["l1", "t1"])
+  })
+})
+
+describe("buildLadderRows", () => {
+  const kinds = (rows: ReturnType<typeof buildLadderRows>): string[] =>
+    rows.map((row) =>
+      row.kind === "pair" ? `${row.leg.id}+${row.trade.id}` : row.trn.id,
+    )
+
+  it("folds a leg and its trade into one line", () => {
+    const trns = [leg("l1", "c1"), trade("t1", "c1"), plain("d1")]
+    const rows = buildLadderRows(trns, pairAutoSettleRows(trns), new Set())
+
+    expect(kinds(rows)).toEqual(["l1+t1", "d1"])
+  })
+
+  it("leaves an open pair as two entries, each carrying its pair", () => {
+    const trns = [leg("l1", "c1"), trade("t1", "c1")]
+    const rows = buildLadderRows(
+      trns,
+      pairAutoSettleRows(trns),
+      new Set(["t1"]),
+    )
+
+    expect(kinds(rows)).toEqual(["l1", "t1"])
+    expect(rows.every((row) => row.kind === "one" && row.pair)).toBe(true)
+  })
+
+  it("does not fold a pair split by another row", () => {
+    const trns = [leg("l1", "c1"), plain("d1"), trade("t1", "c1")]
+    const rows = buildLadderRows(trns, pairAutoSettleRows(trns), new Set())
+
+    expect(kinds(rows)).toEqual(["l1", "d1", "t1"])
   })
 })

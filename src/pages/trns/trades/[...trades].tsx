@@ -86,11 +86,30 @@ function tradeColumns({
   ]
 }
 
-/** The cash ladder a trade's cash settled to, with the trade flashed. */
-const cashLink = (trn: Transaction): string | undefined =>
-  trn.cashAsset && trn.cashAmount
-    ? cashLadderHref(trn.portfolio.id, trn.cashAsset.id, trn.id)
-    : undefined
+/**
+ * A trade's cash, as a way into the cash ladder it settled to with the trade
+ * flashed. Plain when there is no settlement account to open.
+ */
+function TradeCash({
+  trn,
+  className,
+}: {
+  trn: Transaction
+  className?: string
+}): React.ReactElement {
+  const number = <TrnNumber value={trn.cashAmount} scale={2} blankZero />
+  if (!trn.cashAsset || !trn.cashAmount)
+    return className ? <span className={className}>{number}</span> : number
+  return (
+    <Link
+      href={cashLadderHref(trn.portfolio.id, trn.cashAsset.id, trn.id)}
+      title={"Open the cash ladder"}
+      className={`${className ?? ""} ${TRN_DRILL_LINK}`.trim()}
+    >
+      {number}
+    </Link>
+  )
+}
 
 /** Income and expense rows carry no units or price. */
 const isCashOnly = (trn: Transaction): boolean =>
@@ -579,29 +598,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         blankZero
                         valueClassName="ml-1 font-semibold text-gray-900"
                       />
-                      {cashLink(trn) ? (
-                        <div>
-                          <span className="text-gray-500">{"Cash"}:</span>
-                          <Link
-                            href={cashLink(trn)!}
-                            title={"Open the cash ladder"}
-                            className={`ml-1 font-medium ${TRN_DRILL_LINK}`}
-                          >
-                            <TrnNumber
-                              value={trn.cashAmount}
-                              scale={2}
-                              blankZero
-                            />
-                          </Link>
-                        </div>
-                      ) : (
-                        <TrnCardValue
-                          label={"Cash"}
-                          value={trn.cashAmount}
-                          scale={2}
-                          blankZero
-                        />
-                      )}
+                      <div>
+                        <span className="text-gray-500">{"Cash"}:</span>
+                        <TradeCash trn={trn} className="ml-1 font-medium" />
+                      </div>
                       {!!trn.fees && (
                         <TrnCardValue
                           label={"Fees"}
@@ -718,28 +718,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                             blankZero
                             className={`${NUM_CELL} font-medium text-gray-900`}
                           />
-                          {cashLink(trn) ? (
-                            <td className={`${NUM_CELL} text-gray-600`}>
-                              <Link
-                                href={cashLink(trn)!}
-                                title={"Open the cash ladder"}
-                                className={TRN_DRILL_LINK}
-                              >
-                                <TrnNumber
-                                  value={trn.cashAmount}
-                                  scale={2}
-                                  blankZero
-                                />
-                              </Link>
-                            </td>
-                          ) : (
-                            <TrnNumberCell
-                              value={trn.cashAmount}
-                              scale={2}
-                              blankZero
-                              className={`${NUM_CELL} text-gray-600`}
-                            />
-                          )}
+                          <td className={`${NUM_CELL} text-gray-600`}>
+                            <TradeCash trn={trn} />
+                          </td>
                           {flags.showFees && (
                             <TrnNumberCell
                               value={trn.fees}

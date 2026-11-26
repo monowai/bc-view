@@ -1,8 +1,6 @@
 import { useEffect } from "react"
 import { highlightedTrnId } from "@lib/trns/trnLinks"
-
-/** The flash holdings uses for a jumped-to row (styles/globals.css). */
-const FLASH = "asset-target"
+import { flashTarget } from "@lib/ui/flashTarget"
 
 /**
  * Once the rows are on screen, scroll to the transaction the URL's `#trn-<id>`
@@ -28,12 +26,7 @@ export function useTrnHighlight(ready: boolean): void {
         behavior: "smooth",
         block: "center",
       })
-      rows.forEach((row) => {
-        row.classList.remove(FLASH)
-        // Reflow so the flash replays when the same row is jumped to again.
-        void row.offsetWidth
-        row.classList.add(FLASH)
-      })
+      rows.forEach(flashTarget)
     })
     return () => cancelAnimationFrame(raf)
   }, [ready])

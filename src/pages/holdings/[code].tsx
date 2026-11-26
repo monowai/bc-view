@@ -64,6 +64,7 @@ import { createTrns } from "@utils/api/client/trns"
 import { writePrice } from "@utils/api/client/prices"
 import dynamic from "next/dynamic"
 import ChartPlaceholder from "@components/ui/ChartPlaceholder"
+import { flashTarget } from "@lib/ui/flashTarget"
 
 const PerformanceChart = dynamic(
   () => import("@components/features/holdings/PerformanceChart"),
@@ -138,10 +139,7 @@ function HoldingsPage(): React.ReactElement {
       const el = document.getElementById(`asset-${targetAssetId}`)
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" })
-        el.classList.remove("asset-target")
-        // force reflow so the animation re-triggers if the same target is revisited
-        void el.offsetWidth
-        el.classList.add("asset-target")
+        flashTarget(el)
       }
     })
     return () => cancelAnimationFrame(raf)

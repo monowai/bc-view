@@ -13,6 +13,7 @@ import {
 } from "./tradeUtils"
 import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
+import { roundMoney } from "@lib/money"
 
 // --- Weight and position calculations ---
 
@@ -326,7 +327,7 @@ export const rescaleCashAmount = (
   if (!saved.tradeAmount) return 0
   if (tradeAmount === saved.tradeAmount) return saved.cashAmount
   const rate = Math.abs(saved.cashAmount / saved.tradeAmount)
-  return Math.round(direction * Math.abs(tradeAmount) * rate * 100) / 100
+  return roundMoney(direction * Math.abs(tradeAmount) * rate)
 }
 
 /**

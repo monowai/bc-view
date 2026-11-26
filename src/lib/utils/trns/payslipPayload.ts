@@ -1,5 +1,6 @@
 import { DefinedContributionBucket } from "@components/features/independence/useDefinedContribution"
 import { TRN_STATUS } from "types/constants"
+import { roundMoney } from "@lib/money"
 
 /**
  * One transaction leg of a payslip submission, matching the loose REST shape
@@ -58,16 +59,6 @@ export interface BuildPayslipPayloadInput {
    */
   buckets?: DefinedContributionBucket[]
 }
-
-/**
- * Round a monetary value to cents using decimal half-up. Plain
- * `Math.round(n * 100) / 100` (and `n.toFixed(2)`) mis-round values whose
- * IEEE-754 representation lands just below the .5 boundary — e.g. 1.005 is
- * stored as 1.00499999…, so both naive forms yield 1.00. Nudging by a relative
- * epsilon before scaling restores the intended half-up result (1.005 → 1.01).
- */
-const roundMoney = (n: number): number =>
-  Math.round((n + Math.sign(n) * Math.abs(n) * Number.EPSILON) * 100) / 100
 
 const round2 = roundMoney
 

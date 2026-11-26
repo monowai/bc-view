@@ -4,6 +4,8 @@
  * `useTrnHighlight` scrolls to and flashes the row carrying `data-trn-id`.
  */
 
+import { buildTradesHref } from "@lib/assets/assetUtils"
+
 const TRN_FRAGMENT = "#trn-"
 
 const fragment = (trnId: string): string =>
@@ -21,7 +23,7 @@ export const tradesHighlightHref = (
   portfolioId: string,
   assetId: string,
   trnId: string,
-): string => `/trns/trades/${portfolioId}/${assetId}${fragment(trnId)}`
+): string => `${buildTradesHref(portfolioId, assetId)}${fragment(trnId)}`
 
 /** The transaction a URL fragment names, if it names one. */
 export const highlightedTrnId = (hash: string): string | undefined =>
