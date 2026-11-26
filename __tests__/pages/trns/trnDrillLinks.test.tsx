@@ -259,3 +259,36 @@ describe("cash ladder: an auto-settle leg sits with its trade", () => {
     expect(row("t1")).not.toHaveClass("bg-blue-50")
   })
 })
+
+describe("cash ladder: legs posted together still sit with their trades", () => {
+  it("brackets each leg with its own trade", () => {
+    const legOf = (id: string, callerId: string): object =>
+      makeTrn({
+        id,
+        trnType: "DEPOSIT",
+        asset: cashAsset,
+        callerRef: {
+          provider: "BC-AUTO",
+          batch: callerId,
+          callerId: `${id}-c`,
+        },
+      })
+    const tradeOf = (id: string, callerId: string): object =>
+      makeTrn({ id, callerRef: { provider: "BC", batch: "b", callerId } })
+    ladderView([
+      legOf("l2", "c2"),
+      legOf("l1", "c1"),
+      tradeOf("t2", "c2"),
+      tradeOf("t1", "c1"),
+    ])
+    render(<CashLadder />)
+
+    const order = Array.from(document.querySelectorAll("tr[data-trn-id]")).map(
+      (row) => row.getAttribute("data-trn-id"),
+    )
+    expect(order).toEqual(["l2", "t2", "l1", "t1"])
+    expect(
+      screen.getAllByRole("button", { name: "Settles this BUY · from FUND" }),
+    ).toHaveLength(4)
+  })
+})

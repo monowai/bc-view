@@ -10,7 +10,11 @@ import useSwr from "swr"
 import { cashLadderKey, settledTradeKey } from "@utils/api/client/trns"
 import Link from "next/link"
 import { tradesHighlightHref } from "@lib/trns/trnLinks"
-import { LadderPair, pairAutoSettleRows } from "@lib/trns/cashLadderPairs"
+import {
+  LadderPair,
+  groupAutoSettleLegs,
+  pairAutoSettleRows,
+} from "@lib/trns/cashLadderPairs"
 import { isAutoSettleLeg } from "@lib/trns/tradeUtils"
 import { useTrnHighlight } from "@components/features/transactions/useTrnHighlight"
 import {
@@ -251,7 +255,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   // walks newest→oldest starting from the current total and subtracts
   // each trn to expose "balance immediately after this trn".
   const transactionsWithBalance = useMemo((): TrnWithBalance[] => {
-    const trns = cashLadderData.data?.data || []
+    // Each auto-settle leg beside its trade; the balance walks this order.
+    const trns = groupAutoSettleLegs(cashLadderData.data?.data || [])
     if (trns.length === 0 || !cashAssetId) return []
 
     let balance = trns.reduce(
