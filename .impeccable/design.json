@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-20T07:40:21+00:00",
+  "generatedAt": "2026-11-26T01:38:19+00:00",
   "title": "Design System: bc-view",
   "extensions": {
     "colorMeta": {
@@ -67,7 +67,7 @@
       "gain": {
         "role": "tertiary",
         "displayName": "Gain Green",
-        "canonical": "#059669",
+        "canonical": "#047857",
         "tonalRamp": [
           "#064e3b",
           "#065f46",
@@ -137,6 +137,10 @@
       "data": {
         "displayName": "Data (Mono)",
         "purpose": "All currency, percentages, quantities, prices — JetBrains Mono with tabular-nums."
+      },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Chart axis ticks, dense table sub-labels, badge text. The floor: no functional text goes smaller."
       }
     },
     "shadows": [
@@ -230,7 +234,7 @@
       "refersTo": "data",
       "description": "Monetary delta — mono, tabular, hue paired with a directional arrow so it never relies on color alone.",
       "html": "<span class=\"ds-gain\">▲ +$1,204.18</span> <span class=\"ds-loss\">▼ −$312.40</span>",
-      "css": ".ds-gain, .ds-loss { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.875rem; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-gain { color: #059669; } .ds-loss { color: #dc2626; }"
+      "css": ".ds-gain, .ds-loss { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.875rem; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-gain { color: #047857; } .ds-loss { color: #dc2626; }"
     },
     {
       "name": "Empty State",
