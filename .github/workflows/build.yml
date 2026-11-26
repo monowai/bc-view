@@ -235,7 +235,7 @@ jobs:
       - name: Upload build artifacts
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          (github.event_name == 'workflow_dispatch' && inputs.build_image)
+          (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.build_image)
         uses: actions/upload-artifact@v7
         with:
           name: build-output
@@ -250,13 +250,13 @@ jobs:
   docker:
     name: Build Docker (${{ matrix.platform }})
     # The arm64 image builds on Kauri when CI_RUNNER is set. This job runs
-    # only on a push to main or a manual dispatch, so it builds merged code.
+    # only on a push to main or a manual run started on main.
     runs-on: ${{ matrix.platform == 'linux/arm64' && vars.CI_RUNNER || matrix.runner }}
     timeout-minutes: 30
     needs: [test, build]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.build_image)
     permissions:
       contents: read
       packages: write
@@ -352,7 +352,7 @@ jobs:
     needs: docker
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.build_image)
     permissions:
       contents: read
       packages: write
