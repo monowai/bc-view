@@ -22,13 +22,17 @@ import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { deleteTrn, settledTradeKey, unsettleTrn } from "@utils/api/client/trns"
 import { buildTradeGroups, isAutoSettleLeg } from "@utils/trns/tradeUtils"
 import { holdingsHighlightHref } from "@utils/holdings/holdingsHref"
+import { cashLadderHref } from "@lib/trns/trnLinks"
+import { useTrnHighlight } from "@components/features/transactions/useTrnHighlight"
 import {
   TrnCardValue,
   TrnColumn,
   TrnDeleteConfirm,
   TrnDetailTabs,
   TrnEmptyState,
+  TrnNumber,
   TrnNumberCell,
+  TRN_DRILL_LINK,
   TrnPageNav,
   TrnRowActions,
   TrnStatusBadge,
@@ -81,6 +85,12 @@ function tradeColumns({
     { label: "Actions", align: "right" as const, srOnly: true },
   ]
 }
+
+/** The cash ladder a trade's cash settled to, with the trade flashed. */
+const cashLink = (trn: Transaction): string | undefined =>
+  trn.cashAsset && trn.cashAmount
+    ? cashLadderHref(trn.portfolio.id, trn.cashAsset.id, trn.id)
+    : undefined
 
 /** Income and expense rows carry no units or price. */
 const isCashOnly = (trn: Transaction): boolean =>
@@ -249,6 +259,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       ),
     [trnResults, isMulti, trades.data?.summary],
   )
+  useTrnHighlight(groups.length > 0)
   // Decided over every trade on the page, so each broker's table has the
   // same columns.
   const flags: TradeColumnFlags = {
@@ -525,6 +536,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 {group.transactions.map((trn: Transaction) => (
                   <div
                     key={trn.id}
+                    data-trn-id={trn.id}
                     className="p-3 space-y-2 cursor-pointer hover:bg-blue-50/50 transition-colors"
                     onDoubleClick={() => editTrn(trn)}
                     title={"Double-click to edit"}
@@ -567,12 +579,29 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         blankZero
                         valueClassName="ml-1 font-semibold text-gray-900"
                       />
-                      <TrnCardValue
-                        label={"Cash"}
-                        value={trn.cashAmount}
-                        scale={2}
-                        blankZero
-                      />
+                      {cashLink(trn) ? (
+                        <div>
+                          <span className="text-gray-500">{"Cash"}:</span>
+                          <Link
+                            href={cashLink(trn)!}
+                            title={"Open the cash ladder"}
+                            className={`ml-1 font-medium ${TRN_DRILL_LINK}`}
+                          >
+                            <TrnNumber
+                              value={trn.cashAmount}
+                              scale={2}
+                              blankZero
+                            />
+                          </Link>
+                        </div>
+                      ) : (
+                        <TrnCardValue
+                          label={"Cash"}
+                          value={trn.cashAmount}
+                          scale={2}
+                          blankZero
+                        />
+                      )}
                       {!!trn.fees && (
                         <TrnCardValue
                           label={"Fees"}
@@ -653,6 +682,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       return (
                         <tr
                           key={trn.id}
+                          data-trn-id={trn.id}
                           className="hover:bg-blue-50/60 transition-colors cursor-pointer"
                           onDoubleClick={() => editTrn(trn)}
                           title={"Double-click to edit"}
@@ -688,12 +718,28 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                             blankZero
                             className={`${NUM_CELL} font-medium text-gray-900`}
                           />
-                          <TrnNumberCell
-                            value={trn.cashAmount}
-                            scale={2}
-                            blankZero
-                            className={`${NUM_CELL} text-gray-600`}
-                          />
+                          {cashLink(trn) ? (
+                            <td className={`${NUM_CELL} text-gray-600`}>
+                              <Link
+                                href={cashLink(trn)!}
+                                title={"Open the cash ladder"}
+                                className={TRN_DRILL_LINK}
+                              >
+                                <TrnNumber
+                                  value={trn.cashAmount}
+                                  scale={2}
+                                  blankZero
+                                />
+                              </Link>
+                            </td>
+                          ) : (
+                            <TrnNumberCell
+                              value={trn.cashAmount}
+                              scale={2}
+                              blankZero
+                              className={`${NUM_CELL} text-gray-600`}
+                            />
+                          )}
                           {flags.showFees && (
                             <TrnNumberCell
                               value={trn.fees}

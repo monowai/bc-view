@@ -46,6 +46,10 @@ export function TrnNumber({
   )
 }
 
+/** A figure or label that opens a related list: dotted until hovered. */
+export const TRN_DRILL_LINK =
+  "underline decoration-dotted decoration-gray-400 underline-offset-2 hover:text-blue-700 hover:decoration-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-sm"
+
 export function TrnNumberCell({
   className = "px-4 py-3 text-right whitespace-nowrap",
   ...number

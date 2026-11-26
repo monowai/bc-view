@@ -7,7 +7,11 @@ import { getAssetCurrency, isAccount, isCash } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import { cashLadderKey } from "@utils/api/client/trns"
+import { cashLadderKey, settledTradeKey } from "@utils/api/client/trns"
+import Link from "next/link"
+import { tradesHighlightHref } from "@lib/trns/trnLinks"
+import { isAutoSettleLeg } from "@lib/trns/tradeUtils"
+import { useTrnHighlight } from "@components/features/transactions/useTrnHighlight"
 import {
   TrnCardValue,
   TrnColumn,
@@ -18,6 +22,7 @@ import {
   TrnRowActions,
   TrnStatusBadge,
   TrnTableHead,
+  TRN_DRILL_LINK,
 } from "@components/features/transactions/TrnListParts"
 import { useTrnListDelete } from "@components/features/transactions/useTrnListDelete"
 
@@ -55,6 +60,46 @@ function formatTransaction(trn: Transaction): string {
   if (type === "DEDUCTION") return `Deduction ${assetName}`
   if (type === "INCOME") return `Income ${assetName}`
   return `${type} ${assetName}`
+}
+
+/**
+ * What a ladder row says it is, as a way into the trade behind it: a trade's
+ * row opens its asset's trades, an auto-settle leg opens the trade it settles.
+ * A plain cash move has no trade behind it and stays text.
+ */
+function TrnDescription({
+  trn,
+  onOpenSettledTrade,
+}: {
+  trn: Transaction
+  onOpenSettledTrade: (leg: Transaction) => void
+}): React.ReactElement {
+  const text = formatTransaction(trn)
+  if (isAutoSettleLeg(trn))
+    return (
+      <button
+        type="button"
+        title={"Open the trade this settles"}
+        onClick={(e) => {
+          e.stopPropagation()
+          onOpenSettledTrade(trn)
+        }}
+        className={`text-left ${TRN_DRILL_LINK}`}
+      >
+        {text}
+      </button>
+    )
+  if (trn.asset && !isCash(trn.asset) && !isAccount(trn.asset))
+    return (
+      <Link
+        href={tradesHighlightHref(trn.portfolio.id, trn.asset.id, trn.id)}
+        title={"Open the trades"}
+        className={TRN_DRILL_LINK}
+      >
+        {text}
+      </Link>
+    )
+  return <>{text}</>
 }
 
 // Type for transaction with running balance and signed cash amount
@@ -164,6 +209,31 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     })
   }, [cashLadderData.data, getSignedCashAmount, cashAssetId])
 
+  useTrnHighlight(transactionsWithBalance.length > 0)
+
+  // An auto-settle leg opens the trade it settles. Should that trade be gone,
+  // the leg's own edit still opens, so it can be put right.
+  const openSettledTrade = useCallback(
+    async (leg: Transaction): Promise<void> => {
+      try {
+        const response = await fetch(settledTradeKey(leg.id))
+        const trade: Transaction | undefined = response.ok
+          ? (await response.json()).data?.[0]
+          : undefined
+        if (trade) {
+          void router.push(
+            tradesHighlightHref(trade.portfolio.id, trade.asset.id, trade.id),
+          )
+          return
+        }
+      } catch {
+        // fall through to the leg's own edit
+      }
+      void router.push(`/trns/trades/edit/${leg.portfolio.id}/${leg.id}`)
+    },
+    [router],
+  )
+
   const handleEditClick = useCallback(
     (trn: Transaction) => {
       router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
@@ -245,6 +315,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
               {transactionsWithBalance.map((trn: TrnWithBalance) => (
                 <div
                   key={trn.id}
+                  data-trn-id={trn.id}
                   className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
                   onDoubleClick={() => handleEditClick(trn)}
                   title={"Double-click to edit"}
@@ -267,7 +338,12 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                         {trn.trnType}
                       </span>
                       <span className="ml-2 text-sm text-gray-700">
-                        {formatTransaction(trn)}
+                        <TrnDescription
+                          trn={trn}
+                          onOpenSettledTrade={(leg) =>
+                            void openSettledTrade(leg)
+                          }
+                        />
                       </span>
                     </div>
                     <span className="text-sm text-gray-500">
@@ -301,6 +377,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                   {transactionsWithBalance.map((trn: TrnWithBalance) => (
                     <tr
                       key={trn.id}
+                      data-trn-id={trn.id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onDoubleClick={() => handleEditClick(trn)}
                       title={"Double-click to edit"}
@@ -329,7 +406,12 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {formatTransaction(trn)}
+                        <TrnDescription
+                          trn={trn}
+                          onOpenSettledTrade={(leg) =>
+                            void openSettledTrade(leg)
+                          }
+                        />
                       </td>
                       <TrnNumberCell
                         value={trn.signedCashAmount}
