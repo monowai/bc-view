@@ -5,6 +5,7 @@ import {
   resolveAssetSelection,
   calculateFxBuyAmount,
   filterFxBuyOptions,
+  fxBuyChoice,
   buildCashCopyData,
   resolveFxDisplayInfo,
   groupAssetOptions,
@@ -430,5 +431,32 @@ describe("cashTypeOf", () => {
 
   it("falls back to a deposit for an unknown type", () => {
     expect(cashTypeOf("NOPE").value).toBe("DEPOSIT")
+  })
+})
+
+describe("fxBuyChoice", () => {
+  it("keeps an account's currency and market apart from its code", () => {
+    expect(
+      fxBuyChoice({
+        value: "BANK-SGD",
+        label: "Bank SGD",
+        currency: "SGD",
+        market: "PRIVATE",
+      }),
+    ).toEqual({
+      value: "BANK-SGD",
+      label: "Bank SGD",
+      currency: "SGD",
+      market: "PRIVATE",
+    })
+  })
+
+  it("reads a bare currency option as that currency on the CASH market", () => {
+    expect(fxBuyChoice({ value: "EUR", label: "EUR" })).toEqual({
+      value: "EUR",
+      label: "EUR",
+      currency: "EUR",
+      market: "CASH",
+    })
   })
 })
