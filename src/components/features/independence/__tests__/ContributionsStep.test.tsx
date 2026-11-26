@@ -17,8 +17,9 @@ jest.mock("@lib/assets/usePrivateAssetConfigs", () => ({
 jest.mock("@hooks/useExcludedAssetIds", () => ({
   useExcludedAssetIds: () => new Set<string>(),
 }))
+const mockUseDefinedContribution = jest.fn()
 jest.mock("../useDefinedContribution", () => ({
-  useDefinedContribution: () => ({ data: undefined }),
+  useDefinedContribution: () => mockUseDefinedContribution(),
 }))
 
 const mockUseSwr = useSwr as jest.Mock
@@ -42,9 +43,17 @@ function givenFxRates(rates: Record<string, { rate: number }>): void {
   })
 }
 
-function Wrapper(): React.ReactElement {
+function Wrapper({
+  values = {},
+}: {
+  values?: Partial<WizardFormData>
+}): React.ReactElement {
   const methods = useForm<WizardFormData>({
-    defaultValues: { ...defaultWizardValues, expensesCurrency: "SGD" },
+    defaultValues: {
+      ...defaultWizardValues,
+      expensesCurrency: "SGD",
+      ...values,
+    },
   })
   return (
     <ContributionsStep
@@ -55,6 +64,10 @@ function Wrapper(): React.ReactElement {
     />
   )
 }
+
+beforeEach(() => {
+  mockUseDefinedContribution.mockReturnValue({ data: undefined })
+})
 
 describe("ContributionsStep rental income FX", () => {
   beforeEach(() => {
@@ -86,5 +99,55 @@ describe("ContributionsStep rental income FX", () => {
     render(<Wrapper />)
 
     expect(screen.queryByText("Property Rental")).not.toBeInTheDocument()
+  })
+})
+
+describe("ContributionsStep defined contribution", () => {
+  beforeEach(() => {
+    mockUsePrivateAssetConfigs.mockReturnValue({
+      configs: [],
+      assetNames: {},
+      isLoading: false,
+    })
+    givenFxRates({})
+    mockUseDefinedContribution.mockReturnValue({
+      data: { hasDefinedContribution: true, employeeContribution: 1250 },
+    })
+  })
+
+  it("takes the defined contribution off before the investment allocation", () => {
+    render(
+      <Wrapper
+        values={{
+          workingIncomeMonthly: 6253,
+          taxesMonthly: 150,
+          workingExpensesMonthly: 4000,
+          bonusMonthly: 0,
+          investmentAllocationPercent: 50,
+          contributions: [],
+        }}
+      />,
+    )
+
+    // (6,253 - 150 - 4,000 - 1,250) x 50%
+    expect(
+      screen.getByText(/investment target is \$426\.5\/month/),
+    ).toBeInTheDocument()
+  })
+})
+
+describe("ContributionsStep gross salary", () => {
+  it("says compulsory contributions come off the gross salary", () => {
+    mockUsePrivateAssetConfigs.mockReturnValue({
+      configs: [],
+      assetNames: {},
+      isLoading: false,
+    })
+    givenFxRates({})
+    render(<Wrapper />)
+
+    expect(
+      screen.getByText(/compulsory pension contributions/),
+    ).toBeInTheDocument()
   })
 })

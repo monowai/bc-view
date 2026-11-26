@@ -26,6 +26,8 @@ import {
   SummaryItem,
 } from "../form"
 import { assetsKey } from "@utils/api/client/assets"
+import { employmentInvestment } from "@utils/independence/employmentInvestment"
+import { grossIncomeHint } from "@utils/independence/messages"
 import { fxPairsKey, postFxRates } from "@utils/api/client/fx"
 
 const msg = wizardMessages.steps.contributions
@@ -325,13 +327,11 @@ export default function ContributionsStep({
     workingIncomeMonthly + bonusMonthly - taxesMonthly + totalRentalIncome
   const monthlySurplus = netIncomeMonthly - workingExpensesMonthly
   const surplusAfterContributions = monthlySurplus - grandTotal
-  const monthlyInvestment = Math.max(
-    0,
-    surplusAfterContributions * (investmentAllocationPercent / 100),
-  )
-
-  // Investment target after DC deduction
-  const investmentTarget = Math.max(0, monthlyInvestment - dcAmount)
+  const { monthlyInvestment, investmentTarget } = employmentInvestment({
+    surplusAfterContributions,
+    investmentAllocationPercent,
+    definedContribution: dcAmount,
+  })
 
   // Summary items for display
   const summaryItems: SummaryItem[] = [
@@ -462,7 +462,7 @@ export default function ContributionsStep({
         <CurrencyInputWithPeriod
           name="workingIncomeMonthly"
           label="Gross Salary"
-          helperText="Your salary before taxes (not including bonus)."
+          helperText={`${grossIncomeHint} Excludes bonus.`}
           control={control}
           errors={errors}
         />

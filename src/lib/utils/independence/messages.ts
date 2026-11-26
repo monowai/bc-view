@@ -3,6 +3,13 @@
  * Centralized location for all user-facing text.
  */
 
+/**
+ * Working income is gross: compulsory contributions (the CPF employee share)
+ * and taxes come off before anything is invested (svc-retire #338, #347).
+ */
+export const grossIncomeHint =
+  "Before taxes and compulsory pension contributions (e.g. the CPF employee share). We take those off for you."
+
 export const wizardMessages = {
   steps: {
     personalInfo: {

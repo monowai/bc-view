@@ -4,6 +4,7 @@ import Dialog from "@components/ui/Dialog"
 import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
 import { currentAgeFromSettings } from "@lib/independence/age"
+import { grossIncomeHint } from "@utils/independence/messages"
 
 interface ScenarioEditorProps {
   scenario?: WorkScenario | null
@@ -158,7 +159,7 @@ export default function ScenarioEditor({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monthly Income
+              Gross Monthly Income
             </label>
             <input
               type="number"
@@ -172,6 +173,7 @@ export default function ScenarioEditor({
               }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             />
+            <p className="mt-1 text-xs text-gray-500">{grossIncomeHint}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

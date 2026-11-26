@@ -14,6 +14,8 @@ import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses
 import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@components/features/independence/useIndependenceSettings"
+import { useDefinedContribution } from "@components/features/independence/useDefinedContribution"
+import { currentAgeFromSettings } from "@lib/independence/age"
 import { currencySymbolFor, toErrorMessage } from "@lib/formatters"
 import { phaseFailureMessage } from "@lib/independence/phasing"
 import { readErrorMessage } from "@utils/api/readErrorMessage"
@@ -55,7 +57,6 @@ const DEFAULT_TARGET_AGE = "65"
 export default function SetupWizard(): React.ReactElement {
   const { preferences } = useUserPreferences()
   const { settings } = useIndependenceSettings()
-
   const [step, setStep] = useState(1)
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
   const [medicalExpenses, setMedicalExpenses] = useState(0)
@@ -77,6 +78,16 @@ export default function SetupWizard(): React.ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [phaseError, setPhaseError] = useState<string | null>(null)
   const [createdPlanId, setCreatedPlanId] = useState<string | null>(null)
+
+  // CPF employee share on the gross income; svc-retire answers 0 without a
+  // CPF policy, so the preview needs no scheme knowledge of its own.
+  const { data: definedContribution } = useDefinedContribution(
+    workingIncomeMonthly,
+    currentAgeFromSettings(settings),
+  )
+  const definedContributionMonthly = definedContribution?.hasDefinedContribution
+    ? definedContribution.employeeContribution
+    : 0
 
   // Adopt the stored target age the first time settings arrive. Render-phase
   // "store previous value" pattern rather than an effect, so it runs once
@@ -312,6 +323,7 @@ export default function SetupWizard(): React.ReactElement {
                 bonusMonthly={bonusMonthly}
                 investmentAllocationPercent={investmentAllocationPercent}
                 currency={currency}
+                definedContributionMonthly={definedContributionMonthly}
                 onWorkingIncomeMonthlyChange={setWorkingIncomeMonthly}
                 onWorkingExpensesMonthlyChange={setWorkingExpensesMonthly}
                 onTaxesMonthlyChange={setTaxesMonthly}
