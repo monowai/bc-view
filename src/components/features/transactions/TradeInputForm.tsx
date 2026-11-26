@@ -237,8 +237,15 @@ const TradeInputForm: React.FC<{
   )
 
   // Check if portfolio changed from initial
-  const portfolioChanged =
-    selectedPortfolioId !== (transaction?.portfolio.id || portfolio.id)
+  const openedPortfolio = transaction?.portfolio || portfolio
+  const portfolioChanged = selectedPortfolioId !== openedPortfolio.id
+
+  // The list holds only the user's own portfolios. One they manage for someone
+  // else is not in it, and a select would show its first option instead, so
+  // the portfolio is shown as a label and the trade stays where it was opened.
+  const canSwitchPortfolio =
+    portfolios.some((p) => p.id === openedPortfolio.id) &&
+    showPortfolioPicker(portfolios, preferences)
 
   // Check if model changed from initial value (edit mode)
   const modelChanged =
@@ -917,7 +924,7 @@ const TradeInputForm: React.FC<{
                   {[editAssetName, editMarketCode].filter(Boolean).join(" · ")}
                 </span>
               )}
-              {showPortfolioPicker(portfolios, preferences) ? (
+              {canSwitchPortfolio ? (
                 <PortfolioSwitch
                   portfolios={portfolios}
                   value={selectedPortfolioId}
@@ -931,7 +938,7 @@ const TradeInputForm: React.FC<{
                   }
                 />
               ) : (
-                !isEditMode && `${portfolio.code} · ${portfolio.name}`
+                `${openedPortfolio.code} · ${openedPortfolio.name}`
               )}
             </>
           }
