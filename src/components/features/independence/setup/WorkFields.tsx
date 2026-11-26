@@ -1,4 +1,6 @@
 import React from "react"
+import { employmentInvestment } from "@utils/independence/employmentInvestment"
+import { grossIncomeHint } from "@utils/independence/messages"
 
 export interface WorkFieldsProps {
   workingIncomeMonthly: number
@@ -7,6 +9,8 @@ export interface WorkFieldsProps {
   bonusMonthly: number
   investmentAllocationPercent: number
   currency: string
+  /** Monthly employee defined contribution (CPF) on the gross income; 0 when none. */
+  definedContributionMonthly: number
   onWorkingIncomeMonthlyChange: (amount: number) => void
   onWorkingExpensesMonthlyChange: (amount: number) => void
   onTaxesMonthlyChange: (amount: number) => void
@@ -19,7 +23,8 @@ const numeric = (value: string): number => (value === "" ? 0 : Number(value))
 /**
  * What the surplus that funds the plan is made of. Backend-owned figures are
  * never re-derived here — the contribution line below is a preview of the
- * arithmetic the user is doing on this screen, not a projection.
+ * arithmetic the user is doing on this screen, not a projection. The CPF
+ * employee share leaves gross pay before the allocation, as in svc-retire.
  */
 function monthlyContribution(
   income: number,
@@ -27,9 +32,14 @@ function monthlyContribution(
   taxes: number,
   bonus: number,
   allocationPct: number,
+  definedContribution: number,
 ): number {
-  const surplus = income + bonus - expenses - taxes
-  return Math.round(Math.max(0, surplus) * (allocationPct / 100))
+  const { investmentTarget } = employmentInvestment({
+    surplusAfterContributions: income + bonus - expenses - taxes,
+    investmentAllocationPercent: allocationPct,
+    definedContribution,
+  })
+  return Math.round(investmentTarget)
 }
 
 /** The work-scenario fields, as onboarding collects them. */
@@ -40,6 +50,7 @@ export default function WorkFields({
   bonusMonthly,
   investmentAllocationPercent,
   currency,
+  definedContributionMonthly,
   onWorkingIncomeMonthlyChange,
   onWorkingExpensesMonthlyChange,
   onTaxesMonthlyChange,
@@ -52,6 +63,7 @@ export default function WorkFields({
     taxesMonthly,
     bonusMonthly,
     investmentAllocationPercent,
+    definedContributionMonthly,
   )
 
   const inputCls =
@@ -65,7 +77,7 @@ export default function WorkFields({
             htmlFor="setupWorkingIncome"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {`Monthly Income (${currency})`}
+            {`Gross Monthly Income (${currency})`}
           </label>
           <input
             id="setupWorkingIncome"
@@ -80,6 +92,7 @@ export default function WorkFields({
             }
             className={inputCls}
           />
+          <p className="mt-1 text-xs text-gray-500">{grossIncomeHint}</p>
         </div>
 
         <div>
@@ -178,6 +191,11 @@ export default function WorkFields({
             <i aria-hidden="true" className="fas fa-piggy-bank mr-2"></i>
             {`Estimated monthly investment: ${currency} ${contribution.toLocaleString()}`}
           </p>
+          {definedContributionMonthly > 0 && (
+            <p className="text-xs text-independence-600 mt-1">
+              {`after ${currency} ${Math.round(definedContributionMonthly).toLocaleString()} CPF from your gross pay`}
+            </p>
+          )}
         </div>
       )}
     </div>
