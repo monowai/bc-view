@@ -80,8 +80,7 @@ const priceCalls = (): string[] =>
     .map((c: unknown[]) => String(c[0]))
     .filter((u: string) => u.startsWith("/api/prices/"))
 
-const investTab = (): HTMLElement =>
-  screen.getByRole("button", { name: "Invest" })
+const investTab = (): HTMLElement => screen.getByRole("tab", { name: "Invest" })
 
 const freshAsset = {
   asset: "AAPL",

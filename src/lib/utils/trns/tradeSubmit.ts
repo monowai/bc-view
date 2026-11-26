@@ -16,7 +16,7 @@ import {
 } from "@utils/api/client/trns"
 import { refreshHoldingsSoon } from "./refreshHoldings"
 
-type MutateFn = (key: string) => Promise<any>
+type MutateFn = (matcher: (key: unknown) => boolean) => unknown
 
 /**
  * Extract `warnings` array from a successful TrnResponse, tolerating mocks /
@@ -46,8 +46,6 @@ export interface SubmitEditModeParams {
   }
   selectedModelId: string | undefined
   selectedPortfolioId: string
-  portfolioChanged: boolean
-  portfolios: Portfolio[]
   editMode: { onClose: () => void }
   mutate: MutateFn
   setSubmitError: (error: string | null) => void
@@ -65,8 +63,6 @@ export async function submitEditMode(
     transaction,
     selectedModelId,
     selectedPortfolioId,
-    portfolioChanged,
-    portfolios,
     editMode,
     mutate,
     setSubmitError,
@@ -88,14 +84,7 @@ export async function submitEditMode(
     )
     if (response.ok) {
       mutateProposedCaches()
-      const movedTo = portfolioChanged
-        ? portfolios.find((p) => p.id === selectedPortfolioId)
-        : undefined
-      refreshHoldingsSoon(
-        mutate,
-        transaction.portfolio.code,
-        ...(movedTo ? [movedTo.code] : []),
-      )
+      refreshHoldingsSoon(mutate)
       editMode.onClose()
     } else {
       const errorData = await response.json().catch(() => ({}))
@@ -151,7 +140,7 @@ async function submitCashFlow(
     const response = await createTrns(payload)
     if (response.ok) {
       const warnings = await parseWarnings(response)
-      refreshHoldingsSoon(mutate, portfolio.code)
+      refreshHoldingsSoon(mutate)
       setSubmitWarnings?.(warnings)
       if (warnings.length === 0) {
         setModalOpen(false)
@@ -220,7 +209,7 @@ export async function submitCreateMode(
     (open) => {
       setModalOpen(open)
       if (!open) {
-        refreshHoldingsSoon(mutate, portfolio.code)
+        refreshHoldingsSoon(mutate)
       }
     },
   )

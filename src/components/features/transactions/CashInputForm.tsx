@@ -33,6 +33,7 @@ import {
   resolveFxCurrencyPair,
   resolveAssetSelection,
   filterFxBuyOptions,
+  fxBuyChoice,
   buildCashCopyData,
   resolveFxDisplayInfo,
   cashTypeOf,
@@ -113,7 +114,7 @@ const CashInputForm: React.FC<{
     setValue,
     getValues,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: yupResolver(cashSchema),
     defaultValues,
@@ -173,8 +174,7 @@ const CashInputForm: React.FC<{
   useEffect(() => {
     if (!isFx || buyOptions.length === 0) return
     if (buyOptions.some((opt) => opt.value === cashCurrency?.value)) return
-    const first = buyOptions[0]
-    setValue("cashCurrency", { value: first.value, label: first.label })
+    setValue("cashCurrency", fxBuyChoice(buyOptions[0]))
   }, [isFx, buyOptions, cashCurrency?.value, setValue])
 
   const pair = isFx
@@ -233,7 +233,7 @@ const CashInputForm: React.FC<{
     setSubmitError(null)
     const err = await onSubmit(portfolio, errors, data, (open) => {
       setModalOpen(open)
-      if (!open) refreshHoldingsSoon(mutate, portfolio.code)
+      if (!open) refreshHoldingsSoon(mutate)
     })
     if (err) setSubmitError(err)
   })
@@ -277,6 +277,7 @@ const CashInputForm: React.FC<{
       onClose={() => setModalOpen(false)}
       onSubmit={() => void submit()}
       submitLabel="Submit"
+      isSubmitting={isSubmitting}
       summary={
         isFx ? (
           <FxSummary
@@ -353,13 +354,7 @@ const CashInputForm: React.FC<{
                     id="cash-buy-account"
                     value={field.value.value}
                     options={buyOptions}
-                    onChange={(option) =>
-                      field.onChange({
-                        value: option.value,
-                        label: option.label,
-                        market: option.market ?? "CASH",
-                      })
-                    }
+                    onChange={(option) => field.onChange(fxBuyChoice(option))}
                     className={inputClass}
                   />
                 )}

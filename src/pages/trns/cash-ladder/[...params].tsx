@@ -179,6 +179,7 @@ interface TrnWithBalance extends Transaction {
 }
 
 const DEBIT_TYPES = ["BUY", "WITHDRAWAL", "REDUCE", "EXPENSE", "DEDUCTION"]
+/** Types that credit cash: the badge's green and the balance's plus sign. */
 const CREDIT_TYPES = ["SELL", "DEPOSIT", "DIVI", "INCOME"]
 
 function TypeBadge({ trnType }: { trnType: string }): React.ReactElement {
@@ -369,12 +370,9 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
         rawAmount = trn.cashAmount
       }
 
-      // Transaction types that credit cash (increase balance)
-      const creditTypes = ["DEPOSIT", "SELL", "DIVI", "INCOME"]
-
       // Enforce sign based on type (matching CashAccumulator logic)
       const amount = Math.abs(rawAmount)
-      if (creditTypes.includes(trn.trnType) || isFxBuyCredit) {
+      if (CREDIT_TYPES.includes(trn.trnType) || isFxBuyCredit) {
         return amount // Credits are positive
       }
       return -amount // Debits are negative

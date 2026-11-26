@@ -111,7 +111,7 @@ export default function SubAccountTrnEditModal({
           body.message || body.detail || "Failed to update transaction",
         )
       }
-      refreshHoldingsSoon(mutate, trn.portfolio.code)
+      refreshHoldingsSoon(mutate)
     })
   }
 

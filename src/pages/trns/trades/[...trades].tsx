@@ -219,11 +219,15 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     ? singleTrn.data.data[0]
     : singleTrn.data?.data
   const isLeg = !!isEditMode && !!trnId && isAutoSettleLeg(editTarget)
+  const settledTradeUrl = isLeg ? settledTradeKey(String(trnId)) : null
   const settledTrade = useSwr(
-    isLeg ? settledTradeKey(trnId as string) : null,
-    isLeg ? simpleFetcher(settledTradeKey(trnId as string)) : null,
+    settledTradeUrl,
+    settledTradeUrl ? simpleFetcher(settledTradeUrl) : null,
   )
   const parentTrade: Transaction | undefined = settledTrade.data?.data?.[0]
+  // Still looking for the leg's trade, or about to open it.
+  const openingTrade =
+    isLeg && !settledTrade.error && (!settledTrade.data || !!parentTrade)
   useEffect(() => {
     if (parentTrade)
       void router.replace(
@@ -398,7 +402,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         const response = await deleteTrn(transaction.id)
         if (response.ok) {
           // Invalidate holdings cache after delete (with delay for message broker)
-          refreshHoldingsSoon(mutate, transaction.portfolio.code)
+          refreshHoldingsSoon(mutate)
           router.back()
         }
       } catch (err) {
@@ -422,7 +426,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         // On unsettle the server reverts the auto-settled cash legs to PROPOSED
         // (not deleted). Invalidate holdings so the row reflects the new PROPOSED
         // status, then close.
-        refreshHoldingsSoon(mutate, transaction.portfolio.code)
+        refreshHoldingsSoon(mutate)
         router.back()
       } catch (err) {
         console.error("Error unsettling transaction:", err)
@@ -434,7 +438,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
 
     // Waiting on the trade this leg settles. When it is gone, the leg is
     // edited on its own so it can still be put right.
-    if (isLeg && !settledTrade.error) {
+    if (openingTrade) {
       return rootLoader("Opening the trade…")
     }
 

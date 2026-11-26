@@ -73,6 +73,24 @@ describe("TrnFormDialog", () => {
     expect(screen.getByTitle("Copied")).toBeInTheDocument()
   })
 
+  it("keeps a second copy's confirmation for its full time", async () => {
+    jest.useFakeTimers()
+    try {
+      renderDialog()
+      fireEvent.click(screen.getByTitle("Copy"))
+      await act(() => Promise.resolve())
+      act(() => jest.advanceTimersByTime(1500))
+      fireEvent.click(screen.getByTitle("Copied"))
+      await act(() => Promise.resolve())
+      act(() => jest.advanceTimersByTime(1000))
+      expect(screen.getByTitle("Copied")).toBeInTheDocument()
+      act(() => jest.advanceTimersByTime(1000))
+      expect(screen.getByTitle("Copy")).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   it("submits from the button bar", () => {
     const { onSubmit } = renderDialog()
     fireEvent.click(screen.getByRole("button", { name: "Submit" }))

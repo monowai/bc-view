@@ -92,6 +92,16 @@ describe("editing an auto-settle cash leg", () => {
     expect(mockRouter.replace).not.toHaveBeenCalled()
   })
 
+  it("edits the leg itself when no trade is found for it", () => {
+    serve({
+      "/api/trns/t1": { data: { data: [leg] } },
+      "/api/trns/settles/t1": { data: { data: [] } },
+    })
+    render(<Trades />)
+    expect(screen.getByText("trade form")).toBeInTheDocument()
+    expect(mockRouter.replace).not.toHaveBeenCalled()
+  })
+
   it("does not look for a trade behind an ordinary transaction", () => {
     serve({
       "/api/trns/t1": {

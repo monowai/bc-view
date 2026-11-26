@@ -1,7 +1,10 @@
 import { refreshHoldingsSoon } from "./refreshHoldings"
 import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
-import { holdingKey } from "@utils/api/fetchHelper"
-import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
+import {
+  aggregatedHoldingsTodayKey,
+  holdingByIdKey,
+  holdingKey,
+} from "@utils/api/client/holdings"
 
 jest.mock("@lib/wealth/refreshNetWorth", () => ({ refreshNetWorth: jest.fn() }))
 
@@ -9,15 +12,17 @@ describe("refreshHoldingsSoon", () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
 
-  it("refetches the portfolio, the aggregate and net worth once the write has landed", () => {
+  it("refetches every holdings view and net worth once the write has landed", () => {
     const mutate = jest.fn()
-    refreshHoldingsSoon(mutate, "PF1")
+    refreshHoldingsSoon(mutate)
     expect(mutate).not.toHaveBeenCalled()
     jest.advanceTimersByTime(1500)
-    expect(mutate.mock.calls.map((c) => c[0])).toEqual([
-      holdingKey("PF1", "today"),
-      aggregatedHoldingsTodayKey,
-    ])
+    expect(mutate).toHaveBeenCalledTimes(1)
+    const matches = mutate.mock.calls[0][0] as (key: unknown) => boolean
+    expect(matches(holdingKey("PF1", "today"))).toBe(true)
+    expect(matches(holdingByIdKey("p1", "today"))).toBe(true)
+    expect(matches(aggregatedHoldingsTodayKey)).toBe(true)
+    expect(matches("/api/trns/t1")).toBe(false)
     expect(refreshNetWorth).toHaveBeenCalledTimes(1)
   })
 })

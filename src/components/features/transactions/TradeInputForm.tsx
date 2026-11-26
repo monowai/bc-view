@@ -853,8 +853,6 @@ const TradeInputForm: React.FC<{
         transaction,
         selectedModelId,
         selectedPortfolioId,
-        portfolioChanged,
-        portfolios,
         editMode,
         mutate,
         setSubmitError,
@@ -927,10 +925,11 @@ const TradeInputForm: React.FC<{
           }
           status={<TrnStatusField control={control as any} />}
           tabs={
-            <div className="flex">
+            <div className="flex" role="tablist">
               <button
                 type="button"
-                aria-pressed={activeTab === "trade"}
+                role="tab"
+                aria-selected={activeTab === "trade"}
                 className={tabClass("trade")}
                 onClick={() => setActiveTab("trade")}
               >
@@ -939,7 +938,8 @@ const TradeInputForm: React.FC<{
               {!isSimpleAmount && !isEditMode && (
                 <button
                   type="button"
-                  aria-pressed={activeTab === "invest"}
+                  role="tab"
+                  aria-selected={activeTab === "invest"}
                   disabled={needsPrice}
                   title={needsPrice ? "Enter a price first" : undefined}
                   className={tabClass("invest", needsPrice)}
@@ -950,7 +950,8 @@ const TradeInputForm: React.FC<{
               )}
               <button
                 type="button"
-                aria-pressed={activeTab === "settlement"}
+                role="tab"
+                aria-selected={activeTab === "settlement"}
                 disabled={needsPrice}
                 title={needsPrice ? "Enter a price first" : undefined}
                 className={tabClass("settlement", needsPrice)}

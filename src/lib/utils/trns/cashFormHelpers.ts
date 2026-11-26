@@ -112,6 +112,19 @@ export const filterFxBuyOptions = (
   combinedOptions.filter((opt) => opt.currency !== sellCurrency)
 
 /**
+ * The FX buy side as the form stores it. The row it posts needs the option's
+ * currency (an account's value is its code) and market, not just its value.
+ */
+export const fxBuyChoice = (
+  option: AssetOption,
+): { value: string; label: string; currency: string; market: string } => ({
+  value: option.value,
+  label: option.label,
+  currency: option.currency ?? option.value,
+  market: option.market ?? "CASH",
+})
+
+/**
  * Build copy data from cash form values for the convert() function.
  * Adds market, forces price=1, and maps comment→comments.
  */

@@ -89,7 +89,7 @@ const renderInvestTab = (
       initialValues={initialValues as never}
     />,
   )
-  fireEvent.click(screen.getByRole("button", { name: "Invest" }))
+  fireEvent.click(screen.getByRole("tab", { name: "Invest" }))
 }
 
 const amountField = (): HTMLInputElement =>
@@ -213,7 +213,7 @@ describe("TradeInputForm — Invest tab", () => {
         weightBasisMarketValue={20000}
       />,
     )
-    fireEvent.click(screen.getByRole("button", { name: "Invest" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Invest" }))
 
     fireEvent.change(weightField(), { target: { value: "10" } })
 

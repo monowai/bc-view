@@ -223,7 +223,7 @@ export default function FxEditModal({
       await postData(trn.portfolio, false, row.split(","))
       await mutate(trnKey(trn.id))
       mutate(isProposedTrnsKey)
-      refreshHoldingsSoon(mutate, trn.portfolio.code)
+      refreshHoldingsSoon(mutate)
       onClose()
     })
   }

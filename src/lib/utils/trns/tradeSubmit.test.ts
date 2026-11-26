@@ -2,6 +2,7 @@ import { submitEditMode, submitExpense } from "./tradeSubmit"
 import { TradeFormValues } from "./tradeFormHelpers"
 import { Portfolio } from "types/beancounter"
 import { makePortfolio } from "@test-fixtures/beancounter"
+import { isHoldingsKey } from "@utils/api/client/holdings"
 
 // Mock dependencies
 jest.mock("@utils/api/client/trns", () => ({
@@ -74,8 +75,6 @@ describe("tradeSubmit", () => {
       transaction,
       selectedModelId: undefined as string | undefined,
       selectedPortfolioId: "p1",
-      portfolioChanged: false,
-      portfolios: [mockPortfolio],
       editMode: { onClose: jest.fn() },
       mutate: jest.fn().mockResolvedValue(undefined),
       setSubmitError: jest.fn(),
@@ -109,28 +108,8 @@ describe("tradeSubmit", () => {
       await submitEditMode(params)
       jest.advanceTimersByTime(1500)
 
-      expect(params.mutate).toHaveBeenCalledWith(
-        "/api/holdings/TEST?asAt=today",
-      )
-      expect(params.mutate).toHaveBeenCalledWith(
-        "/api/holdings/aggregated?asAt=today",
-      )
+      expect(params.mutate).toHaveBeenCalledWith(isHoldingsKey)
       expect(refreshNetWorth).toHaveBeenCalled()
-    })
-
-    test("mutates new portfolio on portfolio change", async () => {
-      const newPortfolio = { ...mockPortfolio, id: "p2", code: "NEW" }
-      updateTrn.mockResolvedValue({ ok: true })
-      const params = makeParams({
-        portfolioChanged: true,
-        selectedPortfolioId: "p2",
-        portfolios: [mockPortfolio, newPortfolio],
-      })
-
-      await submitEditMode(params)
-      jest.advanceTimersByTime(1500)
-
-      expect(params.mutate).toHaveBeenCalledWith("/api/holdings/NEW?asAt=today")
     })
 
     test("sets error on non-ok response", async () => {
@@ -219,12 +198,7 @@ describe("tradeSubmit", () => {
       await submitExpense(params)
       jest.advanceTimersByTime(1500)
 
-      expect(params.mutate).toHaveBeenCalledWith(
-        "/api/holdings/TEST?asAt=today",
-      )
-      expect(params.mutate).toHaveBeenCalledWith(
-        "/api/holdings/aggregated?asAt=today",
-      )
+      expect(params.mutate).toHaveBeenCalledWith(isHoldingsKey)
       expect(refreshNetWorth).toHaveBeenCalled()
     })
 

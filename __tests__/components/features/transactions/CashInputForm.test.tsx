@@ -4,6 +4,7 @@ import "@testing-library/jest-dom"
 import useSwr from "swr"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import { postFxRates } from "@utils/api/client/fx"
+import { postData } from "@components/ui/DropZone"
 import { Portfolio } from "types/beancounter"
 
 jest.mock("swr", () => ({
@@ -15,6 +16,10 @@ jest.mock("swr", () => ({
 jest.mock("@lib/formatters", () => ({
   ...jest.requireActual("@lib/formatters"),
   todayIso: () => "2026-02-03",
+}))
+
+jest.mock("@components/ui/DropZone", () => ({
+  postData: jest.fn(),
 }))
 
 jest.mock("@utils/api/client/fx", () => ({
@@ -30,9 +35,29 @@ const portfolio = {
 
 const currencies = { data: [{ code: "USD" }, { code: "EUR" }] }
 
-const renderForm = async (initialType?: string): Promise<HTMLElement> => {
+const bankAccounts = {
+  data: {
+    a1: {
+      id: "a1",
+      code: "EURBANK",
+      displayCode: "EURBANK",
+      name: "Euro Bank",
+      market: { code: "PRIVATE" },
+      accountingType: { currency: { code: "EUR" } },
+    },
+  },
+}
+
+const renderForm = async (
+  initialType?: string,
+  accounts: object = { data: {} },
+): Promise<HTMLElement> => {
   ;(useSwr as unknown as jest.Mock).mockImplementation((key: string) => ({
-    data: key.includes("currencies") ? currencies : { data: {} },
+    data: key.includes("currencies")
+      ? currencies
+      : key.includes("category=ACCOUNT")
+        ? accounts
+        : { data: {} },
     isLoading: false,
   }))
   const { container } = render(
@@ -51,6 +76,8 @@ const labelledField = (label: string): HTMLElement =>
   screen.getByText(label).parentElement as HTMLElement
 
 describe("CashInputForm", () => {
+  beforeEach(() => (postData as jest.Mock).mockReset())
+
   it("renders the cash form", async () => {
     const container = await renderForm()
     expect(container.innerHTML).toMatchSnapshot()
@@ -150,5 +177,34 @@ describe("CashInputForm", () => {
     expect(
       screen.getByText("Market rate unavailable. Enter the amount received."),
     ).toBeInTheDocument()
+  })
+
+  it("posts an exchange into an account in the account's currency", async () => {
+    ;(postData as jest.Mock).mockResolvedValue({ ok: true })
+    await renderForm("FX", bankAccounts)
+    const to = labelledField("To").querySelector("select")!
+    fireEvent.change(to, { target: { value: "EURBANK" } })
+    await act(async () => {})
+    const buy = labelledField("Buy amount").querySelector("input")!
+    fireEvent.change(buy, { target: { value: "90" } })
+    fireEvent.blur(buy)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }))
+    await act(async () => {})
+    const row: string[] = (postData as jest.Mock).mock.calls[0][2]
+    expect(row[3]).toBe("PRIVATE")
+    expect(row[4]).toBe("EURBANK")
+    expect(row[11]).toBe("EUR")
+  })
+
+  it("posts once while a submit is in flight", async () => {
+    ;(postData as jest.Mock).mockReturnValue(new Promise(() => {}))
+    await renderForm()
+    const submit = screen.getByRole("button", { name: "Submit" })
+    fireEvent.click(submit)
+    await act(async () => {})
+    fireEvent.click(submit)
+    await act(async () => {})
+    expect(postData).toHaveBeenCalledTimes(1)
   })
 })

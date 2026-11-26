@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { copyToClipboard } from "@lib/trns/formUtils"
@@ -37,10 +37,14 @@ function CopyRowButton({
 }): React.ReactElement {
   const [status, setStatus] = useState<CopyStatus>("idle")
   const state = COPY_STATE[status]
+  // One feedback timer: a fresh copy restarts it, closing the dialog drops it.
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
   const copy = async (): Promise<void> => {
     const ok = await copyToClipboard(getRow())
     setStatus(ok ? "success" : "error")
-    setTimeout(() => setStatus("idle"), COPY_FEEDBACK_MS)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setStatus("idle"), COPY_FEEDBACK_MS)
   }
   return (
     <HeaderIconButton

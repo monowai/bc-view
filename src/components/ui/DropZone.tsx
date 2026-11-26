@@ -80,7 +80,7 @@ export default function TrnDropZone({
       }
       console.log(`Sent ${rows} rows`)
       if (rows > 0) {
-        refreshHoldingsSoon(mutate, portfolio.code)
+        refreshHoldingsSoon(mutate)
       }
     },
     [portfolio, purge],
