@@ -1179,30 +1179,44 @@ describe("target weight never sizes a trade to zero shares", () => {
 })
 
 describe("rescaleCashAmount", () => {
-  it("keeps the saved cash when the amount is unchanged", () => {
-    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: -270 }, 200)).toBe(
-      -270,
-    )
+  type Saved = Parameters<typeof rescaleCashAmount>[0]
+  const sgd = (tradeAmount: number, cashAmount: number): Saved => ({
+    tradeAmount,
+    cashAmount,
+    tradeCurrency: { code: "USD" },
+    cashCurrency: "SGD",
+  })
+  const usd = (tradeAmount: number, cashAmount: number): Saved => ({
+    ...sgd(tradeAmount, cashAmount),
+    cashCurrency: "USD",
   })
 
-  it("moves a debit with the amount at the settled rate", () => {
-    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: -270 }, 300)).toBe(
-      -405,
-    )
+  it("keeps the saved cash in another currency when the amount is unchanged", () => {
+    expect(rescaleCashAmount(sgd(200, -270), 200)).toBe(-270)
   })
 
-  it("moves a credit with the amount", () => {
-    expect(rescaleCashAmount({ tradeAmount: 200, cashAmount: 200 }, 50)).toBe(
-      50,
-    )
+  it("moves cash in another currency with the amount at the settled rate", () => {
+    expect(rescaleCashAmount(sgd(200, -270), 300)).toBe(-405)
+  })
+
+  it("settles a same-currency trade for its amount", () => {
+    expect(rescaleCashAmount(usd(200, -200), 300)).toBe(-300)
+  })
+
+  it("puts right a same-currency trade saved with the wrong cash", () => {
+    expect(rescaleCashAmount(usd(400, -200), 400)).toBe(-400)
+  })
+
+  it("keeps a credit positive", () => {
+    expect(rescaleCashAmount(usd(200, 200), 50)).toBe(50)
   })
 
   it("rounds to cents", () => {
-    expect(rescaleCashAmount({ tradeAmount: 3, cashAmount: -1 }, 1)).toBe(-0.33)
+    expect(rescaleCashAmount(sgd(3, -1), 1)).toBe(-0.33)
   })
 
   it("leaves the cash to be worked out when nothing was saved", () => {
-    expect(rescaleCashAmount({ tradeAmount: 0, cashAmount: 0 }, 100)).toBe(0)
-    expect(rescaleCashAmount({ tradeAmount: 100, cashAmount: 0 }, 200)).toBe(0)
+    expect(rescaleCashAmount(sgd(0, 0), 100)).toBe(0)
+    expect(rescaleCashAmount(usd(100, 0), 200)).toBe(0)
   })
 })

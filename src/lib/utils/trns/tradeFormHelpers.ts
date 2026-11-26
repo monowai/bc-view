@@ -304,20 +304,29 @@ export interface TradeFormValues {
 }
 
 /**
- * The cash an edited trade settles for: its saved cash moved in step with the
- * trade amount, at the rate it settled at (cash per unit of trade amount). A
- * trade settled in another currency keeps its rate. With nothing saved to
- * scale from, 0 leaves the cash to be worked out from the amount.
+ * The cash an edited trade settles for. In the trade's own currency that is
+ * the trade amount, debit or credit as saved. In another currency the saved
+ * cash moves with the amount at the rate it settled at (cash per unit of trade
+ * amount), keeping the rate. With no saved cash to take the direction from, 0
+ * leaves the cash to be worked out from the amount.
  */
 export const rescaleCashAmount = (
-  saved: { tradeAmount: number; cashAmount: number },
+  saved: {
+    tradeAmount: number
+    cashAmount: number
+    tradeCurrency: { code: string }
+    cashCurrency: string
+  },
   tradeAmount: number,
 ): number => {
-  if (!saved.tradeAmount || !saved.cashAmount) return 0
+  if (!saved.cashAmount) return 0
+  const direction = Math.sign(saved.cashAmount)
+  if (saved.cashCurrency === saved.tradeCurrency.code)
+    return direction * Math.abs(tradeAmount)
+  if (!saved.tradeAmount) return 0
   if (tradeAmount === saved.tradeAmount) return saved.cashAmount
   const rate = Math.abs(saved.cashAmount / saved.tradeAmount)
-  const cash = Math.sign(saved.cashAmount) * Math.abs(tradeAmount) * rate
-  return Math.round(cash * 100) / 100
+  return Math.round(direction * Math.abs(tradeAmount) * rate * 100) / 100
 }
 
 /**

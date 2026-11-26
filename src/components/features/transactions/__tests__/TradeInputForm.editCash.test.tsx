@@ -128,6 +128,30 @@ describe("TradeInputForm — cash follows an edited amount", () => {
     expect(body.cashAmount).toBe(-540)
   })
 
+  test("a same-currency trade saved with the wrong cash is put right on save", async () => {
+    editing(
+      makeTrn({
+        trnType: "BUY",
+        portfolio,
+        quantity: 2,
+        price: 200,
+        tradeAmount: 400,
+        cashAmount: -200,
+        cashCurrency: "USD",
+        fees: 0,
+        tax: 0,
+      }),
+    )
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Comments" }), {
+      target: { value: "fix cash" },
+    })
+    save()
+
+    const body = await sentBody()
+    expect(body.cashAmount).toBe(-400)
+  })
+
   test("an edit that leaves the amount alone keeps the saved cash", async () => {
     editing(aBuy(-270, "SGD"))
 
