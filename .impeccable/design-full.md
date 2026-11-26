@@ -126,6 +126,16 @@ components:
     textColor: "#374151"
     rounded: "{rounded.sm}"
     padding: "7px 10px"
+  kpi-chip:
+    backgroundColor: "#f3f4f6"
+    textColor: "#4b5563"
+    rounded: "{rounded.full}"
+    padding: "2px 8px"
+  chart-tooltip:
+    backgroundColor: "#111827"
+    textColor: "#e5e7eb"
+    rounded: "{rounded.md}"
+    padding: "8px 12px"
   dialog-cancel:
     backgroundColor: "#d1d5db"
     textColor: "#374151"
@@ -395,6 +405,63 @@ gray-100 and darkens text and icon over 120ms, and focus adds a 2px Action
 Blue inset outline. A destructive row is Loss Red and hovers to Loss Wash.
 A 1px gray-100 rule separates groups. Disabled rows drop to half strength and
 ignore hover.
+
+### KPI Cards
+
+The stat tile for summary rows (plan verdict, FI overview, plan details).
+Unframed: no card, border or fill of its own. Tiles sit in a grid row of two
+on phones and four from `sm` up (`24px` column gap, `20px` row gap), and the
+row closes with a `1px` gray-100 rule beneath it.
+
+- **Label:** `text-xs` Muted, above the value.
+- **Value:** the tile's one loud element, `1.5rem` bold with `tabular-nums`
+  and no line-height slack, in Ink by default. A tone recolours it: positive
+  green, negative Loss Red, warning amber. Values follow the privacy toggle and
+  show the hidden-value mask when figures are hidden.
+- **Sub-label:** optional `text-xs` Muted line saying what the value means
+  ("25× annual net spend", "remaining").
+- **Chip:** optional pill (`rounded-full`, `2px 8px`, `text-xs` medium) for a
+  delta against plan, toned on the 50/700 pair of its hue, gray-100/600 when
+  neutral.
+
+Known drift, to settle in code: the value is set in DM Sans, not the Data
+face the Tabular Numerals Rule asks for, and the positive and warning tones
+use green-700 (#15803d) and amber-700 (#b45309) rather than Gain Green and
+Caution Amber.
+
+### Charts
+
+Recharts, styled from one palette (`chartPalette`) that mirrors the theme
+tokens: components take colours from it, never raw hex. Charts are quiet
+instruments: the data line carries the colour, everything else recedes.
+
+- **Series colour:** a series takes the hue of the capability it measures:
+  Wealth Blue for net worth and portfolio value, Independence Orange for
+  projections, Invest Emerald for a portfolio's own return line, with Wealth
+  Blue 600 for a benchmark overlay. Categorical charts step through Wealth,
+  Independence, Invest and gray at 500, then the same hues at 700. Gain and
+  Loss hues appear only where the value is a gain or loss.
+- **Grid:** horizontal lines only, dashed `3 3`, gray-100 on dense area
+  charts and gray-200 elsewhere. No vertical grid.
+- **Axes:** no axis line and no tick marks. Tick labels are Muted (#6b7280),
+  never lighter, at the Micro step (11px); date and value axes on the
+  performance charts set them in the Data face. Money axes use compact figures
+  (`1.2M`) and show `***` when values are hidden.
+- **Tooltip:** a dark slip, gray-900 at 95% with gray-200 text, `6px`
+  corners, `8px 12px` padding, `12px` Data face, `0 4px 12px rgb(0 0 0 / 0.15)`
+  shadow. The active point gets a 4px dot in the series hue with a 2px white
+  ring.
+- **Uncertainty:** Monte Carlo bands are the gain hue at 9% (outer) and 15%
+  (inner) opacity under a 55% median line.
+- **Size:** projection charts sit in a frame that steps with the viewport,
+  `224px` on phones, `288px` from `sm`, `320px` from `lg`, and clears a
+  stuck touch tooltip on outside taps, resize and rotate. While a lazily
+  loaded chart arrives, a placeholder of the same height holds a spinner so
+  the page does not jump.
+
+Known drift, to settle in code: the performance and price charts set tick
+labels at 10px, under the Micro floor, and the outcome bands still use the
+old Gain Green (#059669).
 
 ### Empty States
 

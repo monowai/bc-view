@@ -126,6 +126,16 @@ components:
     textColor: "#374151"
     rounded: "{rounded.sm}"
     padding: "7px 10px"
+  kpi-chip:
+    backgroundColor: "#f3f4f6"
+    textColor: "#4b5563"
+    rounded: "{rounded.full}"
+    padding: "2px 8px"
+  chart-tooltip:
+    backgroundColor: "#111827"
+    textColor: "#e5e7eb"
+    rounded: "{rounded.md}"
+    padding: "8px 12px"
   dialog-cancel:
     backgroundColor: "#d1d5db"
     textColor: "#374151"
