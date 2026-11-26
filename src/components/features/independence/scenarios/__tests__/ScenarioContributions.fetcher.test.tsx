@@ -97,6 +97,18 @@ describe("ScenarioContributions — SWR fetcher wiring", () => {
     })
   })
 
+  it("asks for the CPF preview in the scenario's currency", async () => {
+    // svc-retire restates CPF's SGD limits in the salary's currency (svc-retire #348).
+    renderInFreshSwrCache()
+    await waitFor(() => {
+      expect(
+        (simpleFetcher as jest.Mock).mock.calls.map((c) => c[0]),
+      ).toContain(
+        "/api/independence/cpf/contribution-preview?monthlySalary=6250&age=45&currency=SGD",
+      )
+    })
+  })
+
   it("renders the pension asset when the configs SWR resolves with isPension=true", async () => {
     renderInFreshSwrCache()
     await waitFor(() => {

@@ -227,6 +227,7 @@ export default function ContributionsStep({
   const { data: dcData } = useDefinedContribution(
     workingIncomeMonthly,
     currentAge,
+    planCurrency,
   )
   const [useDC, setUseDC] = useState(true)
   const dcAmount =

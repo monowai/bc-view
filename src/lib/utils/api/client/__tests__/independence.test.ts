@@ -62,11 +62,11 @@ describe("independence api keys", () => {
     expect(monteCarloUrl("p1")).toBe(
       "/api/independence/projection/p1/monte-carlo",
     )
-    expect(definedContributionKey(5000, 40)).toBe(
-      "/api/independence/projection/defined-contribution?salary=5000&age=40",
+    expect(definedContributionKey(5000, 40, "NZD")).toBe(
+      "/api/independence/projection/defined-contribution?salary=5000&age=40&currency=NZD",
     )
-    expect(cpfContributionPreviewKey(6250, 45)).toBe(
-      "/api/independence/cpf/contribution-preview?monthlySalary=6250&age=45",
+    expect(cpfContributionPreviewKey(6250, 45, "NZD")).toBe(
+      "/api/independence/cpf/contribution-preview?monthlySalary=6250&age=45&currency=NZD",
     )
     expect(cpfBalanceSeriesUrl).toBe("/api/independence/cpf/balance-series")
     expect(cpfPolicyBalanceSeriesUrl).toBe(

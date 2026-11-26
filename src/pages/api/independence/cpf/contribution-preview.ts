@@ -1,5 +1,6 @@
 import { createApiHandler } from "@utils/api/createApiHandler"
 import { getRetireUrl } from "@utils/api/bcConfig"
+import { CPF_CURRENCY } from "@utils/independence/cpf"
 
 // Next.js req.query values are string | string[] | undefined. Forwarding the
 // raw value to encodeURIComponent collapses arrays to "v1,v2" and undefined
@@ -15,8 +16,9 @@ export default createApiHandler({
   url: (req) => {
     const monthlySalary = asScalar(req.query.monthlySalary)
     const age = asScalar(req.query.age)
+    const currency = asScalar(req.query.currency) || CPF_CURRENCY
     return getRetireUrl(
-      `/cpf/contribution-preview?monthlySalary=${encodeURIComponent(monthlySalary)}&age=${encodeURIComponent(age)}`,
+      `/cpf/contribution-preview?monthlySalary=${encodeURIComponent(monthlySalary)}&age=${encodeURIComponent(age)}&currency=${encodeURIComponent(currency)}`,
     )
   },
   methods: ["GET"],
