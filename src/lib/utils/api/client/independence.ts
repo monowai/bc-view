@@ -50,19 +50,26 @@ export const projectionKey = (planId: string): string =>
   `${base}/projection/${planId}`
 export const monteCarloUrl = (planId: string): string =>
   `${projectionKey(planId)}/monte-carlo`
-export const definedContributionKey = (salary: number, age: number): string =>
-  `${base}/projection/defined-contribution?salary=${salary}&age=${age}`
+/** [currency] is the salary's: svc-retire restates CPF's SGD limits in it. */
+export const definedContributionKey = (
+  salary: number,
+  age: number,
+  currency: string,
+): string =>
+  `${base}/projection/defined-contribution?salary=${salary}&age=${age}&currency=${encodeURIComponent(currency)}`
 export const compositeProjectionUrl = `${base}/composite/projection`
 export const compositeScenariosUrl = `${base}/composite/scenarios`
 export const compositeMonteCarloUrl = `${base}/composite/monte-carlo`
 export const lumpSumProjectionUrl = "/api/projection/lump-sum"
 
 // CPF
+/** [currency] is the salary's: svc-retire restates CPF's SGD limits in it. */
 export const cpfContributionPreviewKey = (
   monthlySalary: number,
   age: number,
+  currency: string,
 ): string =>
-  `${base}/cpf/contribution-preview?monthlySalary=${monthlySalary}&age=${age}`
+  `${base}/cpf/contribution-preview?monthlySalary=${monthlySalary}&age=${age}&currency=${encodeURIComponent(currency)}`
 /** Base URL; the caller appends the query string. */
 export const cpfBalanceSeriesUrl = `${base}/cpf/balance-series`
 /** Base URL; the caller appends the query string. */

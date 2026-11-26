@@ -23,12 +23,13 @@ export interface DefinedContributionResponse {
 }
 
 /**
- * Fetches the auto-calculated defined contribution (e.g., CPF) for a given salary and age.
- * Only fetches when salary > 0 and age is defined.
+ * Fetches the auto-calculated defined contribution (e.g., CPF) for a given salary,
+ * in [currency], and age. Only fetches when salary > 0 and age is defined.
  */
 export function useDefinedContribution(
   salary: number,
   age: number | undefined,
+  currency: string,
 ): {
   data: DefinedContributionResponse | undefined
   isLoading: boolean
@@ -36,7 +37,9 @@ export function useDefinedContribution(
 } {
   const shouldFetch = salary > 0 && age != null && age > 0
 
-  const url = shouldFetch ? definedContributionKey(salary, age as number) : null
+  const url = shouldFetch
+    ? definedContributionKey(salary, age as number, currency)
+    : null
 
   // keepPreviousData: the salary is in the URL, so every keystroke is a new SWR
   // key. Without this, `data` blips to undefined between keys and any

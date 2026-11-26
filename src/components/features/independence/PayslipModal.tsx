@@ -35,6 +35,7 @@ import { aggregatedHoldingsTodayKey } from "@utils/api/client/holdings"
 import { refreshNetWorth } from "@lib/wealth/refreshNetWorth"
 import { updateMe } from "@utils/api/client/account"
 import { readServerMessage } from "@utils/api/client/request"
+import { CPF_CURRENCY } from "@utils/independence/cpf"
 import {
   recurringPayslipKey,
   RecurringPayslipResponse,
@@ -277,26 +278,6 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     return new Date().getFullYear() - yob
   }, [preferences?.yearOfBirth])
 
-  const grossNum = parseNum(grossSalary)
-  const { data: dc } = useDefinedContribution(
-    hasCpfAsset ? grossNum : 0,
-    hasCpfAsset ? currentAge : undefined,
-  )
-
-  // Show the pension box whenever the user has a CPF contribution plan — on
-  // open, before any gross is typed, not gated on the live recompute's verdict.
-  // The plan's existence (the CPF asset) is the signal; the per-bucket and
-  // total figures fill in once a gross is entered and `dc` resolves. Paired
-  // with `keepPreviousData` in useDefinedContribution, the box stays mounted
-  // across keystrokes (no flash).
-  const showPension = hasCpfAsset
-
-  // Effective buckets = computed amount unless the user overrode it.
-  const effectiveBuckets: DefinedContributionBucket[] = useMemo(
-    () => applyBucketOverrides(dc?.buckets, bucketOverrides),
-    [dc?.buckets, bucketOverrides],
-  )
-
   // Best "Pay into" match for the user's reporting currency. Preference order
   // mirrors the dropdown: private accounts (bank, then brokerage) before a
   // generic currency balance. Never hardcode USD — fall back to the user's
@@ -314,6 +295,33 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   // default. Derived (not effect-set) so the React Compiler is happy and the
   // default appears the moment the account lists load.
   const effectiveCashAssetId = cashAssetId || preferredCashAssetId
+
+  // CPF is paid in SGD: only pay into an SGD account is a CPF payslip.
+  const payCurrency = [...accountOptions, ...cashOptions].find(
+    (o) => o.value === effectiveCashAssetId,
+  )?.currency
+  const cpfApplies = hasCpfAsset && payCurrency === CPF_CURRENCY
+
+  const grossNum = parseNum(grossSalary)
+  const { data: dc } = useDefinedContribution(
+    cpfApplies ? grossNum : 0,
+    cpfApplies ? currentAge : undefined,
+    CPF_CURRENCY,
+  )
+
+  // Show the pension box whenever CPF applies — on open, before any gross is
+  // typed, not gated on the live recompute's verdict. The plan's existence
+  // (the CPF asset) and an SGD pay account are the signal; the per-bucket and
+  // total figures fill in once a gross is entered and `dc` resolves. Paired
+  // with `keepPreviousData` in useDefinedContribution, the box stays mounted
+  // across keystrokes (no flash).
+  const showPension = cpfApplies
+
+  // Effective buckets = computed amount unless the user overrode it.
+  const effectiveBuckets: DefinedContributionBucket[] = useMemo(
+    () => applyBucketOverrides(dc?.buckets, bucketOverrides),
+    [dc?.buckets, bucketOverrides],
+  )
 
   // Zen mode: a single portfolio means nothing to choose — hide the selector
   // and auto-target that portfolio. Master mode shows the picker. Both the
@@ -565,7 +573,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         />
         {editingRepeat ? (
           <p className="mt-1 text-xs text-gray-500">
-            {hasCpfAsset
+            {cpfApplies
               ? "Next payslip date. CPF is recalculated from the gross each month."
               : "Next payslip date."}
           </p>
@@ -579,7 +587,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
             />
             <span>
               {repeatLabel(payDate)}
-              {repeat && hasCpfAsset && (
+              {repeat && cpfApplies && (
                 <span className="block text-xs text-gray-500">
                   {"CPF is recalculated from the gross each month."}
                 </span>

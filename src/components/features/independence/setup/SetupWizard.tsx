@@ -56,6 +56,7 @@ const DEFAULT_TARGET_AGE = "65"
  */
 export default function SetupWizard(): React.ReactElement {
   const { preferences } = useUserPreferences()
+  const currency = preferences?.baseCurrencyCode ?? "USD"
   const { settings } = useIndependenceSettings()
   const [step, setStep] = useState(1)
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
@@ -84,6 +85,7 @@ export default function SetupWizard(): React.ReactElement {
   const { data: definedContribution } = useDefinedContribution(
     workingIncomeMonthly,
     currentAgeFromSettings(settings),
+    currency,
   )
   const definedContributionMonthly = definedContribution?.hasDefinedContribution
     ? definedContribution.employeeContribution
@@ -125,8 +127,6 @@ export default function SetupWizard(): React.ReactElement {
       })
       .catch(() => undefined)
   }, [])
-
-  const currency = preferences?.baseCurrencyCode ?? "USD"
 
   /** Returns the reason the write was refused, or null when it succeeded. */
   const saveWorkScenario = async (): Promise<string | null> => {

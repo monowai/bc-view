@@ -95,7 +95,7 @@ export default function ScenarioContributions({
   // is at the scenario level, so the figure is the same for each asset.
   const previewKey =
     monthlySalary && monthlySalary > 0 && currentAge && currentAge > 0
-      ? cpfContributionPreviewKey(monthlySalary, currentAge)
+      ? cpfContributionPreviewKey(monthlySalary, currentAge, currency)
       : null
   const { data: previewResp } = useSWR<CpfPreviewResponse>(
     previewKey,

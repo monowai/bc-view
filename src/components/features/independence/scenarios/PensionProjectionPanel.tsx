@@ -76,7 +76,10 @@ export default function PensionProjectionPanel({
       (scenarioAnnualOverride !== undefined
         ? `&annualContributionOverride=${scenarioAnnualOverride}`
         : "") +
-      (cpfLifePlan ? `&cpfLifePlan=${cpfLifePlan}` : "")
+      (cpfLifePlan ? `&cpfLifePlan=${cpfLifePlan}` : "") +
+      // Balances and pay are in the asset's currency; svc-retire restates
+      // CPF's SGD limits in it.
+      `&currency=${encodeURIComponent(currency)}`
     : null
 
   // Same semantics as the query-string above: an explicit 0 override means

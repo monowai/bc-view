@@ -337,6 +337,19 @@ describe("PayslipModal", () => {
     expect(screen.queryByTestId("pension-total")).not.toBeInTheDocument()
   })
 
+  it("hides the pension section when pay goes into a non-SGD account", () => {
+    // CPF is paid in SGD: pay into a USD account carries no CPF.
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(screen.getByTestId("pension-section")).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText("Pay into"), {
+      target: { value: "wise-usd" },
+    })
+
+    expect(screen.queryByTestId("pension-section")).not.toBeInTheDocument()
+  })
+
   it("hides the pension section when there is no CPF asset", () => {
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(screen.queryByTestId("pension-section")).not.toBeInTheDocument()
