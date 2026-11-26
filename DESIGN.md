@@ -12,6 +12,7 @@ colors:
   muted: "#6b7280"
   faint: "#9ca3af"
   border: "#e5e7eb"
+  field-border: "#d1d5db"
   wealth: "#3b82f6"
   independence: "#f97316"
   invest: "#10b981"
@@ -112,10 +113,19 @@ components:
     rounded: "{rounded.lg}"
     padding: "16px"
   dialog-confirm:
-    backgroundColor: "#22c55e"
+    backgroundColor: "#16a34a"
     textColor: "{colors.primary-fg}"
     rounded: "{rounded.sm}"
     padding: "8px 16px"
+  menu-panel:
+    backgroundColor: "{colors.surface}"
+    textColor: "#1f2937"
+    rounded: "{rounded.lg}"
+    padding: "4px"
+  menu-row:
+    textColor: "#374151"
+    rounded: "{rounded.sm}"
+    padding: "7px 10px"
   dialog-cancel:
     backgroundColor: "#d1d5db"
     textColor: "#374151"

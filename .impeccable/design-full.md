@@ -12,6 +12,7 @@ colors:
   muted: "#6b7280"
   faint: "#9ca3af"
   border: "#e5e7eb"
+  field-border: "#d1d5db"
   wealth: "#3b82f6"
   independence: "#f97316"
   invest: "#10b981"
@@ -112,10 +113,19 @@ components:
     rounded: "{rounded.lg}"
     padding: "16px"
   dialog-confirm:
-    backgroundColor: "#22c55e"
+    backgroundColor: "#16a34a"
     textColor: "{colors.primary-fg}"
     rounded: "{rounded.sm}"
     padding: "8px 16px"
+  menu-panel:
+    backgroundColor: "{colors.surface}"
+    textColor: "#1f2937"
+    rounded: "{rounded.lg}"
+    padding: "4px"
+  menu-row:
+    textColor: "#374151"
+    rounded: "{rounded.sm}"
+    padding: "7px 10px"
   dialog-cancel:
     backgroundColor: "#d1d5db"
     textColor: "#374151"
@@ -172,6 +182,11 @@ something.
   On dark surfaces it lightens to #3b82f6 / #60a5fa for contrast. Used on ≤ one
   prominent action per region.
 
+Dark mode exists as an opt-in `dark` class on `<html>`: the primary overrides
+above, dark menus, and `dark:` variants on a handful of Independence and
+holdings components. No switch turns it on yet, so design light-first and add
+`dark:` variants only beside components that already carry them.
+
 ### Secondary — Capability Domains
 
 Each product domain owns a hue so the user always knows which world a screen
@@ -198,7 +213,9 @@ belongs to. Used for headers, chart series, and domain accents — not buttons.
 - **Ink** (#111827, gray-900): primary text and figures.
 - **Muted** (#6b7280, gray-500): secondary labels, captions — the floor for body text.
 - **Faint** (#9ca3af, gray-400): tertiary hints, empty-state descriptions, disabled.
-- **Border** (#e5e7eb, gray-200): dividers, card and input strokes, table lines.
+- **Border** (#e5e7eb, gray-200): dividers, card strokes, table lines.
+- **Field Edge** (#d1d5db, gray-300): input and select strokes, one step darker
+  than Border so a field reads as a place to type rather than a panel.
 
 **The Status-Only Color Rule.** Color carries meaning or it does not appear.
 Gain/loss hues, capability hues, and the one Action Blue are the entire
@@ -286,7 +303,8 @@ ambient decoration on a resting card.
   resting shadow; lives on `.btn-primary` to lift the single CTA off the
   surface.
 - **Transient lift** (`box-shadow: 0 2px 10px rgb(0 0 0 / 0.1)`): flyout menus
-  and toasts that float above content while active.
+  and toasts that float above content while active. Menus pair it with a
+  hairline ring (`0 0 0 1px rgb(17 24 39 / 0.07)`) in place of a border.
 - **Overlay** (`box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)`):
   dialogs, above a 50% black scrim.
 
@@ -333,7 +351,7 @@ A one-off corner reads as a different product.
 
 ### Inputs / Fields
 
-- **Style:** White fill, `1px #e5e7eb` border, `rounded-md` (6px), fixed `40px`
+- **Style:** White fill, `1px` Field Edge (#d1d5db) border, `rounded-md` (6px), fixed `40px`
   height (`.input-height`) so text inputs line up with `react-select` controls.
 - **Focus:** Border shifts to Action Blue with a soft ring; 150ms.
 - **Numeric inputs:** `MathInput` is the standard money and quantity field. It
@@ -360,10 +378,23 @@ and `16px` padding throughout. Widths step from `max-w-sm` to `max-w-5xl` by
 task; long content scrolls inside the body while the title and buttons stay
 put (`max-h 90vh`). The title slot may carry the dialog's context, such as a
 month stepper. The button bar is right-aligned: a gray Cancel or Close
-(#d1d5db fill, #374151 text) and a filled confirm, green by default, red for
+(#d1d5db fill, #374151 text) and a filled confirm, green by default (#16a34a, deepening to #15803d on
+hover), red for
 destructive actions, blue or amber where the task calls for it. Confirm
 buttons show a spinner and a "…ing" label while saving and fall back to gray
 when disabled.
+
+### Menus
+
+One menu vocabulary for every flyout: account, row actions, "more" buttons.
+A white `8px` panel with `4px` inner padding, edged by the hairline ring plus
+Transient lift, entering in 180ms from 4px above at 98% scale on a fast
+ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`). Rows are full-width `text-sm`
+gray-700 with a 16px gray-400 icon slot; hover or keyboard focus fills the row
+gray-100 and darkens text and icon over 120ms, and focus adds a 2px Action
+Blue inset outline. A destructive row is Loss Red and hovers to Loss Wash.
+A 1px gray-100 rule separates groups. Disabled rows drop to half strength and
+ignore hover.
 
 ### Empty States
 
