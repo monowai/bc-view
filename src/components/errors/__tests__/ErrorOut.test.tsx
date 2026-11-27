@@ -63,6 +63,22 @@ describe("ErrorOut Component (TDD)", () => {
       expect(screen.queryByText(/yarn start/)).toBeNull()
     })
 
+    it("should show maintenance when type is backend without auto-detect", () => {
+      render(
+        <ErrorOut
+          message="Error retrieving holdings abc123"
+          error={new Error("boom")}
+          type="backend"
+          autoDetect={false}
+        />,
+      )
+
+      expect(
+        screen.getByText(/try again in a few minutes/i),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Error retrieving holdings/)).toBeNull()
+    })
+
     it("should show different icon for auth errors", () => {
       const error = { response: { status: 401 } }
       render(<ErrorOut error={error} autoDetect={true} />)

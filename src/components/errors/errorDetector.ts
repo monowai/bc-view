@@ -5,6 +5,9 @@
 export type ErrorType =
   "auth" | "backend" | "network" | "404" | "500" | "generic"
 
+export const MAINTENANCE_MESSAGE =
+  "We're making some updates. Please try again in a few minutes."
+
 export interface DetectedError {
   type: ErrorType
   title: string

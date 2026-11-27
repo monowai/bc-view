@@ -199,17 +199,17 @@ test.describe("Holdings View", () => {
       await page.goto(PAGES.holdings(portfolio.code))
       await page.waitForLoadState("domcontentloaded")
 
-      // Should show a meaningful state: empty portfolio, retrieval error, or service unavailable
+      // Should show a meaningful state: empty portfolio, retrieval error, or maintenance
       // (all are acceptable — the key is the app doesn't crash or show a blank screen)
       const emptyState = page.locator(`text=No holdings for ${portfolio.code}`)
       const retrievalError = page.locator(
         `text=Error retrieving holdings ${portfolio.code}`,
       )
-      const serviceUnavailable = page.locator("text=Service Unavailable")
+      const maintenance = page.locator("text=Down for Maintenance")
 
       // Longer timeout allows SWR to fetch and resolve holdings data
       await expect(
-        emptyState.or(retrievalError).or(serviceUnavailable).first(),
+        emptyState.or(retrievalError).or(maintenance).first(),
       ).toBeVisible({
         timeout: 30000,
       })

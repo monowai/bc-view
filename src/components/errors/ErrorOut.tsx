@@ -1,6 +1,10 @@
 import React, { ReactElement, useState } from "react"
 import { useRouter } from "next/router"
-import { detectErrorType, ErrorType } from "./errorDetector"
+import {
+  detectErrorType,
+  ErrorType,
+  MAINTENANCE_MESSAGE,
+} from "./errorDetector"
 
 export interface ErrorOutProps {
   message?: string
@@ -40,10 +44,9 @@ export default function ErrorOut({
   const errorTitle = detectedError?.title || "An Error Occurred"
   // Maintenance needs no context from the caller: what failed is noise.
   const errorMessage =
-    (errorType === "backend" && detectedError?.message) ||
-    message ||
-    detectedError?.message ||
-    "An unexpected error occurred"
+    errorType === "backend"
+      ? MAINTENANCE_MESSAGE
+      : message || detectedError?.message || "An unexpected error occurred"
   const suggestedAction = detectedError?.suggestedAction
   const canRetry =
     detectedError?.canRetry !== undefined ? detectedError.canRetry : true
