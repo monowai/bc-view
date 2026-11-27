@@ -6,3 +6,5 @@ build
 tsconfig.tsbuildinfo
 *.snap
 .claude/
+DESIGN.md
+.impeccable/
