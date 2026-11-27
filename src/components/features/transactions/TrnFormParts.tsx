@@ -314,19 +314,34 @@ export function BrokerAccountField<T extends FieldValues>({
 /**
  * The portfolio a transaction lands in, chosen on the context line under the
  * title. A note says when it differs from where the form was opened.
+ *
+ * The list holds only the user's own portfolios. When the form opened on one
+ * outside it (a portfolio they manage for someone else, or the list is still
+ * loading), a select would show its first option instead, so the opened
+ * portfolio is shown as a label and stays where it is.
  */
 export function PortfolioSwitch({
   portfolios,
+  opened,
   value,
   onChange,
   changedNote,
 }: {
   portfolios: Portfolio[]
+  /** The portfolio the form opened on. */
+  opened: Portfolio
   value: string
   onChange: (portfolioId: string) => void
   /** Shown when the choice differs from the portfolio the form opened on. */
   changedNote?: string
 }): React.ReactElement {
+  if (!portfolios.some((p) => p.id === opened.id)) {
+    return (
+      <span>
+        {opened.code} · {opened.name}
+      </span>
+    )
+  }
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
       <select

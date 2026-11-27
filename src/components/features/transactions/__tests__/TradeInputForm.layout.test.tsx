@@ -57,10 +57,18 @@ jest.mock("@components/features/assets/AssetSearch", () => ({
   default: () => <input aria-label="Asset" readOnly />,
 }))
 
-const renderForm = (): void => {
+const managed = makePortfolio({
+  id: "m1",
+  code: "MGD",
+  name: "Managed",
+  currency: USD,
+  base: USD,
+})
+
+const renderForm = (opened = portfolio): void => {
   render(
     <TradeInputForm
-      portfolio={portfolio}
+      portfolio={opened}
       modalOpen={true}
       setModalOpen={jest.fn()}
       initialValues={
@@ -93,6 +101,17 @@ describe("TradeInputForm: layout", () => {
       target: { value: "p2" },
     })
     expect(screen.getByText("Different from current portfolio")).toBeVisible()
+  })
+
+  // The list holds only the user's own portfolios. A portfolio they manage for
+  // someone else is not in it, and a select would show the first option while
+  // the trade still lands in the managed one.
+  test("a portfolio missing from the list is shown, not switched", () => {
+    renderForm(managed)
+    expect(
+      screen.queryByRole("combobox", { name: "Portfolio" }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("MGD · Managed")).toBeVisible()
   })
 
   // The trade tab is where the trade is described, so its note sits there too.

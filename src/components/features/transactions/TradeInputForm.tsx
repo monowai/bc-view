@@ -237,8 +237,8 @@ const TradeInputForm: React.FC<{
   )
 
   // Check if portfolio changed from initial
-  const portfolioChanged =
-    selectedPortfolioId !== (transaction?.portfolio.id || portfolio.id)
+  const openedPortfolio = transaction?.portfolio || portfolio
+  const portfolioChanged = selectedPortfolioId !== openedPortfolio.id
 
   // Check if model changed from initial value (edit mode)
   const modelChanged =
@@ -920,6 +920,7 @@ const TradeInputForm: React.FC<{
               {showPortfolioPicker(portfolios, preferences) ? (
                 <PortfolioSwitch
                   portfolios={portfolios}
+                  opened={openedPortfolio}
                   value={selectedPortfolioId}
                   onChange={setSelectedPortfolioId}
                   changedNote={
@@ -931,7 +932,7 @@ const TradeInputForm: React.FC<{
                   }
                 />
               ) : (
-                !isEditMode && `${portfolio.code} · ${portfolio.name}`
+                `${openedPortfolio.code} · ${openedPortfolio.name}`
               )}
             </>
           }
