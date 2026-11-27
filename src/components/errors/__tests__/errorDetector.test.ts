@@ -142,7 +142,7 @@ describe("Error Detector (TDD)", () => {
 
       expect(result.type).toBe("backend")
       expect(result.type).not.toBe("auth")
-      expect(result.title).toBe("Service Unavailable")
+      expect(result.title).toBe("Down for Maintenance")
       expect(result.canRetry).toBe(true)
     })
 
@@ -161,9 +161,10 @@ describe("Error Detector (TDD)", () => {
       const result = detectErrorType(error)
 
       expect(result.type).toBe("backend")
-      expect(result.title).toBe("Service Unavailable")
+      expect(result.title).toBe("Down for Maintenance")
+      expect(result.message).toMatch(/try again in a few minutes/i)
       expect(result.canRetry).toBe(true)
-      expect(result.suggestedAction).toContain("backend service")
+      expect(result.suggestedAction).toBeUndefined()
     })
 
     it("should detect and categorize 404 error", () => {
@@ -182,6 +183,7 @@ describe("Error Detector (TDD)", () => {
       expect(result.type).toBe("500")
       expect(result.title).toBe("Server Error")
       expect(result.canRetry).toBe(true)
+      expect(result.suggestedAction).toBeUndefined()
     })
 
     it("should detect network errors", () => {

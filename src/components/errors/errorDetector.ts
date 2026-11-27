@@ -5,6 +5,9 @@
 export type ErrorType =
   "auth" | "backend" | "network" | "404" | "500" | "generic"
 
+export const MAINTENANCE_MESSAGE =
+  "We're making some updates. Please try again in a few minutes."
+
 export interface DetectedError {
   type: ErrorType
   title: string
@@ -137,11 +140,8 @@ export function detectErrorType(error: Error | any): DetectedError {
     return {
       type: "500",
       title: "Server Error",
-      message:
-        "An internal server error occurred. The backend service may be experiencing issues.",
+      message: "Something went wrong on our side. Please try again.",
       canRetry: true,
-      suggestedAction:
-        "Please check if the backend service is running and try again. If the problem persists, contact your system administrator.",
     }
   }
 
@@ -149,12 +149,9 @@ export function detectErrorType(error: Error | any): DetectedError {
   if (isBackendError(error)) {
     return {
       type: "backend",
-      title: "Service Unavailable",
-      message:
-        "Unable to connect to the backend service. The server may be offline or experiencing issues.",
+      title: "Down for Maintenance",
+      message: "We're making some updates. Please try again in a few minutes.",
       canRetry: true,
-      suggestedAction:
-        "Please ensure the backend service is running. Try starting it with 'yarn start' or contact your system administrator.",
     }
   }
 

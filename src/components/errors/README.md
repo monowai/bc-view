@@ -121,10 +121,9 @@ const error = { response: { status: 401 } }
 **Display:**
 
 - Orange server icon
-- "Service Unavailable" title
+- "Down for Maintenance" title; the usual cause is a deployment rolling out
 - Retry button
-- Helpful tip about starting the backend service
-- Suggested action: "Please ensure the backend service is running"
+- No tip, and the caller's `message` is not shown
 
 **Example:**
 
