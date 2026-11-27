@@ -32,30 +32,35 @@ describe("ErrorOut Component (TDD)", () => {
       ).not.toBeInTheDocument()
     })
 
-    it("should auto-detect and display backend unavailable errors", () => {
+    it("should show maintenance for backend unavailable errors", () => {
       const error = { code: "ECONNREFUSED", message: "Connection refused" }
 
       render(<ErrorOut error={error} autoDetect={true} />)
 
-      expect(screen.getByText("Service Unavailable")).toBeInTheDocument()
+      expect(screen.getByText("Down for Maintenance")).toBeInTheDocument()
       expect(
-        screen.getByText(/unable to connect to the backend service/i),
+        screen.getByText(/try again in a few minutes/i),
       ).toBeInTheDocument()
-      // Should show retry for backend errors
       expect(
         screen.getByRole("button", { name: /try again/i }),
       ).toBeInTheDocument()
     })
 
-    it("should show suggested action for backend errors", () => {
-      const error = { code: "ECONNREFUSED", message: "Connection refused" }
+    it("should hide the caller message and dev tip during maintenance", () => {
+      const error = { response: { status: 503 } }
 
-      render(<ErrorOut error={error} autoDetect={true} />)
+      render(
+        <ErrorOut
+          message="Error retrieving holdings abc123"
+          error={error}
+          autoDetect={true}
+        />,
+      )
 
-      expect(screen.getByText(/Tip:/i)).toBeInTheDocument()
-      expect(
-        screen.getByText(/backend service is running/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText("Down for Maintenance")).toBeInTheDocument()
+      expect(screen.queryByText(/Error retrieving holdings/)).toBeNull()
+      expect(screen.queryByText(/Tip:/i)).toBeNull()
+      expect(screen.queryByText(/yarn start/)).toBeNull()
     })
 
     it("should show different icon for auth errors", () => {
